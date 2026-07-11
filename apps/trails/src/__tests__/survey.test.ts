@@ -36,9 +36,9 @@ import {
   TOPO_GRAPH_SCHEMA_VERSION,
   writeTopoGraph,
   writeTrailsLock,
+  loadWayfinderArtifacts,
 } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
-import { loadWayfinderArtifacts } from '@ontrails/wayfinder';
 import { z } from 'zod';
 
 import {

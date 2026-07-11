@@ -108,7 +108,6 @@
         "@ontrails/topographer": "workspace:^",
         "@ontrails/tracing": "workspace:^",
         "@ontrails/warden": "workspace:^",
-        "@ontrails/wayfinder": "workspace:^",
         "commander": "catalog:",
         "typescript": "^5.9.3",
         "zod": "catalog:",
@@ -408,6 +407,9 @@
     "packages/topographer": {
       "name": "@ontrails/topographer",
       "version": "1.0.0-beta.39",
+      "dependencies": {
+        "@ontrails/adapter-kit": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -446,18 +448,6 @@
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "@ontrails/topographer": "workspace:^",
-      },
-    },
-    "packages/wayfinder": {
-      "name": "@ontrails/wayfinder",
-      "version": "1.0.0-beta.39",
-      "dependencies": {
-        "@ontrails/adapter-kit": "workspace:^",
-      },
-      "peerDependencies": {
-        "@ontrails/core": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
-        "zod": "catalog:",
       },
     },
   },
@@ -673,8 +663,6 @@
     "@ontrails/vite": ["@ontrails/vite@workspace:adapters/vite"],
 
     "@ontrails/warden": ["@ontrails/warden@workspace:packages/warden"],
-
-    "@ontrails/wayfinder": ["@ontrails/wayfinder@workspace:packages/wayfinder"],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.121.0", "", { "os": "android", "cpu": "arm" }, "sha512-n07FQcySwOlzap424/PLMtOkbS7xOu8nsJduKL8P3COGHKgKoDYXwoAHCbChfgFpHnviehrLWIPX0lKGtbEk/A=="],
 

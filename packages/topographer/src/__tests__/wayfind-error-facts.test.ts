@@ -11,7 +11,7 @@ import {
 } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 
-import { deriveTrailErrorFacts } from '../error-facts.js';
+import { deriveTrailErrorFacts } from '../index.js';
 
 const findTrailFacts = (
   facts: ReturnType<typeof deriveTrailErrorFacts>,

@@ -6,7 +6,6 @@
 '@ontrails/topographer': minor
 '@ontrails/trails': minor
 '@ontrails/warden': minor
-'@ontrails/wayfinder': minor
 ---
 
 Complete the v1 hard cutover from the `contour` domain-object declaration

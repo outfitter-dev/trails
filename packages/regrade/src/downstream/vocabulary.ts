@@ -336,6 +336,9 @@ const isPackageRouteCodeOccurrence = (path: string, form: string): boolean =>
   packageRouteCodeExtensions.has(extname(path)) &&
   /^@[^/]+\/[^/]+(?:\/.*)?$/.test(form);
 
+const isPackageManifestPath = (path: string): boolean =>
+  path === 'package.json' || path.endsWith('/package.json');
+
 const sourceLineBoundsForOffset = (
   source: string,
   start: number,
@@ -947,8 +950,18 @@ const occurrencesForFile = (
         preserveRule,
         markdownCodeContext
       );
-      if (preserveRule === undefined && packageRouteCodeContext) {
+      const packageManifestContext = isPackageManifestPath(file.path);
+      if (
+        preserveRule === undefined &&
+        (packageRouteCodeContext || packageManifestContext)
+      ) {
         verdict = 'deferred';
+      }
+      let capturedReason = 'captured-form';
+      if (packageRouteCodeContext) {
+        capturedReason = 'package-route-ast-required';
+      } else if (packageManifestContext) {
+        capturedReason = 'package-manifest-structured-edit-required';
       }
       candidates.push({
         absolutePath: baseOccurrence.absolutePath,
@@ -966,13 +979,12 @@ const occurrencesForFile = (
         reason: vocabularyOccurrenceReason(
           preserveRule,
           markdownCodeContext,
-          packageRouteCodeContext
-            ? 'package-route-ast-required'
-            : 'captured-form'
+          capturedReason
         ),
         ...(preserveRule === undefined &&
         !markdownCodeContext &&
-        !packageRouteCodeContext
+        !packageRouteCodeContext &&
+        !packageManifestContext
           ? { replacement: preserveCase(match[0], replacement) }
           : {}),
         start: baseOccurrence.start,

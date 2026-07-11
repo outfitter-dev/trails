@@ -1,5 +1,4 @@
 ---
-"@ontrails/wayfinder": patch
 "@ontrails/trails": patch
 ---
 

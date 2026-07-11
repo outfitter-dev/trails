@@ -1,7 +1,6 @@
 ---
 "@ontrails/trails": patch
 "@ontrails/warden": patch
-"@ontrails/wayfinder": patch
 "@ontrails/commander": patch
 ---
 

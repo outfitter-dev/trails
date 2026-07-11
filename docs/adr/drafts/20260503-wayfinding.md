@@ -3,7 +3,7 @@ slug: wayfinding
 title: Wayfinding
 status: draft
 created: 2026-05-03
-updated: 2026-06-18
+updated: 2026-07-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17, 27, 37, 42]
 description: "Defines Wayfinder as the navigation layer over `@ontrails/topographer` artifacts: a shared resolver/filter/view query model that renders to CLI, MCP, docs, and future maps without inventing surface-specific navigation semantics."
@@ -31,6 +31,14 @@ impl_status: partial
 ---
 
 # ADR: Wayfinding
+
+> **Package placement superseded by ADR-0042.** The reusable Wayfind graph-read
+> catalog now ships from `@ontrails/topographer`; CLI and MCP wrappers remain
+> app-owned. The navigation model and `wayfind.*` product vocabulary in this
+> draft remain current, but references to a separate `@ontrails/wayfinder`
+> package below are historical design context.
+
+<!-- Keep the supersession notice distinct from the companion note. -->
 
 > Companion: a separate signposts ADR is tracked but deliberately deferred.
 > Wayfinding does not depend on signposts; signposts will land later as a
@@ -76,10 +84,9 @@ This means:
   examples. Tracing captures every invocation for free.
 - Surfaces render the trails through the same mechanism every other trail
   uses. No bespoke navigation runtime exists.
-- The wayfinder ships from a separate package, `@ontrails/wayfinder`, whose
-  topo joins the consuming app's topo at mount time. Apps do not "integrate
-  with a navigation framework"; they import a package whose trails join their
-  graph.
+- Reusable Wayfind graph-read and query mechanics ship with
+  `@ontrails/topographer`. CLI and MCP wrappers remain app-owned and render the
+  same query contracts without creating a second substrate package.
 - Substrate access is read-only and lockfile-shaped. Wayfinding never opens
   network connections, resolves resources, or boots the app.
 
@@ -227,7 +234,7 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
 - Every wayfinder trail declares `visibility: 'internal'`. Surfaces filter
   internal trails by default.
 - MCP exposure is opt-in and host-gated. Because wayfinder trails are internal,
-  the wayfinder package does not surface itself on MCP without exact `include`
+  the Wayfind catalog does not surface itself on MCP without exact `include`
   IDs for the selected `wayfind.*` trails. Exact include is not itself an
   authorization boundary; hosts that expose Wayfinder over MCP must apply their
   own auth, permit, or workspace-boundary policy for the selected tools.
@@ -240,7 +247,10 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
   through exact IDs while the unified command grammar lands. This is not
   wildcard namespace exposure and does not promote deferred queries.
 
-This means an app that mounts `@ontrails/wayfinder` does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator opts in. ADR-0027 already provides the levers; wayfinding leans on them.
+This means an app that imports the reusable Wayfind catalog does not
+accidentally hand its agents a self-documenting treasure chest. The graph stays
+locked unless the operator projects selected internal trails. ADR-0027 already
+provides the levers; wayfinding leans on them.
 
 ### Stale-graph policy
 
@@ -281,14 +291,15 @@ Every wayfinding query is a trail invocation, so the tracing primitive ([ADR-001
 ### Package placement
 
 ```text
-@ontrails/topographer        # graph artifacts, readers, diff helpers (ADR-0042)
-@ontrails/wayfinder          # trails over those artifacts (this ADR, v0)
-@ontrails/wayfinder/semantic # optional embedding-backed search (post-v0, not v0)
+@ontrails/topographer # graph artifacts, readers, diff helpers, Wayfind catalog
 ```
 
-`@ontrails/topographer` owns the durable substrate. `@ontrails/wayfinder` is trails over those artifacts. The split keeps `@ontrails/core` runtime-only (per [ADR-0042]) and makes the wayfinder a normal published package whose trails join consuming apps through `mount`. The `@ontrails/wayfinder/semantic` slot is reserved as a sub-package for the post-v0 embedding layer; v0 ships without it.
-
-`TRL-613` (separate, not in this ADR's scope) scaffolds the `@ontrails/wayfinder` package shell. This ADR settles the contract; the implementation lives there.
+`@ontrails/topographer` owns both the durable substrate and the reusable query
+catalog over that substrate. The fold keeps `@ontrails/core` runtime-only (per
+[ADR-0042]) without asking consumers to install a second graph package. A
+future semantic-search implementation must earn its own owner and package
+boundary when that substrate exists; this draft no longer reserves a package
+route for it.
 
 ### Lexicon impact
 
@@ -331,13 +342,13 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   adapter evidence beyond the bounded adapter-kit package/conformance facts,
   semantic search, exhaustive per-trail errors, and live runtime views) move
   with their substrates, not the wayfinder. v0 ships honest about the gaps.
-- **Visibility defaults add a one-time mount step.** Apps that want
+- **Visibility defaults add a one-time projection step.** Apps that want
   wayfinding on MCP or HTTP must opt in. The default is correct (internal),
-  but it is a step the user must take.
-- **A new published package.** `@ontrails/wayfinder` adds a release and CI
-  surface. This is paid for by keeping core runtime-only and giving the
-  wayfinder a place to grow (semantic sub-package, future query catalog
-  expansions) without bloating either neighbor.
+  but the consuming app must select which trails to render.
+- **The substrate package grows.** `@ontrails/topographer` now owns the
+  reusable Wayfind query catalog as well as durable graph facts. ADR-0042 keeps
+  the boundary explicit so app-owned CLI/MCP rendering does not leak into the
+  substrate package.
 
 ### Risks
 
@@ -374,9 +385,9 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   derived facts plus first-class surface facts.
 - **`wayfind.implications`.** A future rule-join query may explain likely next
   actions, but only by citing Warden rule IDs or named checklist items.
-- **Semantic search.** `@ontrails/wayfinder/semantic` slot is reserved.
-  Embedding provider choice (local / BYO key / hosted), indexing strategy,
-  drift, and ranking explainability are post-v0.
+- **Semantic search.** Embedding provider choice (local / BYO key / hosted),
+  package ownership, indexing strategy, drift, and ranking explainability are
+  post-v0.
 - **Markdown documentation generation.** Wayfinding is the substrate; doc
   generation is a downstream consumer.
 - **Live runtime observation.** Wayfinder may derive a current graph from
@@ -392,8 +403,8 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
 - [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md)
   — visibility and permit posture for wayfinder trails
 - [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md)
-  — the package boundary that places wayfinding artifacts in `@ontrails/topographer`
-  and gives `@ontrails/wayfinder` a defined neighbor
+  — the package boundary that places durable graph facts and reusable Wayfind
+  queries in `@ontrails/topographer`
 - [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md)
   — the surface rendering mechanism wayfinding queries reuse
 - [ADR-0013: Tracing](../0013-tracing.md) and

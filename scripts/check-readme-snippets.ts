@@ -193,6 +193,7 @@ export const getLogger: any;
 export const getPermit: any;
 export const getStoredTopoExport: any;
 export const jsonFile: any;
+export const loadWayfinderArtifacts: any;
 export const NotFoundError: any;
 export const output: any;
 export const outputModePreset: any;
@@ -253,7 +254,6 @@ export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/tracing/README.md',
   'packages/logtape/README.md',
   'packages/source/README.md',
-  'packages/wayfinder/README.md',
   'packages/core/README.md',
   'packages/config/README.md',
   'packages/permits/README.md',
@@ -286,10 +286,6 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   {
     prelude: COMMON_README_PRELUDE,
     readmePath: 'packages/source/README.md',
-  },
-  {
-    allowNoSnippets: true,
-    readmePath: 'packages/wayfinder/README.md',
   },
   {
     prelude: COMMON_README_PRELUDE,

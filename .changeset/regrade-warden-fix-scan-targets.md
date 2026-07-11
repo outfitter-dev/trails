@@ -3,7 +3,6 @@
 "@ontrails/regrade": patch
 "@ontrails/trails": patch
 "@ontrails/mcp": patch
-"@ontrails/wayfinder": patch
 ---
 
 Let Warden fix capabilities declare downstream scan targets and have Regrade

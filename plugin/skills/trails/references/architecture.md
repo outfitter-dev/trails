@@ -80,7 +80,7 @@ Every piece of information has a clear ownership model.
 
 Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
-Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind overview --root-dir . --json`, then use search, contract, describe, nearby, impact, examples, or diff queries before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topographer does not project.
+Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind --overview --root-dir . --json`, then use target selectors, population filters, contract, dependency, impact, map, outline, or diff views before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topographer does not project.
 
 ## Package Layout
 
@@ -118,9 +118,8 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | Package | Purpose |
 |---------|---------|
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, opt-in surface harness subpaths |
-| `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence |
+| `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence, Wayfind graph-read query APIs |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
-| `@ontrails/wayfinder` | Graph-read query trails over saved Topographer artifacts for agent navigation |
 
 ### Dependency graph
 
@@ -137,14 +136,13 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, observe; optional cli/mcp/http subpaths)
-  <- @ontrails/topographer (core)
-  <- @ontrails/wayfinder (core, topographer)
-     <- @ontrails/commander (cli, commander)
-     <- @ontrails/hono (http, hono)
-     <- @ontrails/vite (node:stream only)
-     <- @ontrails/logtape (observe)
-     <- @ontrails/pino (observe)
+  <- @ontrails/topographer (core, zod, adapter-kit)
      <- @ontrails/warden (core, topographer)
+  <- @ontrails/commander (cli, commander)
+  <- @ontrails/hono (http, hono)
+  <- @ontrails/vite (node:stream only)
+  <- @ontrails/logtape (observe)
+  <- @ontrails/pino (observe)
 ```
 
 ## Data Flow

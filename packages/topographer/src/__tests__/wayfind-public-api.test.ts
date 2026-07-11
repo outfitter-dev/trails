@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { wayfindOverviewTrail, wayfinderTopo } from '../index.ts';
 
-describe('@ontrails/wayfinder public catalog', () => {
+describe('@ontrails/topographer Wayfind public catalog', () => {
   test('exports graph-read trails', () => {
     expect(wayfindOverviewTrail.id).toBe('wayfind.overview');
     expect([...wayfinderTopo.ids()]).toContain('wayfind.overview');

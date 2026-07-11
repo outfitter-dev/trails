@@ -14,10 +14,10 @@ import {
   trail,
 } from '@ontrails/core';
 import type { TrailsError } from '@ontrails/core';
-import { deriveTopoGraphDiff } from '@ontrails/topographer';
-import type { TopoGraph, TopoGraphEntry } from '@ontrails/topographer';
 import { z } from 'zod';
 
+import { deriveTopoGraphDiff } from '../diff.js';
+import type { TopoGraph, TopoGraphEntry } from '../types.js';
 import {
   filterWayfinderEntityRefs,
   wayfinderEntityFilterSchema,

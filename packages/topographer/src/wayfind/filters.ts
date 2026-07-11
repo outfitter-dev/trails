@@ -6,7 +6,7 @@ import type {
   TopoGraphEntry,
   TopoGraphTrailheadEntry,
   TopoGraphVersionEntry,
-} from '@ontrails/topographer';
+} from '../types.js';
 
 export const wayfinderEntityKindSchema = z.enum([
   'entity',

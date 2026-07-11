@@ -2,7 +2,6 @@
 "@ontrails/source": minor
 "@ontrails/warden": patch
 "@ontrails/regrade": patch
-"@ontrails/wayfinder": patch
 "@ontrails/trails": patch
 ---
 

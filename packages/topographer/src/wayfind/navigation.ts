@@ -1,8 +1,8 @@
 import { Result } from '@ontrails/core';
 import type { AmbiguousError } from '@ontrails/core';
-import type { TopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
 
+import type { TopoGraph } from '../types.js';
 import {
   filterWayfinderEntityRefs,
   wayfinderEntityFilterSchema,

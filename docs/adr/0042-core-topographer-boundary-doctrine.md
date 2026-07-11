@@ -4,7 +4,7 @@ slug: core-topographer-boundary-doctrine
 title: Core/Topographer Boundary Doctrine
 status: accepted
 created: 2026-05-02
-updated: 2026-05-11
+updated: 2026-07-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [14, 15, 17, 35]
 ---
@@ -88,6 +88,19 @@ The CLI's `run` subcommand splits cleanly along the same axis, and the split is 
 
 Conflating these makes Topographer look like it's on the runtime path. It isn't. Workspace-wide resolution is a CLI-level lookup that happens against a tooling artifact. After that lookup, the in-process pipeline is the pipeline core has always owned.
 
+### Wayfind is a product capability, not a separate package boundary
+
+The reusable Wayfind catalog reads, compares, and explains durable graph artifacts. Its loaders, provenance model, filters, relations, and query trails therefore belong with the Topographer substrate rather than in a parallel `@ontrails/wayfinder` package.
+
+The ownership split follows the same lifecycle test as the rest of this ADR:
+
+- Topographer owns reusable graph-read and graph-query mechanics.
+- The Trails operator app owns the `wayfind.*` CLI and MCP trail wrappers.
+- `wayfind` remains the product vocabulary for graph navigation; it does not
+  require a package with the same name.
+
+This supersedes the earlier non-goal that kept the Wayfinder substrate outside Topographer. It does not move operator presentation or Warden governance into the substrate package.
+
 ### The shared database primitive is not the topo subsystem
 
 [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) treats `.trails/state/trails.db` as shared framework infrastructure with subsystem namespaces (`topo_*`, `track_*`, `cache_*`). This ADR moves the **topo subsystem** out of core and into Topographer. It does **not** move the generic `trails-db` primitive.
@@ -111,7 +124,9 @@ The package currently called `@ontrails/schema` is renamed to `@ontrails/topogra
 Why `topographer`:
 
 - **It aligns with the framework's `topo`-rooted vocabulary.** `topo()` is the primitive; `topographer` is the package that derives durable artifacts from the topo. The lineage reads cleanly.
-- **It fits the existing actor-noun family.** `warden` enforces. `wayfinder` navigates. `topographer` maps. Adding a fourth member of the same family completes a pattern instead of expanding the vocabulary.
+- **It names the owning role.** `topographer` maps durable graph artifacts. The
+  later Wayfind fold does not make `wayfinder` a peer package; Wayfind remains
+  the product capability rendered by operator surfaces.
 - **It names the role, not one artifact.** "Schema" described one output. "Topographer" names the producer of the resolved topo artifact family — TopoGraph, lock manifest, snapshots, pins, and diffs.
 - **It matches the verb shape.** The package exports `derive*` functions, hash and diff helpers, and persistence I/O. Topographers do those things.
 
@@ -204,7 +219,9 @@ This ADR does not:
 - Define `Topographer`-side APIs for snapshots, pins, or diffs beyond what already exists in `@ontrails/schema` and the relocated topo-store. Maturation of those APIs is downstream work.
 - Specify every future workspace metadata field in `topo.lock`. This ADR settles which package owns persisted resolved-topo artifacts; schema evolution remains a separate decision.
 - Decide the public teaching path for build-time surfaces (SDK, OpenAPI, docs). [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) already establishes `surface(graph, { outDir })` as the convenience path; this ADR doesn't change that.
-- Move signposts, wayfinder trails, or warden rules into Topographer. Trails-over-data is a separate architectural layer and stays separate.
+- Move operator-owned `wayfind.*` presentation or Warden rules into
+  Topographer. The reusable Wayfind graph-read catalog is part of the durable
+  artifact substrate; surface wrappers and governance remain separate.
 
 ## Consequences
 
@@ -215,7 +232,9 @@ This ADR does not:
 - **The misfile in core comes out.** The topo-store public API stops living in a package whose other contents are graph primitives. Survey, drift, and lockfile work consolidate in one place.
 - **The misfile in `@ontrails/schema` comes out.** The package's name finally matches its contents. The recurring "is this primitive schema or surface projection?" argument from [TRL-586] doesn't recur for snapshot, pin, or diff features.
 - **Future Topographer additions don't fragment the package graph.** Snapshots, pins, semantic PR diffs, wayfinder substrate, and the TRL-403 workspace catalog all become additions to one package, not new packages.
-- **The actor-noun family is consistent.** `warden`, `wayfinder`, `topographer` line up. New developers can predict the role of an actor-noun package without reading the README.
+- **Wayfind no longer implies a parallel package boundary.** The product
+  vocabulary remains stable while its reusable graph-read mechanics live with
+  the durable artifact owner.
 
 ### Tradeoffs
 
@@ -242,6 +261,10 @@ The following are deliberately deferred:
 - **Migration ordering between rename and topo-store relocation.** Two valid orders exist: rename first then relocate, or relocate first then rename. The boundary doctrine is the same either way. Sequencing is a milestone-planning concern, not a doctrinal one.
 
 ## Amendments
+
+- 2026-07-10: The reusable Wayfind graph-read and query catalog moved into
+  Topographer. Operator-owned `wayfind.*` trails remain in the Trails app, so
+  product vocabulary no longer dictates a parallel package boundary.
 
 - 2026-05-11: [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)
   renamed the durable public artifact family from the `SurfaceMap`/single-lockfile

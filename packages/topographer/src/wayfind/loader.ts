@@ -6,22 +6,16 @@ import {
   openReadTrailsDb,
 } from '@ontrails/core';
 import type { TrailsDbLocationOptions } from '@ontrails/core';
+import { createTopoStore, TOPO_STORE_SCHEMA_VERSION } from '../topo-store.js';
+import { deriveSourceFingerprint } from '../source-fingerprint.js';
+import { deriveTopoGraphHash } from '../hash.js';
 import {
-  TOPO_GRAPH_SCHEMA_VERSION,
-  TOPO_STORE_SCHEMA_VERSION,
-  createTopoStore,
-  deriveSourceFingerprint,
-  deriveTopoGraphHash,
   isTopoArtifactRegenerationError,
   readLockManifest,
   readTopoGraph,
-  stripTopoGraphForces,
-} from '@ontrails/topographer';
+} from '../io.js';
+import { stripTopoGraphForces } from '../forces.js';
 import type {
-  LockManifest,
-  LockManifestSummary,
-  ReadOptions,
-  TopoGraph,
   TopoStoreEntityRecord,
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
@@ -30,7 +24,14 @@ import type {
   TopoStoreTopoGraphRecord,
   TopoStoreTrailDetailRecord,
   TopoSnapshot,
-} from '@ontrails/topographer';
+} from '../topo-store.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import type {
+  LockManifest,
+  LockManifestSummary,
+  ReadOptions,
+  TopoGraph,
+} from '../types.js';
 
 import type {
   WayfinderArtifactStatus,

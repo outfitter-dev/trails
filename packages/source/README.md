@@ -76,5 +76,5 @@ const updated = applySourceEdits('const name = "old";\n', [
 - Warden rule policy and rule-specific facts remain in `@ontrails/warden`.
 - Regrade migration planning and execution remain in `@ontrails/regrade`.
 - Topographer graph artifacts and outline assembly remain outside this package.
-- Wayfinder query trails and answer rendering remain in `@ontrails/wayfinder`.
+- Wayfind query trails and answer rendering remain in `@ontrails/topographer`.
 - Runtime Trails contracts remain in `@ontrails/core`.

@@ -55,7 +55,6 @@ export const changelogHistoryPaths = [
   'packages/topographer/CHANGELOG.md',
   'packages/tracing/CHANGELOG.md',
   'packages/warden/CHANGELOG.md',
-  'packages/wayfinder/CHANGELOG.md',
 ] as const;
 
 const adrReviewedMentionPaths = [

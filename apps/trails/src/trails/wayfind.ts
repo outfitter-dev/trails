@@ -5,12 +5,12 @@ import {
   wayfinderResolverSchema,
   wayfinderSourceModeSchema,
   wayfinderViewSchema,
-} from '@ontrails/wayfinder';
+} from '@ontrails/topographer';
 import type {
   WayfinderInclude,
   WayfinderResolver,
   WayfinderView,
-} from '@ontrails/wayfinder';
+} from '@ontrails/topographer';
 import { z } from 'zod';
 
 const wayfindInputSchema = z

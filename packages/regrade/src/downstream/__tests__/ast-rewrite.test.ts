@@ -1512,6 +1512,52 @@ describe('createAstIdentifierRenameClass', () => {
     });
   });
 
+  test('rewrites the retired Wayfinder package route in module specifiers only', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-wayfinder-topographer'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected Wayfinder package route transition.');
+    }
+
+    const routeLiteralClass = createGovernedAstIdentifierRenameClasses(
+      transition
+    ).find((cls) =>
+      cls.id.includes(
+        'ast-string-literal-rename:v1-wayfinder-topographer:@ontrails/wayfinder->@ontrails/topographer'
+      )
+    );
+    if (routeLiteralClass === undefined) {
+      throw new Error('Expected Wayfinder route literal rename class.');
+    }
+
+    const source = [
+      "import { wayfindOverviewTrail } from '@ontrails/wayfinder';",
+      "export * from '@ontrails/wayfinder';",
+      "const product = 'Wayfinder remains Wayfind';",
+      '',
+    ].join('\n');
+    const result = routeLiteralClass.apply(source, {
+      package: {
+        dependencies: ['@ontrails/topographer'],
+        name: 'consumer',
+        path: 'package.json',
+      },
+      path: 'src/wayfind.ts',
+    });
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        "import { wayfindOverviewTrail } from '@ontrails/topographer';",
+        "export * from '@ontrails/topographer';",
+        "const product = 'Wayfinder remains Wayfind';",
+        '',
+      ].join('\n')
+    );
+  });
+
   test('routes governed registry shadow declarations to review', () => {
     const transition = getGovernedVocabularyTransition('cross-compose');
     expect(transition).toBeDefined();

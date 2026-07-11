@@ -1,5 +1,4 @@
 ---
-'@ontrails/wayfinder': minor
 '@ontrails/trails': minor
 ---
 

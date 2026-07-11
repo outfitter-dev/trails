@@ -277,24 +277,8 @@ TopoStoreActivationContextRecord, TopoStoreExportRecord, TopoStoreResourceRecord
 TopoStoreSurfaceProjectionRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
 TopoStoreEntityRecord,
 CreateTopoSnapshotInput, ListTopoSnapshotsOptions
-```
 
-### `@ontrails/topographer/backend-support`
-
-```typescript
-createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
-countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
-pruneUnpinnedSnapshots(db, options?)
-
-StoredTopoExport
-```
-
-## `@ontrails/wayfinder`
-
-These are cold read trails and helpers for querying saved graph artifacts and package-level authoring evidence. Graph queries read root `trails.lock` and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
-
-```typescript
-// Graph-read topo and query trails
+// Wayfind graph-read topo and query trails
 wayfinderTopo
 wayfindOverviewTrail, wayfindSearchTrail
 wayfindTrailsTrail, wayfindEntitiesTrail, wayfindResourcesTrail, wayfindSignalsTrail
@@ -319,9 +303,28 @@ WayfinderEntityFilters, WayfinderEntityFilterInput, WayfinderEntityKind
 WayfinderEntityRef, WayfinderFilterContext, WayfinderIntent
 ```
 
-Wayfinder trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling.
+Wayfind graph reads are part of `@ontrails/topographer` because they query the durable TopoGraph, lock, topo-store, and adapter evidence that Topographer owns. The product, trail IDs, CLI/MCP routes, and public type names remain Wayfinder/Wayfind; the package import path is `@ontrails/topographer`.
 
-The Trails operator owns the file-outline composite view. Use `trails wayfind file <file> --outline` when you need source-to-graph reconciliation for one source file; `@ontrails/wayfinder` remains the public home for reusable saved-artifact loading, provenance, filtering, and graph-read query trails.
+Wayfind trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling.
+
+The removed `@ontrails/wayfinder` package has no compatibility route. Move programmatic imports to `@ontrails/topographer`:
+
+```diff
+- import { wayfinderTopo, loadWayfinderArtifacts } from '@ontrails/wayfinder';
++ import { wayfinderTopo, loadWayfinderArtifacts } from '@ontrails/topographer';
+```
+
+The Trails operator owns the file-outline composite view. Use `trails wayfind file <file> --outline` when you need source-to-graph reconciliation for one source file; Topographer owns the reusable saved-artifact loading, provenance, filtering, and graph-read query trails behind that operator surface.
+
+### `@ontrails/topographer/backend-support`
+
+```typescript
+createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
+countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
+pruneUnpinnedSnapshots(db, options?)
+
+StoredTopoExport
+```
 
 ## `@ontrails/store`
 

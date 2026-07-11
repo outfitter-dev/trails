@@ -10,7 +10,12 @@ import {
   trail,
 } from '@ontrails/core';
 import type { TrailsError } from '@ontrails/core';
-import type { TopoGraph, TopoGraphEntry } from '@ontrails/topographer';
+import { loadWayfinderArtifacts } from '@ontrails/topographer';
+import type {
+  TopoGraph,
+  TopoGraphEntry,
+  WayfinderArtifactLoad,
+} from '@ontrails/topographer';
 import {
   findTrailDefinitions,
   getStringValue,
@@ -35,8 +40,6 @@ import {
   walkWithParents,
 } from '@ontrails/source';
 import type { AstNode, AstParentContext } from '@ontrails/source';
-import { loadWayfinderArtifacts } from '@ontrails/wayfinder';
-import type { WayfinderArtifactLoad } from '@ontrails/wayfinder';
 import { z } from 'zod';
 
 const outlineFeatureNames = [

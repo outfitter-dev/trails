@@ -13,7 +13,7 @@ import type {
   TopoGraph,
   TopoGraphEntry,
   TopoGraphVersionEntry,
-} from '@ontrails/topographer';
+} from '../types.js';
 
 export type TrailErrorFactKind =
   | 'documented'

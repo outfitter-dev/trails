@@ -441,6 +441,36 @@ export const governedVocabularyTransitions =
       target: { kind: 'single', to: '@ontrails/source' },
     }),
     defineV1Transition({
+      codeIdentifiers: ['@ontrails/wayfinder'],
+      docs: {
+        guidance: [
+          'Treat the package route as an exact code string and module specifier, not as Wayfind product vocabulary.',
+          'Rewrite only the exact package route; subpaths, near routes, and larger strings stay untouched for review.',
+        ],
+        summary:
+          'The Wayfinder package API moved into @ontrails/topographer while Wayfind remains the operator-facing product name.',
+      },
+      from: '@ontrails/wayfinder',
+      id: 'v1-wayfinder-topographer',
+      intent:
+        'Move programmatic Wayfinder imports into @ontrails/topographer while preserving Wayfind surface vocabulary.',
+      kind: 'vocabulary',
+      oldForms: ['@ontrails/wayfinder'],
+      reviewForms: [],
+      safeRewriteForms: {
+        '@ontrails/wayfinder': '@ontrails/topographer',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/wayfinder',
+          moduleSpecifier: { targetPackage: '@ontrails/topographer' },
+          to: '@ontrails/topographer',
+        },
+      ],
+      target: { kind: 'single', to: '@ontrails/topographer' },
+    }),
+    defineV1Transition({
       codeIdentifiers: [],
       docs: {
         guidance: [

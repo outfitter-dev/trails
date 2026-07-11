@@ -1,6 +1,5 @@
 ---
 '@ontrails/trails': patch
-'@ontrails/wayfinder': patch
 ---
 
 Add the unified `trails wayfind` navigation command over targets, filters, and

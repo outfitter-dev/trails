@@ -43,8 +43,7 @@
 ## Governing your codebase?
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
-- **[Topographer](../packages/topographer/README.md)** — TopoGraphs, durable artifact helpers, semantic diffing, lock manifests, topo-store persistence
-- **[Wayfinder](../packages/wayfinder/README.md)** — Graph-read query trails for agents inspecting saved Topographer artifacts
+- **[Topographer](../packages/topographer/README.md)** — TopoGraphs, durable artifact helpers, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs
 
 ## Contributing to Trails?
 

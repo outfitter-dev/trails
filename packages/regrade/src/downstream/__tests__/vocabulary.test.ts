@@ -323,6 +323,130 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('moves the exact Wayfinder package route without rewriting near routes', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-wayfinder-topographer'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected Wayfinder package route transition.');
+    }
+
+    const plan = vocabularyRegradePlanFromTransition(transition);
+    expect(plan).toMatchObject({
+      from: '@ontrails/wayfinder',
+      id: 'v1-wayfinder-topographer',
+      overrides: {
+        '@ontrails/wayfinder': '@ontrails/topographer',
+      },
+      to: '@ontrails/topographer',
+    });
+    expect(plan?.overrides).not.toHaveProperty('@ontrails/wayfinders');
+    if (plan === null) {
+      throw new Error('Expected package route transition to produce a plan.');
+    }
+
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/routes.md',
+        [
+          'Move @ontrails/wayfinder to its new package.',
+          'Keep @ontrails/wayfinder/internal for review.',
+          'Keep @ontrails/wayfinders untouched.',
+          '',
+        ].join('\n')
+      );
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: { ...plan, scope: { include: ['docs/**'] } },
+        root: dir,
+      });
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      expect(readFileSync(join(dir, 'docs', 'routes.md'), 'utf8')).toBe(
+        [
+          'Move @ontrails/topographer to its new package.',
+          'Keep @ontrails/wayfinder/internal for review.',
+          'Keep @ontrails/wayfinders untouched.',
+          '',
+        ].join('\n')
+      );
+      expect(result.value.run.ledger.forms).toMatchObject({
+        '@ontrails/wayfinder/internal': 'deferred',
+        '@ontrails/wayfinders': 'deferred',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('routes package manifest vocabulary rewrites to structured review', () => {
+    const plan = {
+      from: '@ontrails/wayfinder',
+      id: 'test-package-route',
+      kind: 'vocabulary' as const,
+      overrides: {
+        '@ontrails/wayfinder': '@ontrails/topographer',
+      },
+      to: '@ontrails/topographer',
+    };
+
+    const dir = makeTempDir();
+    const manifest = `${JSON.stringify(
+      {
+        dependencies: {
+          '@ontrails/topographer': 'workspace:^',
+          '@ontrails/wayfinder': 'workspace:^',
+        },
+        name: 'consumer',
+      },
+      null,
+      2
+    )}\n`;
+    try {
+      writeFile(dir, 'packages/consumer/package.json', manifest);
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          ...plan,
+          scope: { include: ['packages/**/package.json'] },
+        },
+        root: dir,
+      });
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      expect(
+        readFileSync(join(dir, 'packages/consumer/package.json'), 'utf8')
+      ).toBe(manifest);
+      expect(result.value.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'needs-review',
+          path: 'packages/consumer/package.json',
+          reviewDetails: expect.arrayContaining([
+            expect.objectContaining({
+              reason: 'package-manifest-structured-edit-required',
+              symbol: '@ontrails/wayfinder',
+            }),
+          ]),
+        })
+      );
+      expect(result.value.run.report).toMatchObject({
+        applied: 0,
+        deferred: 1,
+        filesChanged: 0,
+        gate: { status: 'open' },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('does not turn classified vocabulary transitions into unsafe plans', () => {
     const transition = getGovernedVocabularyTransition(
       'v1-projection-derive-render'

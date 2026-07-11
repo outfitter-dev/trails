@@ -20,6 +20,7 @@ describe('governed vocabulary registry', () => {
       'v1-contour-entity',
       'v1-facet-trailhead',
       'v1-warden-ast-source',
+      'v1-wayfinder-topographer',
       'v1-projection-derive-render',
     ]);
     expect(transitions.map((transition) => transition.from)).toEqual([
@@ -28,6 +29,7 @@ describe('governed vocabulary registry', () => {
       'contour',
       'facet',
       '@ontrails/warden/ast',
+      '@ontrails/wayfinder',
       'projection',
     ]);
 
@@ -268,6 +270,30 @@ describe('governed vocabulary registry', () => {
     ]);
     expect(source?.symbolRenames).toEqual([]);
     expect(source?.reviewForms).toEqual([]);
+  });
+
+  test('governs the retired Wayfinder package route without renaming the product', () => {
+    const wayfinder = getGovernedVocabularyTransition(
+      'v1-wayfinder-topographer'
+    );
+
+    expect(wayfinder).toMatchObject({
+      codeIdentifiers: ['@ontrails/wayfinder'],
+      from: '@ontrails/wayfinder',
+      status: 'complete',
+      target: { kind: 'single', to: '@ontrails/topographer' },
+    });
+    expect(wayfinder?.safeRewriteForms).toEqual({
+      '@ontrails/wayfinder': '@ontrails/topographer',
+    });
+    expect(wayfinder?.stringLiteralRenames).toEqual([
+      {
+        from: '@ontrails/wayfinder',
+        moduleSpecifier: { targetPackage: '@ontrails/topographer' },
+        to: '@ontrails/topographer',
+      },
+    ]);
+    expect(wayfinder?.symbolRenames).toEqual([]);
   });
 
   test('rejects duplicate ids and duplicate source terms', () => {

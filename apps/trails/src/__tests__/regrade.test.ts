@@ -4528,16 +4528,18 @@ describe('trails regrade', () => {
     }
   });
 
-  test('loads project-local Warden term rewrites from the regrade root', async () => {
-    const dir = makeTempDir();
-    try {
-      mkdirSync(join(dir, '.trails'), { recursive: true });
-      mkdirSync(join(dir, 'src'), { recursive: true });
-      const target = join(dir, 'src', 'surface.ts');
-      writeFileSync(target, 'export const facet = "inspect";\n');
-      writeFileSync(
-        join(dir, '.trails', 'rules.ts'),
-        `
+  test(
+    'loads project-local Warden term rewrites from the regrade root',
+    async () => {
+      const dir = makeTempDir();
+      try {
+        mkdirSync(join(dir, '.trails'), { recursive: true });
+        mkdirSync(join(dir, 'src'), { recursive: true });
+        const target = join(dir, 'src', 'surface.ts');
+        writeFileSync(target, 'export const facet = "inspect";\n');
+        writeFileSync(
+          join(dir, '.trails', 'rules.ts'),
+          `
 import type { WardenRule } from '@ontrails/warden';
 
 const lineForOffset = (source: string, offset: number): number => {
@@ -4588,34 +4590,36 @@ const rule = {
 
 export default rule;
 `
-      );
+        );
 
-      const result = await regradeTrail.implementation(
-        {
-          apply: true,
-          classIds: ['term-rewrite:repo-local-facet-vocab'],
-          rootDir: dir,
-        },
-        { cwd: dir, env: {} } as never
-      );
+        const result = await regradeTrail.implementation(
+          {
+            apply: true,
+            classIds: ['term-rewrite:repo-local-facet-vocab'],
+            rootDir: dir,
+          },
+          { cwd: dir, env: {} } as never
+        );
 
-      expect(result.isOk()).toBe(true);
-      if (result.isErr()) {
-        throw result.error;
+        expect(result.isOk()).toBe(true);
+        if (result.isErr()) {
+          throw result.error;
+        }
+        expect(result.value.selectedClassIds).toEqual([
+          'term-rewrite:repo-local-facet-vocab',
+        ]);
+        expect(result.value.apply).toMatchObject({
+          applied: 1,
+          filesChanged: 1,
+          review: 0,
+        });
+        expect(readFileSync(target, 'utf8')).toContain('trailhead');
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
       }
-      expect(result.value.selectedClassIds).toEqual([
-        'term-rewrite:repo-local-facet-vocab',
-      ]);
-      expect(result.value.apply).toMatchObject({
-        applied: 1,
-        filesChanged: 1,
-        review: 0,
-      });
-      expect(readFileSync(target, 'utf8')).toContain('trailhead');
-    } finally {
-      rmSync(dir, { force: true, recursive: true });
-    }
-  });
+    },
+    cliTimeoutMs
+  );
 
   test('apply mode returns a Trails error when a rewrite cannot be written', async () => {
     const dir = makeTempDir();

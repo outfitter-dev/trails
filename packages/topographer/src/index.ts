@@ -1,6 +1,6 @@
 // `@ontrails/topographer` owns durable graph artifacts derived from the
-// resolved graph (per ADR-0042). The companion `@ontrails/wayfinder`
-// package reads those artifacts through graph-read trails.
+// resolved graph (per ADR-0042). Wayfind reads those artifacts through
+// graph-read trails exported from this package.
 
 // Derivation
 export { deriveTopoGraph } from './derive.js';
@@ -157,3 +157,116 @@ export type {
   TopoStoreTrailDetailRecord,
   TopoStoreTrailRecord,
 } from './topo-store.js';
+
+// Wayfind graph-read APIs. The product, trail IDs, and public type names remain
+// Wayfinder/wayfind even though the package owner is now Topographer.
+export { deriveTrailErrorFacts } from './wayfind/error-facts.js';
+export type {
+  TrailErrorEvidenceInput,
+  TrailErrorFact,
+  TrailErrorFactKind,
+  TrailErrorFactProvenance,
+  TrailErrorFacts,
+  TrailErrorFactsCompleteness,
+  TrailErrorFactsOptions,
+  TrailErrorTaxonomyProjection,
+} from './wayfind/error-facts.js';
+export {
+  createWayfinderEntityPredicate,
+  createWayfinderFilterContext,
+  createWayfinderGraphEntityPredicate,
+  filterWayfinderEntityRefs,
+  listWayfinderEntityRefs,
+  wayfinderEntityFilterSchema,
+  wayfinderEntityKindSchema,
+  wayfinderIntentSchema,
+} from './wayfind/filters.js';
+export type {
+  WayfinderEntityFilterInput,
+  WayfinderEntityFilters,
+  WayfinderEntityKind,
+  WayfinderEntityRef,
+  WayfinderFilterContext,
+  WayfinderIntent,
+} from './wayfind/filters.js';
+export {
+  loadWayfinderArtifacts,
+  wayfinderTopoGraphSource,
+  wayfinderTopoStoreSource,
+} from './wayfind/loader.js';
+export type {
+  WayfinderArtifactLoad,
+  WayfinderArtifactLoaderOptions,
+  WayfinderTopoStoreLoad,
+} from './wayfind/loader.js';
+export {
+  resolveWayfinderPopulation,
+  resolveWayfinderRelations,
+  wayfinderDriftStatusSchema,
+  wayfinderIncludeSchema,
+  wayfinderNavigationPlanSchema,
+  wayfinderRelationModeSchema,
+  wayfinderResolverSchema,
+  wayfinderSourceModeSchema,
+  wayfinderViewSchema,
+} from './wayfind/navigation.js';
+export type {
+  WayfinderDriftStatus,
+  WayfinderInclude,
+  WayfinderNavigationPlan,
+  WayfinderPopulationInput,
+  WayfinderRelationMode,
+  WayfinderRelationResolver,
+  WayfinderResolvedRelationInput,
+  WayfinderResolvedRelations,
+  WayfinderResolver,
+  WayfinderSourceMode,
+  WayfinderView,
+} from './wayfind/navigation.js';
+export {
+  wayfindAdaptersTrail,
+  wayfindContractTrail,
+  wayfindDescribeTrail,
+  wayfindDiffTrail,
+  wayfindEntitiesTrail,
+  wayfindErrorsTrail,
+  wayfindExamplesTrail,
+  wayfindImpactTrail,
+  wayfindNearbyTrail,
+  wayfindOverlayTrail,
+  wayfindOverviewTrail,
+  wayfindResourcesTrail,
+  wayfindSearchTrail,
+  wayfindSignalsTrail,
+  wayfindSurfacesTrail,
+  wayfindTrailheadsTrail,
+  wayfindTrailsTrail,
+  wayfindVersionsTrail,
+  wayfinderTopo,
+} from './wayfind/queries.js';
+export {
+  wayfinderDriftFromArtifactStatus,
+  wayfinderDriftFromFreshness,
+  wayfinderFact,
+} from './wayfind/provenance.js';
+export type {
+  WayfinderArtifactKind,
+  WayfinderArtifactSource,
+  WayfinderArtifactStatus,
+  WayfinderArtifactStatusFresh,
+  WayfinderArtifactStatusMissing,
+  WayfinderArtifactStatusSchemaVersionDrift,
+  WayfinderArtifactStatusStale,
+  WayfinderContractRef,
+  WayfinderFact,
+  WayfinderFactCategory,
+  WayfinderFactDrift,
+  WayfinderFactDriftStatus,
+  WayfinderFactInput,
+  WayfinderFreshness,
+  WayfinderFreshnessFresh,
+  WayfinderFreshnessMissing,
+  WayfinderFreshnessSchemaVersionDrift,
+  WayfinderFreshnessStale,
+  WayfinderStaleReason,
+} from './wayfind/provenance.js';
