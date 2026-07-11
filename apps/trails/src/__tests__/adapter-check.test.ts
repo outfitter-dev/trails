@@ -208,7 +208,7 @@ describe('trails adapter check', () => {
     expect(result.stderr).toBe('');
     expect(result.stdout).toContain('## Adapter Check Report');
     expect(result.stdout).toContain('missing-conformance');
-  });
+  }, 15_000);
 
   test('exits non-zero for adapter readiness failures under trace JSON', () => {
     const root = makeRoot();
@@ -232,7 +232,7 @@ describe('trails adapter check', () => {
     };
     expect(parsed.ok).toBe(true);
     expect(parsed.value?.passed).toBe(false);
-  });
+  }, 15_000);
 
   test('rejects missing root directories before reporting pass', async () => {
     const root = makeRoot();

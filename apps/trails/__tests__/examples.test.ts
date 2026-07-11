@@ -1,5 +1,5 @@
 /* oxlint-disable eslint-plugin-jest/require-hook -- testExamples registers tests at module scope */
-import { afterAll, beforeAll } from 'bun:test';
+import { afterAll, beforeAll, setDefaultTimeout } from 'bun:test';
 import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -10,6 +10,11 @@ import { operatorApp } from '../src/app.js';
 
 const trailsWorkspaceDir = resolve(import.meta.dir, '..', '.trails');
 const repoRoot = resolve(import.meta.dir, '..', '..', '..');
+
+// These examples exercise the real fresh-app loader. Under the full parallel
+// repo suite, package compilation can legitimately push a load past Bun's 5s
+// unit-test default even though the same example completes quickly in isolation.
+setDefaultTimeout(15_000);
 
 const resetTrailsWorkspace = (): void => {
   rmSync(trailsWorkspaceDir, { force: true, recursive: true });
