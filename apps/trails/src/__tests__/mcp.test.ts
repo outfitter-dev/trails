@@ -49,10 +49,24 @@ const parseJson = (text: string | undefined): unknown => {
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-mcp-regrade-test-${Date.now()}-`));
 const facetTrailheadRegistryExcludes = [
+  '.agents/goals/**',
+  '**/.agents/goals/**',
   '.agents/memory/**',
+  '**/.agents/memory/**',
+  '.agents/notes/**',
+  '**/.agents/notes/**',
+  '.claude/agent-memory/**',
+  '**/.claude/agent-memory/**',
   '.agents/plans/archive/**',
+  '**/.agents/plans/archive/**',
   '.changeset/**',
+  '**/.changeset/**',
+  '.scratch/**',
+  '**/.scratch/**',
+  '.trails/regrade/history/**',
+  '**/.trails/regrade/history/**',
   '**/CHANGELOG.md',
+  '**/.tmp-tests/**',
   'packages/warden/src/rules/retired-vocabulary.ts',
 ];
 
@@ -580,11 +594,7 @@ describe('Trails MCP surface shaping', () => {
         from: 'facet',
         id: 'v1-facet-trailhead',
         scope: {
-          exclude: [
-            ...facetTrailheadRegistryExcludes,
-            '.agents/notes/**',
-            '.scratch/**',
-          ],
+          exclude: facetTrailheadRegistryExcludes,
         },
         to: 'trailhead',
       });

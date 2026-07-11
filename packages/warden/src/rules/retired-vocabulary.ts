@@ -50,6 +50,7 @@ export const governedVocabularySymbolRenameSchema = z.object({
 
 export const governedVocabularyLiteralRenameSchema = z.object({
   from: z.string().min(1),
+  match: z.enum(['exact', 'property-key']).optional(),
   to: z.string().min(1),
 });
 
@@ -136,10 +137,36 @@ const reviewFunctionParamDeclarations = {
 };
 
 const v1VocabularyHistoricalExcludes = [
+  '.agents/goals/**',
+  '**/.agents/goals/**',
   '.agents/memory/**',
+  '**/.agents/memory/**',
+  '.agents/notes/**',
+  '**/.agents/notes/**',
+  '.claude/agent-memory/**',
+  '**/.claude/agent-memory/**',
   '.agents/plans/archive/**',
+  '**/.agents/plans/archive/**',
   '.changeset/**',
+  '**/.changeset/**',
+  '.scratch/**',
+  '**/.scratch/**',
+  '.trails/regrade/history/**',
+  '**/.trails/regrade/history/**',
   '**/CHANGELOG.md',
+  '**/.tmp-tests/**',
+];
+
+const v1VocabularyHistoricalPreservePaths = [
+  '.agents/plans/**',
+  '**/.agents/plans/**',
+  'docs/adr/0*.md',
+  'docs/adr/decision-map.json',
+  'docs/migration/**',
+  'docs/releases/beta*.md',
+  'docs/releases/v1-vocabulary-reset.md',
+  'docs/releases/v1-vocabulary-transition-workflow.md',
+  'scripts/vocab-cutover-*.ts',
 ];
 
 const v1VocabularySelfExcludes = [
@@ -148,11 +175,28 @@ const v1VocabularySelfExcludes = [
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
 
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const formsPattern = (forms: readonly string[]): string =>
+  `(?:${forms.map(escapeRegExp).join('|')})`;
+
 const defineV1Transition = (
   input: GovernedVocabularyTransitionInput
 ): GovernedVocabularyTransition =>
   defineTransition({
     ...input,
+    preserve: [
+      {
+        paths: v1VocabularyHistoricalPreservePaths,
+        pattern: formsPattern(
+          unique([...(input.oldForms ?? []), ...(input.reviewForms ?? [])])
+        ),
+        reason:
+          'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
+      },
+      ...(input.preserve ?? []),
+    ],
     scope: {
       ...input.scope,
       exclude: unique([
@@ -221,6 +265,9 @@ export const governedVocabularyTransitions =
         blazes: 'implementations',
       },
       status: 'planned',
+      stringLiteralRenames: [
+        { from: 'blaze', match: 'property-key', to: 'implementation' },
+      ],
       symbolRenames: [
         {
           ...reviewFunctionParamDeclarations,

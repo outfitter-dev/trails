@@ -44,14 +44,44 @@ describe('runVocabularyRegrade', () => {
       from: 'facet',
       id: 'v1-facet-trailhead',
       kind: 'vocabulary',
+      preserve: [
+        {
+          paths: [
+            '.agents/plans/**',
+            '**/.agents/plans/**',
+            'docs/adr/0*.md',
+            'docs/adr/decision-map.json',
+            'docs/migration/**',
+            'docs/releases/beta*.md',
+            'docs/releases/v1-vocabulary-reset.md',
+            'docs/releases/v1-vocabulary-transition-workflow.md',
+            'scripts/vocab-cutover-*.ts',
+          ],
+          pattern: '(?:facet|facets|Facet)',
+          reason:
+            'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
+        },
+      ],
       scope: {
-        exclude: [
+        exclude: expect.arrayContaining([
+          '.agents/goals/**',
+          '**/.agents/goals/**',
           '.agents/memory/**',
+          '**/.agents/memory/**',
+          '.agents/notes/**',
+          '**/.agents/notes/**',
           '.agents/plans/archive/**',
+          '**/.agents/plans/archive/**',
           '.changeset/**',
+          '**/.changeset/**',
+          '.scratch/**',
+          '**/.scratch/**',
+          '.trails/regrade/history/**',
+          '**/.trails/regrade/history/**',
           '**/CHANGELOG.md',
+          '**/.tmp-tests/**',
           'packages/warden/src/rules/retired-vocabulary.ts',
-        ],
+        ]),
       },
       to: 'trailhead',
     });
@@ -164,6 +194,72 @@ describe('runVocabularyRegrade', () => {
       expect(result.value.run.report.gate.reasons).toContain(
         'deferred-forms-or-occurrences'
       );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('registry historical preserves hide compounds only in historical paths', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected blaze vocabulary transition.');
+    }
+    const plan = vocabularyRegradePlanFromTransition(transition);
+    if (plan === null) {
+      throw new Error(
+        'Expected blaze vocabulary transition to produce a plan.'
+      );
+    }
+
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        '.agents/plans/v1-vocabulary-plan.md',
+        'Preserve blazeBody as authored historical planning evidence.\n'
+      );
+      writeFile(
+        dir,
+        'docs/live.md',
+        'Current docs must still review blazeBody before migration closes.\n'
+      );
+      writeFile(
+        dir,
+        'packages/store/.agents/notes/history.md',
+        'Nested agent notes keep the historical blazeBody untouched.\n'
+      );
+
+      const result = runVocabularyRegrade({
+        plan: { ...plan, scope: { ...plan.scope, extensions: ['.md'] } },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run.ledger.occurrences).toMatchObject([
+        {
+          form: 'blazeBody',
+          path: '.agents/plans/v1-vocabulary-plan.md',
+          verdict: 'skipped',
+        },
+        {
+          form: 'blazeBody',
+          path: 'docs/live.md',
+          verdict: 'deferred',
+        },
+      ]);
+      expect(result.value.run.report).toMatchObject({
+        deferred: 1,
+        gate: { status: 'open' },
+        open: 1,
+        skipped: 1,
+      });
+      expect(result.value.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

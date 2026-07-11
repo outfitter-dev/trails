@@ -354,6 +354,81 @@ describe('createAstIdentifierRenameClass', () => {
     );
   });
 
+  test('rewrites governed blaze string literal keys exactly', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected blaze vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const blazeLiteralClass = classes.find((cls) =>
+      cls.id.includes(
+        'ast-string-literal-rename:v1-blaze-implementation:blaze->implementation'
+      )
+    );
+    expect(blazeLiteralClass).toBeDefined();
+    if (blazeLiteralClass === undefined) {
+      throw new Error('Expected blaze literal rename class.');
+    }
+
+    const result = blazeLiteralClass.apply(
+      [
+        "const authored = { ['blaze']: implementation };",
+        'const keyed = { "blaze": implementation };',
+        'const idiomatic = ["blazing", "trailblaze"];',
+        '',
+      ].join('\n'),
+      { path: 'src/trails.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        "const authored = { ['implementation']: implementation };",
+        'const keyed = { "implementation": implementation };',
+        'const idiomatic = ["blazing", "trailblaze"];',
+        '',
+      ].join('\n')
+    );
+
+    for (const source of [
+      'type Runtime = Pick<TrailContract, "blaze">;',
+      'const label = "blaze";',
+    ]) {
+      expect(
+        blazeLiteralClass.apply(source, { path: 'src/trails.ts' })
+      ).toMatchObject({
+        kind: 'needs-review',
+        reason: 'ast-string-literal-review-position',
+      });
+    }
+
+    const preservingClasses = createGovernedAstIdentifierRenameClasses(
+      transition,
+      {
+        shouldPreserve: (occurrence) =>
+          occurrence.path === 'scripts/vocab-cutover-map.ts',
+      }
+    );
+    const preservingLiteralClass = preservingClasses.find((cls) =>
+      cls.id.includes(
+        'ast-string-literal-rename:v1-blaze-implementation:blaze->implementation'
+      )
+    );
+    expect(preservingLiteralClass).toBeDefined();
+    if (preservingLiteralClass === undefined) {
+      throw new Error('Expected preserving blaze literal rename class.');
+    }
+    expect(
+      preservingLiteralClass.apply("const historical = 'blaze';", {
+        path: 'scripts/vocab-cutover-map.ts',
+      })
+    ).toMatchObject({ kind: 'no-op' });
+  });
+
   test('routes governed registry shadow declarations to review', () => {
     const transition = getGovernedVocabularyTransition('cross-compose');
     expect(transition).toBeDefined();

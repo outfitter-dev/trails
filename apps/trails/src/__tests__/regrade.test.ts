@@ -27,12 +27,42 @@ const trailsBinPath = fileURLToPath(
 );
 const cliTimeoutMs = 30_000;
 const facetTrailheadRegistryExcludes = [
+  '.agents/goals/**',
+  '**/.agents/goals/**',
   '.agents/memory/**',
+  '**/.agents/memory/**',
+  '.agents/notes/**',
+  '**/.agents/notes/**',
+  '.claude/agent-memory/**',
+  '**/.claude/agent-memory/**',
   '.agents/plans/archive/**',
+  '**/.agents/plans/archive/**',
   '.changeset/**',
+  '**/.changeset/**',
+  '.scratch/**',
+  '**/.scratch/**',
+  '.trails/regrade/history/**',
+  '**/.trails/regrade/history/**',
   '**/CHANGELOG.md',
+  '**/.tmp-tests/**',
   'packages/warden/src/rules/retired-vocabulary.ts',
 ];
+const facetTrailheadRegistryHistoricalPreserve = {
+  paths: [
+    '.agents/plans/**',
+    '**/.agents/plans/**',
+    'docs/adr/0*.md',
+    'docs/adr/decision-map.json',
+    'docs/migration/**',
+    'docs/releases/beta*.md',
+    'docs/releases/v1-vocabulary-reset.md',
+    'docs/releases/v1-vocabulary-transition-workflow.md',
+    'scripts/vocab-cutover-*.ts',
+  ],
+  pattern: '(?:facet|facets|Facet)',
+  reason:
+    'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
+};
 
 interface RawCliRun {
   readonly exitCode: number;
@@ -2593,11 +2623,7 @@ describe('trails regrade', () => {
         from: 'facet',
         id: 'v1-facet-trailhead',
         scope: {
-          exclude: [
-            ...facetTrailheadRegistryExcludes,
-            '.agents/notes/**',
-            '.scratch/**',
-          ],
+          exclude: facetTrailheadRegistryExcludes,
         },
         to: 'trailhead',
       });
@@ -2934,10 +2960,10 @@ describe('trails regrade', () => {
   test('CLI accepts path-scope exclude globs for vocabulary regrades', () => {
     const dir = makeTempDir();
     try {
-      writeFile(dir, '.agents/notes/history.md', 'facet\n');
       writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
-      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'docs/ignored/history.md', 'facet\n');
       writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
+      writeFile(dir, 'private/history.md', 'facet\n');
 
       const result = runRawCli([
         'regrade',
@@ -2946,9 +2972,9 @@ describe('trails regrade', () => {
         '--root-dir',
         dir,
         '--exclude',
-        '.scratch/**',
+        'private/**',
         '--exclude',
-        '.agents/notes/**',
+        'docs/ignored/**',
         '--json',
       ]);
 
@@ -2981,8 +3007,8 @@ describe('trails regrade', () => {
       };
       expect(parsed.run?.plan?.scope?.exclude).toEqual([
         ...facetTrailheadRegistryExcludes,
-        '.scratch/**',
-        '.agents/notes/**',
+        'private/**',
+        'docs/ignored/**',
       ]);
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
         '.agents/skills/trails/SKILL.md',
@@ -3112,6 +3138,7 @@ describe('trails regrade', () => {
         };
       };
       expect(parsed.run?.plan?.preserve).toEqual([
+        facetTrailheadRegistryHistoricalPreserve,
         {
           disposition: 'preserve-current-live-api',
           paths: ['src/**'],
@@ -3519,14 +3546,14 @@ describe('trails regrade', () => {
         'trails.config.json',
         JSON.stringify({
           regrade: {
-            scope: { exclude: ['.scratch/**', '.agents/notes/**'] },
+            scope: { exclude: ['private/**', 'docs/ignored/**'] },
           },
         })
       );
-      writeFile(dir, '.agents/notes/history.md', 'facet\n');
       writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
-      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'docs/ignored/history.md', 'facet\n');
       writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
+      writeFile(dir, 'private/history.md', 'facet\n');
 
       const result = runRawCli([
         'regrade',
@@ -3549,8 +3576,8 @@ describe('trails regrade', () => {
       };
       expect(parsed.run?.plan?.scope?.exclude).toEqual([
         ...facetTrailheadRegistryExcludes,
-        '.scratch/**',
-        '.agents/notes/**',
+        'private/**',
+        'docs/ignored/**',
       ]);
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
         '.agents/skills/trails/SKILL.md',
@@ -3570,17 +3597,17 @@ describe('trails regrade', () => {
         'trails.config.json',
         JSON.stringify({
           regrade: {
-            scope: { exclude: ['.agents/notes/**'] },
+            scope: { exclude: ['private/**'] },
           },
         })
       );
-      writeFile(dir, '.agents/notes/history.md', 'facet\n');
-      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'docs/ignored/history.md', 'facet\n');
       writeFile(dir, 'docs/keep.md', 'facet\n');
+      writeFile(dir, 'private/history.md', 'facet\n');
 
       const result = await regradeTrail.blaze(
         {
-          exclude: ['.scratch/**'],
+          exclude: ['docs/ignored/**'],
           from: 'facet',
           rootDir: dir,
           to: 'trailhead',
@@ -3594,11 +3621,11 @@ describe('trails regrade', () => {
       }
       expect(result.value.run?.plan.scope?.exclude).toEqual([
         ...facetTrailheadRegistryExcludes,
-        '.scratch/**',
+        'docs/ignored/**',
       ]);
       expect(result.value.run?.ledger.occurrences.map((o) => o.path)).toEqual([
-        '.agents/notes/history.md',
         'docs/keep.md',
+        'private/history.md',
       ]);
       expect(result.value.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
     } finally {

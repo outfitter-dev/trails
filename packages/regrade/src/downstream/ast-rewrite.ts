@@ -253,6 +253,7 @@ export interface AstStringLiteralRenameClassOptions {
   readonly describe?: string;
   readonly from: string;
   readonly id?: string;
+  readonly match?: 'exact' | 'property-key';
   readonly shouldPreserve?: (
     occurrence: AstIdentifierRenameOccurrence
   ) => boolean;
@@ -439,6 +440,35 @@ export const createAstStringLiteralRenameClass = (
         return null;
       }
 
+      if (options.match === 'property-key' && context.key !== 'key') {
+        const location = offsetToLineColumn(context.source, node.start);
+        const caution = `String literal "${options.from}" is not an authored property key; routed to review.`;
+        return {
+          detail: {
+            candidateReplacement: options.to,
+            expectedTarget: `Review whether string literal "${options.from}" names the authored contract field before renaming it to "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: options.from,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'ast-string-literal-review-position',
+            signals: ['ast:string-literal-rename', 'ast:property-key-required'],
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation:
+              'Confirm the literal is a trail contract field before changing it.',
+            symbol: options.from,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'ast-string-literal-review-position',
+        };
+      }
+
       return {
         edit: createSourceEdit(span.start, span.end, options.to),
         kind: 'edit',
@@ -472,6 +502,7 @@ export const createGovernedAstIdentifierRenameClasses = (
       describe: `Rename governed string literal "${rename.from}" to "${rename.to}" for ${transition.id}.`,
       from: rename.from,
       id: `ast-string-literal-rename:${transition.id}:${rename.from}->${rename.to}`,
+      ...(rename.match === undefined ? {} : { match: rename.match }),
       ...(options.shouldPreserve === undefined
         ? {}
         : { shouldPreserve: options.shouldPreserve }),

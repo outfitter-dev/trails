@@ -67,6 +67,64 @@ describe('governed vocabulary registry', () => {
     }
   });
 
+  test('separates ignored state from scanned historical evidence', () => {
+    const v1Transitions = listGovernedVocabularyTransitions().filter(
+      (transition) => transition.id.startsWith('v1-')
+    );
+
+    for (const transition of v1Transitions) {
+      expect(transition.scope?.exclude).toContain('.scratch/**');
+      expect(transition.scope?.exclude).toContain('.agents/goals/**');
+      expect(transition.scope?.exclude).toContain('**/.agents/goals/**');
+      expect(transition.scope?.exclude).toContain('.agents/notes/**');
+      expect(transition.scope?.exclude).toContain('**/.agents/notes/**');
+      expect(transition.scope?.exclude).toContain('.claude/agent-memory/**');
+      expect(transition.scope?.exclude).toContain('**/.claude/agent-memory/**');
+      expect(transition.scope?.exclude).toContain('**/.tmp-tests/**');
+
+      const historical = transition.preserve.find((rule) =>
+        rule.paths?.includes('docs/adr/0*.md')
+      );
+      expect(historical?.paths).toContain('.agents/plans/**');
+      expect(historical?.paths).toContain('**/.agents/plans/**');
+      expect(historical?.paths).toContain('docs/adr/decision-map.json');
+      expect(historical?.paths).toContain('docs/migration/**');
+      expect(historical?.paths).toContain('docs/releases/beta*.md');
+      expect(historical?.paths).toContain('scripts/vocab-cutover-*.ts');
+      expect(historical?.pattern).toBeDefined();
+    }
+  });
+
+  test('preserves historical compounds with escaped old-form patterns', () => {
+    const blaze = getGovernedVocabularyTransition('v1-blaze-implementation');
+
+    const blazeHistorical = blaze?.preserve.find((rule) =>
+      rule.paths?.includes('.agents/plans/**')
+    );
+
+    expect(blazeHistorical?.pattern).toBe(
+      '(?:blaze|blazes|Blaze|blazing|blazed|trailblaze)'
+    );
+    expect('blazeBody').toMatch(new RegExp(blazeHistorical?.pattern ?? ''));
+  });
+
+  test('governs exact blaze string literals without inflected literal rewrites', () => {
+    const blaze = getGovernedVocabularyTransition('v1-blaze-implementation');
+
+    expect(blaze?.status).toBe('planned');
+    expect(blaze?.stringLiteralRenames).toEqual([
+      { from: 'blaze', match: 'property-key', to: 'implementation' },
+    ]);
+
+    const literalSources =
+      blaze?.stringLiteralRenames.map((rename) => rename.from) ?? [];
+    expect(literalSources).not.toContain('Blaze');
+    expect(literalSources).not.toContain('blazes');
+    expect(literalSources).not.toContain('blazing');
+    expect(literalSources).not.toContain('blazed');
+    expect(literalSources).not.toContain('trailblaze');
+  });
+
   test('rejects duplicate ids and duplicate source terms', () => {
     const [transition] = governedVocabularyTransitions;
     if (transition === undefined) {
