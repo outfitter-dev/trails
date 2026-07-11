@@ -251,6 +251,7 @@
       "version": "1.0.0-beta.39",
       "dependencies": {
         "@ontrails/core": "workspace:^",
+        "@ontrails/source": "workspace:^",
       },
       "peerDependencies": {
         "zod": "catalog:",

@@ -32,6 +32,11 @@
     "zod": "catalog:"
   },
   "trails": {
+    "adapters": {
+      "./jsonfile": {
+        "target": "store"
+      }
+    },
     "adapterTargets": {
       "store": {
         "placements": [

@@ -5,26 +5,110 @@ import { checkAdapters } from '../check.js';
 
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
 
-describe('first-party adapter dogfood', () => {
-  test('@ontrails/hono declares and proves the HTTP adapter target', () => {
-    const report = checkAdapters(repoRoot);
-    const hono = report.subjects.find(
-      (subject) => subject.packageName === '@ontrails/hono'
-    );
+const expectedAdapters = [
+  {
+    conformancePath:
+      'adapters/cloudflare/src/workers/__tests__/conformance.test.ts',
+    key: '@ontrails/cloudflare',
+    ownerPackage: '@ontrails/http',
+    packageName: '@ontrails/cloudflare',
+    placement: 'extracted',
+    target: 'http',
+    targetKey: '@ontrails/http:http',
+    testingImport: '@ontrails/http/testing',
+  },
+  {
+    conformancePath: 'adapters/drizzle/src/__tests__/drizzle.test.ts',
+    key: '@ontrails/drizzle',
+    ownerPackage: '@ontrails/store',
+    packageName: '@ontrails/drizzle',
+    placement: 'extracted',
+    target: 'store',
+    targetKey: '@ontrails/store:store',
+    testingImport: '@ontrails/store/testing',
+  },
+  {
+    conformancePath: 'adapters/hono/src/__tests__/conformance.test.ts',
+    key: '@ontrails/hono',
+    ownerPackage: '@ontrails/http',
+    packageName: '@ontrails/hono',
+    placement: 'extracted',
+    target: 'http',
+    targetKey: '@ontrails/http:http',
+    testingImport: '@ontrails/http/testing',
+  },
+  {
+    conformancePath: 'packages/http/src/bun.conformance.test.ts',
+    key: '@ontrails/http/bun',
+    ownerPackage: '@ontrails/http',
+    packageName: '@ontrails/http/bun',
+    placement: 'subpath',
+    target: 'http',
+    targetKey: '@ontrails/http:http',
+    testingImport: '@ontrails/http/testing',
+  },
+  {
+    conformancePath: 'packages/store/src/jsonfile/conformance.test.ts',
+    key: '@ontrails/store/jsonfile',
+    ownerPackage: '@ontrails/store',
+    packageName: '@ontrails/store/jsonfile',
+    placement: 'subpath',
+    target: 'store',
+    targetKey: '@ontrails/store:store',
+    testingImport: '@ontrails/store/testing',
+  },
+] as const;
 
-    expect(hono).toMatchObject({
-      key: '@ontrails/hono',
-      ownerPackage: '@ontrails/http',
-      placement: 'extracted',
-      target: 'http',
-      targetKey: '@ontrails/http:http',
-      testingImport: '@ontrails/http/testing',
-    });
-    expect(hono?.conformanceTestPaths).toEqual([
-      expect.stringContaining(
-        'adapters/hono/src/__tests__/conformance.test.ts'
-      ),
+describe('first-party adapter dogfood', () => {
+  test('verified first-party adapters declare and prove owner targets', () => {
+    const report = checkAdapters(repoRoot);
+
+    expect(report.targets.map((target) => target.key)).toEqual([
+      '@ontrails/http:http',
+      '@ontrails/store:store',
     ]);
+
+    for (const expected of expectedAdapters) {
+      const subject = report.subjects.find(
+        (candidate) => candidate.packageName === expected.packageName
+      );
+
+      expect(subject).toMatchObject({
+        key: expected.key,
+        ownerPackage: expected.ownerPackage,
+        placement: expected.placement,
+        target: expected.target,
+        targetKey: expected.targetKey,
+        testingImport: expected.testingImport,
+      });
+      expect(subject?.conformanceTestPaths).toEqual([
+        expect.stringContaining(expected.conformancePath),
+      ]);
+
+      expect(report.facts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            key: `${expected.packageName}:${expected.target}:configured`,
+            kind: 'configured',
+            packageName: expected.packageName,
+            target: expected.target,
+            targetKey: expected.targetKey,
+          }),
+          expect.objectContaining({
+            key: `${expected.packageName}:${expected.target}:used`,
+            kind: 'used',
+            packageName: expected.packageName,
+            provenance: expect.objectContaining({
+              paths: [expect.stringContaining(expected.conformancePath)],
+              source: 'conformance-test',
+            }),
+            target: expected.target,
+            targetKey: expected.targetKey,
+          }),
+        ])
+      );
+    }
+
     expect(report.facts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -35,38 +119,17 @@ describe('first-party adapter dogfood', () => {
           targetKey: '@ontrails/http:http',
         }),
         expect.objectContaining({
-          key: '@ontrails/hono:http:configured',
-          kind: 'configured',
-          packageName: '@ontrails/hono',
-          target: 'http',
-          targetKey: '@ontrails/http:http',
-        }),
-        expect.objectContaining({
-          key: '@ontrails/hono:http:used',
-          kind: 'used',
-          packageName: '@ontrails/hono',
-          provenance: expect.objectContaining({
-            paths: [
-              expect.stringContaining(
-                'adapters/hono/src/__tests__/conformance.test.ts'
-              ),
-            ],
-            source: 'conformance-test',
-          }),
-          target: 'http',
-          targetKey: '@ontrails/http:http',
+          key: '@ontrails/store:store:available',
+          kind: 'available',
+          ownerPackage: '@ontrails/store',
+          target: 'store',
+          targetKey: '@ontrails/store:store',
         }),
       ])
     );
     expect(report.facts).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ kind: 'observed' })])
     );
-    expect(report.diagnostics).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          packageName: '@ontrails/hono',
-        }),
-      ])
-    );
+    expect(report.diagnostics).toEqual([]);
   });
 });

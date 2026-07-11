@@ -26,6 +26,42 @@ afterEach(() => {
 });
 
 describe('adapter source export scanning', () => {
+  test('combines split type and value export lists regardless of order', () => {
+    const root = makeRoot();
+    writeFile(
+      root,
+      'src/values.ts',
+      ['export interface Shared {}', 'export const SharedValue = {};', ''].join(
+        '\n'
+      )
+    );
+    for (const [name, statements] of [
+      [
+        'type-first.ts',
+        [
+          "import type { Shared } from './values.js';",
+          "import { SharedValue } from './values.js';",
+          'export type { Shared };',
+          'export { SharedValue as Shared };',
+        ],
+      ],
+      [
+        'value-first.ts',
+        [
+          "import type { Shared } from './values.js';",
+          "import { SharedValue } from './values.js';",
+          'export { SharedValue as Shared };',
+          'export type { Shared };',
+        ],
+      ],
+    ] as const) {
+      writeFile(root, `src/${name}`, `${statements.join('\n')}\n`);
+      expect(adapterSourceExportKind(join(root, 'src', name), 'Shared')).toBe(
+        'type-value'
+      );
+    }
+  });
+
   test('classifies direct source exports by type and value position', () => {
     const root = makeRoot();
     writeFile(

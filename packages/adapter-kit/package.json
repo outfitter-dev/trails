@@ -21,7 +21,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:^"
+    "@ontrails/core": "workspace:^",
+    "@ontrails/source": "workspace:^"
   },
   "peerDependencies": {
     "zod": "catalog:"

@@ -445,6 +445,7 @@ const namedExportKind = (
   const exportCode = maskDeadSourceText(source, { strings: false });
   const exportListPattern =
     /\bexport\s+(?<typeOnly>type\s+)?\{(?<exports>[\s\S]*?)\}(?<from>\s+from\s+['"][^'"]+['"])?/gu;
+  let resolvedKind: AdapterSourceExportKind | undefined;
 
   for (const match of exportCode.matchAll(exportListPattern)) {
     if (!stringsMaskedCode.startsWith('export', match.index ?? 0)) {
@@ -469,13 +470,16 @@ const namedExportKind = (
         resolveImportKind
       );
       if (!localKind) {
-        return undefined;
+        continue;
       }
-      return exported.typeOnly ? eraseExportValue(localKind) : localKind;
+      resolvedKind = combineExportKinds(
+        resolvedKind,
+        exported.typeOnly ? eraseExportValue(localKind) : localKind
+      );
     }
   }
 
-  return undefined;
+  return resolvedKind;
 };
 
 const starExportSpecifiers = (

@@ -28,5 +28,10 @@
   "peerDependencies": {
     "@ontrails/store": "workspace:^",
     "zod": "catalog:"
+  },
+  "trails": {
+    "adapter": {
+      "target": "store"
+    }
   }
 }

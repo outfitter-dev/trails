@@ -190,7 +190,7 @@ Tracer-first, so the hardest, most-coupled pieces (the owner conformance factory
    the proven loop.
 6. **Subpath subject discovery** so local checks can discover generated
    owner-package subpath adapters after the scaffold path exists.
-7. **Dogfood** — bring existing first-party adapters (`hono`, `commander`, `vite`, `drizzle`, `http/fetch`, `http/bun`, `store/jsonfile`, `permits/jwt`) into the model.
+7. **Dogfood verified owner targets** — bring existing first-party adapters with real owner bundles (`hono`, `cloudflare`, `drizzle`, `http/bun`, `store/jsonfile`) into the model, and leave candidate families such as `commander`, `vite`, `http/fetch`, and `permits/jwt` out until their owner-target and conformance posture is explicit.
 8. **`catalog` / `describe` + docs/fieldguide.**
 
 ## References

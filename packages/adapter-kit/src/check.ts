@@ -19,6 +19,13 @@ import type {
   DiagnosticBase,
   WorkspacePackage as CoreWorkspacePackage,
 } from '@ontrails/core';
+import {
+  identifierName,
+  isShadowed,
+  parse,
+  walkWithScopes,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 
 import { deriveAdapterTargetCatalog } from './catalog.js';
 import type {
@@ -1160,48 +1167,147 @@ const dynamicImportNamespaceBindings = (
   const stringsMaskedCode = maskSource(source, { strings: true });
   const escapedSpecifier = escapeRegExp(specifier);
   const pattern = new RegExp(
-    `\\b(?:const|let|var)\\s+(?<local>[A-Za-z_$][\\w$]*)\\s*=\\s*(?:await\\s+)?import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)`,
+    `\\bconst\\s+(?<local>[A-Za-z_$][\\w$]*)(?:\\s*:\\s*[^=;]+)?\\s*=\\s*await\\s+import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)`,
     'gu'
   );
 
   return [...code.matchAll(pattern)]
     .filter((match) =>
-      matchStartsWithAnyKeyword(stringsMaskedCode, match, [
-        'const',
-        'let',
-        'var',
-      ])
+      matchStartsWithAnyKeyword(stringsMaskedCode, match, ['const'])
     )
     .map((match) => match.groups?.['local'])
     .filter((local): local is string => local !== undefined);
 };
 
-const dynamicImportNamedBinding = (
+const topLevelNamespaceAliases = (
+  ast: AstNode,
+  namespaceBindings: ReadonlySet<string>
+): readonly string[] => {
+  if (ast.type !== 'Program') {
+    return [];
+  }
+
+  const aliases = new Set(namespaceBindings);
+  const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const statement of body) {
+      if (statement.type !== 'VariableDeclaration') {
+        continue;
+      }
+      if (statement['kind'] !== 'const') {
+        continue;
+      }
+      const declarations =
+        (statement as unknown as { declarations?: readonly AstNode[] })
+          .declarations ?? [];
+      for (const declaration of declarations) {
+        const declarator = declaration as unknown as {
+          id?: AstNode;
+          init?: AstNode;
+        };
+        const local = identifierName(declarator.id);
+        const sourceBinding = identifierName(declarator.init);
+        if (
+          local &&
+          sourceBinding &&
+          aliases.has(sourceBinding) &&
+          !aliases.has(local)
+        ) {
+          aliases.add(local);
+          changed = true;
+        }
+      }
+    }
+  }
+
+  return [...aliases].filter((binding) => !namespaceBindings.has(binding));
+};
+
+interface DynamicNamedImportBinding {
+  readonly imported: string;
+  readonly local: string;
+}
+
+const closingDestructuringBrace = (
   source: string,
-  specifier: string,
-  exportedName: string
-): string | undefined => {
+  openingBrace: number
+): number | undefined => {
+  let depth = 0;
+  for (let index = openingBrace; index < source.length; index += 1) {
+    const skippedIndex = skipImportScanIgnoredToken(source, index);
+    if (skippedIndex !== undefined) {
+      index = skippedIndex - 1;
+      continue;
+    }
+    const char = source[index];
+    if (char === '{') {
+      depth += 1;
+    } else if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+  return undefined;
+};
+
+const splitDestructuringBindings = (source: string): readonly string[] => {
+  const bindings: string[] = [];
+  let start = 0;
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const skippedIndex = skipImportScanIgnoredToken(source, index);
+    if (skippedIndex !== undefined) {
+      index = skippedIndex - 1;
+      continue;
+    }
+    const char = source[index];
+    if (char === '{' || char === '[' || char === '(') {
+      depth += 1;
+    } else if (char === '}' || char === ']' || char === ')') {
+      depth = Math.max(0, depth - 1);
+    } else if (char === ',' && depth === 0) {
+      bindings.push(source.slice(start, index));
+      start = index + 1;
+    }
+  }
+  bindings.push(source.slice(start));
+  return bindings;
+};
+
+const dynamicImportNamedBindings = (
+  source: string,
+  specifier: string
+): readonly DynamicNamedImportBinding[] => {
   const code = maskSource(source, { strings: false });
   const stringsMaskedCode = maskSource(source, { strings: true });
   const escapedSpecifier = escapeRegExp(specifier);
-  const pattern = new RegExp(
-    `\\b(?:const|let|var)\\s*\\{(?<imports>[\\s\\S]*?)\\}\\s*=\\s*(?:await\\s+)?import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)`,
-    'gu'
+  const bindings: DynamicNamedImportBinding[] = [];
+  const declarationPattern = /\bconst\s*\{/gu;
+  const assignmentPattern = new RegExp(
+    `^\\s*(?::\\s*typeof\\s+import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\))?\\s*=\\s*(?:await\\s+)?import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)`,
+    'u'
   );
 
-  for (const match of code.matchAll(pattern)) {
+  for (const match of code.matchAll(declarationPattern)) {
+    if (!matchStartsWithAnyKeyword(stringsMaskedCode, match, ['const'])) {
+      continue;
+    }
+
+    const openingBrace = (match.index ?? 0) + match[0].lastIndexOf('{');
+    const closingBrace = closingDestructuringBrace(code, openingBrace);
     if (
-      !matchStartsWithAnyKeyword(stringsMaskedCode, match, [
-        'const',
-        'let',
-        'var',
-      ])
+      closingBrace === undefined ||
+      !assignmentPattern.test(code.slice(closingBrace + 1))
     ) {
       continue;
     }
 
-    const namedImports = match.groups?.['imports'] ?? '';
-    for (const item of namedImports.split(',')) {
+    const namedImports = code.slice(openingBrace + 1, closingBrace);
+    for (const item of splitDestructuringBindings(namedImports)) {
       const specifierText = item.trim();
       if (specifierText.length === 0 || specifierText.startsWith('...')) {
         continue;
@@ -1211,14 +1317,26 @@ const dynamicImportNamedBinding = (
         /^(?<imported>[A-Za-z_$][\w$]*)(?:\s*:\s*(?<local>[A-Za-z_$][\w$]*))?(?:\s*=.*)?$/u.exec(
           specifierText
         )?.groups;
-      if (imported?.['imported'] === exportedName) {
-        return imported['local'] ?? imported['imported'];
+      if (imported?.['imported']) {
+        bindings.push({
+          imported: imported['imported'],
+          local: imported['local'] ?? imported['imported'],
+        });
       }
     }
   }
 
-  return undefined;
+  return bindings;
 };
+
+const dynamicImportNamedLocals = (
+  source: string,
+  specifier: string,
+  exportedName: string
+): readonly string[] =>
+  dynamicImportNamedBindings(source, specifier)
+    .filter((binding) => binding.imported === exportedName)
+    .map((binding) => binding.local);
 
 interface LocalValueExport {
   readonly identifier: string;
@@ -1550,90 +1668,218 @@ const previousNonWhitespace = (source: string, index: number): string => {
 
 const containsCall = (source: string, identifier: string): boolean => {
   const escapedIdentifier = escapeRegExp(identifier);
-  const callPattern = new RegExp(`\\b${escapedIdentifier}\\s*\\(`, 'gu');
+  const callPattern = new RegExp(`${escapedIdentifier}\\s*\\(`, 'gu');
   for (const match of source.matchAll(callPattern)) {
-    if (previousNonWhitespace(source, match.index ?? 0) !== '.') {
+    const index = match.index ?? 0;
+    if (
+      !isIdentifierChar(source[index - 1]) &&
+      previousNonWhitespace(source, index) !== '.'
+    ) {
       return true;
     }
   }
   return false;
 };
 
-const splitTopLevelArguments = (source: string): readonly string[] => {
-  const args: string[] = [];
-  let start = 0;
-  let parenDepth = 0;
-  let braceDepth = 0;
-  let bracketDepth = 0;
+const promiseMethodNames = new Set(['then', 'catch', 'finally']);
 
-  for (let index = 0; index < source.length; index += 1) {
-    const char = source[index];
-    if (char === '(') {
-      parenDepth += 1;
-      continue;
+const inlineDynamicImportMemberIsCalled = (
+  source: string,
+  specifier: string
+): boolean => {
+  const searchableCode = maskSource(source, { strings: false });
+  const codePositions = maskSource(source, { strings: true });
+  const escapedSpecifier = escapeRegExp(specifier);
+  const pattern = new RegExp(
+    `\\(\\s*await\\s+import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)\\s*\\)\\s*\\.\\s*(?<member>[A-Za-z_$][\\w$]*)\\s*\\(`,
+    'gu'
+  );
+  return [...searchableCode.matchAll(pattern)].some(
+    (match) =>
+      codePositions[match.index ?? 0] !== ' ' &&
+      !promiseMethodNames.has(match.groups?.['member'] ?? '')
+  );
+};
+
+interface RuntimeImportBindings {
+  readonly direct: readonly string[];
+  readonly namespaces: readonly string[];
+}
+
+const staticRuntimeImportBindings = (
+  source: string,
+  specifier: string
+): RuntimeImportBindings => {
+  const direct = new Set<string>();
+  const namespaces = new Set<string>();
+  for (const clause of staticImportClausesForSpecifier(source, specifier)) {
+    const importCode = maskSource(clause, { strings: false });
+    const namespaceBinding =
+      /(?:^|,)\s*\*\s+as\s+(?<local>[A-Za-z_$][\w$]*)(?:\s*$|,)/u.exec(
+        importCode
+      )?.groups?.['local'];
+    if (namespaceBinding) {
+      namespaces.add(namespaceBinding);
     }
-    if (char === ')') {
-      parenDepth = Math.max(0, parenDepth - 1);
-      continue;
+
+    const namedImports = /\{(?<imports>[\s\S]*?)\}/u.exec(importCode)?.groups?.[
+      'imports'
+    ];
+    for (const item of namedImports?.split(',') ?? []) {
+      const trimmedItem = item.trim();
+      const imported =
+        /^(?<imported>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<local>[A-Za-z_$][\w$]*))?$/u.exec(
+          trimmedItem.replace(/^type\s+/u, '')
+        )?.groups;
+      if (!trimmedItem.startsWith('type ') && imported?.['imported']) {
+        direct.add(imported['local'] ?? imported['imported']);
+      }
     }
-    if (char === '{') {
-      braceDepth += 1;
-      continue;
+
+    const defaultBinding = /^(?<local>[A-Za-z_$][\w$]*)(?:\s*,|\s*$)/u.exec(
+      importCode.trim()
+    )?.groups?.['local'];
+    if (defaultBinding) {
+      direct.add(defaultBinding);
     }
-    if (char === '}') {
-      braceDepth = Math.max(0, braceDepth - 1);
-      continue;
+  }
+
+  return { direct: [...direct], namespaces: [...namespaces] };
+};
+
+interface RunnerCall {
+  readonly arguments: readonly string[];
+  readonly argumentNodes: readonly AstNode[];
+}
+
+const namespacedCalleeName = (
+  callee: AstNode
+): { readonly property: string; readonly receiver: string } | undefined => {
+  if (
+    (callee.type !== 'MemberExpression' &&
+      callee.type !== 'StaticMemberExpression') ||
+    callee['computed'] === true
+  ) {
+    return undefined;
+  }
+  const receiver = identifierName(callee['object'] as AstNode | undefined);
+  const property = identifierName(callee['property'] as AstNode | undefined);
+  return receiver && property ? { property, receiver } : undefined;
+};
+
+interface ProvenBindingCall {
+  readonly arguments: readonly AstNode[];
+  readonly end: number;
+  readonly start: number;
+}
+
+const provenBindingCalls = (
+  ast: AstNode,
+  binding: string
+): readonly ProvenBindingCall[] => {
+  const calls: ProvenBindingCall[] = [];
+  walkWithScopes(ast, (node, scopes) => {
+    if (node.type !== 'CallExpression') {
+      return;
     }
-    if (char === '[') {
-      bracketDepth += 1;
-      continue;
+    const callee = node['callee'] as AstNode | undefined;
+    if (!callee) {
+      return;
     }
-    if (char === ']') {
-      bracketDepth = Math.max(0, bracketDepth - 1);
-      continue;
+
+    const member = namespacedCalleeName(callee);
+    const bare = identifierName(callee);
+    const matches = member
+      ? `${member.receiver}.${member.property}` === binding &&
+        !isShadowed(member.receiver, scopes)
+      : bare === binding && !isShadowed(binding, scopes);
+    if (!matches) {
+      return;
     }
+
+    calls.push({
+      arguments:
+        (node as unknown as { arguments?: readonly AstNode[] }).arguments ?? [],
+      end: node.end,
+      start: node.start,
+    });
+  });
+  return calls;
+};
+
+const provenNamespaceIsCalled = (ast: AstNode, binding: string): boolean => {
+  let called = false;
+  walkWithScopes(ast, (node, scopes) => {
+    if (called || node.type !== 'CallExpression') {
+      return;
+    }
+    const callee = node['callee'] as AstNode | undefined;
+    const member = callee && namespacedCalleeName(callee);
     if (
-      char === ',' &&
-      parenDepth === 0 &&
-      braceDepth === 0 &&
-      bracketDepth === 0
+      member?.receiver === binding &&
+      !promiseMethodNames.has(member.property) &&
+      !isShadowed(binding, scopes)
     ) {
-      args.push(source.slice(start, index).trim());
-      start = index + 1;
+      called = true;
     }
-  }
-
-  const trailing = source.slice(start).trim();
-  if (trailing || args.length > 0) {
-    args.push(trailing);
-  }
-  return args;
+  });
+  return called;
 };
 
 const runnerCallArguments = (
   source: string,
-  runner: string
-): readonly (readonly string[])[] => {
-  const code = maskSource(source, { strings: true });
-  const escapedRunner = escapeRegExp(runner);
-  const runnerPattern = new RegExp(`\\b${escapedRunner}\\s*\\(`, 'gu');
-  const calls: (readonly string[])[] = [];
+  runner: string,
+  ast: AstNode
+): readonly RunnerCall[] =>
+  provenBindingCalls(ast, runner).map((call) => ({
+    argumentNodes: call.arguments,
+    arguments: call.arguments.map((argument) =>
+      source.slice(argument.start, argument.end)
+    ),
+  }));
 
-  for (const match of code.matchAll(runnerPattern)) {
-    const matchIndex = match.index ?? 0;
-    if (previousNonWhitespace(code, matchIndex) === '.') {
-      continue;
-    }
+const argumentContainsProvenCall = (
+  argument: AstNode | undefined,
+  ast: AstNode,
+  binding: string
+): boolean =>
+  argument !== undefined &&
+  provenBindingCalls(ast, binding).some(
+    (call) => call.start >= argument.start && call.end <= argument.end
+  );
 
-    const openIndex = code.indexOf('(', matchIndex);
-    const closeIndex = findClosingParen(code, openIndex);
-    if (closeIndex === -1) {
-      continue;
-    }
-    calls.push(splitTopLevelArguments(code.slice(openIndex + 1, closeIndex)));
+const importedRuntimeBindingIsCalled = (
+  source: string,
+  specifier: string,
+  ast: AstNode
+): boolean => {
+  const staticBindings = staticRuntimeImportBindings(source, specifier);
+  const directBindings = new Set([
+    ...staticBindings.direct,
+    ...dynamicImportNamedBindings(source, specifier).map(
+      (binding) => binding.local
+    ),
+  ]);
+  if (
+    [...directBindings].some(
+      (binding) => provenBindingCalls(ast, binding).length > 0
+    )
+  ) {
+    return true;
   }
 
-  return calls;
+  const namespaceBindings = new Set([
+    ...staticBindings.namespaces,
+    ...dynamicImportNamespaceBindings(source, specifier),
+  ]);
+  for (const alias of topLevelNamespaceAliases(ast, namespaceBindings)) {
+    namespaceBindings.add(alias);
+  }
+  return (
+    [...namespaceBindings].some((binding) =>
+      provenNamespaceIsCalled(ast, binding)
+    ) || inlineDynamicImportMemberIsCalled(source, specifier)
+  );
 };
 
 const isSentinelAdapterArgument = (argument: string): boolean =>
@@ -1641,33 +1887,42 @@ const isSentinelAdapterArgument = (argument: string): boolean =>
 
 const runnerInvokesCasesFactory = (
   source: string,
+  ast: AstNode,
   runner: string,
   casesFactory: string
 ): boolean =>
-  runnerCallArguments(source, runner).some((args) => {
+  runnerCallArguments(source, runner, ast).some((call) => {
+    const args = call.arguments;
     const adapterArgument = args[0]?.trim();
     return (
       adapterArgument !== undefined &&
       adapterArgument.length > 0 &&
       !isSentinelAdapterArgument(adapterArgument) &&
-      !containsCall(adapterArgument, casesFactory) &&
-      args.slice(1).some((argument) => containsCall(argument, casesFactory))
+      !argumentContainsProvenCall(call.argumentNodes[0], ast, casesFactory) &&
+      call.argumentNodes
+        .slice(1)
+        .some((argument) =>
+          argumentContainsProvenCall(argument, ast, casesFactory)
+        )
     );
   });
 
 const runnerInvokedWithAdapterArgument = (
   source: string,
+  ast: AstNode,
   runner: string,
   casesFactories: readonly string[] = []
 ): boolean =>
-  runnerCallArguments(source, runner).some((args) => {
+  runnerCallArguments(source, runner, ast).some((call) => {
+    const args = call.arguments;
     const adapterArgument = args[0]?.trim();
     return (
       adapterArgument !== undefined &&
       adapterArgument.length > 0 &&
       !isSentinelAdapterArgument(adapterArgument) &&
       casesFactories.every(
-        (casesFactory) => !containsCall(adapterArgument, casesFactory)
+        (casesFactory) =>
+          !argumentContainsProvenCall(call.argumentNodes[0], ast, casesFactory)
       )
     );
   });
@@ -1744,12 +1999,15 @@ const ownerRunnerDefaultsCasesFactory = (
 
 const runnerBindingProvesConformance = (
   source: string,
+  ast: AstNode,
   targetEntry: AdapterTargetCatalogEntry,
   runnerBinding: string,
   casesFactoryBindings: readonly string[]
 ): boolean => {
   for (const casesFactoryBinding of casesFactoryBindings) {
-    if (runnerInvokesCasesFactory(source, runnerBinding, casesFactoryBinding)) {
+    if (
+      runnerInvokesCasesFactory(source, ast, runnerBinding, casesFactoryBinding)
+    ) {
       return true;
     }
   }
@@ -1758,6 +2016,7 @@ const runnerBindingProvesConformance = (
     ownerRunnerDefaultsCasesFactory(targetEntry) &&
     runnerInvokedWithAdapterArgument(
       source,
+      ast,
       runnerBinding,
       casesFactoryBindings
     )
@@ -1779,72 +2038,63 @@ const provesConformance = (
     return false;
   }
 
-  if (!conformance) {
-    return true;
+  const ast = parse('adapter-conformance.ts', source);
+  if (!ast) {
+    return false;
   }
 
-  const runnerBindings = namedImportBindings(
+  if (!conformance) {
+    return importedRuntimeBindingIsCalled(source, testingImport, ast);
+  }
+
+  const runnerBindings = new Set(
+    namedImportBindings(source, testingImport, conformance.runner)
+  );
+  const casesFactoryBindings = new Set(
+    namedImportBindings(source, testingImport, conformance.casesFactory)
+  );
+  const dynamicRunnerBindings = dynamicImportNamedLocals(
     source,
     testingImport,
     conformance.runner
   );
-  const casesFactoryBindings = namedImportBindings(
+  for (const dynamicRunnerBinding of dynamicRunnerBindings) {
+    runnerBindings.add(dynamicRunnerBinding);
+  }
+  const dynamicCasesFactoryBindings = dynamicImportNamedLocals(
     source,
     testingImport,
     conformance.casesFactory
   );
-  if (runnerBindings.length === 0) {
-    const dynamicRunnerBinding = dynamicImportNamedBinding(
-      source,
-      testingImport,
-      conformance.runner
-    );
-    const dynamicCasesFactoryBinding = dynamicImportNamedBinding(
-      source,
-      testingImport,
-      conformance.casesFactory
-    );
-    const dynamicCasesFactoryBindings = dynamicCasesFactoryBinding
-      ? [dynamicCasesFactoryBinding]
-      : [];
-    if (
-      dynamicRunnerBinding &&
-      runnerBindingProvesConformance(
-        source,
-        targetEntry,
-        dynamicRunnerBinding,
-        dynamicCasesFactoryBindings
-      )
-    ) {
-      return true;
-    }
-
-    for (const namespaceBinding of dynamicImportNamespaceBindings(
-      source,
-      testingImport
-    )) {
-      const namespaceRunnerBinding = `${namespaceBinding}.${conformance.runner}`;
-      const namespaceCasesFactoryBinding = `${namespaceBinding}.${conformance.casesFactory}`;
-      if (
-        runnerBindingProvesConformance(
-          source,
-          targetEntry,
-          namespaceRunnerBinding,
-          [namespaceCasesFactoryBinding]
-        )
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+  for (const dynamicCasesFactoryBinding of dynamicCasesFactoryBindings) {
+    casesFactoryBindings.add(dynamicCasesFactoryBinding);
   }
-  return runnerBindings.some((runnerBinding) =>
+  for (const namespaceBinding of dynamicImportNamespaceBindings(
+    source,
+    testingImport
+  )) {
+    runnerBindings.add(`${namespaceBinding}.${conformance.runner}`);
+    casesFactoryBindings.add(`${namespaceBinding}.${conformance.casesFactory}`);
+  }
+
+  const namespaceBindings = new Set(
+    [...runnerBindings]
+      .filter((binding) => binding.endsWith(`.${conformance.runner}`))
+      .map((binding) => binding.slice(0, -conformance.runner.length - 1))
+  );
+  for (const alias of topLevelNamespaceAliases(ast, namespaceBindings)) {
+    runnerBindings.add(`${alias}.${conformance.runner}`);
+    casesFactoryBindings.add(`${alias}.${conformance.casesFactory}`);
+  }
+
+  const allCasesFactoryBindings = [...casesFactoryBindings];
+  return [...runnerBindings].some((runnerBinding) =>
     runnerBindingProvesConformance(
       source,
+      ast,
       targetEntry,
       runnerBinding,
-      casesFactoryBindings
+      allCasesFactoryBindings
     )
   );
 };
