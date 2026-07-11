@@ -11,6 +11,9 @@ const pluralizeVocabularyForm = (value: string): string =>
     ? `${value}es`
     : `${value}s`;
 
+const defaultSourceForms = (value: string): readonly string[] =>
+  /^[A-Za-z]+$/.test(value) ? [value, pluralizeVocabularyForm(value)] : [value];
+
 const preserveRulesFromTransition = (
   transition: GovernedVocabularyTransition
 ): readonly VocabularyPreserveRule[] =>
@@ -44,12 +47,7 @@ const defaultFormsAreRegistrySafe = (
     return false;
   }
 
-  const defaultForms = [
-    transition.from,
-    pluralizeVocabularyForm(transition.from),
-  ];
-
-  return defaultForms.every((form) => {
+  return defaultSourceForms(transition.from).every((form) => {
     const replacement = transition.safeRewriteForms[form];
     return replacement !== undefined && !transition.reviewForms.includes(form);
   });

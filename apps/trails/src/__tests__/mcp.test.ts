@@ -924,6 +924,147 @@ describe('Trails MCP surface shaping', () => {
     }
   });
 
+  test('executes governed package route rewrites and preserves through MCP', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'package.json',
+        `${JSON.stringify({ dependencies: { '@ontrails/source': '^1.0.0' }, name: 'consumer' })}\n`
+      );
+      writeFile(
+        dir,
+        'src/rewrite.ts',
+        [
+          "import { parse } from '@ontrails/warden/ast';",
+          'const route = "@ontrails/warden/ast";',
+          'const near = "@ontrails/warden/ast-extra";',
+          '',
+        ].join('\n')
+      );
+      writeFile(
+        dir,
+        'src/preserved.ts',
+        "import { walk } from '@ontrails/warden/ast';\n"
+      );
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const planRegrade = requireTool(tools, 'trails_plan_regrade');
+      const previewRegrade = requireTool(tools, 'trails_preview_regrade');
+      const applyRegrade = requireTool(tools, 'trails_apply_regrade');
+
+      const planResult = await planRegrade.handler(
+        {
+          from: '@ontrails/warden/ast',
+          include: ['src/**'],
+          preserve: [
+            {
+              forms: ['@ontrails/warden/ast'],
+              paths: ['src/preserved.ts'],
+              pattern: '@ontrails/warden/ast',
+              reason: 'intentional negative fixture',
+            },
+          ],
+          rootDir: dir,
+          to: '@ontrails/source',
+        },
+        {}
+      );
+      expect(planResult.isError).toBeUndefined();
+      expect(planResult.structuredContent).toMatchObject({
+        kind: 'regrade-plan',
+        path: '.trails/regrade/ontrails-warden-ast-to-ontrails-source.json',
+        plan: {
+          from: '@ontrails/warden/ast',
+          to: '@ontrails/source',
+        },
+      });
+
+      const previewResult = await previewRegrade.handler(
+        { includeEntries: 'all', rootDir: dir },
+        {}
+      );
+      expect(previewResult.isError).toBeUndefined();
+      const structured = previewResult.structuredContent as {
+        readonly entries?: readonly {
+          readonly classId?: string;
+          readonly outcome?: string;
+          readonly path?: string;
+        }[];
+        readonly run?: {
+          readonly plan?: {
+            readonly from?: string;
+            readonly preserve?: readonly {
+              readonly paths?: readonly string[];
+              readonly pattern?: string;
+              readonly reason?: string;
+            }[];
+            readonly to?: string;
+          };
+          readonly report?: {
+            readonly gate?: {
+              readonly reasons?: readonly string[];
+              readonly status?: string;
+            };
+          };
+        };
+        readonly selectedClassIds?: readonly string[];
+      };
+      expect(structured.selectedClassIds).toContain(
+        'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source'
+      );
+      expect(structured.run?.plan).toMatchObject({
+        from: '@ontrails/warden/ast',
+        id: 'v1-warden-ast-source',
+        to: '@ontrails/source',
+      });
+      expect(structured.run?.plan?.preserve).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            paths: ['src/preserved.ts'],
+            pattern: '@ontrails/warden/ast',
+            reason: 'intentional negative fixture',
+          }),
+        ])
+      );
+      expect(structured.run?.report?.gate).toMatchObject({
+        reasons: ['safe-modifications-not-yet-applied'],
+        status: 'open',
+      });
+      expect(structured.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            classId: expect.stringContaining(
+              'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source'
+            ),
+            outcome: 'rewrite',
+            path: 'src/rewrite.ts',
+          }),
+          expect.objectContaining({
+            outcome: 'no-op',
+            path: 'src/preserved.ts',
+          }),
+        ])
+      );
+
+      const applyResult = await applyRegrade.handler({ rootDir: dir }, {});
+      expect(applyResult.isError).toBeUndefined();
+      expect(applyResult.structuredContent).toMatchObject({
+        history: {
+          status: 'applied',
+        },
+      });
+      const applied = readFileSync(join(dir, 'src', 'rewrite.ts'), 'utf8');
+      expect(applied).toContain("from '@ontrails/source'");
+      expect(applied).toContain('const route = "@ontrails/source";');
+      expect(applied).toContain('const near = "@ontrails/warden/ast-extra";');
+      expect(readFileSync(join(dir, 'src', 'preserved.ts'), 'utf8')).toBe(
+        "import { walk } from '@ontrails/warden/ast';\n"
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('keeps app-authored trailhead selectors explicit enough for review', () => {
     expect(trailsMcpTrailheads.inspect.trails).toContain('survey');
     expect(trailsMcpTrailheads.inspect.trails).not.toContain('survey.*');

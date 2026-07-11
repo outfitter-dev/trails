@@ -19,6 +19,7 @@ describe('governed vocabulary registry', () => {
       'v1-blaze-implementation',
       'v1-contour-entity',
       'v1-facet-trailhead',
+      'v1-warden-ast-source',
       'v1-projection-derive-render',
     ]);
     expect(transitions.map((transition) => transition.from)).toEqual([
@@ -26,6 +27,7 @@ describe('governed vocabulary registry', () => {
       'blaze',
       'contour',
       'facet',
+      '@ontrails/warden/ast',
       'projection',
     ]);
 
@@ -225,6 +227,47 @@ describe('governed vocabulary registry', () => {
     expect(literalSources).not.toContain('contoured');
     expect(literalSources).not.toContain('contouring');
     expect(literalSources).not.toContain('counter-contour');
+  });
+
+  test('governs the warden ast package route as an exact code string only', () => {
+    const source = getGovernedVocabularyTransition('v1-warden-ast-source');
+
+    expect(source).toMatchObject({
+      codeIdentifiers: ['@ontrails/warden/ast'],
+      from: '@ontrails/warden/ast',
+      status: 'complete',
+      target: { kind: 'single', to: '@ontrails/source' },
+    });
+    expect(source?.safeRewriteForms).toEqual({
+      '@ontrails/warden/ast': '@ontrails/source',
+    });
+    expect(source?.preserve).toContainEqual(
+      expect.objectContaining({
+        paths: expect.arrayContaining([
+          'adapters/commander/src/__tests__/to-commander.test.ts',
+          'apps/trails/src/__tests__/mcp.test.ts',
+          'apps/trails/src/__tests__/regrade.test.ts',
+          'docs/api-reference.md',
+          'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
+          'packages/regrade/src/downstream/__tests__/vocabulary.test.ts',
+          'packages/warden/README.md',
+          'packages/warden/src/__tests__/ast-export-contract.test.ts',
+          'packages/warden/src/__tests__/public-api.test.ts',
+          'packages/warden/src/__tests__/retired-vocabulary.test.ts',
+          'scripts/verify-oxc-resolver-published.ts',
+        ]),
+        pattern: '^@ontrails/warden/ast$',
+      })
+    );
+    expect(source?.stringLiteralRenames).toEqual([
+      {
+        from: '@ontrails/warden/ast',
+        moduleSpecifier: { targetPackage: '@ontrails/source' },
+        to: '@ontrails/source',
+      },
+    ]);
+    expect(source?.symbolRenames).toEqual([]);
+    expect(source?.reviewForms).toEqual([]);
   });
 
   test('rejects duplicate ids and duplicate source terms', () => {

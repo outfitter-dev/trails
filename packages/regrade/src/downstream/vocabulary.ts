@@ -6,7 +6,14 @@ import {
   matchesAnyPathGlob,
 } from '@ontrails/core';
 import { createHash } from 'node:crypto';
-import { dirname, isAbsolute, join, normalize, relative } from 'node:path';
+import {
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  normalize,
+  relative,
+} from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
@@ -213,30 +220,56 @@ const vocabularyDispositionCounts = (
   );
 };
 
-const isVocabularyTokenCharacter = (value: string): boolean =>
-  /[A-Za-z0-9_$-]/.test(value);
+const isVocabularyTokenCharacter = (
+  value: string,
+  routeLike: boolean
+): boolean => /[A-Za-z0-9_$-]/.test(value) || (routeLike && value === '/');
+
+const isVocabularyTokenCharacterAt = (
+  source: string,
+  index: number,
+  routeLike: boolean
+): boolean => {
+  if (index < 0 || index >= source.length) {
+    return false;
+  }
+  const value = source.at(index) ?? '';
+  if (isVocabularyTokenCharacter(value, routeLike)) {
+    return true;
+  }
+  if (!routeLike || value !== '.') {
+    return false;
+  }
+  return (
+    isVocabularyTokenCharacter(source.at(index - 1) ?? '', false) &&
+    isVocabularyTokenCharacter(source.at(index + 1) ?? '', false)
+  );
+};
 
 const hasWordBoundary = (
   source: string,
   start: number,
-  end: number
+  end: number,
+  form: string
 ): boolean => {
-  const before = start === 0 ? '' : (source.at(start - 1) ?? '');
-  const after = end >= source.length ? '' : (source.at(end) ?? '');
+  const routeLike = form.includes('/');
   return (
-    !isVocabularyTokenCharacter(before) && !isVocabularyTokenCharacter(after)
+    !isVocabularyTokenCharacterAt(source, start - 1, routeLike) &&
+    !isVocabularyTokenCharacterAt(source, end, routeLike)
   );
 };
 
 const expandVocabularyNeighborSpan = (
   source: string,
   start: number,
-  end: number
+  end: number,
+  form: string
 ): { readonly end: number; readonly start: number } => {
+  const routeLike = form.includes('/');
   let expandedStart = start;
   while (
     expandedStart > 0 &&
-    isVocabularyTokenCharacter(source.at(expandedStart - 1) ?? '')
+    isVocabularyTokenCharacterAt(source, expandedStart - 1, routeLike)
   ) {
     expandedStart -= 1;
   }
@@ -244,7 +277,7 @@ const expandVocabularyNeighborSpan = (
   let expandedEnd = end;
   while (
     expandedEnd < source.length &&
-    isVocabularyTokenCharacter(source.at(expandedEnd) ?? '')
+    isVocabularyTokenCharacterAt(source, expandedEnd, routeLike)
   ) {
     expandedEnd += 1;
   }
@@ -287,6 +320,21 @@ const contextDetailsForOffset = (
 
 const isMarkdownPath = (path: string): boolean =>
   path.endsWith('.md') || path.endsWith('.mdx');
+
+const packageRouteCodeExtensions = new Set([
+  '.cjs',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.mts',
+  '.ts',
+  '.tsx',
+]);
+
+const isPackageRouteCodeOccurrence = (path: string, form: string): boolean =>
+  packageRouteCodeExtensions.has(extname(path)) &&
+  /^@[^/]+\/[^/]+(?:\/.*)?$/.test(form);
 
 const sourceLineBoundsForOffset = (
   source: string,
@@ -478,11 +526,13 @@ const defaultDeferredVocabularyForms = (from: string): readonly string[] => {
   ]).filter((form) => form !== from && form !== pluralize(from));
 };
 
-const defaultVocabularyForms = (from: string, to: string) =>
-  new Map<string, string>([
-    [from, to],
-    [pluralize(from), pluralize(to)],
-  ]);
+const defaultVocabularyForms = (from: string, to: string) => {
+  const forms = new Map<string, string>([[from, to]]);
+  if (isSimpleVocabularyWord(from) && isSimpleVocabularyWord(to)) {
+    forms.set(pluralize(from), pluralize(to));
+  }
+  return forms;
+};
 
 const normalizedOverrideEntries = (
   overrides: Readonly<Record<string, string>> | undefined
@@ -806,7 +856,7 @@ const exactDeferredFormOccurrencesForFile = (
         formIdentityForPlan(plan, form)
       );
       if (
-        !hasWordBoundary(file.source, start, end) ||
+        !hasWordBoundary(file.source, start, end, form) ||
         occurrenceOverlaps(occurrences, start, end) ||
         (!isAuthoredDefer && occurrenceOverlaps(targetFormSpans, start, end))
       ) {
@@ -840,7 +890,7 @@ const targetFormSpansForFile = (
       const start = match.index ?? 0;
       const end = start + match[0].length;
       if (
-        !hasWordBoundary(file.source, start, end) ||
+        !hasWordBoundary(file.source, start, end, form) ||
         occurrenceOverlaps(spans, start, end)
       ) {
         continue;
@@ -869,7 +919,7 @@ const occurrencesForFile = (
       const start = match.index ?? 0;
       const end = start + match[0].length;
       if (
-        !hasWordBoundary(file.source, start, end) ||
+        !hasWordBoundary(file.source, start, end, form) ||
         occurrenceOverlaps(deferredOccurrences, start, end)
       ) {
         continue;
@@ -889,10 +939,17 @@ const occurrencesForFile = (
       };
       const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
       const markdownCodeContext = isMarkdownCodeContext(file, start, end);
-      const verdict = capturedVocabularyVerdict(
+      const packageRouteCodeContext = isPackageRouteCodeOccurrence(
+        file.path,
+        form
+      );
+      let verdict = capturedVocabularyVerdict(
         preserveRule,
         markdownCodeContext
       );
+      if (preserveRule === undefined && packageRouteCodeContext) {
+        verdict = 'deferred';
+      }
       candidates.push({
         absolutePath: baseOccurrence.absolutePath,
         column: baseOccurrence.column,
@@ -909,9 +966,13 @@ const occurrencesForFile = (
         reason: vocabularyOccurrenceReason(
           preserveRule,
           markdownCodeContext,
-          'captured-form'
+          packageRouteCodeContext
+            ? 'package-route-ast-required'
+            : 'captured-form'
         ),
-        ...(preserveRule === undefined && !markdownCodeContext
+        ...(preserveRule === undefined &&
+        !markdownCodeContext &&
+        !packageRouteCodeContext
           ? { replacement: preserveCase(match[0], replacement) }
           : {}),
         start: baseOccurrence.start,
@@ -972,13 +1033,14 @@ const deferredOccurrencesForFile = (
     for (const match of file.source.matchAll(pattern)) {
       const matchStart = match.index ?? 0;
       const matchEnd = matchStart + match[0].length;
-      if (hasWordBoundary(file.source, matchStart, matchEnd)) {
+      if (hasWordBoundary(file.source, matchStart, matchEnd, form)) {
         continue;
       }
       const { end, start } = expandVocabularyNeighborSpan(
         file.source,
         matchStart,
-        matchEnd
+        matchEnd,
+        form
       );
       const matchedForm = file.source.slice(start, end);
       const lowerMatchedForm = matchedForm.toLowerCase();

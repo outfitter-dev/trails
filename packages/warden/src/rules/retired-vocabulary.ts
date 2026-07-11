@@ -57,6 +57,11 @@ export const governedVocabularySymbolRenameSchema = z.object({
 export const governedVocabularyLiteralRenameSchema = z.object({
   from: z.string().min(1),
   match: z.enum(['exact', 'property-key', 'review']).optional(),
+  moduleSpecifier: z
+    .object({
+      targetPackage: z.string().min(1),
+    })
+    .optional(),
   to: z.string().min(1),
 });
 
@@ -384,6 +389,56 @@ export const governedVocabularyTransitions =
         },
       ],
       target: { kind: 'single', to: 'trailhead' },
+    }),
+    defineV1Transition({
+      codeIdentifiers: ['@ontrails/warden/ast'],
+      docs: {
+        guidance: [
+          'Treat the package route as an exact code string and module specifier, not as vocabulary prose or an identifier segment.',
+          'Rewrite only exact string literal/module-specifier occurrences; near routes and larger strings stay untouched.',
+        ],
+        summary:
+          'The reusable AST helper route moved from @ontrails/warden/ast to @ontrails/source.',
+      },
+      from: '@ontrails/warden/ast',
+      id: 'v1-warden-ast-source',
+      intent:
+        'Move reusable AST helper imports from @ontrails/warden/ast to @ontrails/source for v1.',
+      kind: 'vocabulary',
+      oldForms: ['@ontrails/warden/ast'],
+      preserve: [
+        {
+          paths: [
+            'adapters/commander/src/__tests__/to-commander.test.ts',
+            'apps/trails/src/__tests__/mcp.test.ts',
+            'apps/trails/src/__tests__/regrade.test.ts',
+            'docs/api-reference.md',
+            'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
+            'packages/regrade/src/downstream/__tests__/vocabulary.test.ts',
+            'packages/warden/README.md',
+            'packages/warden/src/__tests__/ast-export-contract.test.ts',
+            'packages/warden/src/__tests__/public-api.test.ts',
+            'packages/warden/src/__tests__/retired-vocabulary.test.ts',
+            'scripts/verify-oxc-resolver-published.ts',
+          ],
+          pattern: '^@ontrails/warden/ast$',
+          reason:
+            'Preserve current-live facade guidance and contract coverage until the following hard-cut branch retires the route.',
+        },
+      ],
+      reviewForms: [],
+      safeRewriteForms: {
+        '@ontrails/warden/ast': '@ontrails/source',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/warden/ast',
+          moduleSpecifier: { targetPackage: '@ontrails/source' },
+          to: '@ontrails/source',
+        },
+      ],
+      target: { kind: 'single', to: '@ontrails/source' },
     }),
     defineV1Transition({
       codeIdentifiers: [],

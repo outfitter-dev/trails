@@ -2,6 +2,7 @@ import type { AstNode, AstScopeContext, SourceEdit } from '@ontrails/source';
 import {
   applySourceEdits,
   createSourceEdit,
+  extractPlainTemplateLiteral,
   getNodeCallee,
   getStringValue,
   identifierName,
@@ -21,8 +22,8 @@ import type {
   RegradeReviewDetail,
 } from './report.js';
 
-export interface AstRewriteContext extends AstScopeContext {
-  readonly path: string;
+export interface AstRewriteContext
+  extends AstScopeContext, RegradeClassContext {
   readonly source: string;
 }
 
@@ -177,7 +178,7 @@ export const createAstRewriteClass = (
           ...toArray(
             options.visit(node, {
               ...scopeContext,
-              path: context.path,
+              ...context,
               source,
             })
           )
@@ -260,6 +261,8 @@ export interface AstStringLiteralRenameClassOptions {
   readonly shouldPreserve?: (
     occurrence: AstIdentifierRenameOccurrence
   ) => boolean;
+  /** Require the owning manifest to already admit this package route. */
+  readonly targetPackage?: string;
   readonly to: string;
 }
 
@@ -327,6 +330,24 @@ const isModuleSpecifierPosition = (context: AstScopeContext): boolean =>
   isEsmModuleSpecifierPosition(context) ||
   isTypeScriptModuleSpecifierPosition(context) ||
   isLoaderModuleSpecifierPosition(context);
+
+const isTargetPackageMissing = (
+  context: AstRewriteContext,
+  targetPackage: string | undefined
+): boolean => {
+  if (targetPackage === undefined || context.package?.name === targetPackage) {
+    return false;
+  }
+  const testSource =
+    context.path.split('/').includes('__tests__') ||
+    /(?:^|\.)(?:test|spec)\.[cm]?[jt]sx?$/.test(
+      context.path.split('/').at(-1) ?? ''
+    );
+  const dependencies = testSource
+    ? context.package?.dependencies
+    : (context.package?.runtimeDependencies ?? context.package?.dependencies);
+  return !dependencies?.includes(targetPackage);
+};
 
 const isIdentifierNamed = (node: AstNode, name: string): boolean =>
   node.type === 'Identifier' && identifierName(node) === name;
@@ -691,6 +712,35 @@ const stringLiteralValueSpan = (
   return { end: start + value.length, start };
 };
 
+const isAdjacentModuleRoute = (value: string, route: string): boolean =>
+  value.startsWith(`${route}/`) || value.startsWith(`${route}.`);
+
+interface AstStringLiteralMatch {
+  readonly adjacentModuleRoute: boolean;
+  readonly value: string;
+}
+
+const matchAstStringLiteral = (
+  node: AstNode,
+  options: AstStringLiteralRenameClassOptions
+): AstStringLiteralMatch | null => {
+  if (!isStringLiteral(node) && node.type !== 'TemplateLiteral') {
+    return null;
+  }
+  const value = isStringLiteral(node)
+    ? getStringValue(node)
+    : extractPlainTemplateLiteral(node);
+  if (value === null) {
+    return null;
+  }
+  const adjacentModuleRoute =
+    options.allowModuleSpecifier === true &&
+    isAdjacentModuleRoute(value, options.from);
+  return value === options.from || adjacentModuleRoute
+    ? { adjacentModuleRoute, value }
+    : null;
+};
+
 export const createAstStringLiteralRenameClass = (
   options: AstStringLiteralRenameClassOptions
 ): RegradeClass =>
@@ -701,11 +751,13 @@ export const createAstStringLiteralRenameClass = (
     id:
       options.id ?? `ast-string-literal-rename:${options.from}->${options.to}`,
     visit: (node, context) => {
-      if (!isStringLiteral(node) || getStringValue(node) !== options.from) {
+      const match = matchAstStringLiteral(node, options);
+      if (match === null) {
         return null;
       }
+      const { adjacentModuleRoute, value } = match;
 
-      const span = stringLiteralValueSpan(node, context.source, options.from);
+      const span = stringLiteralValueSpan(node, context.source, value);
       if (span === null) {
         const location = offsetToLineColumn(context.source, node.start);
         const caution = `String literal "${options.from}" token span could not be verified; routed to review.`;
@@ -737,7 +789,7 @@ export const createAstStringLiteralRenameClass = (
       if (
         options.shouldPreserve?.({
           end: span.end,
-          from: options.from,
+          from: value,
           path: context.path,
           source: context.source,
           start: span.start,
@@ -745,6 +797,35 @@ export const createAstStringLiteralRenameClass = (
         }) === true
       ) {
         return null;
+      }
+
+      if (adjacentModuleRoute) {
+        const location = offsetToLineColumn(context.source, node.start);
+        const caution = `Module route "${value}" is adjacent to governed route "${options.from}"; routed to review.`;
+        return {
+          detail: {
+            candidateReplacement: `${options.to}${value.slice(options.from.length)}`,
+            expectedTarget: `Review whether module route "${value}" moves with governed route "${options.from}".`,
+            judgment: 'unresolved',
+            matchedForm: value,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'ast-string-literal-adjacent-module-route',
+            signals: ['ast:string-literal-rename', 'ast:module-specifier'],
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation:
+              'Confirm whether the adjacent module route is public, private, or intentionally preserved.',
+            symbol: value,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'ast-string-literal-adjacent-module-route',
+        };
       }
 
       if (
@@ -776,6 +857,46 @@ export const createAstStringLiteralRenameClass = (
           kind: 'review',
           note: caution,
           reason: 'ast-string-literal-module-specifier',
+        };
+      }
+
+      if (isTargetPackageMissing(context, options.targetPackage)) {
+        const location = offsetToLineColumn(context.source, node.start);
+        const manifest = context.package?.path ?? 'the owning package.json';
+        const invalidManifest = context.package?.manifestState === 'invalid';
+        const caution = invalidManifest
+          ? `Package manifest ${manifest} is invalid; routed to review before rewriting package route "${options.to}".`
+          : `Package route "${options.to}" is not declared by ${manifest}; routed to review before rewriting source.`;
+        return {
+          detail: {
+            candidateReplacement: options.to,
+            expectedTarget: invalidManifest
+              ? `Fix invalid package manifest ${manifest}, declare "${options.targetPackage}", install dependencies, then rename "${options.from}" to "${options.to}".`
+              : `Declare "${options.targetPackage}" in ${manifest}, install dependencies, then rename "${options.from}" to "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: options.from,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'package-route-target-dependency-unverified',
+            signals: [
+              'ast:string-literal-rename',
+              'package:dependency',
+              ...(invalidManifest ? ['package:manifest-invalid'] : []),
+            ],
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation: invalidManifest
+              ? 'Repair the package manifest, install dependencies, and run the package typecheck.'
+              : 'Install dependencies and run the package typecheck.',
+            symbol: options.from,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'package-route-target-dependency-unverified',
         };
       }
 
@@ -830,6 +951,11 @@ export const createGovernedAstIdentifierRenameClasses = (
   const targetSegments = [
     ...new Set(transition.symbolRenames.map((rename) => rename.to)),
   ];
+  const orderedLiteralRenames = [...transition.stringLiteralRenames].toSorted(
+    (left, right) =>
+      right.from.length - left.from.length ||
+      left.from.localeCompare(right.from)
+  );
 
   return [
     ...transition.symbolRenames.map((rename) =>
@@ -846,7 +972,7 @@ export const createGovernedAstIdentifierRenameClasses = (
         to: rename.to,
       })
     ),
-    ...transition.stringLiteralRenames.map((rename) =>
+    ...orderedLiteralRenames.map((rename) =>
       createAstStringLiteralRenameClass({
         describe: `Rename governed string literal "${rename.from}" to "${rename.to}" for ${transition.id}.`,
         from: rename.from,
@@ -855,6 +981,12 @@ export const createGovernedAstIdentifierRenameClasses = (
         ...(options.shouldPreserve === undefined
           ? {}
           : { shouldPreserve: options.shouldPreserve }),
+        ...(rename.moduleSpecifier === undefined
+          ? {}
+          : {
+              allowModuleSpecifier: true,
+              targetPackage: rename.moduleSpecifier.targetPackage,
+            }),
         to: rename.to,
       })
     ),

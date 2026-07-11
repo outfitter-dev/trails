@@ -4050,10 +4050,249 @@ describe('trails regrade', () => {
         }>(result);
         expect(parsed.plan).toMatchObject({
           from: '@ontrails/warden/ast',
-          id: 'vocabulary:@ontrails/warden/ast->@ontrails/source',
+          id: 'v1-warden-ast-source',
           to: '@ontrails/source',
         });
       }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI regrade observes and applies governed package route source strings', () => {
+    const dir = makeTempDir();
+    const input = {
+      from: '@ontrails/warden/ast',
+      include: ['src/**'],
+      to: '@ontrails/source',
+    };
+    try {
+      writeFile(
+        dir,
+        'package.json',
+        `${JSON.stringify({ dependencies: { '@ontrails/source': '^1.0.0' }, name: 'consumer' })}\n`
+      );
+      writeFile(
+        dir,
+        'src/rewrite.ts',
+        [
+          "import { parse } from '@ontrails/warden/ast';",
+          'const route = "@ontrails/warden/ast";',
+          'const near = "@ontrails/warden/ast-extra";',
+          'const larger = "use @ontrails/warden/ast here";',
+          '',
+        ].join('\n')
+      );
+      writeFile(
+        dir,
+        'src/preserved.ts',
+        "import { walk } from '@ontrails/warden/ast';\n"
+      );
+
+      const dryRun = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--dry-run',
+        '--include-entries',
+        'all',
+        '--input-json',
+        JSON.stringify(input),
+        '--json',
+      ]);
+
+      expect(dryRun.exitCode).toBe(0);
+      const dryRunParsed = parseCliJson<{
+        readonly entries?: readonly {
+          readonly classId?: string;
+          readonly outcome?: string;
+          readonly path?: string;
+        }[];
+        readonly run?: {
+          readonly plan?: {
+            readonly from?: string;
+            readonly id?: string;
+            readonly to?: string;
+          };
+          readonly report?: {
+            readonly gate?: {
+              readonly reasons?: readonly string[];
+              readonly status?: string;
+            };
+          };
+        };
+        readonly selectedClassIds?: readonly string[];
+      }>(dryRun);
+      expect(dryRunParsed.selectedClassIds).toContain(
+        'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source'
+      );
+      expect(dryRunParsed.run?.plan).toMatchObject({
+        from: '@ontrails/warden/ast',
+        id: 'v1-warden-ast-source',
+        to: '@ontrails/source',
+      });
+      expect(dryRunParsed.run?.report?.gate).toMatchObject({
+        reasons: ['safe-modifications-not-yet-applied'],
+        status: 'open',
+      });
+      expect(dryRunParsed.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            classId: expect.stringContaining(
+              'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source'
+            ),
+            outcome: 'rewrite',
+            path: 'src/rewrite.ts',
+          }),
+          expect.objectContaining({
+            classId:
+              'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source',
+            outcome: 'rewrite',
+            path: 'src/preserved.ts',
+          }),
+        ])
+      );
+
+      const recordPath = writeVocabularyTransitionRecord([
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          ...input,
+          preserve: [
+            {
+              forms: ['@ontrails/warden/ast'],
+              paths: ['src/preserved.ts'],
+              pattern: '@ontrails/warden/ast',
+              reason: 'intentional negative fixture',
+            },
+          ],
+        }),
+      ]);
+      const apply = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--include-entries',
+        'all',
+        '--input-json',
+        JSON.stringify({
+          apply: true,
+          planRecord: recordPath,
+        }),
+        '--json',
+      ]);
+
+      expect(apply.exitCode).toBe(0);
+      const applied = readFileSync(join(dir, 'src', 'rewrite.ts'), 'utf8');
+      expect(applied).toContain("from '@ontrails/source'");
+      expect(applied).toContain('const route = "@ontrails/source";');
+      expect(applied).toContain('const near = "@ontrails/warden/ast-extra";');
+      expect(applied).toContain(
+        'const larger = "use @ontrails/warden/ast here";'
+      );
+      expect(readFileSync(join(dir, 'src', 'preserved.ts'), 'utf8')).toBe(
+        "import { walk } from '@ontrails/warden/ast';\n"
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI regrade preserves package routes until the target dependency is declared', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'package.json',
+        `${JSON.stringify({ dependencies: { '@ontrails/warden': '^1.0.0' }, name: 'consumer' })}\n`
+      );
+      writeFile(
+        dir,
+        'src/consumer.ts',
+        "import { parse } from '@ontrails/warden/ast';\n"
+      );
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--dry-run',
+        '--include-entries',
+        'all',
+        '--input-json',
+        JSON.stringify({
+          from: '@ontrails/warden/ast',
+          include: ['src/**'],
+          to: '@ontrails/source',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = parseCliJson<{
+        readonly entries?: readonly {
+          readonly outcome?: string;
+          readonly reason?: string;
+          readonly reviewDetails?: readonly {
+            readonly expectedTarget?: string;
+          }[];
+        }[];
+      }>(result);
+      expect(parsed.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'needs-review',
+          reason: 'package-route-target-dependency-unverified',
+          reviewDetails: expect.arrayContaining([
+            expect.objectContaining({
+              expectedTarget: expect.stringContaining(
+                'Declare "@ontrails/source" in package.json'
+              ),
+            }),
+          ]),
+        })
+      );
+      expect(readFileSync(join(dir, 'src', 'consumer.ts'), 'utf8')).toContain(
+        "from '@ontrails/warden/ast'"
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI regrade names invalid package manifests before preserving routes', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'package.json', '{ invalid json\n');
+      writeFile(
+        dir,
+        'src/consumer.ts',
+        "import { parse } from '@ontrails/warden/ast';\n"
+      );
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--dry-run',
+        '--include-entries',
+        'all',
+        '--input-json',
+        JSON.stringify({
+          from: '@ontrails/warden/ast',
+          include: ['src/**'],
+          to: '@ontrails/source',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain(
+        'Fix invalid package manifest package.json'
+      );
+      expect(readFileSync(join(dir, 'src', 'consumer.ts'), 'utf8')).toContain(
+        "from '@ontrails/warden/ast'"
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

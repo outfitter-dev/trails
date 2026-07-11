@@ -119,6 +119,210 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('keeps non-word governed sources exact instead of inventing plural forms', () => {
+    const transition = getGovernedVocabularyTransition('v1-warden-ast-source');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected Warden AST package route transition.');
+    }
+
+    const plan = vocabularyRegradePlanFromTransition(transition);
+    expect(plan).toMatchObject({
+      from: '@ontrails/warden/ast',
+      id: 'v1-warden-ast-source',
+      kind: 'vocabulary',
+      overrides: {
+        '@ontrails/warden/ast': '@ontrails/source',
+      },
+      scope: {
+        exclude: expect.arrayContaining([
+          '.changeset/**',
+          'packages/warden/src/rules/retired-vocabulary.ts',
+        ]),
+      },
+      to: '@ontrails/source',
+    });
+    expect(plan?.overrides).not.toHaveProperty('@ontrails/warden/asts');
+    if (plan === null) {
+      throw new Error('Expected package route transition to produce a plan.');
+    }
+
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/route.md',
+        'Use @ontrails/warden/ast for the shared source helpers. Then use @ontrails/warden/ast.\n'
+      );
+      writeFile(dir, 'docs/root-route.md', '@ontrails/warden/ast');
+      writeFile(
+        dir,
+        'docs/api-reference.md',
+        'The @ontrails/warden/ast compatibility facade remains live.\n'
+      );
+      writeFile(
+        dir,
+        'docs/invented.md',
+        'The invented @ontrails/warden/asts route must stay untouched.\n'
+      );
+      writeFile(
+        dir,
+        'scripts/verify-oxc-resolver-published.ts',
+        "assertResolved(check, '@ontrails/warden/ast');\n"
+      );
+      writeFile(
+        dir,
+        'docs/suffixed.md',
+        'Use @ontrails/warden/ast/utils for private helpers.\n'
+      );
+      writeFile(
+        dir,
+        'docs/dotted.md',
+        'Keep @ontrails/warden/ast.js and @ontrails/warden/ast.utils untouched.\n'
+      );
+      writeFile(
+        dir,
+        'src/source.ts',
+        "import { parse } from '@ontrails/warden/ast';\n"
+      );
+      writeFile(
+        dir,
+        'apps/trails/src/__tests__/regrade.test.ts',
+        "const legacyRoute = '@ontrails/warden/ast';\n"
+      );
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          ...plan,
+          scope: {
+            include: ['apps/**', 'docs/**', 'scripts/**', 'src/**'],
+          },
+        },
+        root: dir,
+      });
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run.ledger.forms).toMatchObject({
+        '@ontrails/warden/ast.js': 'deferred',
+        '@ontrails/warden/ast.utils': 'deferred',
+        '@ontrails/warden/ast/utils': 'deferred',
+        '@ontrails/warden/asts': 'deferred',
+      });
+      expect(readFileSync(join(dir, 'docs', 'route.md'), 'utf8')).toBe(
+        'Use @ontrails/source for the shared source helpers. Then use @ontrails/source.\n'
+      );
+      expect(readFileSync(join(dir, 'docs', 'root-route.md'), 'utf8')).toBe(
+        '@ontrails/source'
+      );
+      expect(readFileSync(join(dir, 'docs', 'api-reference.md'), 'utf8')).toBe(
+        'The @ontrails/warden/ast compatibility facade remains live.\n'
+      );
+      expect(
+        readFileSync(
+          join(dir, 'scripts', 'verify-oxc-resolver-published.ts'),
+          'utf8'
+        )
+      ).toBe("assertResolved(check, '@ontrails/warden/ast');\n");
+      expect(readFileSync(join(dir, 'docs', 'invented.md'), 'utf8')).toBe(
+        'The invented @ontrails/warden/asts route must stay untouched.\n'
+      );
+      expect(readFileSync(join(dir, 'docs', 'suffixed.md'), 'utf8')).toBe(
+        'Use @ontrails/warden/ast/utils for private helpers.\n'
+      );
+      expect(readFileSync(join(dir, 'docs', 'dotted.md'), 'utf8')).toBe(
+        'Keep @ontrails/warden/ast.js and @ontrails/warden/ast.utils untouched.\n'
+      );
+      expect(readFileSync(join(dir, 'src', 'source.ts'), 'utf8')).toBe(
+        "import { parse } from '@ontrails/warden/ast';\n"
+      );
+      expect(result.value.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'needs-review',
+          path: 'src/source.ts',
+          reviewDetails: expect.arrayContaining([
+            expect.objectContaining({
+              reason: 'package-route-ast-required',
+              symbol: '@ontrails/warden/ast',
+            }),
+          ]),
+        })
+      );
+      expect(result.value.run.ledger.occurrences).toContainEqual(
+        expect.objectContaining({
+          disposition: 'explicit-preserve',
+          path: 'apps/trails/src/__tests__/regrade.test.ts',
+          verdict: 'skipped',
+        })
+      );
+      expect(result.value.entries).not.toContainEqual(
+        expect.objectContaining({
+          path: 'apps/trails/src/__tests__/regrade.test.ts',
+        })
+      );
+      expect(
+        readFileSync(
+          join(dir, 'apps/trails/src/__tests__/regrade.test.ts'),
+          'utf8'
+        )
+      ).toBe("const legacyRoute = '@ontrails/warden/ast';\n");
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('defers package routes across the full JS and TS extension family', () => {
+    const transition = getGovernedVocabularyTransition('v1-warden-ast-source');
+    const plan =
+      transition === undefined
+        ? null
+        : vocabularyRegradePlanFromTransition(transition);
+    if (plan === null) {
+      throw new Error('Expected package route transition to produce a plan.');
+    }
+
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/config.cts',
+        "const source = require('@ontrails/warden/ast');\n"
+      );
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          ...plan,
+          scope: { extensions: ['.cts'], include: ['src/**'] },
+        },
+        root: dir,
+      });
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      expect(result.value.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'needs-review',
+          path: 'src/config.cts',
+          reviewDetails: expect.arrayContaining([
+            expect.objectContaining({
+              reason: 'package-route-ast-required',
+              symbol: '@ontrails/warden/ast',
+            }),
+          ]),
+        })
+      );
+      expect(readFileSync(join(dir, 'src/config.cts'), 'utf8')).toBe(
+        "const source = require('@ontrails/warden/ast');\n"
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('does not turn classified vocabulary transitions into unsafe plans', () => {
     const transition = getGovernedVocabularyTransition(
       'v1-projection-derive-render'

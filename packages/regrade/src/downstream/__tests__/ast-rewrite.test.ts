@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { createSourceEdit, getNodeName } from '@ontrails/source';
-import { getGovernedVocabularyTransition } from '@ontrails/warden';
+import {
+  getGovernedVocabularyTransition,
+  governedVocabularyTransitionSchema,
+} from '@ontrails/warden';
 
 import {
   createAstIdentifierRenameClass,
@@ -1176,6 +1179,337 @@ describe('createAstIdentifierRenameClass', () => {
         reason: 'ast-string-literal-module-specifier',
       });
     }
+  });
+
+  test('rewrites governed package route import specifiers and exact strings only', () => {
+    const transition = getGovernedVocabularyTransition('v1-warden-ast-source');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected warden ast package route transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const routeLiteralClass = classes.find((cls) =>
+      cls.id.includes(
+        'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source'
+      )
+    );
+    expect(routeLiteralClass).toBeDefined();
+    if (routeLiteralClass === undefined) {
+      throw new Error('Expected warden ast route literal rename class.');
+    }
+
+    const source = [
+      "import { parse } from '@ontrails/warden/ast';",
+      "export { walk } from '@ontrails/warden/ast';",
+      'const route = "@ontrails/warden/ast";',
+      'const near = "@ontrails/warden/ast-extra";',
+      'const larger = "use @ontrails/warden/ast here";',
+      "import { parse as parseSource } from '@ontrails/source';",
+      '',
+    ].join('\n');
+
+    const result = routeLiteralClass.apply(source, {
+      package: {
+        dependencies: ['@ontrails/source'],
+        name: 'consumer',
+        path: 'package.json',
+      },
+      path: 'src/source.ts',
+    });
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        "import { parse } from '@ontrails/source';",
+        "export { walk } from '@ontrails/source';",
+        'const route = "@ontrails/source";',
+        'const near = "@ontrails/warden/ast-extra";',
+        'const larger = "use @ontrails/warden/ast here";',
+        "import { parse as parseSource } from '@ontrails/source';",
+        '',
+      ].join('\n')
+    );
+
+    const templateResult = routeLiteralClass.apply(
+      [
+        'const route = `@ontrails/warden/ast`;',
+        'const loaded = import(`@ontrails/warden/ast`);',
+        '',
+      ].join('\n'),
+      {
+        package: {
+          dependencies: ['@ontrails/source'],
+          name: 'consumer',
+          path: 'package.json',
+          runtimeDependencies: ['@ontrails/source'],
+        },
+        path: 'src/templates.ts',
+      }
+    );
+    expect(templateResult.kind).toBe('rewrite');
+    expect(templateResult.nextSource).toBe(
+      [
+        'const route = `@ontrails/source`;',
+        'const loaded = import(`@ontrails/source`);',
+        '',
+      ].join('\n')
+    );
+
+    for (const adjacentRoute of [
+      '@ontrails/warden/ast/utils',
+      '@ontrails/warden/ast.js',
+      '@ontrails/warden/ast.utils',
+    ]) {
+      const adjacentResult = routeLiteralClass.apply(
+        `import value from '${adjacentRoute}';`,
+        {
+          package: {
+            dependencies: ['@ontrails/source'],
+            name: 'consumer',
+            path: 'package.json',
+          },
+          path: 'src/source.ts',
+        }
+      );
+      expect(adjacentResult).toMatchObject({
+        kind: 'needs-review',
+        reason: 'ast-string-literal-adjacent-module-route',
+      });
+      expect(adjacentResult.reviewDetails?.[0]).toMatchObject({
+        matchedForm: adjacentRoute,
+      });
+    }
+
+    for (const helperSource of [
+      "require.resolve('@ontrails/warden/ast/utils');",
+      "jest.mock('@ontrails/warden/ast/utils');",
+      "vi.mock('@ontrails/warden/ast/utils');",
+    ]) {
+      expect(
+        routeLiteralClass.apply(helperSource, {
+          package: {
+            dependencies: ['@ontrails/source'],
+            name: 'consumer',
+            path: 'package.json',
+          },
+          path: 'src/source.ts',
+        })
+      ).toMatchObject({
+        kind: 'needs-review',
+        reason: 'ast-string-literal-adjacent-module-route',
+      });
+    }
+
+    const inventedPlural = routeLiteralClass.apply(
+      "import value from '@ontrails/warden/asts';",
+      {
+        package: {
+          dependencies: ['@ontrails/source'],
+          name: 'consumer',
+          path: 'package.json',
+        },
+        path: 'src/source.ts',
+      }
+    );
+    expect(inventedPlural.kind).toBe('no-op');
+
+    const missingDependency = routeLiteralClass.apply(source, {
+      package: {
+        dependencies: ['@ontrails/warden'],
+        name: 'consumer',
+        path: 'package.json',
+      },
+      path: 'src/source.ts',
+    });
+    expect(missingDependency).toMatchObject({
+      kind: 'needs-review',
+      reason: 'package-route-target-dependency-unverified',
+    });
+    expect(missingDependency.reviewDetails?.[0]).toMatchObject({
+      candidateReplacement: '@ontrails/source',
+      expectedTarget: expect.stringContaining(
+        'Declare "@ontrails/source" in package.json'
+      ),
+    });
+
+    const devOnlyDependency = routeLiteralClass.apply(
+      "import { parse } from '@ontrails/warden/ast';",
+      {
+        package: {
+          dependencies: ['@ontrails/source'],
+          name: 'consumer',
+          path: 'package.json',
+          runtimeDependencies: [],
+        },
+        path: 'src/source.ts',
+      }
+    );
+    expect(devOnlyDependency).toMatchObject({
+      kind: 'needs-review',
+      reason: 'package-route-target-dependency-unverified',
+    });
+
+    const testOnlyDependency = routeLiteralClass.apply(
+      "import { parse } from '@ontrails/warden/ast';",
+      {
+        package: {
+          dependencies: ['@ontrails/source'],
+          name: 'consumer',
+          path: 'package.json',
+          runtimeDependencies: [],
+        },
+        path: 'src/__tests__/source.test.ts',
+      }
+    );
+    expect(testOnlyDependency.kind).toBe('rewrite');
+
+    const preservingClasses = createGovernedAstIdentifierRenameClasses(
+      transition,
+      {
+        shouldPreserve: (occurrence) =>
+          occurrence.path === 'src/preserved.ts' &&
+          occurrence.from === '@ontrails/warden/ast',
+      }
+    );
+    const preservingRouteClass = preservingClasses.find((cls) =>
+      cls.id.includes(
+        'ast-string-literal-rename:v1-warden-ast-source:@ontrails/warden/ast->@ontrails/source'
+      )
+    );
+    expect(preservingRouteClass).toBeDefined();
+    if (preservingRouteClass === undefined) {
+      throw new Error('Expected preserving package route rename class.');
+    }
+    const preservedMissingDependency = preservingRouteClass.apply(
+      "import { parse } from '@ontrails/warden/ast';",
+      {
+        package: {
+          dependencies: ['@ontrails/warden'],
+          name: 'consumer',
+          path: 'package.json',
+        },
+        path: 'src/preserved.ts',
+      }
+    );
+    expect(preservedMissingDependency.kind).toBe('no-op');
+
+    const adjacentInPreservedPath = preservingRouteClass.apply(
+      "import value from '@ontrails/warden/ast/utils';",
+      {
+        package: {
+          dependencies: ['@ontrails/source'],
+          name: 'consumer',
+          path: 'package.json',
+        },
+        path: 'src/preserved.ts',
+      }
+    );
+    expect(adjacentInPreservedPath).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-adjacent-module-route',
+    });
+    expect(adjacentInPreservedPath.reviewDetails?.[0]).toMatchObject({
+      matchedForm: '@ontrails/warden/ast/utils',
+    });
+
+    const invalidManifest = routeLiteralClass.apply(
+      "import { parse } from '@ontrails/warden/ast';",
+      {
+        package: {
+          dependencies: [],
+          manifestState: 'invalid',
+          path: 'package.json',
+        },
+        path: 'src/source.ts',
+      }
+    );
+    expect(invalidManifest).toMatchObject({
+      kind: 'needs-review',
+      reason: 'package-route-target-dependency-unverified',
+    });
+    expect(invalidManifest.reviewDetails?.[0]).toMatchObject({
+      expectedTarget: expect.stringContaining(
+        'Fix invalid package manifest package.json'
+      ),
+      signals: expect.arrayContaining(['package:manifest-invalid']),
+    });
+  });
+
+  test('requires explicit governed package route intent for scoped literals', () => {
+    const transition = governedVocabularyTransitionSchema.parse({
+      docs: {
+        summary: 'A scoped label changes without owning a package route.',
+      },
+      from: '@example/internal-label',
+      id: 'scoped-label-transition',
+      intent: 'Rename a scoped label without changing module routes.',
+      kind: 'vocabulary',
+      oldForms: ['@example/internal-label'],
+      status: 'active',
+      stringLiteralRenames: [
+        { from: '@example/internal-label', to: '@example/new-label' },
+      ],
+      target: { kind: 'single', to: '@example/new-label' },
+    });
+    const literalClass = createGovernedAstIdentifierRenameClasses(
+      transition
+    ).find((cls) => cls.id.startsWith('ast-string-literal-rename:'));
+
+    expect(literalClass).toBeDefined();
+    expect(
+      literalClass?.apply("import value from '@example/internal-label';", {
+        path: 'src/label.ts',
+      })
+    ).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-module-specifier',
+    });
+  });
+
+  test('orders exact package subpath rewrites before package roots', () => {
+    const transition = governedVocabularyTransitionSchema.parse({
+      docs: { summary: 'Move one package and its public subpath.' },
+      from: '@example/old',
+      id: 'package-route-order',
+      intent: 'Move exact package routes without losing subpath rewrites.',
+      kind: 'vocabulary',
+      oldForms: ['@example/old', '@example/old/support'],
+      status: 'active',
+      stringLiteralRenames: [
+        {
+          from: '@example/old',
+          moduleSpecifier: { targetPackage: '@example/new' },
+          to: '@example/new',
+        },
+        {
+          from: '@example/old/support',
+          moduleSpecifier: { targetPackage: '@example/new' },
+          to: '@example/new/support',
+        },
+      ],
+      target: { kind: 'single', to: '@example/new' },
+    });
+    const literalClasses = createGovernedAstIdentifierRenameClasses(
+      transition
+    ).filter((cls) => cls.id.startsWith('ast-string-literal-rename:'));
+
+    expect(literalClasses.map((cls) => cls.id)).toEqual([
+      'ast-string-literal-rename:package-route-order:@example/old/support->@example/new/support',
+      'ast-string-literal-rename:package-route-order:@example/old->@example/new',
+    ]);
+    expect(
+      literalClasses[0]?.apply("import value from '@example/old/support';", {
+        package: {
+          dependencies: ['@example/new'],
+          path: 'package.json',
+        },
+        path: 'src/source.ts',
+      })
+    ).toMatchObject({
+      kind: 'rewrite',
+      nextSource: "import value from '@example/new/support';",
+    });
   });
 
   test('routes governed registry shadow declarations to review', () => {

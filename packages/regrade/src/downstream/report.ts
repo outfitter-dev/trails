@@ -17,7 +17,8 @@ import {
   loadProjectWardenRules,
   wardenRules,
 } from '@ontrails/warden';
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { z } from 'zod';
 
 import {
@@ -79,6 +80,16 @@ export interface RegradeClassContext {
   readonly path: string;
   /** Absolute path on disk, when the caller has one. */
   readonly absolutePath?: string;
+  /** Nearest owning package facts, when filesystem collection found a manifest. */
+  readonly package?: {
+    readonly dependencies: readonly string[];
+    /** Runtime-visible dependency declarations (dependencies, optional, peer). */
+    readonly runtimeDependencies?: readonly string[];
+    readonly manifestState?: 'invalid' | 'valid';
+    readonly name?: string;
+    /** Root-relative POSIX manifest path. */
+    readonly path: string;
+  };
 }
 
 /** Files a regrade class knows how to inspect. */
@@ -966,6 +977,7 @@ const buildRegradeEvaluation = (params: {
     readonly path: string;
     readonly source: string;
     readonly absolutePath?: string;
+    readonly package?: RegradeClassContext['package'];
   }[];
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
@@ -987,6 +999,7 @@ const buildRegradeEvaluation = (params: {
         ...(file.absolutePath === undefined
           ? {}
           : { absolutePath: file.absolutePath }),
+        ...(file.package === undefined ? {} : { package: file.package }),
         path: file.path,
       },
       selected,
@@ -1055,6 +1068,7 @@ export const buildRegradeReport = (params: {
     readonly path: string;
     readonly source: string;
     readonly absolutePath?: string;
+    readonly package?: RegradeClassContext['package'];
   }[];
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
@@ -1127,6 +1141,121 @@ const canReadDownstreamRoot = (root: string): boolean => {
   }
 };
 
+const PACKAGE_DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies',
+] as const;
+
+const RUNTIME_PACKAGE_DEPENDENCY_FIELDS = [
+  'dependencies',
+  'optionalDependencies',
+  'peerDependencies',
+] as const;
+
+const dependencyNames = (
+  manifest: Readonly<Record<string, unknown>>,
+  fields: readonly (typeof PACKAGE_DEPENDENCY_FIELDS)[number][]
+): readonly string[] =>
+  fields.flatMap((field) => {
+    const value = manifest[field];
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? Object.keys(value)
+      : [];
+  });
+
+const packageContextFor = (
+  root: string,
+  absolutePath: string,
+  cache: Map<string, RegradeClassContext['package'] | undefined>
+): RegradeClassContext['package'] | undefined => {
+  const absoluteRoot = resolve(root);
+  let current = dirname(absolutePath);
+  const visited: string[] = [];
+  while (true) {
+    if (cache.has(current)) {
+      const cached = cache.get(current);
+      for (const directory of visited) {
+        cache.set(directory, cached);
+      }
+      return cached;
+    }
+    visited.push(current);
+    const fromRoot = relative(absoluteRoot, current);
+    if (fromRoot.startsWith('..') || resolve(current) !== current) {
+      break;
+    }
+    const manifestPath = join(current, 'package.json');
+    if (existsSync(manifestPath)) {
+      const manifestRelativePath = relative(
+        absoluteRoot,
+        manifestPath
+      ).replaceAll('\\', '/');
+      try {
+        const parsed = JSON.parse(
+          readFileSync(manifestPath, 'utf8')
+        ) as unknown;
+        if (
+          typeof parsed !== 'object' ||
+          parsed === null ||
+          Array.isArray(parsed)
+        ) {
+          const invalidContext = {
+            dependencies: [],
+            manifestState: 'invalid' as const,
+            path: manifestRelativePath,
+          };
+          for (const directory of visited) {
+            cache.set(directory, invalidContext);
+          }
+          return invalidContext;
+        }
+        const manifest = parsed as Record<string, unknown>;
+        const dependencies = dependencyNames(
+          manifest,
+          PACKAGE_DEPENDENCY_FIELDS
+        );
+        const runtimeDependencies = dependencyNames(
+          manifest,
+          RUNTIME_PACKAGE_DEPENDENCY_FIELDS
+        );
+        const packageContext = {
+          dependencies: [...new Set(dependencies)].toSorted(),
+          manifestState: 'valid' as const,
+          ...(typeof manifest['name'] === 'string'
+            ? { name: manifest['name'] }
+            : {}),
+          path: manifestRelativePath,
+          runtimeDependencies: [...new Set(runtimeDependencies)].toSorted(),
+        };
+        for (const directory of visited) {
+          cache.set(directory, packageContext);
+        }
+        return packageContext;
+      } catch {
+        const invalidContext = {
+          dependencies: [],
+          manifestState: 'invalid' as const,
+          path: manifestRelativePath,
+        };
+        for (const directory of visited) {
+          cache.set(directory, invalidContext);
+        }
+        return invalidContext;
+      }
+    }
+    if (current === absoluteRoot) {
+      break;
+    }
+    current = dirname(current);
+  }
+  for (const directory of visited) {
+    cache.set(directory, undefined);
+  }
+  return undefined;
+};
+
 const runRegradeEvaluation = (params: {
   readonly root: string;
   readonly classes: readonly RegradeClass[];
@@ -1169,10 +1298,20 @@ const runRegradeEvaluation = (params: {
 
   const files: { absolutePath: string; path: string; source: string }[] = [];
   const skipped: SkippedSource[] = [...collected.skipped];
+  const packageContextCache = new Map<
+    string,
+    RegradeClassContext['package'] | undefined
+  >();
   for (const file of collected.files) {
     try {
+      const packageContext = packageContextFor(
+        params.root,
+        file.absolutePath,
+        packageContextCache
+      );
       files.push({
         absolutePath: file.absolutePath,
+        ...(packageContext === undefined ? {} : { package: packageContext }),
         path: file.path,
         source: readFileSync(file.absolutePath, 'utf8'),
       });
