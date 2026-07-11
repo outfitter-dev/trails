@@ -5,6 +5,12 @@ import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
 
 const RULE_NAME = 'duplicate-public-contract';
 const TOPO_FILE = '<topo>';
+const INVERSE_OPERATION_PAIRS = new Map([
+  ['archive', 'restore'],
+  ['disable', 'enable'],
+  ['pause', 'resume'],
+  ['star', 'unstar'],
+]);
 
 const resolveGraph = (
   topo: Parameters<TopoAwareWardenRule['checkTopo']>[0],
@@ -60,6 +66,42 @@ const renderTrailIds = (trailIds: readonly string[]): string =>
     .map((trailId) => `"${trailId}"`)
     .join(', ');
 
+const splitOperation = (
+  trailId: string
+): { readonly scope: string; readonly operation: string } | undefined => {
+  const separatorIndex = trailId.lastIndexOf('.');
+
+  if (separatorIndex <= 0 || separatorIndex === trailId.length - 1) {
+    return undefined;
+  }
+
+  return {
+    operation: trailId.slice(separatorIndex + 1),
+    scope: trailId.slice(0, separatorIndex),
+  };
+};
+
+const areInverseOperations = (left: string, right: string): boolean =>
+  INVERSE_OPERATION_PAIRS.get(left) === right ||
+  INVERSE_OPERATION_PAIRS.get(right) === left;
+
+const isAcceptedInverseOperationPair = (
+  trailIds: readonly string[]
+): boolean => {
+  if (trailIds.length !== 2) {
+    return false;
+  }
+
+  const [left, right] = trailIds.map(splitOperation);
+
+  return Boolean(
+    left &&
+    right &&
+    left.scope === right.scope &&
+    areInverseOperations(left.operation, right.operation)
+  );
+};
+
 const buildDiagnostic = (trailIds: readonly string[]): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
@@ -82,7 +124,10 @@ export const duplicatePublicContract: TopoAwareWardenRule = {
     }
 
     return [...groups.values()]
-      .filter((trailIds) => trailIds.length > 1)
+      .filter(
+        (trailIds) =>
+          trailIds.length > 1 && !isAcceptedInverseOperationPair(trailIds)
+      )
       .map(buildDiagnostic);
   },
   description:

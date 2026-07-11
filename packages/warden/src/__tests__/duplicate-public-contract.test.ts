@@ -136,6 +136,96 @@ describe('duplicate-public-contract', () => {
     expect(diagnostics).toHaveLength(1);
   });
 
+  test('stays quiet for inverse operation pairs on the same scope', async () => {
+    const pairs = [
+      ['route.disable', 'route.enable'],
+      ['check.pause', 'check.resume'],
+      ['snippet.star', 'snippet.unstar'],
+      ['document.archive', 'document.restore'],
+    ] as const;
+
+    for (const [disabled, enabled] of pairs) {
+      const left = trail(disabled, {
+        implementation: () => Result.ok({ ok: true }),
+        input,
+        output,
+      });
+      const right = trail(enabled, {
+        implementation: () => Result.ok({ ok: true }),
+        input,
+        output,
+      });
+
+      const diagnostics = await duplicatePublicContract.checkTopo(
+        topo(`inverse-${disabled}`, { left, right })
+      );
+
+      expect(diagnostics).toEqual([]);
+    }
+  });
+
+  test('still warns when matching facts do not form an inverse operation pair', async () => {
+    const first = trail('route.enable', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+    const second = trail('route.activate', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+
+    const diagnostics = await duplicatePublicContract.checkTopo(
+      topo('non-inverse-duplicates', { first, second })
+    );
+
+    expect(diagnostics).toHaveLength(1);
+  });
+
+  test('still warns for inverse operation names on different scopes', async () => {
+    const disable = trail('route.disable', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+    const enable = trail('feature.enable', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+
+    const diagnostics = await duplicatePublicContract.checkTopo(
+      topo('different-scope-inverses', { disable, enable })
+    );
+
+    expect(diagnostics).toHaveLength(1);
+  });
+
+  test('still warns when an inverse pair shares its contract with a third trail', async () => {
+    const disable = trail('route.disable', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+    const enable = trail('route.enable', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+    const reset = trail('route.reset', {
+      implementation: () => Result.ok({ ok: true }),
+      input,
+      output,
+    });
+
+    const diagnostics = await duplicatePublicContract.checkTopo(
+      topo('crowded-inverse-contract', { disable, enable, reset })
+    );
+
+    expect(diagnostics).toHaveLength(1);
+  });
+
   test('uses provided graph facts when available', async () => {
     const canonical = trail('survey.diff', {
       implementation: () => Result.ok({ ok: true }),
