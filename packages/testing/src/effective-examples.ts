@@ -1,6 +1,6 @@
-import type { AnyContour, Trail, TrailExample } from '@ontrails/core';
+import type { AnyEntity, Trail, TrailExample } from '@ontrails/core';
 import {
-  getContourReferences,
+  getEntityReferences,
   getTrailVersionEntryKind,
   isArchivedTrailVersionEntry,
 } from '@ontrails/core';
@@ -23,7 +23,7 @@ const normalizeComposeRef = (value: string | { readonly id: string }): string =>
   typeof value === 'string' ? value : value.id;
 
 /**
- * Tracks examples that `deriveTrailExamples` synthesizes from contour
+ * Tracks examples that `deriveTrailExamples` synthesizes from entity
  * fixtures. Authored examples are passed through untouched and never
  * appear here, so consumers can distinguish the two by identity.
  *
@@ -34,15 +34,15 @@ const normalizeComposeRef = (value: string | { readonly id: string }): string =>
 const derivedExamples = new WeakSet<TrailExample<unknown, unknown>>();
 
 /**
- * Returns `true` if the given example was synthesized from contour fixtures
+ * Returns `true` if the given example was synthesized from entity fixtures
  * by `deriveTrailExamples`, `false` if it was authored on the trail.
  */
 export const isDerivedExample = (
   example: TrailExample<unknown, unknown>
 ): boolean => derivedExamples.has(example);
 
-interface ContourFixture {
-  readonly contour: AnyContour;
+interface EntityFixture {
+  readonly entity: AnyEntity;
   readonly example: ExampleRecord;
   readonly index: number;
 }
@@ -51,51 +51,51 @@ const capitalize = (value: string): string =>
   value.length === 0 ? value : value.slice(0, 1).toUpperCase() + value.slice(1);
 
 const collectReferenceMap = (
-  contours: readonly AnyContour[]
-): ReadonlyMap<string, ReturnType<typeof getContourReferences>> => {
-  const contourNames = new Set(contours.map((contour) => contour.name));
+  entities: readonly AnyEntity[]
+): ReadonlyMap<string, ReturnType<typeof getEntityReferences>> => {
+  const entityNames = new Set(entities.map((entity) => entity.name));
 
   return new Map(
-    contours.map((contour) => [
-      contour.name,
-      getContourReferences(contour).filter((reference) =>
-        contourNames.has(reference.contour)
+    entities.map((entity) => [
+      entity.name,
+      getEntityReferences(entity).filter((reference) =>
+        entityNames.has(reference.entity)
       ),
     ])
   );
 };
 
-const getIdentityValue = (fixture: ContourFixture): unknown =>
-  fixture.example[fixture.contour.identity];
+const getIdentityValue = (fixture: EntityFixture): unknown =>
+  fixture.example[fixture.entity.identity];
 
 const candidateMatchesSelectedReference = (
-  candidate: ContourFixture,
-  target: ContourFixture,
-  reference: ReturnType<typeof getContourReferences>[number]
+  candidate: EntityFixture,
+  target: EntityFixture,
+  reference: ReturnType<typeof getEntityReferences>[number]
 ): boolean =>
   Object.is(candidate.example[reference.field], getIdentityValue(target));
 
 const selectedMatchesCandidateReference = (
-  fixture: ContourFixture,
-  candidate: ContourFixture,
-  reference: ReturnType<typeof getContourReferences>[number]
+  fixture: EntityFixture,
+  candidate: EntityFixture,
+  reference: ReturnType<typeof getEntityReferences>[number]
 ): boolean =>
   Object.is(fixture.example[reference.field], getIdentityValue(candidate));
 
 const matchesCandidateReferences = (
-  candidate: ContourFixture,
-  selected: readonly ContourFixture[],
-  referencesByContour: ReadonlyMap<
+  candidate: EntityFixture,
+  selected: readonly EntityFixture[],
+  referencesByEntity: ReadonlyMap<
     string,
-    ReturnType<typeof getContourReferences>
+    ReturnType<typeof getEntityReferences>
   >
 ): boolean => {
   const candidateReferences =
-    referencesByContour.get(candidate.contour.name) ?? [];
+    referencesByEntity.get(candidate.entity.name) ?? [];
 
   for (const reference of candidateReferences) {
     const target = selected.find(
-      (fixture) => fixture.contour.name === reference.contour
+      (fixture) => fixture.entity.name === reference.entity
     );
     if (target === undefined) {
       continue;
@@ -109,18 +109,17 @@ const matchesCandidateReferences = (
 };
 
 const matchesSelectedReferences = (
-  candidate: ContourFixture,
-  selected: readonly ContourFixture[],
-  referencesByContour: ReadonlyMap<
+  candidate: EntityFixture,
+  selected: readonly EntityFixture[],
+  referencesByEntity: ReadonlyMap<
     string,
-    ReturnType<typeof getContourReferences>
+    ReturnType<typeof getEntityReferences>
   >
 ): boolean => {
   for (const fixture of selected) {
-    const fixtureReferences =
-      referencesByContour.get(fixture.contour.name) ?? [];
+    const fixtureReferences = referencesByEntity.get(fixture.entity.name) ?? [];
     for (const reference of fixtureReferences) {
-      if (reference.contour !== candidate.contour.name) {
+      if (reference.entity !== candidate.entity.name) {
         continue;
       }
       if (!selectedMatchesCandidateReference(fixture, candidate, reference)) {
@@ -133,43 +132,43 @@ const matchesSelectedReferences = (
 };
 
 const matchesKnownReferences = (
-  candidate: ContourFixture,
-  selected: readonly ContourFixture[],
-  referencesByContour: ReadonlyMap<
+  candidate: EntityFixture,
+  selected: readonly EntityFixture[],
+  referencesByEntity: ReadonlyMap<
     string,
-    ReturnType<typeof getContourReferences>
+    ReturnType<typeof getEntityReferences>
   >
 ): boolean =>
-  matchesCandidateReferences(candidate, selected, referencesByContour) &&
-  matchesSelectedReferences(candidate, selected, referencesByContour);
+  matchesCandidateReferences(candidate, selected, referencesByEntity) &&
+  matchesSelectedReferences(candidate, selected, referencesByEntity);
 
-const selectContourFixtures = (
-  contours: readonly AnyContour[],
-  referencesByContour: ReadonlyMap<
+const selectEntityFixtures = (
+  entities: readonly AnyEntity[],
+  referencesByEntity: ReadonlyMap<
     string,
-    ReturnType<typeof getContourReferences>
+    ReturnType<typeof getEntityReferences>
   >,
   index = 0,
-  selected: readonly ContourFixture[] = []
-): readonly (readonly ContourFixture[])[] => {
-  const contour = contours[index];
-  if (contour === undefined) {
+  selected: readonly EntityFixture[] = []
+): readonly (readonly EntityFixture[])[] => {
+  const entity = entities[index];
+  if (entity === undefined) {
     return [selected];
   }
 
-  const examples = contour.examples ?? [];
+  const examples = entity.examples ?? [];
   const matchingFixtures = examples.flatMap((example, exampleIndex) => {
     const fixture = {
-      contour,
+      entity,
       example: example as ExampleRecord,
       index: exampleIndex,
-    } satisfies ContourFixture;
+    } satisfies EntityFixture;
 
-    if (!matchesKnownReferences(fixture, selected, referencesByContour)) {
+    if (!matchesKnownReferences(fixture, selected, referencesByEntity)) {
       return [];
     }
 
-    return selectContourFixtures(contours, referencesByContour, index + 1, [
+    return selectEntityFixtures(entities, referencesByEntity, index + 1, [
       ...selected,
       fixture,
     ]);
@@ -179,38 +178,37 @@ const selectContourFixtures = (
 };
 
 /**
- * Merge selected contour fixtures into a single candidate input object.
+ * Merge selected entity fixtures into a single candidate input object.
  *
  * The resulting record contains:
- * - `<contour>`: the full fixture payload keyed by contour name.
- * - `<contour><Identity>`: the fixture's identity value on a prefixed key.
- * - `<contour><Field>`: every fixture field on a prefixed key.
- * - Unqualified `<field>` keys: first-write-wins across contours.
+ * - `<entity>`: the full fixture payload keyed by entity name.
+ * - `<entity><Identity>`: the fixture's identity value on a prefixed key.
+ * - `<entity><Field>`: every fixture field on a prefixed key.
+ * - Unqualified `<field>` keys: first-write-wins across entities.
  *
  * The first-write-wins behaviour on unqualified keys is intentional but can
- * silently drop a later contour's value when two contours share a field name
+ * silently drop a later entity's value when two entities share a field name
  * (e.g. both declare `id`). The prefixed aliases above are unambiguous and
  * always written, so schemas that consume the prefixed form are unaffected;
  * schemas that rely on the bare field name should disambiguate via the
  * prefixed alias instead.
  */
 const buildDerivedInput = (
-  fixtures: readonly ContourFixture[]
+  fixtures: readonly EntityFixture[]
 ): Record<string, unknown> => {
   const candidate: Record<string, unknown> = {};
 
   for (const fixture of fixtures) {
-    candidate[fixture.contour.name] = fixture.example;
-    candidate[
-      `${fixture.contour.name}${capitalize(fixture.contour.identity)}`
-    ] = getIdentityValue(fixture);
+    candidate[fixture.entity.name] = fixture.example;
+    candidate[`${fixture.entity.name}${capitalize(fixture.entity.identity)}`] =
+      getIdentityValue(fixture);
 
     for (const [field, value] of Object.entries(fixture.example)) {
       if (!Object.hasOwn(candidate, field)) {
         candidate[field] = value;
       }
 
-      candidate[`${fixture.contour.name}${capitalize(field)}`] = value;
+      candidate[`${fixture.entity.name}${capitalize(field)}`] = value;
     }
   }
 
@@ -248,7 +246,7 @@ const projectInputForSchema = (
 };
 
 /**
- * Derive an expected output value from the selected contour fixtures when
+ * Derive an expected output value from the selected entity fixtures when
  * exactly one fixture's payload satisfies the trail's output schema.
  *
  * Returns `undefined` when the trail has no output schema, when no fixture
@@ -261,22 +259,22 @@ const projectInputForSchema = (
  */
 const deriveExpectedValue = (
   trail: Trail<unknown, unknown, unknown>,
-  fixtures: readonly ContourFixture[]
+  fixtures: readonly EntityFixture[]
 ): unknown => {
   if (trail.output === undefined) {
     return undefined;
   }
 
   const outputSchema = trail.output;
-  const contourMatches = fixtures
+  const entityMatches = fixtures
     .map((fixture) => outputSchema.safeParse(fixture.example))
     .filter((candidate) => candidate.success);
 
-  if (contourMatches.length !== 1) {
+  if (entityMatches.length !== 1) {
     return undefined;
   }
 
-  const [singleMatch] = contourMatches;
+  const [singleMatch] = entityMatches;
   if (singleMatch === undefined) {
     return undefined;
   }
@@ -284,14 +282,14 @@ const deriveExpectedValue = (
 };
 
 const formatFixtureName = (
-  fixtures: readonly ContourFixture[],
+  fixtures: readonly EntityFixture[],
   index: number
 ): string => {
   const label = fixtures
     .map((fixture) => {
       const identity = getIdentityValue(fixture);
       const fallback = fixture.index + 1;
-      return `${fixture.contour.name}:${String(identity ?? fallback)}`;
+      return `${fixture.entity.name}:${String(identity ?? fallback)}`;
     })
     .join(', ');
 
@@ -301,7 +299,7 @@ const formatFixtureName = (
 };
 
 /**
- * Prefer authored trail examples and fall back to contour-derived fixtures.
+ * Prefer authored trail examples and fall back to entity-derived fixtures.
  *
  * Examples returned by this helper come from one of two provenances:
  * - **Authored.** When `trail.examples` is non-empty, its entries are
@@ -309,14 +307,14 @@ const formatFixtureName = (
  *   full invariants — including composing-coverage assertions in
  *   `testExamples`.
  * - **Derived.** When there are no authored examples but the trail has
- *   contours with examples, candidate inputs are synthesized from contour
+ *   entities with examples, candidate inputs are synthesized from entity
  *   fixtures and validated against `trail.input`. These are opportunistic
- *   coverage that exists to let `testAll(app)` exercise contour-backed
+ *   coverage that exists to let `testAll(app)` exercise entity-backed
  *   trails without per-test setup; they are not guaranteed to exercise
  *   every composition branch, so consumers should relax invariants that
  *   only make sense for authored inputs (see `isDerivedExample`).
  *
- * Contour examples stay as the raw input payload so Trails validation /
+ * Entity examples stay as the raw input payload so Trails validation /
  * transforms still happen exactly once inside the normal test execution
  * path. Derived examples are additionally tagged via a module-level
  * `WeakSet` so consumers can detect them without widening the public
@@ -329,24 +327,20 @@ export const deriveTrailExamples = (
     return trail.examples;
   }
 
-  if (trail.contours.length === 0) {
+  if (trail.entities.length === 0) {
     return [];
   }
 
   if (
-    trail.contours.some(
-      (contour) =>
-        contour.examples === undefined || contour.examples.length === 0
+    trail.entities.some(
+      (entity) => entity.examples === undefined || entity.examples.length === 0
     )
   ) {
     return [];
   }
 
-  const referencesByContour = collectReferenceMap(trail.contours);
-  const fixtureSets = selectContourFixtures(
-    trail.contours,
-    referencesByContour
-  );
+  const referencesByEntity = collectReferenceMap(trail.entities);
+  const fixtureSets = selectEntityFixtures(trail.entities, referencesByEntity);
 
   return fixtureSets.flatMap((fixtures, index) => {
     const merged = buildDerivedInput(fixtures);

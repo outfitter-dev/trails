@@ -28,7 +28,7 @@ export const duplicatePublicContractTrail = wrapTopoRule({
             filePath: '<topo>',
             line: 1,
             message:
-              'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, contours, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
+              'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, entities, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
             rule: 'duplicate-public-contract',
             severity: 'warn',
           },

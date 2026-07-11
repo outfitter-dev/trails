@@ -8,7 +8,7 @@ import {
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
   deriveTrailCliCommandProjection,
-  getContourReferences,
+  getEntityReferences,
   projectActivationSourceDeclaration,
   validateEstablishedTopo,
   signalDiagnosticDefinitions,
@@ -17,7 +17,7 @@ import {
 import type {
   ActivationEntry,
   ActivationSource,
-  AnyContour,
+  AnyEntity,
   AnyResource,
   CliSurfaceBindingAliases,
   FieldOverride,
@@ -287,11 +287,11 @@ const addSchemas = (
   }
 };
 
-const addContourSchema = (
+const addEntitySchema = (
   entry: Record<string, unknown>,
-  contour: AnyContour
+  entity: AnyEntity
 ): void => {
-  entry['schema'] = toSortedJsonSchema(contour);
+  entry['schema'] = toSortedJsonSchema(entity);
 };
 
 /** Add safety markers to an entry. */
@@ -375,8 +375,8 @@ const addTrailRelations = (
   if (t.on.length > 0) {
     entry['on'] = t.on.toSorted();
   }
-  if (t.contours.length > 0) {
-    entry['contours'] = t.contours.map((contour) => contour.name).toSorted();
+  if (t.entities.length > 0) {
+    entry['entities'] = t.entities.map((entity) => entity.name).toSorted();
   }
   if (t.resources.length > 0) {
     entry['resources'] = t.resources.map((resource) => resource.id).toSorted();
@@ -596,18 +596,18 @@ const resourceToEntry = (resource: AnyResource): TopoGraphEntry => {
   return sortKeys(entry) as unknown as TopoGraphEntry;
 };
 
-const contourToEntry = (contour: AnyContour): TopoGraphEntry => {
+const entityToEntry = (entity: AnyEntity): TopoGraphEntry => {
   const entry: Record<string, unknown> = {
-    exampleCount: contour.examples?.length ?? 0,
-    id: contour.name,
-    identity: contour.identity,
-    kind: 'contour',
+    exampleCount: entity.examples?.length ?? 0,
+    id: entity.name,
+    identity: entity.identity,
+    kind: 'entity',
     surfaces: [],
   };
 
-  addContourSchema(entry, contour);
+  addEntitySchema(entry, entity);
 
-  const references = getContourReferences(contour);
+  const references = getEntityReferences(entity);
   if (references.length > 0) {
     entry['references'] = references;
   }
@@ -628,7 +628,7 @@ const collectEntries = (
 ): TopoGraphEntry[] => {
   const signalRelations = collectSignalGraphRelations(topo);
   return [
-    ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
+    ...[...topo.entities.values()].map((entity) => entityToEntry(entity)),
     ...[...topo.trails.values()].map((trail) =>
       trailToEntry(
         trail as Trail<unknown, unknown, unknown>,

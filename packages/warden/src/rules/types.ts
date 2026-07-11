@@ -314,16 +314,16 @@ export interface ProjectContext {
   readonly authoredMcpSurfaceBindingSets?:
     | readonly AuthoredMcpSurfaceBindingSet[]
     | undefined;
-  /** All known contour names in the project. */
-  readonly knownContourIds?: ReadonlySet<string>;
+  /** All known entity names in the project. */
+  readonly knownEntityIds?: ReadonlySet<string>;
   /** Store table IDs used with the CRUD factory across the project. */
   readonly crudTableIds?: ReadonlySet<string>;
   /** All known trail IDs in the project */
   readonly knownTrailIds: ReadonlySet<string>;
   /** Trail IDs registered in configured app topo targets. */
   readonly topoTrailIds?: ReadonlySet<string>;
-  /** Declared contour references keyed by source contour name. */
-  readonly contourReferencesByName?: ReadonlyMap<string, readonly string[]>;
+  /** Declared entity references keyed by source entity name. */
+  readonly entityReferencesByName?: ReadonlyMap<string, readonly string[]>;
   /** All known resource IDs in the project */
   readonly knownResourceIds?: ReadonlySet<string>;
   /** All known signal IDs in the project */
@@ -356,8 +356,8 @@ export interface ProjectContext {
   /**
    * CRUD operation coverage per entity aggregated across the project.
    *
-   * Keys are stable entity IDs (authored contour names, `imported:<local>`
-   * sentinels for contours imported from another module, or store-table IDs
+   * Keys are stable entity IDs (authored entity names, `imported:<local>`
+   * sentinels for entities imported from another module, or store-table IDs
    * produced by `deriveStoreTableId`). Values are the set of CRUD operations
    * (`create`, `read`, `update`, `delete`, `list`) observed for that entity.
    *

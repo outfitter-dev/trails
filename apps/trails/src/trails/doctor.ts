@@ -61,7 +61,7 @@ export const doctorTrail = trail('doctor', {
           change: z.enum(['modified', 'removed']),
           detail: z.string(),
           id: z.string(),
-          kind: z.enum(['contour', 'trail', 'signal', 'resource']),
+          kind: z.enum(['entity', 'trail', 'signal', 'resource']),
           reason: z.string().optional(),
           scope: z.enum(['entry', 'graph']),
           severity: z.literal('breaking'),

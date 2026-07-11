@@ -8,7 +8,7 @@ import {
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
   deriveTrailCliCommandProjection,
-  getContourReferences,
+  getEntityReferences,
   projectActivationSourceDeclaration,
   signalDiagnosticDefinitions,
   validateEstablishedTopo,
@@ -17,7 +17,7 @@ import {
 import type {
   ActivationEntry,
   ActivationSource,
-  AnyContour,
+  AnyEntity,
   AnyResource,
   AnySignal,
   AnyTrail,
@@ -35,7 +35,10 @@ import {
   resolveTrailheadEntriesFromOverlays,
 } from '../surface-bindings.js';
 import { deriveStableHash } from '../hash.js';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import {
+  LOCK_MANIFEST_SCHEMA_VERSION,
+  TOPO_GRAPH_SCHEMA_VERSION,
+} from '../types.js';
 import { projectTrailVersions } from '../versioning.js';
 import type {
   LockManifest,
@@ -56,7 +59,7 @@ import {
 
 type TopoGraphEntryRecord = Readonly<Record<string, unknown>> & {
   readonly id: string;
-  readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
+  readonly kind: 'entity' | 'resource' | 'signal' | 'trail';
 };
 
 type TopoGraphRecord = Readonly<{
@@ -913,10 +916,8 @@ const addTrailRelations = (
     entry['on'] = trail.on.toSorted();
   }
 
-  if (trail.contours.length > 0) {
-    entry['contours'] = trail.contours
-      .map((contour) => contour.name)
-      .toSorted();
+  if (trail.entities.length > 0) {
+    entry['entities'] = trail.entities.map((entity) => entity.name).toSorted();
   }
 
   if (trail.resources.length > 0) {
@@ -1170,18 +1171,18 @@ const resourceToEntryRecord = (resource: AnyResource): TopoGraphEntryRecord => {
   return sortKeys(entry) as TopoGraphEntryRecord;
 };
 
-const contourToEntryRecord = (contour: AnyContour): TopoGraphEntryRecord => {
-  const schema = sortedJsonSchema(contour);
+const entityToEntryRecord = (entity: AnyEntity): TopoGraphEntryRecord => {
+  const schema = sortedJsonSchema(entity);
   const entry: Record<string, unknown> = {
-    exampleCount: contour.examples?.length ?? 0,
-    id: contour.name,
-    identity: contour.identity,
-    kind: 'contour',
+    exampleCount: entity.examples?.length ?? 0,
+    id: entity.name,
+    identity: entity.identity,
+    kind: 'entity',
     schema: schema.value,
     surfaces: [],
   };
 
-  const references = getContourReferences(contour);
+  const references = getEntityReferences(entity);
   if (references.length > 0) {
     entry['references'] = references;
   }
@@ -1246,7 +1247,7 @@ const collectSignalGraphRelations = (
 };
 
 const buildTopoGraph = (
-  contours: readonly AnyContour[],
+  entities: readonly AnyEntity[],
   generatedAt: string,
   resources: readonly AnyResource[],
   signalPayloads: ReadonlyMap<string, JsonRecord>,
@@ -1276,7 +1277,7 @@ const buildTopoGraph = (
   const activationSources = collectActivationSourceCatalog(trails);
   const activationEdges = collectActivationGraphEdges(trails);
   const entries = [
-    ...contours.map((contour) => contourToEntryRecord(contour)),
+    ...entities.map((entity) => entityToEntryRecord(entity)),
     ...trails.map((trail) =>
       trailToEntryRecord(
         trail,
@@ -1333,12 +1334,12 @@ const buildLockManifest = (
     artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
     scope: { app: topo.name },
     summary: {
-      contours: countEntriesForKind(topoGraph.entries, 'contour'),
+      entities: countEntriesForKind(topoGraph.entries, 'entity'),
       resources: countEntriesForKind(topoGraph.entries, 'resource'),
       signals: countEntriesForKind(topoGraph.entries, 'signal'),
       trails: countEntriesForKind(topoGraph.entries, 'trail'),
     },
-    version: 3,
+    version: LOCK_MANIFEST_SCHEMA_VERSION,
   }) as LockManifest;
 
 const buildStoredTopoExport = (
@@ -1347,8 +1348,8 @@ const buildStoredTopoExport = (
   topo: Topo,
   options?: Pick<CreateTopoSnapshotInput, 'overlays'> | undefined
 ): MaterializedTopoArtifacts => {
-  const contours = topo
-    .listContours()
+  const entities = topo
+    .listEntities()
     .toSorted((a, b) => a.name.localeCompare(b.name));
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
   const resources = topo
@@ -1359,7 +1360,7 @@ const buildStoredTopoExport = (
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const schemas = materializeSchemas(db, snapshot.id, signals, trails);
   const topoGraph = buildTopoGraph(
-    contours,
+    entities,
     snapshot.createdAt,
     resources,
     schemas.signalPayloads,

@@ -3,7 +3,7 @@
     "app": "lookout"
   },
   "summary": {
-    "contours": 0,
+    "entities": 0,
     "resources": 3,
     "signals": 14,
     "trails": 22
@@ -67,10 +67,6 @@
     },
     "entries": [
       {
-        "exampleCount": 1,
-        "id": "check.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -89,8 +85,17 @@
           ]
         },
         "description": "Register a new endpoint check and start monitoring it.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Register a check with the default expectations",
+            "expectedMatch": {
+              "enabled": true,
+              "intervalSeconds": 60,
+              "name": "api",
+              "state": "unknown",
+              "url": "https://api.example.com/health"
+            },
             "input": {
               "intervalSeconds": 60,
               "name": "api",
@@ -100,17 +105,10 @@
             "name": "Create a check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Register a check with the default expectations",
-            "expectedMatch": {
-              "enabled": true,
-              "intervalSeconds": 60,
-              "name": "api",
-              "state": "unknown",
-              "url": "https://api.example.com/health"
             }
           }
         ],
+        "id": "check.create",
         "input": {
           "properties": {
             "expectBodyIncludes": {
@@ -156,6 +154,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -231,13 +230,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "check.delete",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -256,8 +252,14 @@
           ]
         },
         "description": "Delete a check and stop monitoring it.",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Delete a seeded demo check",
+            "expected": {
+              "deleted": true,
+              "id": "chk_retired"
+            },
             "input": {
               "id": "chk_retired"
             },
@@ -265,14 +267,11 @@
             "name": "Delete a check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Delete a seeded demo check",
-            "expected": {
-              "deleted": true,
-              "id": "chk_retired"
             }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "chk_missing"
             },
@@ -280,11 +279,10 @@
             "name": "Delete a missing check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "check.delete",
         "input": {
           "properties": {
             "id": {
@@ -298,6 +296,7 @@
           "type": "object"
         },
         "intent": "destroy",
+        "kind": "trail",
         "output": {
           "properties": {
             "deleted": {
@@ -320,13 +319,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "check.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -345,8 +341,14 @@
           ]
         },
         "description": "Show one check by id.",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Look up a seeded demo check",
+            "expectedMatch": {
+              "id": "chk_steady",
+              "name": "steady"
+            },
             "input": {
               "id": "chk_steady"
             },
@@ -354,14 +356,11 @@
             "name": "Get a check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Look up a seeded demo check",
-            "expectedMatch": {
-              "id": "chk_steady",
-              "name": "steady"
             }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "chk_missing"
             },
@@ -369,11 +368,10 @@
             "name": "Get a missing check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "check.get",
         "input": {
           "properties": {
             "id": {
@@ -387,6 +385,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -458,13 +457,10 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "check.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -483,17 +479,19 @@
           ]
         },
         "description": "List registered checks.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "List every registered check",
             "input": {},
             "kind": "success",
             "name": "List checks",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every registered check"
+            }
           }
         ],
+        "id": "check.list",
         "input": {
           "properties": {
             "enabled": {
@@ -504,6 +502,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "checks": {
@@ -590,13 +589,10 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "check.pause",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -615,8 +611,14 @@
           ]
         },
         "description": "Pause a check — the cron sweep stops scheduling probes for it.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Pause a seeded demo check",
+            "expectedMatch": {
+              "enabled": false,
+              "id": "chk_flaky"
+            },
             "input": {
               "id": "chk_flaky"
             },
@@ -624,14 +626,10 @@
             "name": "Pause a check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Pause a seeded demo check",
-            "expectedMatch": {
-              "enabled": false,
-              "id": "chk_flaky"
             }
           }
         ],
+        "id": "check.pause",
         "input": {
           "properties": {
             "id": {
@@ -644,6 +642,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -719,13 +718,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "check.resume",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -744,8 +740,14 @@
           ]
         },
         "description": "Resume a paused check — the cron sweep schedules probes again.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Resume a seeded demo check",
+            "expectedMatch": {
+              "enabled": true,
+              "id": "chk_flaky"
+            },
             "input": {
               "id": "chk_flaky"
             },
@@ -753,14 +755,10 @@
             "name": "Resume a check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Resume a seeded demo check",
-            "expectedMatch": {
-              "enabled": true,
-              "id": "chk_flaky"
             }
           }
         ],
+        "id": "check.resume",
         "input": {
           "properties": {
             "id": {
@@ -773,6 +771,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -848,13 +847,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "check.update",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "check",
@@ -873,8 +869,14 @@
           ]
         },
         "description": "Update fields on an existing check.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Tighten the probe interval on a seeded check",
+            "expectedMatch": {
+              "id": "chk_flaky",
+              "intervalSeconds": 45
+            },
             "input": {
               "id": "chk_flaky",
               "intervalSeconds": 45
@@ -883,14 +885,10 @@
             "name": "Update a check interval",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Tighten the probe interval on a seeded check",
-            "expectedMatch": {
-              "id": "chk_flaky",
-              "intervalSeconds": 45
             }
           }
         ],
+        "id": "check.update",
         "input": {
           "properties": {
             "expectBodyIncludes": {
@@ -935,6 +933,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -1010,13 +1009,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "incident.acknowledge",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "incident",
@@ -1035,8 +1031,14 @@
           ]
         },
         "description": "Acknowledge an incident so on-call knows it is being handled.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Acknowledge the seeded demo incident",
+            "expectedMatch": {
+              "id": "inc_demo",
+              "status": "acknowledged"
+            },
             "input": {
               "by": "matt",
               "id": "inc_demo"
@@ -1045,14 +1047,10 @@
             "name": "Acknowledge an incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Acknowledge the seeded demo incident",
-            "expectedMatch": {
-              "id": "inc_demo",
-              "status": "acknowledged"
             }
           }
         ],
+        "id": "incident.acknowledge",
         "input": {
           "properties": {
             "by": {
@@ -1069,6 +1067,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "acknowledgedBy": {
@@ -1130,13 +1129,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "incident.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "incident",
@@ -1155,8 +1151,14 @@
           ]
         },
         "description": "Show one incident by id.",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Look up the seeded demo incident",
+            "expectedMatch": {
+              "checkId": "chk_retired",
+              "id": "inc_demo"
+            },
             "input": {
               "id": "inc_demo"
             },
@@ -1164,14 +1166,11 @@
             "name": "Get an incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Look up the seeded demo incident",
-            "expectedMatch": {
-              "checkId": "chk_retired",
-              "id": "inc_demo"
             }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "inc_missing"
             },
@@ -1179,11 +1178,10 @@
             "name": "Get a missing incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "incident.get",
         "input": {
           "properties": {
             "id": {
@@ -1197,6 +1195,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "acknowledgedBy": {
@@ -1254,13 +1253,10 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "incident.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "incident",
@@ -1279,20 +1275,22 @@
           ]
         },
         "description": "List incidents, newest first.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "The demo store seeds one open incident",
+            "expectedMatch": {
+              "total": 1
+            },
             "input": {},
             "kind": "success",
             "name": "List incidents",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "The demo store seeds one open incident",
-            "expectedMatch": {
-              "total": 1
             }
           }
         ],
+        "id": "incident.list",
         "input": {
           "properties": {
             "status": {
@@ -1308,6 +1306,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "incidents": {
@@ -1380,13 +1379,10 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "incident.open",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -1417,8 +1413,14 @@
           "notify.dispatch"
         ],
         "description": "Open an incident when a check transitions to down; dedupes when one is already open.",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "A fresh up→down transition opens an incident and notifies",
+            "expectedMatch": {
+              "deduped": false,
+              "notified": true
+            },
             "input": {
               "at": "2026-07-01T03:12:00.000Z",
               "checkId": "chk_steady",
@@ -1431,14 +1433,14 @@
             "name": "Open an incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A fresh up→down transition opens an incident and notifies",
-            "expectedMatch": {
-              "deduped": false,
-              "notified": true
             }
           },
           {
+            "description": "A failure signal for a check with an open incident dedupes to a no-op",
+            "expectedMatch": {
+              "deduped": true,
+              "notified": false
+            },
             "input": {
               "at": "2026-07-01T03:13:00.000Z",
               "checkId": "chk_retired",
@@ -1451,14 +1453,10 @@
             "name": "Dedupe against an open incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A failure signal for a check with an open incident dedupes to a no-op",
-            "expectedMatch": {
-              "deduped": true,
-              "notified": false
             }
           }
         ],
+        "id": "incident.open",
         "input": {
           "properties": {
             "at": {
@@ -1503,6 +1501,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "on": [
           "probe.failed"
         ],
@@ -1578,13 +1577,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "incident.resolve",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -1615,8 +1611,14 @@
           "notify.dispatch"
         ],
         "description": "Resolve the open incident when a check transitions back to up.",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "A down→up transition resolves the open incident",
+            "expectedMatch": {
+              "notified": true,
+              "resolved": true
+            },
             "input": {
               "at": "2026-07-01T03:20:00.000Z",
               "checkId": "chk_retired",
@@ -1629,14 +1631,14 @@
             "name": "Resolve an incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A down→up transition resolves the open incident",
-            "expectedMatch": {
-              "notified": true,
-              "resolved": true
             }
           },
           {
+            "description": "A recovery with no open incident is a no-op",
+            "expectedMatch": {
+              "notified": false,
+              "resolved": false
+            },
             "input": {
               "at": "2026-07-01T03:21:00.000Z",
               "checkId": "chk_steady",
@@ -1649,14 +1651,10 @@
             "name": "Recovery without an incident",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A recovery with no open incident is a no-op",
-            "expectedMatch": {
-              "notified": false,
-              "resolved": false
             }
           }
         ],
+        "id": "incident.resolve",
         "input": {
           "properties": {
             "at": {
@@ -1701,6 +1699,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "on": [
           "probe.recovered"
         ],
@@ -1783,21 +1782,18 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
+        "description": "SQLite store for lookout checks, probes, incidents, and notifications.",
         "exampleCount": 0,
+        "healthcheck": true,
         "id": "lookout.db",
         "kind": "resource",
-        "surfaces": [],
-        "description": "SQLite store for lookout checks, probes, incidents, and notifications.",
-        "healthcheck": true
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:checks.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"checks\" entity is created.",
         "diagnostics": {
@@ -1811,11 +1807,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:checks.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -1884,6 +1882,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -1952,13 +1951,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:checks.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"checks\" entity is removed.",
         "diagnostics": {
@@ -1972,11 +1968,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:checks.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -2045,6 +2043,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2113,13 +2112,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:checks.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"checks\" entity is updated.",
         "diagnostics": {
@@ -2133,11 +2129,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:checks.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -2206,6 +2204,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2274,13 +2273,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:incidents.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"incidents\" entity is created.",
         "diagnostics": {
@@ -2294,11 +2290,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:incidents.created",
         "input": {
           "properties": {
             "acknowledgedBy": {
@@ -2353,6 +2351,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "acknowledgedBy": {
@@ -2407,13 +2406,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:incidents.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"incidents\" entity is removed.",
         "diagnostics": {
@@ -2427,11 +2423,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:incidents.removed",
         "input": {
           "properties": {
             "acknowledgedBy": {
@@ -2486,6 +2484,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "acknowledgedBy": {
@@ -2540,13 +2539,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:incidents.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"incidents\" entity is updated.",
         "diagnostics": {
@@ -2560,11 +2556,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:incidents.updated",
         "input": {
           "properties": {
             "acknowledgedBy": {
@@ -2619,6 +2617,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "acknowledgedBy": {
@@ -2673,13 +2672,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:notifications.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"notifications\" entity is created.",
         "diagnostics": {
@@ -2693,11 +2689,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:notifications.created",
         "input": {
           "properties": {
             "channel": {
@@ -2729,6 +2727,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "channel": {
@@ -2760,13 +2759,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:notifications.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"notifications\" entity is removed.",
         "diagnostics": {
@@ -2780,11 +2776,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:notifications.removed",
         "input": {
           "properties": {
             "channel": {
@@ -2816,6 +2814,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "channel": {
@@ -2847,13 +2846,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:notifications.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"notifications\" entity is updated.",
         "diagnostics": {
@@ -2867,11 +2863,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:notifications.updated",
         "input": {
           "properties": {
             "channel": {
@@ -2903,6 +2901,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "channel": {
@@ -2934,13 +2933,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:probes.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"probes\" entity is created.",
         "diagnostics": {
@@ -2954,11 +2950,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:probes.created",
         "input": {
           "properties": {
             "attempts": {
@@ -3006,6 +3004,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "attempts": {
@@ -3053,13 +3052,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:probes.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"probes\" entity is removed.",
         "diagnostics": {
@@ -3073,11 +3069,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:probes.removed",
         "input": {
           "properties": {
             "attempts": {
@@ -3125,6 +3123,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "attempts": {
@@ -3172,13 +3171,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "lookout.db:probes.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"probes\" entity is updated.",
         "diagnostics": {
@@ -3192,11 +3188,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "lookout.db:probes.updated",
         "input": {
           "properties": {
             "attempts": {
@@ -3244,6 +3242,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "attempts": {
@@ -3291,20 +3290,17 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
+        "description": "Outbound HTTP client used by probe.run; the mock plays scripted per-URL reply sequences.",
         "exampleCount": 0,
         "id": "lookout.probe-http",
         "kind": "resource",
-        "surfaces": [],
-        "description": "Outbound HTTP client used by probe.run; the mock plays scripted per-URL reply sequences."
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "notify.dispatch",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "notify",
@@ -3323,8 +3319,18 @@
           ]
         },
         "description": "Fan an incident lifecycle event out to the configured channels and record each delivery.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Console delivery always runs; webhook only when configured",
+            "expected": {
+              "deliveries": [
+                {
+                  "channel": "console",
+                  "ok": true
+                }
+              ]
+            },
             "input": {
               "incidentId": "inc_demo",
               "kind": "opened",
@@ -3334,18 +3340,10 @@
             "name": "Dispatch to console",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Console delivery always runs; webhook only when configured",
-            "expected": {
-              "deliveries": [
-                {
-                  "channel": "console",
-                  "ok": true
-                }
-              ]
             }
           }
         ],
+        "id": "notify.dispatch",
         "input": {
           "properties": {
             "incidentId": {
@@ -3372,6 +3370,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "deliveries": {
@@ -3405,13 +3404,10 @@
         "resources": [
           "lookout.db",
           "lookout.probe-http"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "probe.failed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [
           "incident.open"
         ],
@@ -3427,6 +3423,7 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 1,
         "examples": [
           {
             "kind": "payload",
@@ -3451,6 +3448,7 @@
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "probe.failed",
         "input": {
           "properties": {
             "at": {
@@ -3495,6 +3493,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "at": {
@@ -3541,13 +3540,10 @@
         },
         "producers": [
           "probe.run"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "probe.history",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "probe",
@@ -3566,8 +3562,14 @@
           ]
         },
         "description": "Probe history for one check, newest first, windowed and paginated.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "A fresh check has no probe history yet",
+            "expected": {
+              "probes": [],
+              "total": 0
+            },
             "input": {
               "checkId": "chk_steady"
             },
@@ -3575,14 +3577,10 @@
             "name": "Empty history",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A fresh check has no probe history yet",
-            "expected": {
-              "probes": [],
-              "total": 0
             }
           }
         ],
+        "id": "probe.history",
         "input": {
           "properties": {
             "checkId": {
@@ -3610,6 +3608,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "probes": {
@@ -3675,13 +3674,10 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "probe.prune",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "probe",
@@ -3701,21 +3697,23 @@
         },
         "description": "Reconcile stored probe volume against the retention cap, pruning the oldest rows per check.",
         "dryRunCapable": true,
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Nothing to prune when history is within retention",
+            "expected": {
+              "dryRun": false,
+              "removed": 0
+            },
             "input": {},
             "kind": "success",
             "name": "Prune within retention",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Nothing to prune when history is within retention",
-            "expected": {
-              "dryRun": false,
-              "removed": 0
             }
           }
         ],
+        "id": "probe.prune",
         "input": {
           "properties": {
             "keepPerCheck": {
@@ -3727,6 +3725,7 @@
           "type": "object"
         },
         "intent": "destroy",
+        "kind": "trail",
         "output": {
           "properties": {
             "dryRun": {
@@ -3749,13 +3748,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "probe.recovered",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [
           "incident.resolve"
         ],
@@ -3771,6 +3767,7 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 1,
         "examples": [
           {
             "kind": "payload",
@@ -3795,6 +3792,7 @@
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "probe.recovered",
         "input": {
           "properties": {
             "at": {
@@ -3839,6 +3837,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "at": {
@@ -3885,13 +3884,10 @@
         },
         "producers": [
           "probe.run"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "probe.run",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "probe",
@@ -3920,16 +3916,9 @@
             "on": "NetworkError"
           }
         ],
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "checkId": "chk_steady"
-            },
-            "kind": "success",
-            "name": "Probe an up check",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "A healthy endpoint resolves up on the first attempt",
             "expectedMatch": {
               "attempts": 1,
@@ -3938,9 +3927,19 @@
               "outcome": "up",
               "state": "up",
               "transition": "none"
+            },
+            "input": {
+              "checkId": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Probe an up check",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Unknown check ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "checkId": "chk_missing"
             },
@@ -3948,15 +3947,14 @@
             "name": "Probe a missing check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown check ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
         "fires": [
           "probe.failed",
           "probe.recovered"
         ],
+        "id": "probe.run",
         "input": {
           "properties": {
             "checkId": {
@@ -3969,6 +3967,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "attempts": {
@@ -4045,13 +4044,10 @@
         "resources": [
           "lookout.db",
           "lookout.probe-http"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "probe.sweep",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -4084,24 +4080,27 @@
           "probe.run"
         ],
         "description": "Probe every enabled check that is due per its own interval; the cron source ticks this each minute.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Both enabled demo checks are due on a fresh store",
+            "expectedMatch": {
+              "probed": 2
+            },
             "input": {},
             "kind": "success",
             "name": "Sweep due checks",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Both enabled demo checks are due on a fresh store",
-            "expectedMatch": {
-              "probed": 2
             }
           }
         ],
+        "id": "probe.sweep",
         "input": {
           "properties": {},
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "due": {
@@ -4152,13 +4151,10 @@
         },
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "status.badge",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "status",
@@ -4180,8 +4176,16 @@
           "uptime.report"
         ],
         "description": "Tiny per-check JSON payload for embedding (badge-shaped, JSON in v1).",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "A fresh check reports its state with no uptime claim",
+            "expected": {
+              "checkId": "chk_steady",
+              "label": "steady",
+              "state": "unknown",
+              "uptime7d": null
+            },
             "input": {
               "checkId": "chk_steady"
             },
@@ -4189,16 +4193,10 @@
             "name": "Badge for a check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A fresh check reports its state with no uptime claim",
-            "expected": {
-              "checkId": "chk_steady",
-              "label": "steady",
-              "state": "unknown",
-              "uptime7d": null
             }
           }
         ],
+        "id": "status.badge",
         "input": {
           "properties": {
             "checkId": {
@@ -4212,6 +4210,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "checkId": {
@@ -4250,13 +4249,10 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "status.summary",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "status"
@@ -4277,25 +4273,28 @@
           "uptime.report"
         ],
         "description": "The public status page payload: per-check state, 7d/30d uptime, and open incident count.",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "The demo store seeds three checks and one open incident",
+            "expectedMatch": {
+              "openIncidents": 1
+            },
             "input": {},
             "kind": "success",
             "name": "Status summary",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "The demo store seeds three checks and one open incident",
-            "expectedMatch": {
-              "openIncidents": 1
             }
           }
         ],
+        "id": "status.summary",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "checks": {
@@ -4372,20 +4371,17 @@
         "permit": "public",
         "resources": [
           "lookout.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
+        "description": "Telemetry query resource",
         "exampleCount": 0,
         "id": "tracing",
         "kind": "resource",
-        "surfaces": [],
-        "description": "Telemetry query resource"
+        "surfaces": []
       },
       {
-        "exampleCount": 3,
-        "id": "tracing.query",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "tracing",
@@ -4403,6 +4399,7 @@
             }
           ]
         },
+        "exampleCount": 3,
         "examples": [
           {
             "input": {},
@@ -4433,6 +4430,7 @@
             }
           }
         ],
+        "id": "tracing.query",
         "input": {
           "properties": {
             "errorsOnly": {
@@ -4457,6 +4455,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "count": {
@@ -4540,13 +4539,10 @@
         },
         "resources": [
           "tracing"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "tracing.status",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "tracing",
@@ -4564,6 +4560,7 @@
             }
           ]
         },
+        "exampleCount": 1,
         "examples": [
           {
             "input": {},
@@ -4574,11 +4571,13 @@
             }
           }
         ],
+        "id": "tracing.status",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "active": {
@@ -4616,13 +4615,10 @@
         },
         "resources": [
           "tracing"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "uptime.report",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "uptime",
@@ -4644,16 +4640,9 @@
           "probe.history"
         ],
         "description": "Windowed uptime percentages computed from recorded probe outcomes.",
+        "exampleCount": 1,
         "examples": [
           {
-            "input": {
-              "checkId": "chk_steady"
-            },
-            "kind": "success",
-            "name": "Uptime with no history",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "No probes yet means no uptime claim — null, not 100%",
             "expected": {
               "checkId": "chk_steady",
@@ -4663,9 +4652,18 @@
               "recoveredCount": 0,
               "upCount": 0,
               "uptimePercent": null
+            },
+            "input": {
+              "checkId": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Uptime with no history",
+            "provenance": {
+              "source": "trail.examples"
             }
           }
         ],
+        "id": "uptime.report",
         "input": {
           "properties": {
             "checkId": {
@@ -4684,6 +4682,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "checkId": {
@@ -4726,7 +4725,8 @@
           ],
           "type": "object"
         },
-        "permit": "public"
+        "permit": "public",
+        "surfaces": []
       }
     ],
     "library": {
@@ -6165,8 +6165,8 @@
         }
       ]
     },
-    "topoGraphSchemaVersion": 3
+    "topoGraphSchemaVersion": 4
   },
-  "topoGraphHash": "526e6f3b3e26a6d50ddea1a32d70d9644793f44fadb75af1dc74829ac37840fc",
-  "version": 4
+  "topoGraphHash": "90fabc77aa868a6fcd5124d6478bf4236503ad535877a227755650add7fd3370",
+  "version": 5
 }

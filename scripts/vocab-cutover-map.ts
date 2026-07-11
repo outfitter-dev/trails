@@ -313,9 +313,18 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Old domain factory still uses entity(...) instead of contour(...)',
-    id: 'entity-factory',
-    pattern: String.raw`\bentity\(`,
+      'Retired domain factory still uses contour(...) instead of entity(...)',
+    excludePaths: [
+      ...historicalMentionPaths,
+      'docs/adr/0030-contours-as-first-class-domain-objects.md',
+      'docs/adr/0042-core-topographer-boundary-doctrine.md',
+      'apps/trails/src/__tests__/mcp.test.ts',
+      'apps/trails/src/__tests__/regrade.test.ts',
+      'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
+      'scripts/__tests__/vocab-cutover-map.test.ts',
+    ],
+    id: 'contour-factory',
+    pattern: String.raw`\bcontour\(`,
   },
   {
     description:

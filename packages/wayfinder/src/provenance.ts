@@ -15,7 +15,7 @@ export interface WayfinderArtifactSource {
 export interface WayfinderContractRef {
   readonly id: string;
   readonly kind:
-    | 'contour'
+    | 'entity'
     | 'trailhead'
     | 'resource'
     | 'signal'

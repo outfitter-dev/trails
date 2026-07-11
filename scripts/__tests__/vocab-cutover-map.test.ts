@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
 
-import { auditRoots, changelogHistoryPaths } from '../vocab-cutover-map.js';
+import {
+  auditRoots,
+  auditRules,
+  changelogHistoryPaths,
+} from '../vocab-cutover-map.js';
 
 const listTrackedChangelogs = (): string[] => {
   const result = Bun.spawnSync(['git', 'ls-files', '*CHANGELOG.md'], {
@@ -25,6 +29,18 @@ const listTrackedChangelogs = (): string[] => {
 };
 
 describe('vocab cutover map', () => {
+  test('governs the contour to entity factory cutover in the ratified direction', () => {
+    const rule = auditRules.find(({ id }) => id === 'contour-factory');
+
+    expect(rule).toBeDefined();
+    expect(new RegExp(rule?.pattern ?? '').test('contour("user", {})')).toBe(
+      true
+    );
+    expect(new RegExp(rule?.pattern ?? '').test('entity("user", {})')).toBe(
+      false
+    );
+  });
+
   test('classifies every audited package changelog as history', () => {
     const classified = new Set(changelogHistoryPaths);
     const missing = listTrackedChangelogs().filter(

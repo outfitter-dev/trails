@@ -3,7 +3,7 @@
     "app": "packlist"
   },
   "summary": {
-    "contours": 3,
+    "entities": 3,
     "resources": 1,
     "signals": 10,
     "trails": 25
@@ -37,18 +37,14 @@
     },
     "entries": [
       {
+        "description": "SQLite gear/pack/trip store. Set PACKLIST_DB to relocate the database file.",
         "exampleCount": 0,
+        "healthcheck": true,
         "id": "db",
         "kind": "resource",
-        "surfaces": [],
-        "description": "SQLite gear/pack/trip store. Set PACKLIST_DB to relocate the database file.",
-        "healthcheck": true
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:gear.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"gear\" entity is created.",
         "diagnostics": {
@@ -62,11 +58,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:gear.created",
         "input": {
           "properties": {
             "category": {
@@ -111,6 +109,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "category": {
@@ -155,13 +154,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:gear.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"gear\" entity is removed.",
         "diagnostics": {
@@ -175,11 +171,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:gear.removed",
         "input": {
           "properties": {
             "category": {
@@ -224,6 +222,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "category": {
@@ -268,13 +267,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:gear.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"gear\" entity is updated.",
         "diagnostics": {
@@ -288,11 +284,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:gear.updated",
         "input": {
           "properties": {
             "category": {
@@ -337,6 +335,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "category": {
@@ -381,13 +380,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:pack.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"pack\" entity is created.",
         "diagnostics": {
@@ -401,11 +397,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:pack.created",
         "input": {
           "properties": {
             "id": {
@@ -444,6 +442,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "id": {
@@ -482,13 +481,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:pack.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"pack\" entity is removed.",
         "diagnostics": {
@@ -502,11 +498,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:pack.removed",
         "input": {
           "properties": {
             "id": {
@@ -545,6 +543,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "id": {
@@ -583,13 +582,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:pack.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"pack\" entity is updated.",
         "diagnostics": {
@@ -603,11 +599,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:pack.updated",
         "input": {
           "properties": {
             "id": {
@@ -646,6 +644,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "id": {
@@ -684,13 +683,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:trip.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"trip\" entity is created.",
         "diagnostics": {
@@ -704,11 +700,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:trip.created",
         "input": {
           "properties": {
             "endDate": {
@@ -759,6 +757,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endDate": {
@@ -809,13 +808,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:trip.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"trip\" entity is removed.",
         "diagnostics": {
@@ -829,11 +825,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:trip.removed",
         "input": {
           "properties": {
             "endDate": {
@@ -884,6 +882,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endDate": {
@@ -934,13 +933,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "db:trip.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"trip\" entity is updated.",
         "diagnostics": {
@@ -954,11 +950,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "db:trip.updated",
         "input": {
           "properties": {
             "endDate": {
@@ -1009,6 +1007,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endDate": {
@@ -1059,14 +1058,14 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
         "exampleCount": 4,
         "id": "gear",
-        "kind": "contour",
-        "surfaces": [],
         "identity": "id",
+        "kind": "entity",
         "schema": {
           "properties": {
             "category": {
@@ -1109,13 +1108,10 @@
             "weightGrams"
           ],
           "type": "object"
-        }
+        },
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "gear.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "gear",
@@ -1143,8 +1139,15 @@
           ]
         },
         "description": "Add a piece of gear to the locker",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Create gear with a unique name",
+            "expectedMatch": {
+              "category": "other",
+              "name": "Sleeping Bag",
+              "weightGrams": 860
+            },
             "input": {
               "category": "other",
               "name": "Sleeping Bag",
@@ -1154,15 +1157,11 @@
             "name": "Add new gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Create gear with a unique name",
-            "expectedMatch": {
-              "category": "other",
-              "name": "Sleeping Bag",
-              "weightGrams": 860
             }
           },
           {
+            "description": "Duplicate gear names are rejected with a conflict",
+            "error": "AlreadyExistsError",
             "input": {
               "category": "shelter",
               "name": "Tent",
@@ -1172,11 +1171,10 @@
             "name": "Duplicate gear name conflicts",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Duplicate gear names are rejected with a conflict",
-            "error": "AlreadyExistsError"
+            }
           }
         ],
+        "id": "gear.create",
         "input": {
           "properties": {
             "category": {
@@ -1217,6 +1215,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "marker": "bf6d820b7eb2c67b",
         "output": {
           "properties": {
@@ -1280,12 +1279,18 @@
           1,
           2
         ],
+        "surfaces": [],
         "version": 2,
         "versions": {
           "1": {
             "exampleCount": 2,
             "examples": [
               {
+                "description": "The v1 contract accepts ounces and reports ounces",
+                "expectedMatch": {
+                  "category": "shelter",
+                  "name": "Ultralight Tarp"
+                },
                 "input": {
                   "category": "shelter",
                   "name": "Ultralight Tarp",
@@ -1295,14 +1300,11 @@
                 "name": "Add gear in ounces (v1)",
                 "provenance": {
                   "source": "trail.versions.examples"
-                },
-                "description": "The v1 contract accepts ounces and reports ounces",
-                "expectedMatch": {
-                  "category": "shelter",
-                  "name": "Ultralight Tarp"
                 }
               },
               {
+                "description": "The duplicate-name conflict predates v2",
+                "error": "AlreadyExistsError",
                 "input": {
                   "category": "shelter",
                   "name": "Tent",
@@ -1312,9 +1314,7 @@
                 "name": "Duplicate gear name conflicts (v1)",
                 "provenance": {
                   "source": "trail.versions.examples"
-                },
-                "description": "The duplicate-name conflict predates v2",
-                "error": "AlreadyExistsError"
+                }
               }
             ],
             "input": {
@@ -1425,10 +1425,6 @@
         }
       },
       {
-        "exampleCount": 2,
-        "id": "gear.delete",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "gear",
@@ -1447,8 +1443,14 @@
           ]
         },
         "description": "Remove a piece of gear from the locker",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Delete gear that exists",
+            "expected": {
+              "deleted": true,
+              "id": "gear-oldstove"
+            },
             "input": {
               "id": "gear-oldstove"
             },
@@ -1456,14 +1458,11 @@
             "name": "Delete existing gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Delete gear that exists",
-            "expected": {
-              "deleted": true,
-              "id": "gear-oldstove"
             }
           },
           {
+            "description": "Missing ids report not found",
+            "error": "NotFoundError",
             "input": {
               "id": "gear-missing"
             },
@@ -1471,11 +1470,10 @@
             "name": "Delete missing gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Missing ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "gear.delete",
         "input": {
           "properties": {
             "id": {
@@ -1489,6 +1487,7 @@
           "type": "object"
         },
         "intent": "destroy",
+        "kind": "trail",
         "output": {
           "properties": {
             "deleted": {
@@ -1511,13 +1510,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "gear.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "gear",
@@ -1545,17 +1541,19 @@
           ]
         },
         "description": "List gear, optionally filtered by category",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List the whole gear locker",
             "input": {},
             "kind": "success",
             "name": "List all gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List the whole gear locker"
+            }
           },
           {
+            "description": "Filter the locker down to one category",
             "input": {
               "category": "cook"
             },
@@ -1563,10 +1561,10 @@
             "name": "List cook gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Filter the locker down to one category"
+            }
           }
         ],
+        "id": "gear.list",
         "input": {
           "properties": {
             "category": {
@@ -1584,6 +1582,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "items": {
             "properties": {
@@ -1639,13 +1638,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "gear.read",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "gear",
@@ -1673,8 +1669,14 @@
           ]
         },
         "description": "Show one piece of gear by id",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Look up gear by its id",
+            "expectedMatch": {
+              "id": "gear-tent",
+              "name": "Tent"
+            },
             "input": {
               "id": "gear-tent"
             },
@@ -1682,14 +1684,11 @@
             "name": "Read existing gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Look up gear by its id",
-            "expectedMatch": {
-              "id": "gear-tent",
-              "name": "Tent"
             }
           },
           {
+            "description": "Missing ids report not found",
+            "error": "NotFoundError",
             "input": {
               "id": "gear-missing"
             },
@@ -1697,11 +1696,10 @@
             "name": "Read missing gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Missing ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "gear.read",
         "input": {
           "properties": {
             "id": {
@@ -1715,6 +1713,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "category": {
@@ -1767,13 +1766,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "gear.reconcile",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "gear",
@@ -1791,9 +1787,6 @@
             }
           ]
         },
-        "contours": [
-          "gear"
-        ],
         "description": "Reconcile version conflicts for \"gear\" entities.",
         "detours": [
           {
@@ -1801,6 +1794,11 @@
             "on": "ConflictError"
           }
         ],
+        "entities": [
+          "gear"
+        ],
+        "exampleCount": 0,
+        "id": "gear.reconcile",
         "input": {
           "properties": {
             "category": {
@@ -1844,6 +1842,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "category": {
@@ -1896,13 +1895,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "gear.update",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "gear",
@@ -1921,8 +1917,14 @@
           ]
         },
         "description": "Update fields on a piece of gear; weight changes mark carrying packs stale",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Re-weighing gear carried by a pack fires pack.weight-stale",
+            "expectedMatch": {
+              "id": "gear-stove",
+              "weightGrams": 250
+            },
             "input": {
               "id": "gear-stove",
               "weightGrams": 250
@@ -1932,25 +1934,22 @@
             "provenance": {
               "source": "trail.examples"
             },
-            "description": "Re-weighing gear carried by a pack fires pack.weight-stale",
-            "expectedMatch": {
-              "id": "gear-stove",
-              "weightGrams": 250
-            },
             "signals": [
               {
-                "signalId": "pack.weight-stale",
                 "payloadMatch": {
                   "gearId": "gear-stove",
                   "packIds": [
                     "pack-weekend"
                   ],
                   "weightGrams": 250
-                }
+                },
+                "signalId": "pack.weight-stale"
               }
             ]
           },
           {
+            "description": "Missing ids report not found",
+            "error": "NotFoundError",
             "input": {
               "id": "gear-missing",
               "weightGrams": 1
@@ -1959,14 +1958,13 @@
             "name": "Update missing gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Missing ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
         "fires": [
           "pack.weight-stale"
         ],
+        "id": "gear.update",
         "input": {
           "properties": {
             "category": {
@@ -2009,6 +2007,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "category": {
@@ -2066,14 +2065,14 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
         "exampleCount": 2,
         "id": "pack",
-        "kind": "contour",
-        "surfaces": [],
         "identity": "id",
+        "kind": "entity",
         "schema": {
           "properties": {
             "id": {
@@ -2110,13 +2109,10 @@
             "name"
           ],
           "type": "object"
-        }
+        },
+        "surfaces": []
       },
       {
-        "exampleCount": 3,
-        "id": "pack.add-gear",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2135,8 +2131,13 @@
           ]
         },
         "description": "Add gear to a pack (or increase its quantity)",
+        "exampleCount": 3,
         "examples": [
           {
+            "description": "Adding gear appends an item line to the pack",
+            "expectedMatch": {
+              "id": "pack-weekend"
+            },
             "input": {
               "gearId": "gear-bearcan",
               "packId": "pack-weekend",
@@ -2146,13 +2147,11 @@
             "name": "Add gear to a pack",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Adding gear appends an item line to the pack",
-            "expectedMatch": {
-              "id": "pack-weekend"
             }
           },
           {
+            "description": "Quantities below one are rejected at the boundary",
+            "error": "ValidationError",
             "input": {
               "gearId": "gear-tent",
               "packId": "pack-weekend",
@@ -2162,11 +2161,11 @@
             "name": "Reject zero quantity",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Quantities below one are rejected at the boundary",
-            "error": "ValidationError"
+            }
           },
           {
+            "description": "Unknown gear ids report not found",
+            "error": "NotFoundError",
             "input": {
               "gearId": "gear-missing",
               "packId": "pack-weekend",
@@ -2176,11 +2175,10 @@
             "name": "Add missing gear",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown gear ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "pack.add-gear",
         "input": {
           "properties": {
             "gearId": {
@@ -2203,6 +2201,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -2253,13 +2252,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "pack.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2277,9 +2273,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "pack"
         ],
+        "exampleCount": 0,
+        "id": "pack.create",
         "input": {
           "properties": {
             "items": {
@@ -2310,6 +2308,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -2356,13 +2355,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "pack.delete",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2380,9 +2376,10 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "pack"
         ],
+        "exampleCount": 2,
         "examples": [
           {
             "input": {
@@ -2405,6 +2402,7 @@
             }
           }
         ],
+        "id": "pack.delete",
         "input": {
           "properties": {
             "id": {
@@ -2417,6 +2415,7 @@
           "type": "object"
         },
         "intent": "destroy",
+        "kind": "trail",
         "output": {},
         "pattern": "crud",
         "permit": {
@@ -2426,13 +2425,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "pack.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2459,9 +2455,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "pack"
         ],
+        "exampleCount": 0,
+        "id": "pack.list",
         "input": {
           "properties": {
             "id": {
@@ -2495,6 +2493,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "items": {
             "properties": {
@@ -2539,13 +2538,10 @@
         "pattern": "crud",
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "pack.read",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2572,9 +2568,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "pack"
         ],
+        "exampleCount": 0,
+        "id": "pack.read",
         "input": {
           "properties": {
             "id": {
@@ -2587,6 +2585,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -2628,13 +2627,10 @@
         "pattern": "crud",
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "pack.recalculate",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -2665,8 +2661,10 @@
           "pack.weight"
         ],
         "description": "React to pack.weight-stale by recomputing and logging affected pack weights",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Recompute the packs named in the stale signal payload",
             "input": {
               "gearId": "gear-stove",
               "gearName": "Canister Stove",
@@ -2680,10 +2678,13 @@
             "name": "Recalculate stale packs",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Recompute the packs named in the stale signal payload"
+            }
           },
           {
+            "description": "An empty pack list is a no-op",
+            "expected": {
+              "recalculated": []
+            },
             "input": {
               "gearId": "gear-stove",
               "gearName": "Canister Stove",
@@ -2695,13 +2696,10 @@
             "name": "Recalculate nothing",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "An empty pack list is a no-op",
-            "expected": {
-              "recalculated": []
             }
           }
         ],
+        "id": "pack.recalculate",
         "input": {
           "properties": {
             "gearId": {
@@ -2738,6 +2736,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "on": [
           "pack.weight-stale"
         ],
@@ -2773,13 +2772,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "pack.reconcile",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2797,9 +2793,6 @@
             }
           ]
         },
-        "contours": [
-          "pack"
-        ],
         "description": "Reconcile version conflicts for \"pack\" entities.",
         "detours": [
           {
@@ -2807,6 +2800,11 @@
             "on": "ConflictError"
           }
         ],
+        "entities": [
+          "pack"
+        ],
+        "exampleCount": 0,
+        "id": "pack.reconcile",
         "input": {
           "properties": {
             "id": {
@@ -2844,6 +2842,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -2890,13 +2889,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 3,
-        "id": "pack.remove-gear",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -2915,8 +2911,13 @@
           ]
         },
         "description": "Remove gear from a pack (idempotent)",
+        "exampleCount": 3,
         "examples": [
           {
+            "description": "Removing carried gear drops its item line",
+            "expectedMatch": {
+              "id": "pack-weekend"
+            },
             "input": {
               "gearId": "gear-stove",
               "packId": "pack-weekend"
@@ -2925,13 +2926,13 @@
             "name": "Remove gear from a pack",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Removing carried gear drops its item line",
-            "expectedMatch": {
-              "id": "pack-weekend"
             }
           },
           {
+            "description": "Removing gear that is not in the pack is a no-op",
+            "expectedMatch": {
+              "id": "pack-weekend"
+            },
             "input": {
               "gearId": "gear-bearcan",
               "packId": "pack-weekend"
@@ -2940,13 +2941,11 @@
             "name": "Remove absent gear is idempotent",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Removing gear that is not in the pack is a no-op",
-            "expectedMatch": {
-              "id": "pack-weekend"
             }
           },
           {
+            "description": "Unknown pack ids report not found",
+            "error": "NotFoundError",
             "input": {
               "gearId": "gear-tent",
               "packId": "pack-missing"
@@ -2955,11 +2954,10 @@
             "name": "Remove from missing pack",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown pack ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "pack.remove-gear",
         "input": {
           "properties": {
             "gearId": {
@@ -2977,6 +2975,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -3027,13 +3026,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "pack.update",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -3051,9 +3047,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "pack"
         ],
+        "exampleCount": 0,
+        "id": "pack.update",
         "input": {
           "properties": {
             "id": {
@@ -3086,6 +3084,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -3132,13 +3131,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "pack.weight",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "pack",
@@ -3160,8 +3156,15 @@
           "gear.read"
         ],
         "description": "Derive a pack’s total weight from current gear weights (never stored)",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Weekend Loop carries the tent and stove fixtures",
+            "expectedMatch": {
+              "name": "Weekend Loop",
+              "packId": "pack-weekend",
+              "totalWeightGrams": 2020
+            },
             "input": {
               "packId": "pack-weekend"
             },
@@ -3169,15 +3172,11 @@
             "name": "Weigh a pack",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Weekend Loop carries the tent and stove fixtures",
-            "expectedMatch": {
-              "name": "Weekend Loop",
-              "packId": "pack-weekend",
-              "totalWeightGrams": 2020
             }
           },
           {
+            "description": "Unknown pack ids report not found",
+            "error": "NotFoundError",
             "input": {
               "packId": "pack-missing"
             },
@@ -3185,11 +3184,10 @@
             "name": "Weigh a missing pack",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown pack ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "pack.weight",
         "input": {
           "properties": {
             "packId": {
@@ -3203,6 +3201,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "items": {
@@ -3260,13 +3259,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "pack.weight-stale",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [
           "pack.recalculate"
         ],
@@ -3282,6 +3278,7 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "from": [
           "gear.update"
         ],
@@ -3290,6 +3287,7 @@
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "pack.weight-stale",
         "input": {
           "properties": {
             "gearId": {
@@ -3325,6 +3323,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "gearId": {
@@ -3362,13 +3361,10 @@
         },
         "producers": [
           "gear.update"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "seed.demo",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "seed",
@@ -3387,26 +3383,29 @@
           ]
         },
         "description": "Load the demo gear, pack, and trip (idempotent)",
+        "exampleCount": 1,
         "examples": [
           {
-            "input": {},
-            "kind": "success",
-            "name": "Seed the demo data",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Seeding reports how many rows were written",
             "expected": {
               "gear": 4,
               "packs": 1,
               "trips": 1
+            },
+            "input": {},
+            "kind": "success",
+            "name": "Seed the demo data",
+            "provenance": {
+              "source": "trail.examples"
             }
           }
         ],
+        "id": "seed.demo",
         "input": {
           "properties": {},
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "gear": {
@@ -3433,14 +3432,14 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
         "exampleCount": 2,
         "id": "trip",
-        "kind": "contour",
-        "surfaces": [],
         "identity": "id",
+        "kind": "entity",
         "schema": {
           "properties": {
             "endDate": {
@@ -3489,13 +3488,10 @@
             "status"
           ],
           "type": "object"
-        }
+        },
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "trip.checklist",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -3518,8 +3514,15 @@
           "pack.read"
         ],
         "description": "Build the packing checklist for a trip from its pack",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Checklist rows join pack items with current gear",
+            "expectedMatch": {
+              "packName": "Weekend Loop",
+              "totalWeightGrams": 2020,
+              "tripName": "Lost Coast"
+            },
             "input": {
               "id": "trip-lostcoast"
             },
@@ -3527,15 +3530,11 @@
             "name": "Checklist for a planned trip",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Checklist rows join pack items with current gear",
-            "expectedMatch": {
-              "packName": "Weekend Loop",
-              "totalWeightGrams": 2020,
-              "tripName": "Lost Coast"
             }
           },
           {
+            "description": "Unknown trip ids report not found",
+            "error": "NotFoundError",
             "input": {
               "id": "trip-missing"
             },
@@ -3543,11 +3542,10 @@
             "name": "Checklist for a missing trip",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown trip ids report not found",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "trip.checklist",
         "input": {
           "properties": {
             "id": {
@@ -3561,6 +3559,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "packName": {
@@ -3622,13 +3621,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "trip.complete",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -3647,8 +3643,14 @@
           ]
         },
         "description": "Mark a trip as done",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Completing a planned trip flips its status",
+            "expectedMatch": {
+              "id": "trip-lostcoast",
+              "status": "done"
+            },
             "input": {
               "id": "trip-lostcoast"
             },
@@ -3656,14 +3658,11 @@
             "name": "Complete a planned trip",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Completing a planned trip flips its status",
-            "expectedMatch": {
-              "id": "trip-lostcoast",
-              "status": "done"
             }
           },
           {
+            "description": "Trips cannot be completed twice",
+            "error": "ValidationError",
             "input": {
               "id": "trip-done"
             },
@@ -3671,11 +3670,10 @@
             "name": "Complete an already-done trip",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Trips cannot be completed twice",
-            "error": "ValidationError"
+            }
           }
         ],
+        "id": "trip.complete",
         "input": {
           "properties": {
             "id": {
@@ -3688,6 +3686,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "endDate": {
@@ -3753,13 +3752,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "trip.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -3777,9 +3773,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "trip"
         ],
+        "exampleCount": 0,
+        "id": "trip.create",
         "input": {
           "properties": {
             "endDate": {
@@ -3822,6 +3820,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "endDate": {
@@ -3880,13 +3879,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "trip.delete",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -3904,9 +3900,10 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "trip"
         ],
+        "exampleCount": 2,
         "examples": [
           {
             "input": {
@@ -3929,6 +3926,7 @@
             }
           }
         ],
+        "id": "trip.delete",
         "input": {
           "properties": {
             "id": {
@@ -3941,6 +3939,7 @@
           "type": "object"
         },
         "intent": "destroy",
+        "kind": "trail",
         "output": {},
         "pattern": "crud",
         "permit": {
@@ -3950,13 +3949,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "trip.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -3983,9 +3979,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "trip"
         ],
+        "exampleCount": 0,
+        "id": "trip.list",
         "input": {
           "properties": {
             "endDate": {
@@ -4028,6 +4026,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "items": {
             "properties": {
@@ -4084,13 +4083,10 @@
         "pattern": "crud",
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "trip.read",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -4117,9 +4113,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "trip"
         ],
+        "exampleCount": 0,
+        "id": "trip.read",
         "input": {
           "properties": {
             "id": {
@@ -4132,6 +4130,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "endDate": {
@@ -4185,13 +4184,10 @@
         "pattern": "crud",
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "trip.reconcile",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -4209,9 +4205,6 @@
             }
           ]
         },
-        "contours": [
-          "trip"
-        ],
         "description": "Reconcile version conflicts for \"trip\" entities.",
         "detours": [
           {
@@ -4219,6 +4212,11 @@
             "on": "ConflictError"
           }
         ],
+        "entities": [
+          "trip"
+        ],
+        "exampleCount": 0,
+        "id": "trip.reconcile",
         "input": {
           "properties": {
             "endDate": {
@@ -4268,6 +4266,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "endDate": {
@@ -4326,13 +4325,10 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "trip.update",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "trip",
@@ -4350,9 +4346,11 @@
             }
           ]
         },
-        "contours": [
+        "entities": [
           "trip"
         ],
+        "exampleCount": 0,
+        "id": "trip.update",
         "input": {
           "properties": {
             "endDate": {
@@ -4394,6 +4392,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "endDate": {
@@ -4452,7 +4451,8 @@
         },
         "resources": [
           "db"
-        ]
+        ],
+        "surfaces": []
       }
     ],
     "library": {
@@ -6290,8 +6290,8 @@
         }
       }
     },
-    "topoGraphSchemaVersion": 3
+    "topoGraphSchemaVersion": 4
   },
-  "topoGraphHash": "11c9e2ba44a1f443cf86440c530d09b3355f4bb54849b4ce55fe94350554e904",
-  "version": 4
+  "topoGraphHash": "5ecab09b3bcc3c8fd545ebcfec4dc23333351b5a4c2f99e83cda0e290acbb621",
+  "version": 5
 }

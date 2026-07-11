@@ -6,8 +6,8 @@
  * ConflictError detour using the declared strategy. `last-write-wins` keeps
  * the demo simple; real apps can pass a merge function instead.
  *
- * The pack and trip reconcile trails reuse the contour their `crud()` call
- * exposes, so the topo sees a single contour instance per table.
+ * The pack and trip reconcile trails reuse the entity their `crud()` call
+ * exposes, so the topo sees a single entity instance per table.
  */
 
 import { reconcile } from '@ontrails/store/trails';
@@ -15,8 +15,8 @@ import { reconcile } from '@ontrails/store/trails';
 import { db } from '../resources/db.js';
 import { packlistStore } from '../store.js';
 
-import { packContour } from './pack.js';
-import { tripContour } from './trip.js';
+import { packEntity } from './pack.js';
+import { tripEntity } from './trip.js';
 
 const writePermit = { scopes: ['packlist:write'] } as const;
 
@@ -28,7 +28,7 @@ export const gearReconcile = reconcile({
 });
 
 export const packReconcile = reconcile({
-  contour: packContour,
+  entity: packEntity,
   permit: writePermit,
   resource: db,
   strategy: 'last-write-wins',
@@ -36,7 +36,7 @@ export const packReconcile = reconcile({
 });
 
 export const tripReconcile = reconcile({
-  contour: tripContour,
+  entity: tripEntity,
   permit: writePermit,
   resource: db,
   strategy: 'last-write-wins',

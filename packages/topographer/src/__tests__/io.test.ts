@@ -14,7 +14,10 @@ import {
   readWorkspaceTrailIndex,
 } from '../io.js';
 import { deriveTopoGraphHash } from '../hash.js';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import {
+  LOCK_MANIFEST_SCHEMA_VERSION,
+  TOPO_GRAPH_SCHEMA_VERSION,
+} from '../types.js';
 import type { LockManifest, TopoGraph, TrailsLock } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -50,8 +53,8 @@ const makeLockManifest = (
 ): LockManifest => ({
   artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
   scope: { app: 'demo' },
-  summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
-  version: 3,
+  summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
+  version: LOCK_MANIFEST_SCHEMA_VERSION,
   ...overrides,
 });
 
@@ -61,10 +64,10 @@ const makeTrailsLock = (
 ): TrailsLock =>
   ({
     scope: { app: 'demo' },
-    summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+    summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
     topoGraph,
     topoGraphHash: deriveTopoGraphHash(topoGraph),
-    version: 4,
+    version: 5,
     ...overrides,
   }) as TrailsLock;
 
@@ -161,11 +164,11 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
   });
 
-  test('rejects legacy topo graph versions', async () => {
+  test('rejects v3 topo graphs from before the entity-shaped cutover', async () => {
     await Bun.write(
       join(tempDir, 'topo.lock'),
       `${JSON.stringify(
-        { ...makeTopoGraph(), topoGraphSchemaVersion: '1.0' },
+        { ...makeTopoGraph(), topoGraphSchemaVersion: 3 },
         null,
         2
       )}\n`
@@ -224,7 +227,7 @@ describe('isTopoArtifactRegenerationError', () => {
 // ---------------------------------------------------------------------------
 
 describe('writeLockManifest / readLockManifest', () => {
-  test('writes and reads v3 manifest JSON', async () => {
+  test('writes and reads v4 manifest JSON', async () => {
     const hash = 'deadbeef'.repeat(8);
     const manifest = makeLockManifest(hash);
     const filePath = await writeLockManifest(manifest, {
@@ -234,7 +237,7 @@ describe('writeLockManifest / readLockManifest', () => {
     expect(filePath).toBe(join(tempDir, 'trails.lock'));
 
     const parsed = await readParsedLock(filePath);
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(LOCK_MANIFEST_SCHEMA_VERSION);
     expect(parsed.artifacts).toEqual([
       { path: 'topo.lock', role: 'topo', sha256: hash },
     ]);
@@ -256,7 +259,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
   });
 
-  test('rejects v3 manifests with unknown top-level fields', async () => {
+  test('rejects v4 manifests with unknown top-level fields', async () => {
     const hash = 'facefeed'.repeat(8);
     await Bun.write(
       join(tempDir, 'trails.lock'),
@@ -272,7 +275,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
   });
 
-  test('rejects v3 artifacts with unknown fields', async () => {
+  test('rejects v4 artifacts with unknown fields', async () => {
     const hash = 'facefeed'.repeat(8);
     await Bun.write(
       join(tempDir, 'trails.lock'),
@@ -298,7 +301,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
   });
 
-  test('rejects v3 artifacts with malformed sha256 values', async () => {
+  test('rejects v4 artifacts with malformed sha256 values', async () => {
     await Bun.write(
       join(tempDir, 'trails.lock'),
       `${JSON.stringify(makeLockManifest('not-a-sha'), null, 2)}\n`
@@ -326,7 +329,7 @@ describe('writeLockManifest / readLockManifest', () => {
 });
 
 describe('writeTrailsLock / readTrailsLock', () => {
-  test('writes and reads v4 root lock JSON', async () => {
+  test('writes and reads v5 root lock JSON', async () => {
     const topoGraph = makeTopoGraph();
     const trailsLock = makeTrailsLock(topoGraph);
     const filePath = await writeTrailsLock(trailsLock, { dir: tempDir });
@@ -334,7 +337,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     expect(filePath).toBe(join(tempDir, 'trails.lock'));
 
     const parsed = await readParsedLock(filePath);
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.topoGraphHash).toBe(trailsLock.topoGraphHash);
     expect(parsed.topoGraph).toMatchObject({
       topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
@@ -344,7 +347,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     await expect(readTopoGraph({ dir: tempDir })).resolves.toEqual(topoGraph);
   });
 
-  test('projects v4 root locks back to v3 manifests for compatibility', async () => {
+  test('projects v5 root locks back to v4 manifests for compatibility', async () => {
     const topoGraph = makeTopoGraph();
     const trailsLock = makeTrailsLock(topoGraph);
     await writeTrailsLock(trailsLock, { dir: tempDir });
@@ -359,11 +362,11 @@ describe('writeTrailsLock / readTrailsLock', () => {
       ],
       scope: trailsLock.scope,
       summary: trailsLock.summary,
-      version: 3,
+      version: LOCK_MANIFEST_SCHEMA_VERSION,
     });
   });
 
-  test('reads legacy v3 manifests with topo.lock graphs', async () => {
+  test('reads split v4 manifests with topo.lock graphs', async () => {
     const topoGraph = makeTopoGraph();
     await writeTopoGraph(topoGraph, { dir: tempDir });
     await writeLockManifest(makeLockManifest(deriveTopoGraphHash(topoGraph)), {
@@ -373,10 +376,10 @@ describe('writeTrailsLock / readTrailsLock', () => {
     await expect(readTopoGraph({ dir: tempDir })).resolves.toEqual(topoGraph);
   });
 
-  test('rejects malformed v4 root locks', async () => {
+  test('rejects unsupported v6 root locks', async () => {
     await Bun.write(
       join(tempDir, 'trails.lock'),
-      `${JSON.stringify({ ...makeTrailsLock(makeTopoGraph()), version: 5 })}\n`
+      `${JSON.stringify({ ...makeTrailsLock(makeTopoGraph()), version: 6 })}\n`
     );
 
     await expect(readTrailsLock({ dir: tempDir })).rejects.toThrow(
@@ -388,7 +391,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     await writeTopoGraph(makeTopoGraph(), { dir: tempDir });
     await Bun.write(
       join(tempDir, 'trails.lock'),
-      `${JSON.stringify({ ...makeTrailsLock(makeTopoGraph()), version: 5 })}\n`
+      `${JSON.stringify({ ...makeTrailsLock(makeTopoGraph()), version: 6 })}\n`
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(

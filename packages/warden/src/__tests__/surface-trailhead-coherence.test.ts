@@ -117,7 +117,7 @@ export const options = {
     const diagnostics = check(`
 export const lockManifest = {
   summary: {
-    contours: 1,
+    entities: 1,
     resources: 2,
     signals: 3,
     trails: 4,

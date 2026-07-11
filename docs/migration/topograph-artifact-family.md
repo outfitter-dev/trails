@@ -69,4 +69,4 @@ const store = createTopoStore();
 const detail = store.trails.get('auth.login');
 ```
 
-Use `store.topoGraph`, `store.entries`, `store.trails`, `store.resources`, `store.signals`, and `store.contours` for queryable access instead of parsing serialized JSON in application code.
+Use `store.topoGraph`, `store.entries`, `store.trails`, `store.resources`, `store.signals`, and `store.entities` for queryable access instead of parsing serialized JSON in application code.

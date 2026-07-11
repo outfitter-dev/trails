@@ -17,8 +17,12 @@ import type {
   StoreIdentifierOf,
   UpsertOf,
 } from '../types.js';
-import { createTableContour, mapStoreTrailError } from './utils.js';
-import type { TableContour } from './utils.js';
+import {
+  assertCurrentEntityOption,
+  createTableEntity,
+  mapStoreTrailError,
+} from './utils.js';
+import type { TableEntity } from './utils.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
   Record<Extract<TTable['identity'], string>, StoreIdentifierOf<TTable>>
@@ -37,13 +41,13 @@ export interface SyncEndpoint<
   TConnection extends SourceConnection<TTable> | TargetConnection<TTable>,
 > {
   /**
-   * Existing table contour to register on the produced trail for this
-   * endpoint. Pass the contour a `crud()` bundle over the same table
-   * exposes (its `contour` property) so `topo()` sees one shared
+   * Existing table entity to register on the produced trail for this
+   * endpoint. Pass the entity a `crud()` bundle over the same table
+   * exposes (its `entity` property) so `topo()` sees one shared
    * instance instead of rejecting two same-named rebuilds as
    * duplicates. When omitted, the factory builds one from the table.
    */
-  readonly contour?: TableContour<TTable>;
+  readonly entity?: TableEntity<TTable>;
   readonly resource: Resource<TConnection>;
   readonly table: TTable;
 }
@@ -189,17 +193,18 @@ export const sync = <
     TTargetConnection
   >
 ): Trail<IdentityInputOf<TSourceTable>, EntityOf<TTargetTable>> => {
+  assertCurrentEntityOption(options.from, 'sync() from options');
+  assertCurrentEntityOption(options.to, 'sync() to options');
   const id = options.id ?? `${options.to.table.name}.sync`;
-  const sourceContour =
-    options.from.contour ?? createTableContour(options.from.table);
-  const targetContour =
-    options.to.contour ?? createTableContour(options.to.table);
+  const sourceEntity =
+    options.from.entity ?? createTableEntity(options.from.table);
+  const targetEntity = options.to.entity ?? createTableEntity(options.to.table);
 
   return trail(id, {
-    contours: [sourceContour, targetContour],
     description:
       options.description ??
       `Sync one "${options.from.table.name}" entity into "${options.to.table.name}".`,
+    entities: [sourceEntity, targetEntity],
     examples: deriveExamples(
       options.from.table,
       options.to.table,
@@ -216,11 +221,11 @@ export const sync = <
         const identifier = input[
           options.from.table.identity as keyof typeof input
         ] as StoreIdentifierOf<TSourceTable>;
-        const sourceEntity = await resolveSourceAccessor(options.from, ctx).get(
+        const sourceRecord = await resolveSourceAccessor(options.from, ctx).get(
           identifier
         );
 
-        if (sourceEntity === null) {
+        if (sourceRecord === null) {
           return Result.err(sourceMissingError(options.from.table, identifier));
         }
 
@@ -232,7 +237,7 @@ export const sync = <
         // a mismatched payload.
         const next =
           options.transform === undefined
-            ? options.to.table.fixtureSchema.safeParse(sourceEntity)
+            ? options.to.table.fixtureSchema.safeParse(sourceRecord)
             : undefined;
 
         if (next !== undefined && !next.success) {
@@ -246,7 +251,7 @@ export const sync = <
         const payload =
           options.transform === undefined
             ? (next?.data as unknown as UpsertOf<TTargetTable>)
-            : await options.transform(sourceEntity, ctx);
+            : await options.transform(sourceRecord, ctx);
 
         const synced = await resolveTargetAccessor(options.to, ctx).upsert(
           payload

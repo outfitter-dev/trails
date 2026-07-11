@@ -130,9 +130,9 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 #### General
 
-- `circular-refs` (warn, project/project-static, external): Contour reference graphs must be acyclic.
-- `contour-exists` (error, project/project-static, external): Declared contour references resolve to known contours.
+- `circular-refs` (warn, project/project-static, external): Entity reference graphs must be acyclic.
 - `duplicate-exported-symbol` (warn, project/project-static, repo-local): First-party packages should not define the same exported symbol name in parallel.
+- `entity-exists` (error, project/project-static, external): Declared entity references resolve to known entities.
 - `example-valid` (error, source/source-static, external): Trail examples remain valid against their authored schema.
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
@@ -145,7 +145,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `public-export-example-coverage` (error, source/source-static, repo-local): Public API barrel exports carry leading @example TSDoc coverage.
 - `public-internal-deep-imports` (error, project/project-static, internal): Cross-package imports stay on package-owned public exports.
 - `public-union-output-discriminants` (error, topo/topo-aware, external): Public output object unions expose branch discriminants.
-- `reference-exists` (error, project/project-static, external): Reference declarations resolve to known contours.
+- `reference-exists` (error, project/project-static, external): Reference declarations resolve to known entities.
 - `unreachable-detour-shadowing` (error, source/source-static, external): Specific detours are not shadowed by earlier broader detours.
 - `valid-describe-refs` (warn, all/project-static, advisory): Describe references point at known Trails concepts.
 - `warden-export-symmetry` (error, source/source-static, repo-local): The Warden package exports trail wrappers, not raw rules.

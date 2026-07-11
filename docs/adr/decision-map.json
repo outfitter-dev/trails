@@ -2095,7 +2095,7 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- contours define the domain objects that pack trails operate on",
+          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- entities define the domain objects that pack trails operate on",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },

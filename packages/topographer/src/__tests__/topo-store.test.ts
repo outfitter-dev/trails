@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import {
   NotFoundError,
-  contour,
+  entity,
   Result,
   ValidationError,
   resource,
@@ -23,7 +23,10 @@ import {
 import type { Layer } from '@ontrails/core';
 
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import {
+  LOCK_MANIFEST_SCHEMA_VERSION,
+  TOPO_GRAPH_SCHEMA_VERSION,
+} from '../types.js';
 import {
   TOPO_SCHEMA_VERSION,
   ensureTopoSnapshotSchema,
@@ -103,7 +106,7 @@ const tableColumns = (
     .map((row) => row.name);
 
 const exampleApp = () => {
-  const entityContour = contour(
+  const entityDefinition = entity(
     'entity',
     {
       id: z.string(),
@@ -132,8 +135,8 @@ const exampleApp = () => {
   });
 
   const entityAdd = trail('entity.add', {
-    contours: [entityContour],
     description: 'Add a new entity',
+    entities: [entityDefinition],
     examples: [
       {
         expected: { id: 'ada', ok: true },
@@ -163,9 +166,9 @@ const exampleApp = () => {
 
   const entityList = trail('entity.list', {
     composes: ['entity.add'],
-    contours: [entityContour],
     description: 'List entities',
     dryRun: true,
+    entities: [entityDefinition],
     idempotent: true,
     implementation: () => Result.ok({ items: ['ada'] }),
     input: z.object({}),
@@ -179,7 +182,7 @@ const exampleApp = () => {
     dbMain,
     entityAdd,
     entityAdded,
-    entityContour,
+    entityDefinition,
     entityList,
     searchIndex,
   });
@@ -332,12 +335,12 @@ const requireStoredExport = (
   return stored;
 };
 
-const hasContourSurfaceEntry = (entry: unknown, id: string): boolean => {
+const hasEntitySurfaceEntry = (entry: unknown, id: string): boolean => {
   if (typeof entry !== 'object' || entry === null) {
     return false;
   }
   const candidate = entry as { id?: string; kind?: string };
-  return candidate.id === id && candidate.kind === 'contour';
+  return candidate.id === id && candidate.kind === 'entity';
 };
 
 const expectProjectionCounts = (
@@ -689,7 +692,7 @@ describe('topo store projection', () => {
       });
       expect(Array.isArray(entries)).toBe(true);
       expect(
-        entries?.some((entry) => hasContourSurfaceEntry(entry, 'entity'))
+        entries?.some((entry) => hasEntitySurfaceEntry(entry, 'entity'))
       ).toBe(true);
       const trailEntry = entries?.find(
         (entry) =>
@@ -735,8 +738,8 @@ describe('topo store projection', () => {
           { path: 'topo.lock', role: 'topo', sha256: stored.topoGraphHash },
         ],
         scope: { app: 'projection-app' },
-        summary: { contours: 1, resources: 2, signals: 1, trails: 2 },
-        version: 3,
+        summary: { entities: 1, resources: 2, signals: 1, trails: 2 },
+        version: LOCK_MANIFEST_SCHEMA_VERSION,
       });
     });
   });
@@ -840,8 +843,8 @@ describe('topo store projection', () => {
           { path: 'topo.lock', role: 'topo', sha256: stored.topoGraphHash },
         ],
         scope: { app: 'contract-export-app' },
-        summary: { contours: 0, resources: 0, signals: 2, trails: 1 },
-        version: 3,
+        summary: { entities: 0, resources: 0, signals: 2, trails: 1 },
+        version: LOCK_MANIFEST_SCHEMA_VERSION,
       });
     });
   });

@@ -1,7 +1,7 @@
 import { crudOperations } from '@ontrails/store';
 
 import {
-  collectNamedContourIds,
+  collectNamedEntityIds,
   collectNamedStoreTableIds,
   deriveStoreTableId,
   getNodeArguments,
@@ -30,10 +30,10 @@ import type {
 
 const CRUD_OPERATION_SET = new Set<string>(crudOperations);
 
-/** Sentinel entity id prefix for contours imported from another module. */
-const IMPORTED_CONTOUR_PREFIX = 'imported:';
-const IMPORTED_CONTOUR_SOURCE_SEPARATOR = '#';
-const CONTOUR_BINDING_SUFFIX = 'Contour';
+/** Sentinel entity id prefix for entities imported from another module. */
+const IMPORTED_ENTITY_PREFIX = 'imported:';
+const IMPORTED_ENTITY_SOURCE_SEPARATOR = '#';
+const ENTITY_BINDING_SUFFIX = 'Entity';
 
 interface CrudCoverage {
   readonly entityId: string;
@@ -103,8 +103,8 @@ const collectImportDeclarationAliases = (
   }
 };
 
-const extractInlineContourId = (node: AstNode | undefined): string | null => {
-  if (!isNamedCall(node, 'contour')) {
+const extractInlineEntityId = (node: AstNode | undefined): string | null => {
+  if (!isNamedCall(node, 'entity')) {
     return null;
   }
 
@@ -127,18 +127,18 @@ const collectImportAliasResolutions = (
   return aliases;
 };
 
-const buildImportedContourId = (source: string, importedName: string): string =>
-  `${IMPORTED_CONTOUR_PREFIX}${source}${IMPORTED_CONTOUR_SOURCE_SEPARATOR}${importedName}`;
+const buildImportedEntityId = (source: string, importedName: string): string =>
+  `${IMPORTED_ENTITY_PREFIX}${source}${IMPORTED_ENTITY_SOURCE_SEPARATOR}${importedName}`;
 
-const parseImportedContourId = (
+const parseImportedEntityId = (
   entityId: string
 ): { readonly bindingName: string; readonly source?: string } | null => {
-  if (!entityId.startsWith(IMPORTED_CONTOUR_PREFIX)) {
+  if (!entityId.startsWith(IMPORTED_ENTITY_PREFIX)) {
     return null;
   }
 
-  const remainder = entityId.slice(IMPORTED_CONTOUR_PREFIX.length);
-  const separator = remainder.lastIndexOf(IMPORTED_CONTOUR_SOURCE_SEPARATOR);
+  const remainder = entityId.slice(IMPORTED_ENTITY_PREFIX.length);
+  const separator = remainder.lastIndexOf(IMPORTED_ENTITY_SOURCE_SEPARATOR);
   if (separator === -1) {
     return { bindingName: remainder };
   }
@@ -150,38 +150,38 @@ const parseImportedContourId = (
 };
 
 /**
- * Resolve an identifier reference (bound contour or imported alias) to a
+ * Resolve an identifier reference (bound entity or imported alias) to a
  * stable entity id. Imported identifiers return a `pending-resolution`
  * sentinel so coverage is still tracked instead of silently dropped.
  */
-const resolveContourIdentifier = (
+const resolveEntityIdentifier = (
   name: string,
-  namedContourIds: ReadonlyMap<string, string>,
+  namedEntityIds: ReadonlyMap<string, string>,
   importAliases: ReadonlyMap<string, ImportAliasResolution>
 ): string | null => {
-  const local = namedContourIds.get(name);
+  const local = namedEntityIds.get(name);
   if (local) {
     return local;
   }
 
   const imported = importAliases.get(name);
   if (imported) {
-    return buildImportedContourId(imported.source, imported.importedName);
+    return buildImportedEntityId(imported.source, imported.importedName);
   }
 
   return null;
 };
 
-const stripContourBindingSuffix = (entityId: string): string =>
-  entityId.endsWith(CONTOUR_BINDING_SUFFIX)
-    ? entityId.slice(0, -CONTOUR_BINDING_SUFFIX.length)
+const stripEntityBindingSuffix = (entityId: string): string =>
+  entityId.endsWith(ENTITY_BINDING_SUFFIX)
+    ? entityId.slice(0, -ENTITY_BINDING_SUFFIX.length)
     : entityId;
 
 const normalizeProjectEntityId = (
   entityId: string,
   projectEntityIds: ReadonlySet<string>
 ): string => {
-  const imported = parseImportedContourId(entityId);
+  const imported = parseImportedEntityId(entityId);
   if (!imported) {
     return entityId;
   }
@@ -190,11 +190,11 @@ const normalizeProjectEntityId = (
   if (projectEntityIds.has(localId)) {
     return localId;
   }
-  const strippedId = stripContourBindingSuffix(localId);
+  const strippedId = stripEntityBindingSuffix(localId);
   if (
     strippedId !== localId &&
     (projectEntityIds.has(strippedId) ||
-      projectEntityIds.has(`${IMPORTED_CONTOUR_PREFIX}${strippedId}`))
+      projectEntityIds.has(`${IMPORTED_ENTITY_PREFIX}${strippedId}`))
   ) {
     return strippedId;
   }
@@ -218,19 +218,19 @@ const normalizeProjectCoverage = (
 };
 
 /**
- * Resolve a `deriveTrail` contour argument to a stable entity id.
+ * Resolve a `deriveTrail` entity argument to a stable entity id.
  *
  * Resolution order:
- *   1. Inline `contour('name', …)` call — use the authored name.
- *   2. Local identifier bound to `contour('name', …)` via `namedContourIds`.
+ *   1. Inline `entity('name', …)` call — use the authored name.
+ *   2. Local identifier bound to `entity('name', …)` via `namedEntityIds`.
  *   3. Identifier imported from another module — mark as a pending
  *      `imported:<local>` coverage observation so the rule still tracks the
  *      entity across the file instead of silently dropping it. The prefix is
  *      stripped from diagnostic output for readability.
  */
-const resolveContourId = (
+const resolveEntityId = (
   node: AstNode | undefined,
-  namedContourIds: ReadonlyMap<string, string>,
+  namedEntityIds: ReadonlyMap<string, string>,
   importAliases: ReadonlyMap<string, ImportAliasResolution>
 ): string | null => {
   if (!node) {
@@ -240,11 +240,11 @@ const resolveContourId = (
   if (node.type === 'Identifier') {
     const name = identifierName(node);
     return name
-      ? resolveContourIdentifier(name, namedContourIds, importAliases)
+      ? resolveEntityIdentifier(name, namedEntityIds, importAliases)
       : null;
   }
 
-  return extractInlineContourId(node);
+  return extractInlineEntityId(node);
 };
 
 const ensureCoverage = (
@@ -277,16 +277,16 @@ const extractCrudOperation = (node: AstNode | undefined): string | null => {
 
 const extractDerivedCrudEntry = (
   node: AstNode,
-  namedContourIds: ReadonlyMap<string, string>,
+  namedEntityIds: ReadonlyMap<string, string>,
   importAliases: ReadonlyMap<string, ImportAliasResolution>
 ): { readonly entityId: string; readonly operation: string } | null => {
   if (!isNamedCall(node, 'deriveTrail')) {
     return null;
   }
 
-  const [contourArg, operationArg] = getNodeArguments(node);
+  const [entityArg, operationArg] = getNodeArguments(node);
   const operation = extractCrudOperation(operationArg);
-  const entityId = resolveContourId(contourArg, namedContourIds, importAliases);
+  const entityId = resolveEntityId(entityArg, namedEntityIds, importAliases);
   return operation && entityId ? { entityId, operation } : null;
 };
 
@@ -295,11 +295,11 @@ const collectDerivedCrudCoverage = (
   sourceCode: string
 ): ReadonlyMap<string, CrudCoverage> => {
   const coverageByEntityId = new Map<string, CrudCoverage>();
-  const namedContourIds = collectNamedContourIds(ast);
+  const namedEntityIds = collectNamedEntityIds(ast);
   const importAliases = collectImportAliasResolutions(ast);
 
   walk(ast, (node) => {
-    const entry = extractDerivedCrudEntry(node, namedContourIds, importAliases);
+    const entry = extractDerivedCrudEntry(node, namedEntityIds, importAliases);
     if (!entry) {
       return;
     }
@@ -504,7 +504,7 @@ const collectIncompleteEntities = (
 };
 
 const formatEntityLabel = (entityId: string): string => {
-  const imported = parseImportedContourId(entityId);
+  const imported = parseImportedEntityId(entityId);
   return imported
     ? `${imported.bindingName} (imported, pending-resolution)`
     : entityId;

@@ -4,7 +4,7 @@ import {
   ConflictError,
   DETOUR_MAX_ATTEMPTS_CAP,
   ValidationError,
-  contour,
+  entity,
   signal,
   resource,
   Result,
@@ -40,7 +40,7 @@ const passThroughLayer = (name: string, input?: Layer['input']): Layer => ({
   name,
   wrap: (_trail, implementation) => implementation,
 });
-const userContour = contour(
+const userEntity = entity(
   'user',
   {
     id: z.string().uuid(),
@@ -48,11 +48,11 @@ const userContour = contour(
   },
   { identity: 'id' }
 );
-const gistContour = contour(
+const gistEntity = entity(
   'gist',
   {
     id: z.string().uuid(),
-    ownerId: userContour.id(),
+    ownerId: userEntity.id(),
     title: z.string(),
   },
   { identity: 'id' }
@@ -396,9 +396,9 @@ describe('deriveTopoGraph', () => {
       ]);
     });
 
-    test('trail entries include declared contours when present', () => {
+    test('trail entries include declared entities when present', () => {
       const t = trail('gist.create', {
-        contours: [gistContour, userContour],
+        entities: [gistEntity, userEntity],
         implementation: noop,
         input: z.object({}),
       });
@@ -406,7 +406,7 @@ describe('deriveTopoGraph', () => {
         (candidate) => candidate.id === 'gist.create'
       );
 
-      expect(entry?.contours).toEqual(['gist', 'user']);
+      expect(entry?.entities).toEqual(['gist', 'user']);
     });
 
     test('trail without output schema has output undefined', () => {
@@ -968,17 +968,17 @@ describe('deriveTopoGraph', () => {
       expect(entry.surfaces).toEqual([]);
     });
 
-    test('contour entries are included with schema and references', () => {
+    test('entity entries are included with schema and references', () => {
       const entry = deriveTopoGraph(
-        topoFrom({ gistContour, userContour })
+        topoFrom({ gistEntity, userEntity })
       ).entries.find((candidate) => candidate.id === 'gist');
 
       expect(entry).toBeDefined();
-      expect(entry?.kind).toBe('contour');
+      expect(entry?.kind).toBe('entity');
       expect(entry?.identity).toBe('id');
       expect(entry?.references).toEqual([
         {
-          contour: 'user',
+          entity: 'user',
           field: 'ownerId',
           identity: 'id',
         },

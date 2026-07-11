@@ -389,7 +389,7 @@ const writeWorkspace = (
 
   // The fixture imports `@ontrails/core` at the workspace level so the trail
   // is a real `trail()` definition with all required fields (detours,
-  // contours, etc.). This lets `executeTrail` run end-to-end without
+  // entities, etc.). This lets `executeTrail` run end-to-end without
   // hand-rolling every internal field on a stub object.
   writeFixture(
     join(appDir, 'src/app.ts'),

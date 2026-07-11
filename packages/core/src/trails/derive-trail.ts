@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { AnyContour } from '../contour.js';
+import type { AnyEntity } from '../entity.js';
 import {
   DerivationError,
   InternalError,
@@ -25,73 +25,73 @@ export type DeriveTrailOperation =
   | 'delete'
   | 'list';
 
-type ContourInput<TContour extends AnyContour> = z.input<TContour>;
-type ContourOutput<TContour extends AnyContour> = z.output<TContour>;
-type ContourFieldKey<TContour extends AnyContour> = Extract<
-  keyof ContourOutput<TContour>,
+type EntityInput<TEntity extends AnyEntity> = z.input<TEntity>;
+type EntityOutput<TEntity extends AnyEntity> = z.output<TEntity>;
+type EntityFieldKey<TEntity extends AnyEntity> = Extract<
+  keyof EntityOutput<TEntity>,
   string
 >;
-type IdentityKey<TContour extends AnyContour> = Extract<
-  TContour['identity'],
-  keyof ContourInput<TContour> & string
+type IdentityKey<TEntity extends AnyEntity> = Extract<
+  TEntity['identity'],
+  keyof EntityInput<TEntity> & string
 >;
 
 type GeneratedKey<
-  TContour extends AnyContour,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
-> = TGenerated extends readonly ContourFieldKey<TContour>[]
+  TEntity extends AnyEntity,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
+> = TGenerated extends readonly EntityFieldKey<TEntity>[]
   ? TGenerated[number]
   : never;
 
 type CreateInputOf<
-  TContour extends AnyContour,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
+  TEntity extends AnyEntity,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
 > = Omit<
-  ContourInput<TContour>,
-  Extract<GeneratedKey<TContour, TGenerated>, keyof ContourInput<TContour>>
+  EntityInput<TEntity>,
+  Extract<GeneratedKey<TEntity, TGenerated>, keyof EntityInput<TEntity>>
 >;
 
-type ReadInputOf<TContour extends AnyContour> = Pick<
-  ContourInput<TContour>,
-  IdentityKey<TContour>
+type ReadInputOf<TEntity extends AnyEntity> = Pick<
+  EntityInput<TEntity>,
+  IdentityKey<TEntity>
 >;
 
 type UpdateInputOf<
-  TContour extends AnyContour,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
-> = ReadInputOf<TContour> &
-  Partial<Omit<CreateInputOf<TContour, TGenerated>, IdentityKey<TContour>>>;
+  TEntity extends AnyEntity,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
+> = ReadInputOf<TEntity> &
+  Partial<Omit<CreateInputOf<TEntity, TGenerated>, IdentityKey<TEntity>>>;
 
-type ListInputOf<TContour extends AnyContour> = Partial<ContourInput<TContour>>;
+type ListInputOf<TEntity extends AnyEntity> = Partial<EntityInput<TEntity>>;
 
 /**
- * Input shape derived for one operation against one contour.
+ * Input shape derived for one operation against one entity.
  */
 export type DeriveTrailInput<
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined =
-    | readonly ContourFieldKey<TContour>[]
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined =
+    | readonly EntityFieldKey<TEntity>[]
     | undefined,
 > = TOperation extends 'create'
-  ? CreateInputOf<TContour, TGenerated>
+  ? CreateInputOf<TEntity, TGenerated>
   : TOperation extends 'read' | 'delete'
-    ? ReadInputOf<TContour>
+    ? ReadInputOf<TEntity>
     : TOperation extends 'update'
-      ? UpdateInputOf<TContour, TGenerated>
-      : ListInputOf<TContour>;
+      ? UpdateInputOf<TEntity, TGenerated>
+      : ListInputOf<TEntity>;
 
 /**
- * Output shape derived for one operation against one contour.
+ * Output shape derived for one operation against one entity.
  */
 export type DeriveTrailOutput<
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
 > = TOperation extends 'delete'
   ? undefined
   : TOperation extends 'list'
-    ? ContourOutput<TContour>[]
-    : ContourOutput<TContour>;
+    ? EntityOutput<TEntity>[]
+    : EntityOutput<TEntity>;
 
 /**
  * Extra authored data accepted by `deriveTrail()` in addition to the
@@ -103,18 +103,18 @@ export type DeriveTrailOutput<
  * declared, an explicit `implementation` is required.
  */
 export interface DeriveTrailSpec<
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined =
-    | readonly ContourFieldKey<TContour>[]
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined =
+    | readonly EntityFieldKey<TEntity>[]
     | undefined,
 > extends Omit<
   TrailSpec<
-    DeriveTrailInput<TContour, TOperation, TGenerated>,
-    DeriveTrailOutput<TContour, TOperation>
+    DeriveTrailInput<TEntity, TOperation, TGenerated>,
+    DeriveTrailOutput<TEntity, TOperation>
   >,
   | 'implementation'
-  | 'contours'
+  | 'entities'
   | 'examples'
   | 'input'
   | 'intent'
@@ -127,8 +127,8 @@ export interface DeriveTrailSpec<
    * for standard CRUD operations.
    */
   readonly implementation?: Implementation<
-    DeriveTrailInput<TContour, TOperation, TGenerated>,
-    DeriveTrailOutput<TContour, TOperation>
+    DeriveTrailInput<TEntity, TOperation, TGenerated>,
+    DeriveTrailOutput<TEntity, TOperation>
   >;
   /**
    * Server-managed fields that should not be writable through derived create
@@ -212,75 +212,75 @@ const normalizeResources = (
 ): readonly AnyResource[] =>
   Object.freeze(Array.isArray(resource) ? [...resource] : [resource]);
 
-const identityInputSchema = <TContour extends AnyContour>(
-  contour: TContour
-): z.ZodType<ReadInputOf<TContour>> =>
-  pickFields(contour, [contour.identity]) as unknown as z.ZodType<
-    ReadInputOf<TContour>
+const identityInputSchema = <TEntity extends AnyEntity>(
+  entity: TEntity
+): z.ZodType<ReadInputOf<TEntity>> =>
+  pickFields(entity, [entity.identity]) as unknown as z.ZodType<
+    ReadInputOf<TEntity>
   >;
 
 const createInputSchema = <
-  TContour extends AnyContour,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
+  TEntity extends AnyEntity,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
 >(
-  contour: TContour,
+  entity: TEntity,
   generated: readonly string[]
-): z.ZodType<CreateInputOf<TContour, TGenerated>> =>
-  omitFields(contour, generated) as unknown as z.ZodType<
-    CreateInputOf<TContour, TGenerated>
+): z.ZodType<CreateInputOf<TEntity, TGenerated>> =>
+  omitFields(entity, generated) as unknown as z.ZodType<
+    CreateInputOf<TEntity, TGenerated>
   >;
 
 const updateInputSchema = <
-  TContour extends AnyContour,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
+  TEntity extends AnyEntity,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
 >(
-  contour: TContour,
+  entity: TEntity,
   generated: readonly string[]
-): z.ZodType<UpdateInputOf<TContour, TGenerated>> => {
-  const mutableSchema = omitFields(contour, [...generated, contour.identity]);
-  const identitySchema = asObjectSchema(identityInputSchema(contour));
+): z.ZodType<UpdateInputOf<TEntity, TGenerated>> => {
+  const mutableSchema = omitFields(entity, [...generated, entity.identity]);
+  const identitySchema = asObjectSchema(identityInputSchema(entity));
 
   return identitySchema.extend(
     toPartialSchema(mutableSchema).shape
-  ) as unknown as z.ZodType<UpdateInputOf<TContour, TGenerated>>;
+  ) as unknown as z.ZodType<UpdateInputOf<TEntity, TGenerated>>;
 };
 
-const listInputSchema = <TContour extends AnyContour>(
-  contour: TContour
-): z.ZodType<ListInputOf<TContour>> =>
-  toPartialSchema(contour) as unknown as z.ZodType<ListInputOf<TContour>>;
+const listInputSchema = <TEntity extends AnyEntity>(
+  entity: TEntity
+): z.ZodType<ListInputOf<TEntity>> =>
+  toPartialSchema(entity) as unknown as z.ZodType<ListInputOf<TEntity>>;
 
 const deriveInputSchema = <
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
 >(
-  contour: TContour,
+  entity: TEntity,
   operation: TOperation,
   generated: readonly string[]
-): z.ZodType<DeriveTrailInput<TContour, TOperation, TGenerated>> => {
+): z.ZodType<DeriveTrailInput<TEntity, TOperation, TGenerated>> => {
   switch (operation) {
     case 'create': {
-      return createInputSchema<TContour, TGenerated>(
-        contour,
+      return createInputSchema<TEntity, TGenerated>(
+        entity,
         generated
-      ) as z.ZodType<DeriveTrailInput<TContour, TOperation, TGenerated>>;
+      ) as z.ZodType<DeriveTrailInput<TEntity, TOperation, TGenerated>>;
     }
     case 'read':
     case 'delete': {
-      return identityInputSchema(contour) as z.ZodType<
-        DeriveTrailInput<TContour, TOperation, TGenerated>
+      return identityInputSchema(entity) as z.ZodType<
+        DeriveTrailInput<TEntity, TOperation, TGenerated>
       >;
     }
     case 'update': {
-      return updateInputSchema<TContour, TGenerated>(
-        contour,
+      return updateInputSchema<TEntity, TGenerated>(
+        entity,
         generated
-      ) as z.ZodType<DeriveTrailInput<TContour, TOperation, TGenerated>>;
+      ) as z.ZodType<DeriveTrailInput<TEntity, TOperation, TGenerated>>;
     }
     case 'list': {
-      return listInputSchema(contour) as z.ZodType<
-        DeriveTrailInput<TContour, TOperation, TGenerated>
+      return listInputSchema(entity) as z.ZodType<
+        DeriveTrailInput<TEntity, TOperation, TGenerated>
       >;
     }
     default: {
@@ -290,28 +290,28 @@ const deriveInputSchema = <
 };
 
 const deriveOutputSchema = <
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
 >(
-  contour: TContour,
+  entity: TEntity,
   operation: TOperation
-): z.ZodType<DeriveTrailOutput<TContour, TOperation>> => {
+): z.ZodType<DeriveTrailOutput<TEntity, TOperation>> => {
   switch (operation) {
     case 'delete': {
       return z.void() as unknown as z.ZodType<
-        DeriveTrailOutput<TContour, TOperation>
+        DeriveTrailOutput<TEntity, TOperation>
       >;
     }
     case 'list': {
-      return contour.array() as unknown as z.ZodType<
-        DeriveTrailOutput<TContour, TOperation>
+      return entity.array() as unknown as z.ZodType<
+        DeriveTrailOutput<TEntity, TOperation>
       >;
     }
     case 'create':
     case 'read':
     case 'update': {
-      return contour as unknown as z.ZodType<
-        DeriveTrailOutput<TContour, TOperation>
+      return entity as unknown as z.ZodType<
+        DeriveTrailOutput<TEntity, TOperation>
       >;
     }
     default: {
@@ -344,19 +344,19 @@ const omitValueFields = (
 };
 
 const formatExampleName = (
-  contour: AnyContour,
+  entity: AnyEntity,
   operation: DeriveTrailOperation,
   example: ExampleRecord,
   index: number
 ): string => {
-  const identifier = example[contour.identity];
+  const identifier = example[entity.identity];
   const suffix =
     identifier === undefined ? String(index + 1) : String(identifier);
-  return `${titleCase(operation)} ${contour.name} ${suffix}`;
+  return `${titleCase(operation)} ${entity.name} ${suffix}`;
 };
 
 /**
- * Derive a single trail example from a contour fixture.
+ * Derive a single trail example from a entity fixture.
  *
  * @remarks
  * For `list` operations, each derived example wraps a single fixture in an
@@ -367,14 +367,14 @@ const formatExampleName = (
  * required for multi-result list assertions.
  */
 const deriveExample = (
-  contour: AnyContour,
+  entity: AnyEntity,
   operation: DeriveTrailOperation,
   example: ExampleRecord,
   index: number,
   generated: readonly string[]
 ): TrailExample<unknown, unknown> => {
-  const name = formatExampleName(contour, operation, example, index);
-  const identity = pickValueFields(example, [contour.identity]);
+  const name = formatExampleName(entity, operation, example, index);
+  const identity = pickValueFields(example, [entity.identity]);
 
   switch (operation) {
     case 'create': {
@@ -395,7 +395,7 @@ const deriveExample = (
       return {
         expected: example,
         input: {
-          ...omitValueFields(example, [...generated, contour.identity]),
+          ...omitValueFields(example, [...generated, entity.identity]),
           ...identity,
         },
         name,
@@ -421,11 +421,11 @@ const deriveExample = (
 };
 
 const deriveExamples = (
-  contour: AnyContour,
+  entity: AnyEntity,
   operation: DeriveTrailOperation,
   generated: readonly string[]
 ): readonly TrailExample<unknown, unknown>[] | undefined => {
-  if (contour.examples === undefined || contour.examples.length === 0) {
+  if (entity.examples === undefined || entity.examples.length === 0) {
     return undefined;
   }
 
@@ -436,17 +436,17 @@ const deriveExamples = (
   if (operation === 'list') {
     return Object.freeze([
       {
-        expected: contour.examples,
+        expected: entity.examples,
         input: {},
-        name: `${contour.name} list example`,
+        name: `${entity.name} list example`,
       },
     ]);
   }
 
   return Object.freeze(
-    contour.examples.map((example, index) =>
+    entity.examples.map((example, index) =>
       deriveExample(
-        contour,
+        entity,
         operation,
         example as ExampleRecord,
         index,
@@ -468,7 +468,7 @@ type GenericAccessor = StoreAccessorProtocol<
 >;
 
 const wrapUnexpected = (
-  contourName: string,
+  entityName: string,
   operation: DeriveTrailOperation,
   error: unknown
 ): Error => {
@@ -477,18 +477,18 @@ const wrapUnexpected = (
   }
   const cause = error instanceof Error ? error : new Error(String(error));
   return new InternalError(
-    `deriveTrail("${contourName}.${operation}") synthesized implementation failed: ${cause.message}`,
+    `deriveTrail("${entityName}.${operation}") synthesized implementation failed: ${cause.message}`,
     { cause }
   );
 };
 
-const notFoundError = (contourName: string, id: unknown): NotFoundError =>
+const notFoundError = (entityName: string, id: unknown): NotFoundError =>
   new NotFoundError(
-    `deriveTrail("${contourName}"): entity "${String(id)}" not found`
+    `deriveTrail("${entityName}"): entity "${String(id)}" not found`
   );
 
 const resolveAccessor = (
-  contour: AnyContour,
+  entity: AnyEntity,
   operation: DeriveTrailOperation,
   resource: AnyResource,
   ctx: TrailContext
@@ -499,52 +499,52 @@ const resolveAccessor = (
       | undefined;
     if (connection === undefined || connection === null) {
       return new InternalError(
-        `deriveTrail("${contour.name}.${operation}"): resource "${resource.id}" produced no connection`
+        `deriveTrail("${entity.name}.${operation}"): resource "${resource.id}" produced no connection`
       );
     }
-    const accessor = connection[contour.name];
+    const accessor = connection[entity.name];
     if (accessor === undefined) {
       return new InternalError(
-        `deriveTrail("${contour.name}.${operation}"): resource "${resource.id}" does not expose an accessor for "${contour.name}"`
+        `deriveTrail("${entity.name}.${operation}"): resource "${resource.id}" does not expose an accessor for "${entity.name}"`
       );
     }
     return accessor;
   } catch (error) {
-    return wrapUnexpected(contour.name, operation, error);
+    return wrapUnexpected(entity.name, operation, error);
   }
 };
 
-const extractIdentity = (contour: AnyContour, input: unknown): unknown => {
+const extractIdentity = (entity: AnyEntity, input: unknown): unknown => {
   const record = input as Record<string, unknown>;
-  return record[contour.identity];
+  return record[entity.identity];
 };
 
 const callRead = async (
-  contour: AnyContour,
+  entity: AnyEntity,
   accessor: GenericAccessor,
   input: unknown
 ): Promise<Result<unknown, Error>> => {
   if (typeof accessor.get !== 'function') {
     return Result.err(
       new InternalError(
-        `deriveTrail("${contour.name}.read"): accessor is missing a \`get\` method`
+        `deriveTrail("${entity.name}.read"): accessor is missing a \`get\` method`
       )
     );
   }
   try {
-    const id = extractIdentity(contour, input);
-    const entity = await accessor.get(id);
-    if (entity === null || entity === undefined) {
-      return Result.err(notFoundError(contour.name, id));
+    const id = extractIdentity(entity, input);
+    const foundEntity = await accessor.get(id);
+    if (foundEntity === null || foundEntity === undefined) {
+      return Result.err(notFoundError(entity.name, id));
     }
-    return Result.ok(entity);
+    return Result.ok(foundEntity);
   } catch (error) {
-    return Result.err(wrapUnexpected(contour.name, 'read', error));
+    return Result.err(wrapUnexpected(entity.name, 'read', error));
   }
 };
 
 const callCreate = async (
-  contour: AnyContour,
+  entity: AnyEntity,
   accessor: GenericAccessor,
   input: unknown,
   ctx: TrailContext
@@ -560,17 +560,17 @@ const callCreate = async (
     if (typeof accessor.upsert !== 'function') {
       return Result.err(
         new InternalError(
-          `deriveTrail("${contour.name}.create"): accessor is missing both \`insert\` and \`upsert\``
+          `deriveTrail("${entity.name}.create"): accessor is missing both \`insert\` and \`upsert\``
         )
       );
     }
     ctx.logger?.debug(
-      `deriveTrail("${contour.name}.create"): accessor has no \`insert\`; falling back to \`upsert\``
+      `deriveTrail("${entity.name}.create"): accessor has no \`insert\`; falling back to \`upsert\``
     );
     const created = await accessor.upsert(input);
     return Result.ok(created);
   } catch (error) {
-    return Result.err(wrapUnexpected(contour.name, 'create', error));
+    return Result.err(wrapUnexpected(entity.name, 'create', error));
   }
 };
 
@@ -604,7 +604,7 @@ const stripGeneratedFields = (
  * then `upsert`.
  */
 const updateViaReadAndUpsert = async (
-  contour: AnyContour,
+  entity: AnyEntity,
   accessor: GenericAccessor,
   id: unknown,
   patch: Record<string, unknown>,
@@ -613,40 +613,40 @@ const updateViaReadAndUpsert = async (
   if (typeof accessor.get !== 'function') {
     return Result.err(
       new InternalError(
-        `deriveTrail("${contour.name}.update"): accessor is missing both \`update\` and \`get\``
+        `deriveTrail("${entity.name}.update"): accessor is missing both \`update\` and \`get\``
       )
     );
   }
   if (typeof accessor.upsert !== 'function') {
     return Result.err(
       new InternalError(
-        `deriveTrail("${contour.name}.update"): accessor is missing both \`update\` and \`upsert\``
+        `deriveTrail("${entity.name}.update"): accessor is missing both \`update\` and \`upsert\``
       )
     );
   }
   const current = await accessor.get(id);
   if (current === null || current === undefined) {
-    return Result.err(notFoundError(contour.name, id));
+    return Result.err(notFoundError(entity.name, id));
   }
   const merged = stripGeneratedFields(
     { ...(current as Record<string, unknown>), ...patch },
     generated,
-    contour.identity
+    entity.identity
   );
   const updated = await accessor.upsert(merged);
   return Result.ok(updated);
 };
 
 const callUpdate = async (
-  contour: AnyContour,
+  entity: AnyEntity,
   accessor: GenericAccessor,
   input: unknown,
   generated: readonly string[]
 ): Promise<Result<unknown, Error>> => {
-  const id = extractIdentity(contour, input);
+  const id = extractIdentity(entity, input);
   const patch = Object.fromEntries(
     Object.entries(input as Record<string, unknown>).filter(
-      ([field]) => field !== contour.identity
+      ([field]) => field !== entity.identity
     )
   );
 
@@ -654,60 +654,54 @@ const callUpdate = async (
     if (typeof accessor.update === 'function') {
       const updated = await accessor.update(id, patch);
       if (updated === null || updated === undefined) {
-        return Result.err(notFoundError(contour.name, id));
+        return Result.err(notFoundError(entity.name, id));
       }
       return Result.ok(updated);
     }
-    return await updateViaReadAndUpsert(
-      contour,
-      accessor,
-      id,
-      patch,
-      generated
-    );
+    return await updateViaReadAndUpsert(entity, accessor, id, patch, generated);
   } catch (error) {
-    return Result.err(wrapUnexpected(contour.name, 'update', error));
+    return Result.err(wrapUnexpected(entity.name, 'update', error));
   }
 };
 
 const callDelete = async (
-  contour: AnyContour,
+  entity: AnyEntity,
   accessor: GenericAccessor,
   input: unknown
 ): Promise<Result<undefined, Error>> => {
   if (typeof accessor.remove !== 'function') {
     return Result.err(
       new InternalError(
-        `deriveTrail("${contour.name}.delete"): accessor is missing a \`remove\` method`
+        `deriveTrail("${entity.name}.delete"): accessor is missing a \`remove\` method`
       )
     );
   }
   try {
-    const id = extractIdentity(contour, input);
+    const id = extractIdentity(entity, input);
     await accessor.remove(id);
     // `{ deleted: false }` is a no-op on an absent row, not an error —
     // matches the accessor's documented semantic.
     return Result.ok();
   } catch (error) {
-    return Result.err(wrapUnexpected(contour.name, 'delete', error));
+    return Result.err(wrapUnexpected(entity.name, 'delete', error));
   }
 };
 
 /**
  * Default `list` synthesis passes the entire input as the filter bag. The
- * derived input type is `Partial<ContourInput>` which matches the accessor's
+ * derived input type is `Partial<EntityInput>` which matches the accessor's
  * filter shape field-for-field. Pagination controls are not derived — callers
  * that need pagination must provide an explicit implementation.
  */
 const callList = async (
-  contour: AnyContour,
+  entity: AnyEntity,
   accessor: GenericAccessor,
   input: unknown
 ): Promise<Result<unknown[], Error>> => {
   if (typeof accessor.list !== 'function') {
     return Result.err(
       new InternalError(
-        `deriveTrail("${contour.name}.list"): accessor is missing a \`list\` method`
+        `deriveTrail("${entity.name}.list"): accessor is missing a \`list\` method`
       )
     );
   }
@@ -715,43 +709,43 @@ const callList = async (
     const listed = await accessor.list(input);
     return Result.ok([...listed]);
   } catch (error) {
-    return Result.err(wrapUnexpected(contour.name, 'list', error));
+    return Result.err(wrapUnexpected(entity.name, 'list', error));
   }
 };
 
 const synthesizeDefaultImplementation = <
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined,
 >(
-  contour: TContour,
+  entity: TEntity,
   operation: TOperation,
   resource: AnyResource,
   generated: readonly string[]
 ): Implementation<
-  DeriveTrailInput<TContour, TOperation, TGenerated>,
-  DeriveTrailOutput<TContour, TOperation>
+  DeriveTrailInput<TEntity, TOperation, TGenerated>,
+  DeriveTrailOutput<TEntity, TOperation>
 > => {
   const impl: Implementation<unknown, unknown> = (input, ctx) => {
-    const accessor = resolveAccessor(contour, operation, resource, ctx);
+    const accessor = resolveAccessor(entity, operation, resource, ctx);
     if (accessor instanceof Error) {
       return Promise.resolve(Result.err(accessor));
     }
     switch (operation) {
       case 'create': {
-        return callCreate(contour, accessor, input, ctx);
+        return callCreate(entity, accessor, input, ctx);
       }
       case 'read': {
-        return callRead(contour, accessor, input);
+        return callRead(entity, accessor, input);
       }
       case 'update': {
-        return callUpdate(contour, accessor, input, generated);
+        return callUpdate(entity, accessor, input, generated);
       }
       case 'delete': {
-        return callDelete(contour, accessor, input);
+        return callDelete(entity, accessor, input);
       }
       case 'list': {
-        return callList(contour, accessor, input);
+        return callList(entity, accessor, input);
       }
       default: {
         return unsupportedOperation(operation);
@@ -760,13 +754,13 @@ const synthesizeDefaultImplementation = <
   };
 
   return impl as Implementation<
-    DeriveTrailInput<TContour, TOperation, TGenerated>,
-    DeriveTrailOutput<TContour, TOperation>
+    DeriveTrailInput<TEntity, TOperation, TGenerated>,
+    DeriveTrailOutput<TEntity, TOperation>
   >;
 };
 
 /**
- * Mechanically project one CRUD-shaped trail from a contour declaration.
+ * Mechanically project one CRUD-shaped trail from a entity declaration.
  *
  * When `spec.implementation` is omitted and the call declares a single resource, the
  * helper derives a default implementation that dispatches to the resource accessor
@@ -775,18 +769,18 @@ const synthesizeDefaultImplementation = <
  * at construction time when they do not.
  */
 export const deriveTrail = <
-  TContour extends AnyContour,
+  TEntity extends AnyEntity,
   TOperation extends DeriveTrailOperation,
-  TGenerated extends readonly ContourFieldKey<TContour>[] | undefined =
-    | readonly ContourFieldKey<TContour>[]
+  TGenerated extends readonly EntityFieldKey<TEntity>[] | undefined =
+    | readonly EntityFieldKey<TEntity>[]
     | undefined,
 >(
-  contour: TContour,
+  entity: TEntity,
   operation: TOperation,
-  spec: DeriveTrailSpec<TContour, TOperation, TGenerated>
+  spec: DeriveTrailSpec<TEntity, TOperation, TGenerated>
 ): Trail<
-  DeriveTrailInput<TContour, TOperation, TGenerated>,
-  DeriveTrailOutput<TContour, TOperation>
+  DeriveTrailInput<TEntity, TOperation, TGenerated>,
+  DeriveTrailOutput<TEntity, TOperation>
 > => {
   const resources = normalizeResources(spec.resource);
   const generated = uniqueStrings(
@@ -794,20 +788,20 @@ export const deriveTrail = <
   );
 
   let implementation: Implementation<
-    DeriveTrailInput<TContour, TOperation, TGenerated>,
-    DeriveTrailOutput<TContour, TOperation>
+    DeriveTrailInput<TEntity, TOperation, TGenerated>,
+    DeriveTrailOutput<TEntity, TOperation>
   >;
   if (typeof spec.implementation === 'function') {
     ({ implementation } = spec);
   } else if (resources.length === 1) {
     implementation = synthesizeDefaultImplementation<
-      TContour,
+      TEntity,
       TOperation,
       TGenerated
-    >(contour, operation, resources[0] as AnyResource, generated);
+    >(entity, operation, resources[0] as AnyResource, generated);
   } else {
     throw new DerivationError(
-      `deriveTrail("${contour.name}.${operation}") requires an explicit \`implementation\` when ${describeDeriveTrailResourceDeclaration(resources.length)} — default synthesis is single-resource only`
+      `deriveTrail("${entity.name}.${operation}") requires an explicit \`implementation\` when ${describeDeriveTrailResourceDeclaration(resources.length)} — default synthesis is single-resource only`
     );
   }
   const {
@@ -818,24 +812,24 @@ export const deriveTrail = <
   } = spec;
   const derivedSpec = {
     ...trailSpec,
-    contours: [contour],
-    examples: deriveExamples(contour, operation, generated),
+    entities: [entity],
+    examples: deriveExamples(entity, operation, generated),
     implementation,
-    input: deriveInputSchema<TContour, TOperation, TGenerated>(
-      contour,
+    input: deriveInputSchema<TEntity, TOperation, TGenerated>(
+      entity,
       operation,
       generated
     ),
     intent: operationIntent[operation],
-    output: deriveOutputSchema(contour, operation),
+    output: deriveOutputSchema(entity, operation),
     resources,
   } as unknown as TrailSpec<
-    DeriveTrailInput<TContour, TOperation, TGenerated>,
-    DeriveTrailOutput<TContour, TOperation>
+    DeriveTrailInput<TEntity, TOperation, TGenerated>,
+    DeriveTrailOutput<TEntity, TOperation>
   >;
 
-  return trail(`${contour.name}.${operation}`, derivedSpec) as unknown as Trail<
-    DeriveTrailInput<TContour, TOperation, TGenerated>,
-    DeriveTrailOutput<TContour, TOperation>
+  return trail(`${entity.name}.${operation}`, derivedSpec) as unknown as Trail<
+    DeriveTrailInput<TEntity, TOperation, TGenerated>,
+    DeriveTrailOutput<TEntity, TOperation>
   >;
 };

@@ -47,7 +47,7 @@ const onboard = trail('entity.onboard', {
 | `drainResources(resources, ctx, configValues?)` | Evict and dispose cached resource singletons for surface/test shutdown |
 | `blobRefSchema` / `createBlobRef(...)` | Declare and create binary output references with a shared descriptor contract |
 | `topo(name, ...modules, options?)` | Collect trail modules into a queryable topology with optional `observe:` sinks |
-| `deriveTrail(contour, operation, spec)` | Derive CRUD-shaped trail contracts from a contour on the `@ontrails/core/trails` subpath |
+| `deriveTrail(entity, operation, spec)` | Derive CRUD-shaped trail contracts from a entity on the `@ontrails/core/trails` subpath |
 | `validateTopo(topo)` | Structural validation: compose targets exist, no cycles, examples parse, output schemas present |
 
 ### Execution
@@ -154,7 +154,7 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 - **Execution layers** -- low-level pipeline wrappers via `composeLayers`
 - **Guards and collections** -- `isDefined`, `chunk`, `dedupe`, `groupBy`, `sortBy`
 - **Patterns** (`@ontrails/core/patterns`) -- reusable Zod schemas for pagination, bulk ops, timestamps, sorting
-- **Trail factories** (`@ontrails/core/trails`) -- derive CRUD-shaped trail contracts from contours without re-authoring IDs, schemas, examples, or intents
+- **Trail factories** (`@ontrails/core/trails`) -- derive CRUD-shaped trail contracts from entities without re-authoring IDs, schemas, examples, or intents
 - **Redaction** (`@ontrails/core/redaction`) -- strip sensitive data before logging
 
 ### Public helper boundaries

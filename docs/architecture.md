@@ -18,7 +18,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |                       |
                 |    @ontrails/core     |
                 |                       |
-                |  contour() -> Contour |
+                |  entity() -> Entity   |
                 |  trail() -> Trail     |
                 |  signal() -> Signal   |
                 |  topo() -> Topo       |
@@ -55,7 +55,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **The contract is machine-readable at runtime.** Topo artifacts, Wayfinder queries, compatibility survey/guide commands, and committed locks make the trail system queryable by agents, tooling, and CI.
 
-**Contours are graph nodes; trails are executable edges.** Contours declare the domain objects the graph is about. Trails declare the typed work that moves through that graph. The topo carries both so surfaces, testing, and governance can reason about nouns and verbs from the same authored source.
+**Entities are graph nodes; trails are executable edges.** Entities declare the domain objects the graph is about. Trails declare the typed work that moves through that graph. The topo carries both so surfaces, testing, and governance can reason about nouns and verbs from the same authored source.
 
 ## Information Architecture
 
@@ -68,7 +68,7 @@ These are the creative contributions. They can't be derived because they don't e
 | What you author | Why it can't be derived |
 | --- | --- |
 | Input and output Zod schemas | The shape of your domain data |
-| Contour schemas, identities, and examples | The domain nodes your trails operate on |
+| Entity schemas, identities, and examples | The domain nodes your trails operate on |
 | Safety properties: `intent`, `idempotent` | Behavioral assertions about intent |
 | Examples (input plus expected result or error) | Concrete specifications of behavior |
 | The `implementation` | The authored behavior that establishes how the trail runs |
@@ -138,7 +138,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error projection, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topographer` per ADR-0042.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error projection, `entity()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topographer` per ADR-0042.
 
 **The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
 

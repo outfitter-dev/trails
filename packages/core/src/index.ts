@@ -398,23 +398,23 @@ export type {
   LateBoundSignalRef,
 } from './signal-ref.js';
 
-// Contour
-export { contour } from './contour.js';
+// Entity
+export { entity } from './entity.js';
 export {
-  CONTOUR_ID_METADATA,
-  getContourIdMetadata,
-  getContourReferences,
-} from './contour.js';
+  ENTITY_ID_METADATA,
+  getEntityIdMetadata,
+  getEntityReferences,
+} from './entity.js';
 export type {
-  AnyContour,
-  Contour,
-  ContourIdBrand,
-  ContourIdMetadata,
-  ContourIdSchema,
-  ContourIdValue,
-  ContourOptions,
-  ContourReference,
-} from './contour.js';
+  AnyEntity,
+  Entity,
+  EntityIdBrand,
+  EntityIdMetadata,
+  EntityIdSchema,
+  EntityIdValue,
+  EntityOptions,
+  EntityReference,
+} from './entity.js';
 
 // Topo
 export { topo } from './topo.js';

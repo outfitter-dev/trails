@@ -6,7 +6,7 @@
  * The warden cannot invoke implementations directly, but most resources declare a
  * `mock` factory that returns a structurally real accessor for testing. We
  * exploit that: invoke the mock with no arguments, look up the accessor by
- * contour name (which equals every CRUD-emitted trail ID's leading
+ * entity name (which equals every CRUD-emitted trail ID's leading
  * segments), and inspect the method keys.
  *
  * The rule is intentionally forgiving — if the mock factory is missing,
@@ -38,7 +38,7 @@ const deriveOperation = (trailId: string): StandardOp | undefined => {
     : undefined;
 };
 
-const deriveContourName = (trailId: string): string | undefined => {
+const deriveEntityName = (trailId: string): string | undefined => {
   const lastDot = trailId.lastIndexOf('.');
   if (lastDot <= 0) {
     return undefined;
@@ -105,12 +105,12 @@ const disposeMockConnection = async (
 
 const resolveAccessor = (
   connection: unknown,
-  contourName: string
+  entityName: string
 ): Record<string, unknown> | undefined => {
   if (!isPlainObject(connection)) {
     return undefined;
   }
-  const accessor = connection[contourName];
+  const accessor = connection[entityName];
   return isPlainObject(accessor) ? accessor : undefined;
 };
 
@@ -124,14 +124,14 @@ const resolveAccessor = (
  */
 const inspectAccessorMethods = async (
   resource: AnyResource,
-  contourName: string
+  entityName: string
 ): Promise<ReadonlySet<string> | undefined> => {
   const connection = await invokeMockSafely(resource);
   if (connection === undefined) {
     return undefined;
   }
   try {
-    const accessor = resolveAccessor(connection, contourName);
+    const accessor = resolveAccessor(connection, entityName);
     if (accessor === undefined) {
       return undefined;
     }
@@ -157,7 +157,7 @@ const formatDiagnostic = (
 interface StandardOpContext {
   readonly trailId: string;
   readonly operation: StandardOp;
-  readonly contourName: string;
+  readonly entityName: string;
   readonly resource: AnyResource;
 }
 
@@ -180,16 +180,16 @@ const extractStandardOpContext = (
     return undefined;
   }
   const operation = deriveOperation(trail.id);
-  const contourName = deriveContourName(trail.id);
+  const entityName = deriveEntityName(trail.id);
   const resource = extractSoleResource(trail);
   if (
     operation === undefined ||
-    contourName === undefined ||
+    entityName === undefined ||
     resource === undefined
   ) {
     return undefined;
   }
-  return { contourName, operation, resource, trailId: trail.id };
+  return { entityName, operation, resource, trailId: trail.id };
 };
 
 const diagnoseMissingMethod = (
@@ -201,7 +201,7 @@ const diagnoseMissingMethod = (
     return undefined;
   }
   const { fallback } = expectation;
-  const base = `resource "${ctx.resource.id}" accessor "${ctx.contourName}"`;
+  const base = `resource "${ctx.resource.id}" accessor "${ctx.entityName}"`;
   if (fallback === undefined) {
     return formatDiagnostic(
       ctx.trailId,
@@ -234,7 +234,7 @@ const evaluateTrail = async (
   if (ctx === undefined) {
     return [];
   }
-  const methods = await inspectAccessorMethods(ctx.resource, ctx.contourName);
+  const methods = await inspectAccessorMethods(ctx.resource, ctx.entityName);
   if (methods === undefined) {
     return [];
   }

@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import { contour } from '../contour.js';
+import { entity } from '../entity.js';
 import { createTrailContext } from '../context.js';
 import { DerivationError, InternalError, NotFoundError } from '../errors.js';
 import { Result } from '../result.js';
@@ -10,7 +10,7 @@ import { resource } from '../resource.js';
 import type { DeriveTrailOperation } from '../trails/index.js';
 import { deriveTrail } from '../trails/index.js';
 
-const note = contour(
+const note = entity(
   'note',
   {
     body: z.string().default('draft'),
@@ -163,7 +163,7 @@ const expectListSchemas = (
 };
 
 describe('deriveTrail()', () => {
-  test('derives trail ids, intents, contours, and resources for CRUD operations', () => {
+  test('derives trail ids, intents, entities, and resources for CRUD operations', () => {
     const { created, listed, read, removed, updated } = deriveCrudTrails();
 
     expectTrailMetadata(created, 'note.create', 'write');
@@ -172,7 +172,7 @@ describe('deriveTrail()', () => {
     expectTrailMetadata(removed, 'note.delete', 'destroy');
     expectTrailMetadata(listed, 'note.list', 'read');
 
-    expect(created.contours).toEqual([note]);
+    expect(created.entities).toEqual([note]);
     expect(created.resources).toEqual([noteResource]);
   });
 
@@ -186,7 +186,7 @@ describe('deriveTrail()', () => {
     expectListSchemas(listed);
   });
 
-  test('derives per-operation examples from contour examples', () => {
+  test('derives per-operation examples from entity examples', () => {
     const { created, listed, read, removed, updated } = deriveCrudTrails();
 
     expect(created.examples).toEqual([

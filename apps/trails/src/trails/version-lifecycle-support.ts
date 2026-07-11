@@ -849,7 +849,7 @@ const isDoctorForceEntry = (value: unknown): value is TopoGraphForceEntry =>
   (value['change'] === 'modified' || value['change'] === 'removed') &&
   typeof value['detail'] === 'string' &&
   typeof value['id'] === 'string' &&
-  (value['kind'] === 'contour' ||
+  (value['kind'] === 'entity' ||
     value['kind'] === 'trail' ||
     value['kind'] === 'signal' ||
     value['kind'] === 'resource') &&

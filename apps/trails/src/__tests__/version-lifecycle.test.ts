@@ -692,7 +692,7 @@ export const app = topo('doctor-invalid', { ping });
         `export const app = {
   name: 'doctor-broken',
   trails: { broken: true },
-  contours: new Map(),
+  entities: new Map(),
   signals: new Map(),
   resources: new Map(),
   layers: [],

@@ -133,7 +133,7 @@ const writeBrokenWorkspace = (workspaceRoot: string): void => {
     `${JSON.stringify(
       {
         scope: {},
-        summary: { contours: 0, resources: 0, signals: 0, trails: 0 },
+        summary: { entities: 0, resources: 0, signals: 0, trails: 0 },
         topoGraph: {
           activationGraph: {
             edgeCount: 0,

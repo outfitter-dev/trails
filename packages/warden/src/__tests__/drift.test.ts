@@ -14,6 +14,7 @@ import {
   createTopoStore,
   deriveTopoGraphHash,
   deriveTopoGraph,
+  LOCK_MANIFEST_SCHEMA_VERSION,
   writeLockManifest,
 } from '@ontrails/topographer';
 import { createStoredTopoSnapshot } from '@ontrails/topographer/backend-support';
@@ -56,8 +57,8 @@ const writeManifest = (dir: string, hash: string): Promise<string> =>
     {
       artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
       scope: { app: 'test-app' },
-      summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
-      version: 3,
+      summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
+      version: LOCK_MANIFEST_SCHEMA_VERSION,
     },
     { dir: committedLockDir(dir) }
   );
@@ -218,8 +219,8 @@ describe('checkDrift', () => {
             },
           ],
           scope: { app: 'test-app' },
-          summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
-          version: 3,
+          summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
+          version: LOCK_MANIFEST_SCHEMA_VERSION,
         },
         { dir: committedLockDir(dir) }
       );

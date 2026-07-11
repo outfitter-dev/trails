@@ -30,7 +30,9 @@ import {
   deriveSourceFingerprint,
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
+  isTopoArtifactRegenerationError,
   readTopoGraph,
+  TRAILS_LOCK_SCHEMA_VERSION,
   writeTrailsLock,
 } from '@ontrails/topographer';
 import {
@@ -152,8 +154,15 @@ export const deriveCurrentTopoExport = (
 const readPreviousCommittedTopo = async (
   rootDir: string
 ): Promise<TopoGraph | null> => {
-  const rootTopo = await readTopoGraph({ dir: rootDir });
-  return rootTopo ?? readTopoGraph({ dir: deriveTrailsDir({ rootDir }) });
+  try {
+    const rootTopo = await readTopoGraph({ dir: rootDir });
+    return rootTopo ?? readTopoGraph({ dir: deriveTrailsDir({ rootDir }) });
+  } catch (error) {
+    if (isTopoArtifactRegenerationError(error)) {
+      return null;
+    }
+    throw error;
+  }
 };
 
 const prepareStoredExportArtifacts = async (
@@ -232,8 +241,8 @@ const writeStoredExportArtifacts = async (
     {
       scope: lockManifest.scope,
       summary: {
-        contours: prepared.topoGraph.entries.filter(
-          (entry) => entry.kind === 'contour'
+        entities: prepared.topoGraph.entries.filter(
+          (entry) => entry.kind === 'entity'
         ).length,
         resources: prepared.topoGraph.entries.filter(
           (entry) => entry.kind === 'resource'
@@ -247,7 +256,7 @@ const writeStoredExportArtifacts = async (
       },
       topoGraph: committedTopoGraph,
       topoGraphHash: prepared.hash,
-      version: 4,
+      version: TRAILS_LOCK_SCHEMA_VERSION,
     } as TrailsLock,
     { dir: rootDir }
   );

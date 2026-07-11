@@ -14,6 +14,7 @@ import {
   trail,
 } from '@ontrails/core';
 import {
+  LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
   TOPO_STORE_SCHEMA_VERSION,
   createTopoSnapshot,
@@ -90,12 +91,12 @@ const makeLockManifest = (
   ],
   scope: { app: 'demo' },
   summary: {
-    contours: countEntries(topoGraph, 'contour'),
+    entities: countEntries(topoGraph, 'entity'),
     resources: countEntries(topoGraph, 'resource'),
     signals: countEntries(topoGraph, 'signal'),
     trails: countEntries(topoGraph, 'trail'),
   },
-  version: 3,
+  version: LOCK_MANIFEST_SCHEMA_VERSION,
   ...overrides,
 });
 
@@ -121,7 +122,7 @@ const writeFreshArtifacts = async (
       summary: makeLockManifest(topoGraph).summary,
       topoGraph,
       topoGraphHash: deriveTopoGraphHash(topoGraph),
-      version: 4,
+      version: 5,
     } as TrailsLock,
     { dir: tempDir }
   );
@@ -173,7 +174,7 @@ describe('loadWayfinderArtifacts', () => {
     expect(loaded.topoGraph?.entries.map((entry) => entry.id)).toEqual([
       'user.show',
     ]);
-    expect(loaded.lockManifest?.version).toBe(3);
+    expect(loaded.lockManifest?.version).toBe(LOCK_MANIFEST_SCHEMA_VERSION);
     expect(loaded.topoStore?.schemaVersion).toBe(TOPO_STORE_SCHEMA_VERSION);
     expect(loaded.topoStore?.snapshot.id).toBe(snapshot.id);
     expect(loaded.topoStore?.trails.map((entry) => entry.id)).toEqual([
@@ -199,7 +200,7 @@ describe('loadWayfinderArtifacts', () => {
     expect(loaded.topoGraph?.entries.map((entry) => entry.id)).toEqual([
       'user.show',
     ]);
-    expect(loaded.lockManifest?.version).toBe(3);
+    expect(loaded.lockManifest?.version).toBe(LOCK_MANIFEST_SCHEMA_VERSION);
     expect(loaded.topoStore).toBeNull();
     expect(loaded.artifactStatus).toEqual({
       artifacts: ['topoStore'],
@@ -227,7 +228,7 @@ describe('loadWayfinderArtifacts', () => {
         summary: makeLockManifest(topoGraph).summary,
         topoGraph,
         topoGraphHash: '0'.repeat(64),
-        version: 4,
+        version: 5,
       } as TrailsLock,
       { dir: tempDir }
     );
@@ -311,7 +312,7 @@ describe('loadWayfinderArtifacts', () => {
           topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION - 1,
         },
         topoGraphHash: deriveTopoGraphHash(makeTopoGraph()),
-        version: 4,
+        version: 5,
       })}\n`
     );
 
@@ -382,6 +383,44 @@ describe('loadWayfinderArtifacts', () => {
     } finally {
       readDb.close();
     }
+  });
+
+  test('preserves lock facts when a same-version topo store carries retired exports', async () => {
+    const topoGraph = await writeFreshArtifacts();
+    const snapshot = seedTopoStore();
+    const db = openWriteTrailsDb({ rootDir: tempDir });
+    try {
+      const row = db
+        .query<{ topo_graph: string }, [string]>(
+          'SELECT topo_graph FROM topo_exports WHERE snapshot_id = ?'
+        )
+        .get(snapshot.id);
+      const stored = JSON.parse(row?.topo_graph ?? '{}') as {
+        entries?: unknown[];
+      };
+      stored.entries = [{ contours: [], kind: 'contour' }];
+      db.run(
+        'UPDATE topo_exports SET topo_graph = ? WHERE snapshot_id = ?',
+        JSON.stringify(stored),
+        snapshot.id
+      );
+    } finally {
+      db.close();
+    }
+
+    const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
+
+    expect(loaded.artifactStatus).toMatchObject({
+      artifact: 'topoStore',
+      status: 'schema-version-drift',
+    });
+    expect(loaded.artifactStatus).toHaveProperty(
+      'message',
+      expect.stringContaining('retired "contour" vocabulary')
+    );
+    expect(loaded.topoGraph).toEqual(topoGraph);
+    expect(loaded.lockManifest).not.toBeNull();
+    expect(loaded.topoStore).toBeNull();
   });
 });
 

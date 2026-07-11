@@ -33,10 +33,10 @@ const hash = deriveTopoGraphHash(topoGraph);
 
 await writeTrailsLock({
   scope: { app: 'demo' },
-  summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+  summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
   topoGraph,
   topoGraphHash: hash,
-  version: 4,
+  version: 5,
 });
 
 // Later, after changes:
@@ -64,7 +64,7 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 
 | Export | What it does |
 | --- | --- |
-| `deriveTopoGraph(topo)` | Deterministic TopoGraph of every established trail, signal, resource, and contour |
+| `deriveTopoGraph(topo)` | Deterministic TopoGraph of every established trail, signal, resource, and entity |
 | `deriveActivationGraph(topoGraph)` | Static activation overview for trails, signals, and activation sources in a TopoGraph |
 | `deriveDeclaredTrailActivation(entry)` | Trail-local activation report from a resolved TopoGraph entry |
 | `deriveSignalActivationRelations(topoGraph)` | Signal-local activation relations for source and consumer navigation |

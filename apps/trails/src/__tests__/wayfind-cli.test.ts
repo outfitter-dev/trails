@@ -62,7 +62,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).not.toContain('wayfind nearby');
     expect(commandPaths).not.toContain('wayfind impact');
     expect(commandPaths).not.toContain('wayfind outline');
-    expect(commandPaths).not.toContain('wayfind contours');
+    expect(commandPaths).not.toContain('wayfind entities');
     expect(commandPaths).not.toContain('wayfind trailheads');
     expect(commandPaths).not.toContain('wayfind signals');
 
@@ -78,7 +78,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).not.toContain('wayfind.nearby');
     expect(trailIds).not.toContain('wayfind.impact');
     expect(trailIds).not.toContain('wayfind.outline');
-    expect(trailIds).not.toContain('wayfind.contours');
+    expect(trailIds).not.toContain('wayfind.entities');
     expect(trailIds).not.toContain('wayfind.trailheads');
     expect(trailIds).not.toContain('wayfind.signals');
 
@@ -99,7 +99,7 @@ describe('Trails Wayfinder CLI surface', () => {
       expect.arrayContaining([
         'adapter',
         'contract',
-        'contours',
+        'entities',
         'depth',
         'deps',
         'describe',
@@ -186,7 +186,7 @@ describe('Trails Wayfinder CLI surface', () => {
     );
     expect(navigate).toBeDefined();
 
-    for (const flag of ['contours', 'signals', 'trailheads'] as const) {
+    for (const flag of ['entities', 'signals', 'trailheads'] as const) {
       const result = await navigate?.execute(
         {},
         { [flag]: true, source: 'live' },
@@ -472,10 +472,10 @@ describe('Trails Wayfinder CLI surface', () => {
   });
 
   test('routes secondary graph populations through the unified selector', async () => {
-    for (const [flag, trailId] of [
-      ['contours', 'wayfind.contours'],
-      ['signals', 'wayfind.signals'],
-      ['trailheads', 'wayfind.trailheads'],
+    for (const [flag, trailId, kind] of [
+      ['entities', 'wayfind.entities', 'entity'],
+      ['signals', 'wayfind.signals', 'signal'],
+      ['trailheads', 'wayfind.trailheads', 'trailhead'],
     ] as const) {
       const context = fakeWayfindContext();
       const result = await wayfindTrail.implementation(
@@ -488,7 +488,7 @@ describe('Trails Wayfinder CLI surface', () => {
         {
           id: trailId,
           input: expect.objectContaining({
-            filters: { kind: flag.slice(0, -1) },
+            filters: { kind },
           }),
         },
       ]);

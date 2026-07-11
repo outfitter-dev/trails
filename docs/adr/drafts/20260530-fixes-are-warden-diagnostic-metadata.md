@@ -189,7 +189,7 @@ This is the same "one write, many reads" doctrine applied to governance repair: 
 - Whether project-local Warden rules can expose custom fix classes.
 - Whether a future public manifest has a stronger versioned compatibility
   contract.
-- Whether Regrade eventually persists review items as contours.
+- Whether Regrade eventually persists review items as entities.
 - The exact Regrade integration path for `.tsx` scanning and downstream roots.
   Regrade still owns source collection and package provenance.
 

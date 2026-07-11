@@ -29,8 +29,8 @@ const packCrud = crud(packlistStore.tables.pack, db, {
 
 export const [create, read, update, remove, list] = packCrud;
 
-/** Shared with `reconcile()` so the topo sees one `pack` contour instance. */
-export const packContour = packCrud.contour;
+/** Shared with `reconcile()` so the topo sees one `pack` entity instance. */
+export const packEntity = packCrud.entity;
 
 /** Pack entity shape shared by the hand-authored pack trails. */
 export const packEntitySchema = z.object({

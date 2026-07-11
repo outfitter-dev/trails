@@ -14,7 +14,7 @@ import {
   Result,
   SURFACE_LAYER_NAMES_KEY,
   ValidationError,
-  contour,
+  entity,
   deriveTrailsDbPath,
   openReadTrailsDb,
   resource,
@@ -762,7 +762,7 @@ describe('trails survey detail', () => {
   });
 
   test('trail detail includes resolved TopoGraph contract fields for blind agents', () => {
-    const account = contour(
+    const account = entity(
       'account',
       {
         id: z.string(),
@@ -770,7 +770,7 @@ describe('trails survey detail', () => {
       },
       { identity: 'id' }
     );
-    const entity = contour(
+    const entityRecord = entity(
       'entity',
       {
         accountId: account.id(),
@@ -800,7 +800,7 @@ describe('trails survey detail', () => {
       timezone: 'UTC',
     });
     const process = trail('entity.process', {
-      contours: [entity],
+      entities: [entityRecord],
       fields: { id: { hint: 'Entity id to process' } },
       fires: [created],
       implementation: () => Result.ok({ ok: true }),
@@ -814,7 +814,7 @@ describe('trails survey detail', () => {
       {
         account,
         created,
-        entity,
+        entity: entityRecord,
         process,
       },
       { layers: [topoPolicy] }
@@ -841,7 +841,7 @@ describe('trails survey detail', () => {
         },
       ],
       cli: { path: ['entity', 'process'] },
-      contours: ['entity'],
+      entities: ['entity'],
       fieldOverrides: [
         {
           field: 'id',
@@ -863,12 +863,12 @@ describe('trails survey detail', () => {
       surfaceProjections: [],
       surfaces: [],
     });
-    expect(detail.contourDetails).toEqual([
+    expect(detail.entityDetails).toEqual([
       expect.objectContaining({
         id: 'entity',
         references: [
           {
-            contour: 'account',
+            entity: 'account',
             field: 'accountId',
             identity: 'id',
           },
@@ -1513,7 +1513,7 @@ describe('trails compile', () => {
         JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
       ).toMatchObject({
         topoGraphHash: compiled.hash,
-        version: 4,
+        version: 5,
       });
       mkdirSync(join(dir, '.trails'), { recursive: true });
       writeFileSync(join(dir, '.trails', 'topo.lock'), '{}\n');
@@ -1526,6 +1526,41 @@ describe('trails compile', () => {
       expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(false);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(false);
       expect(compileTrail.output.safeParse(compiled).success).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('replaces unsupported committed lock schemas during compile', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const initial = expectOk(
+        await compileTrail.implementation({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      const lockPath = join(dir, 'trails.lock');
+      const staleLock = JSON.parse(readFileSync(lockPath, 'utf8')) as Record<
+        string,
+        unknown
+      >;
+      writeFileSync(
+        lockPath,
+        `${JSON.stringify({ ...staleLock, version: 4 }, null, 2)}\n`
+      );
+
+      const refreshed = expectOk(
+        await compileTrail.implementation({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(refreshed.hash).toBe(initial.hash);
+      expect(JSON.parse(readFileSync(lockPath, 'utf8'))).toMatchObject({
+        topoGraphHash: refreshed.hash,
+        version: 5,
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1823,7 +1858,7 @@ describe('trails compile', () => {
       const lockPath = join(dir, 'trails.lock');
       const originalLock = JSON.parse(readFileSync(lockPath, 'utf8')) as {
         readonly summary: {
-          readonly contours: number;
+          readonly entities: number;
           readonly resources: number;
           readonly signals: number;
           readonly trails: number;

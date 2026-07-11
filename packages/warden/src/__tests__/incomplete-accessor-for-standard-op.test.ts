@@ -31,10 +31,10 @@ type Connection = Readonly<Record<string, Accessor>>;
 
 const buildResource = (
   id: string,
-  contourName: string,
+  entityName: string,
   accessor: Accessor
 ): Resource<Connection> => {
-  const connection: Connection = { [contourName]: accessor };
+  const connection: Connection = { [entityName]: accessor };
   return resource<Connection>(id, {
     create: () => Result.ok(connection),
     mock: () => connection,

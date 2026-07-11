@@ -9,7 +9,7 @@ import { z } from 'zod';
 import {
   ConflictError,
   DETOUR_MAX_ATTEMPTS_CAP,
-  contour,
+  entity,
   resource,
   Result,
   schedule,
@@ -26,14 +26,21 @@ import {
   createTopoStore,
   topoStore,
 } from '../index.js';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import {
+  LOCK_MANIFEST_SCHEMA_VERSION,
+  TOPO_GRAPH_SCHEMA_VERSION,
+} from '../types.js';
 import type {
-  TopoStoreContourRecord,
+  TopoStoreEntityRecord,
   TopoStoreResourceRecord,
   TopoStoreTopoGraphEntryRecord,
   TopoStoreTrailDetailRecord,
 } from '../index.js';
-import { pinTopoSnapshot } from '../internal/topo-snapshots.js';
+import {
+  ensureTopoSnapshotSchema,
+  insertTopoSnapshotRecord,
+  pinTopoSnapshot,
+} from '../internal/topo-snapshots.js';
 import type { TopoSnapshot } from '../internal/topo-snapshots.js';
 import { listTopoStoreSignals } from '../internal/topo-store-read.js';
 
@@ -235,7 +242,7 @@ const signalBatchApp = () => {
 };
 
 const graphAttachmentApp = () => {
-  const account = contour(
+  const account = entity(
     'account',
     {
       id: z.string(),
@@ -243,7 +250,7 @@ const graphAttachmentApp = () => {
     },
     { identity: 'id' }
   );
-  const entity = contour(
+  const entityDefinition = entity(
     'entity',
     {
       accountId: account.id(),
@@ -270,7 +277,7 @@ const graphAttachmentApp = () => {
     timezone: 'UTC',
   });
   const process = trail('entity.process', {
-    contours: [entity],
+    entities: [entityDefinition],
     fields: { id: { hint: 'Entity id to process' } },
     fires: [created],
     implementation: () => Result.ok({ ok: true }),
@@ -286,7 +293,7 @@ const graphAttachmentApp = () => {
     {
       account,
       created,
-      entity,
+      entityDefinition,
       process,
     },
     { layers: [topoPolicy] }
@@ -348,6 +355,104 @@ describe('read-only topo store', () => {
       db.close();
     }
   };
+
+  const seedStoredTopoExport = (
+    snapshotId: string,
+    entries: readonly unknown[]
+  ): {
+    readonly rootDir: string;
+    readonly snapshot: TopoSnapshot;
+  } => {
+    const rootDir = makeRoot();
+    const db = openWriteTrailsDb({ rootDir });
+
+    try {
+      ensureTopoSnapshotSchema(db);
+      const snapshot = insertTopoSnapshotRecord(db, {
+        createdAt: '2026-07-01T12:00:00.000Z',
+        id: snapshotId,
+        trailCount: 1,
+      });
+      db.run(
+        `INSERT INTO topo_trails (
+          id, intent, idempotent, has_output, has_examples, example_count, description, pattern, meta, snapshot_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'entity.process',
+          'write',
+          0,
+          1,
+          0,
+          0,
+          'Process a legacy contour-backed entity',
+          null,
+          null,
+          snapshot.id,
+        ]
+      );
+      db.run(
+        `INSERT INTO topo_exports (
+          snapshot_id, topo_graph, topo_graph_hash, lock_manifest
+        ) VALUES (?, ?, ?, ?)`,
+        [
+          snapshot.id,
+          JSON.stringify({
+            activationGraph: {
+              edgeCount: 0,
+              edges: [],
+              sourceCount: 0,
+              sourceKeys: [],
+              trailIds: [],
+            },
+            activationSources: {},
+            entries,
+            generatedAt: '2026-07-01T12:00:00.000Z',
+            topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+          }),
+          '0'.repeat(64),
+          JSON.stringify({
+            artifacts: [
+              {
+                path: 'topo.lock',
+                role: 'topo',
+                sha256: '0'.repeat(64),
+              },
+            ],
+            scope: { app: 'pre-cutover-contour-app' },
+            summary: { entities: 1, resources: 0, signals: 0, trails: 1 },
+            version: LOCK_MANIFEST_SCHEMA_VERSION,
+          }),
+        ]
+      );
+      return { rootDir, snapshot };
+    } finally {
+      db.close();
+    }
+  };
+
+  const seedPreCutoverContourExport = (): {
+    readonly rootDir: string;
+    readonly snapshot: TopoSnapshot;
+  } =>
+    seedStoredTopoExport('snap-pre-cutover-contour', [
+      {
+        exampleCount: 0,
+        id: 'entity',
+        identity: 'id',
+        kind: 'contour',
+        schema: { type: 'object' },
+        surfaces: [],
+      },
+      {
+        contours: ['entity'],
+        exampleCount: 0,
+        id: 'entity.process',
+        input: { type: 'object' },
+        kind: 'trail',
+        output: { type: 'object' },
+        surfaces: [],
+      },
+    ]);
 
   test('lists snapshot-scoped trails and resources through typed accessors', () => {
     const { rootDir, snapshot } = seedStore();
@@ -484,12 +589,12 @@ describe('read-only topo store', () => {
   test('mock get accessors require a resolved snapshot', () => {
     const snapshotId = 'snap-missing';
     const mock = createMockTopoStore({
-      contours: [
+      entities: [
         {
           id: 'entity',
-          kind: 'contour',
+          kind: 'entity',
           snapshotId,
-        } as TopoStoreContourRecord,
+        } as TopoStoreEntityRecord,
       ],
       entries: [
         {
@@ -512,7 +617,7 @@ describe('read-only topo store', () => {
       ],
     });
 
-    expect(mock.contours.get('entity')).toBeUndefined();
+    expect(mock.entities.get('entity')).toBeUndefined();
     expect(mock.entries.get('entity.add')).toBeUndefined();
     expect(mock.resources.get('db.main')).toBeUndefined();
     expect(mock.trails.get('entity.add')).toBeUndefined();
@@ -697,7 +802,7 @@ describe('read-only topo store', () => {
           },
         ],
       },
-      contours: ['entity'],
+      entities: ['entity'],
       fieldOverrides: processEntry?.fieldOverrides,
       governance: null,
       input: processEntry?.input,
@@ -713,12 +818,12 @@ describe('read-only topo store', () => {
       ],
       surfaces: [],
     });
-    expect(processDetail?.contourDetails).toEqual([
+    expect(processDetail?.entityDetails).toEqual([
       expect.objectContaining({
         id: 'entity',
         references: [
           {
-            contour: 'account',
+            entity: 'account',
             field: 'accountId',
             identity: 'id',
           },
@@ -726,12 +831,12 @@ describe('read-only topo store', () => {
       }),
     ]);
 
-    const contours = store.contours.list({
+    const entities = store.entities.list({
       snapshot: { snapshotId: snapshot.id },
     });
-    expect(contours.map((entry) => entry.id)).toEqual(['account', 'entity']);
+    expect(entities.map((entry) => entry.id)).toEqual(['account', 'entity']);
     expect(
-      store.contours.get('entity', {
+      store.entities.get('entity', {
         snapshot: { snapshotId: snapshot.id },
       })
     ).toEqual(
@@ -739,7 +844,7 @@ describe('read-only topo store', () => {
         identity: 'id',
         references: [
           {
-            contour: 'account',
+            entity: 'account',
             field: 'accountId',
             identity: 'id',
           },
@@ -769,6 +874,77 @@ describe('read-only topo store', () => {
     expect(
       store.entries.get('missing', { snapshot: { snapshotId: snapshot.id } })
     ).toBeUndefined();
+  });
+
+  test('fails loudly for pre-cutover contour exports in a current-version store', () => {
+    const { rootDir, snapshot } = seedPreCutoverContourExport();
+    const store = createTopoStore({ rootDir });
+
+    expect(() => store.exports.get({ snapshotId: snapshot.id })).toThrow(
+      'retired "contour"'
+    );
+    expect(() =>
+      store.entities.list({ snapshot: { snapshotId: snapshot.id } })
+    ).toThrow('retired "contour"');
+    expect(() =>
+      store.trails.get('entity.process', {
+        snapshot: { snapshotId: snapshot.id },
+      })
+    ).toThrow('retired "contour"');
+  });
+
+  test('rejects current-version exports with malformed entity references', () => {
+    const { rootDir, snapshot } = seedStoredTopoExport(
+      'snap-invalid-entity-references',
+      [
+        {
+          exampleCount: 0,
+          id: 'entity',
+          identity: 'id',
+          kind: 'entity',
+          references: 'invalid',
+          schema: { type: 'object' },
+          surfaces: [],
+        },
+      ]
+    );
+    const store = createTopoStore({ rootDir });
+
+    expect(() => store.exports.get({ snapshotId: snapshot.id })).toThrow(
+      'entries.0.references'
+    );
+    expect(() =>
+      store.entities.get('entity', {
+        snapshot: { snapshotId: snapshot.id },
+      })
+    ).toThrow('entries.0.references');
+  });
+
+  test('rejects current-version exports with malformed known trail fields', () => {
+    const { rootDir, snapshot } = seedStoredTopoExport(
+      'snap-invalid-trail-detours',
+      [
+        {
+          detours: 'invalid',
+          exampleCount: 0,
+          id: 'entity.process',
+          input: { type: 'object' },
+          kind: 'trail',
+          output: { type: 'object' },
+          surfaces: [],
+        },
+      ]
+    );
+    const store = createTopoStore({ rootDir });
+
+    expect(() => store.exports.get({ snapshotId: snapshot.id })).toThrow(
+      'entries.0.detours'
+    );
+    expect(() =>
+      store.trails.get('entity.process', {
+        snapshot: { snapshotId: snapshot.id },
+      })
+    ).toThrow('entries.0.detours');
   });
 
   test('scopes stored activation context to the requested trail', async () => {

@@ -5,7 +5,7 @@ import {
   applySourceEdits,
   createSourceEdit,
   findImplementationBodies,
-  findContourDefinitions,
+  findEntityDefinitions,
   findTrailDefinitions,
   getNodeAlternate,
   getNodeArguments,
@@ -142,11 +142,11 @@ describe('@ontrails/warden public API', () => {
   test('exposes stable rule-authoring helpers on the ast entrypoint', () => {
     const source = `
 import {
-  contour,
+  entity,
   trail
 } from '@ontrails/core';
 
-const user = contour('user', { id: z.string() });
+const user = entity('user', { id: z.string() });
 
 export const showUser = trail('user.show', {
   implementation: async (input, ctx) => {
@@ -167,7 +167,7 @@ const selectedTrail = enabled ? loadPrimary() : loadFallback();
       findTrailDefinitions(ast).map((definition) => definition.id)
     ).toEqual(['user.show']);
     expect(
-      findContourDefinitions(ast).map((definition) => definition.name)
+      findEntityDefinitions(ast).map((definition) => definition.name)
     ).toEqual(['user']);
 
     const [implementationBody] = findImplementationBodies(ast);

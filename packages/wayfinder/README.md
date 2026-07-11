@@ -13,7 +13,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.overview` | Summarize saved graph counts, artifact source, and drift. |
 | `wayfind.search` | Find graph entities with typed filters. |
 | `wayfind.trails` | List trail summaries with the shared typed filter kit. |
-| `wayfind.contours` | List contour summaries with the shared typed filter kit. |
+| `wayfind.entities` | List entity summaries with the shared typed filter kit. |
 | `wayfind.resources` | List resource summaries and declaring trails. |
 | `wayfind.signals` | List signal summaries, producers, and consumers. |
 | `wayfind.surfaces` | List saved surface membership facts. |
@@ -58,7 +58,7 @@ const result = await wayfindOverviewTrail.implementation(
 );
 ```
 
-The output includes counts for trails, contours, resources, signals, surfaces, trailheads, versions, and examples, along with the TopoGraph artifact source.
+The output includes counts for trails, entities, resources, signals, surfaces, trailheads, versions, and examples, along with the TopoGraph artifact source.
 
 ## Typed Filtering
 

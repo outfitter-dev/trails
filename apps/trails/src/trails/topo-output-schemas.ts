@@ -66,16 +66,16 @@ const fieldOverrideOutput = z.object({
   }),
 });
 
-const contourDetailOutput = z.object({
+const entityDetailOutput = z.object({
   description: z.string().optional(),
   exampleCount: z.number(),
   id: z.string(),
   identity: z.string().optional(),
-  kind: z.literal('contour'),
+  kind: z.literal('entity'),
   references: z
     .array(
       z.object({
-        contour: z.string(),
+        entity: z.string(),
         field: z.string(),
         identity: z.string(),
       })
@@ -201,8 +201,6 @@ export const trailDetailOutput = z.object({
     trail: z.array(z.string()).readonly(),
   }),
   composes: z.array(z.string()).readonly(),
-  contourDetails: z.array(contourDetailOutput).readonly(),
-  contours: z.array(z.string()).readonly(),
   description: z.string().nullable(),
   detours: z
     .array(
@@ -213,6 +211,8 @@ export const trailDetailOutput = z.object({
     )
     .readonly()
     .nullable(),
+  entities: z.array(z.string()).readonly(),
+  entityDetails: z.array(entityDetailOutput).readonly(),
   examples: z.array(z.unknown()).readonly(),
   fieldOverrides: z.array(fieldOverrideOutput).readonly(),
   fires: z.array(z.string()).readonly(),

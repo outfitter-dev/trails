@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { deriveDraftReport, isDraftId } from '../draft.js';
-import { contour } from '../contour.js';
+import { entity } from '../entity.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
@@ -24,7 +24,7 @@ const mockTrail = (
   id: string,
   overrides?: {
     composes?: readonly string[];
-    contours?: readonly ReturnType<typeof contour>[];
+    entities?: readonly ReturnType<typeof entity>[];
     examples?: readonly {
       name: string;
       input: unknown;
@@ -38,7 +38,7 @@ const mockTrail = (
   }
 ) => ({
   composes: Object.freeze([...(overrides?.composes ?? [])]),
-  contours: Object.freeze([...(overrides?.contours ?? [])]),
+  entities: Object.freeze([...(overrides?.entities ?? [])]),
   fires: Object.freeze([...(overrides?.fires ?? [])]),
   id,
   implementation: noop,
@@ -571,14 +571,14 @@ describe('validateTopo', () => {
     });
   });
 
-  describe('contour references', () => {
-    test('contour referencing a registered contour passes', () => {
-      const user = contour(
+  describe('entity references', () => {
+    test('entity referencing a registered entity passes', () => {
+      const user = entity(
         'user',
         { id: z.string().uuid(), name: z.string() },
         { identity: 'id' }
       );
-      const post = contour(
+      const post = entity(
         'post',
         { authorId: user.id(), id: z.string().uuid() },
         { identity: 'id' }
@@ -590,13 +590,13 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('contour referencing a missing contour fails', () => {
-      const user = contour(
+    test('entity referencing a missing entity fails', () => {
+      const user = entity(
         'user',
         { id: z.string().uuid(), name: z.string() },
         { identity: 'id' }
       );
-      const post = contour(
+      const post = entity(
         'post',
         { authorId: user.id(), id: z.string().uuid() },
         { identity: 'id' }
@@ -610,24 +610,24 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('contour-reference-exists');
+      expect(issues[0]?.rule).toBe('entity-reference-exists');
       expect(issues[0]?.message).toContain('user');
       expect(issues[0]?.code).toBe('topo.missing-reference');
       expect(issues[0]?.reference).toEqual({
         fromId: 'post',
-        fromKind: 'contour',
+        fromKind: 'entity',
         missingId: 'user',
-        referenceKind: 'contour-reference',
+        referenceKind: 'entity-reference',
       });
     });
 
-    test('draft contour references are allowed', () => {
-      const draftUser = contour(
+    test('draft entity references are allowed', () => {
+      const draftUser = entity(
         '_draft.user',
         { id: z.string().uuid() },
         { identity: 'id' }
       );
-      const post = contour(
+      const post = entity(
         'post',
         { authorId: draftUser.id(), id: z.string().uuid() },
         { identity: 'id' }
@@ -1379,15 +1379,15 @@ describe('draft state analysis', () => {
     expect(exportFinding?.rule).toBe('draft-contamination');
   });
 
-  test('detects draft contour declarations and schema-reference contamination', () => {
-    const draftUser = contour(
+  test('detects draft entity declarations and schema-reference contamination', () => {
+    const draftUser = entity(
       '_draft.user',
       {
         id: z.string().uuid(),
       },
       { identity: 'id' }
     );
-    const gist = contour(
+    const gist = entity(
       'gist',
       {
         id: z.string().uuid(),
@@ -1411,8 +1411,8 @@ describe('draft state analysis', () => {
     });
   });
 
-  test('propagates contamination through trail contour dependencies', () => {
-    const draftUser = contour(
+  test('propagates contamination through trail entity dependencies', () => {
+    const draftUser = entity(
       '_draft.user',
       {
         id: z.string().uuid(),
@@ -1422,7 +1422,7 @@ describe('draft state analysis', () => {
 
     const app = topo('app', {
       createGist: mockTrail('gist.create', {
-        contours: [draftUser],
+        entities: [draftUser],
       }),
       draftUser,
     });
@@ -1433,7 +1433,7 @@ describe('draft state analysis', () => {
     );
 
     expect(analysis.contaminatedIds.has('gist.create')).toBe(true);
-    expect(finding?.via).toBe('contour');
+    expect(finding?.via).toBe('entity');
   });
 
   test('propagates contamination through draft signal edges', () => {

@@ -12,15 +12,15 @@ trail(id, spec)                    // define a unit of work (with optional compo
 signal(id, spec)                    // define a payload schema with provenance
 schedule(id, spec)                  // define an inert cron activation source
 webhook(id, spec)                   // define an inert HTTP webhook activation source
-contour(name, shape, options)       // define a first-class domain object with identity metadata
+entity(name, shape, options)        // define a first-class domain object with identity metadata
 resource(id, spec)                  // define a first-class resource dependency
 createResourceLookup(getContext)   // bind ctx.resource() to a specific context snapshot
 drainResources(resources, ctx, configValues?) // evict and dispose cached resource singletons
-topo(name, ...modules, options?)   // assemble trails, contours, signals, resources, and optional observe sinks
+topo(name, ...modules, options?)   // assemble trails, entities, signals, resources, and optional observe sinks
 intentValues                       // owner-held runtime vocabulary for trail intent
 blobRefSchema, createBlobRef(...)  // declare and create binary output references
 // Topo methods: .get(id), .has(id), .list(), .listSignals(), .ids(), .count
-//               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount
+//               .getEntity(name), .hasEntity(name), .listEntities(), .entityIds(), .entityCount
 //               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
 openReadTrailsDb(options?), openWriteTrailsDb(options?), ensureSubsystemSchema(db, options)
 deriveTrailsDir(options?), deriveTrailsDbPath(options?), deriveTrailsStateDir(options?)
@@ -29,12 +29,12 @@ deriveTrailsStateHome(options?), deriveTrailsProjectKey(options?)
 // has moved to @ontrails/topographer per ADR-0042. See that section below.
 
 // Types
-Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Contour<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
+Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Entity<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
 ObserveConfig, ObserveInput, LogSink, TraceSink
 TrailSpec<I, O>, SignalSpec<T>, ScheduleSpec, WebhookSpec<T>, ResourceSpec<T>, TrailExample<I, O>
-AnyTrail, AnySignal, AnyContour, AnyResource, ResourceContext, ResourceOverrideMap
+AnyTrail, AnySignal, AnyEntity, AnyResource, ResourceContext, ResourceOverrideMap
 BlobRef, BlobRefDescriptor
-ContourOptions, ContourIdBrand, ContourIdMetadata, ContourIdSchema, ContourIdValue, ContourReference
+EntityOptions, EntityIdBrand, EntityIdMetadata, EntityIdSchema, EntityIdValue, EntityReference
 TrailsDbLocationOptions, EnsureSubsystemSchemaOptions
 ActivationSource, ActivationEntry, ActivationProvenance
 WebhookMethod, WebhookVerify, WebhookVerifyRequest, WebhookVerifyHeaders, WebhookValidationIssue
@@ -45,8 +45,8 @@ TrailOutput<T>                     // extract output type from a Trail
 TrailResult<T>                     // extract Result<Output, Error> from a Trail
 inputOf(trail)                     // get the input Zod schema
 outputOf(trail)                    // get the output Zod schema (or undefined)
-getContourIdMetadata(schema)       // read runtime contour identity metadata from a branded schema
-getContourReferences(contour)      // read structural contour references declared inside a contour
+getEntityIdMetadata(schema)        // read runtime entity identity metadata from a branded schema
+getEntityReferences(entity)        // read structural entity references declared inside an entity
 
 // Result
 Result<T, E>
@@ -150,12 +150,12 @@ Core owns the shared glob machinery used by surface selectors, Wayfinder ID filt
 ## `@ontrails/core/trails`
 
 ```typescript
-deriveTrail(contour, operation, spec) // derive CRUD-shaped trail contract pieces from a contour
+deriveTrail(entity, operation, spec) // derive CRUD-shaped trail contract pieces from an entity
 
 DeriveTrailOperation                  // 'create' | 'read' | 'update' | 'delete' | 'list'
-DeriveTrailInput<TContour, TOp, TGenerated>
-DeriveTrailOutput<TContour, TOp>
-DeriveTrailSpec<TContour, TOp, TGenerated>
+DeriveTrailInput<TEntity, TOp, TGenerated>
+DeriveTrailOutput<TEntity, TOp>
+DeriveTrailSpec<TEntity, TOp, TGenerated>
 ```
 
 ## `@ontrails/cli`
@@ -267,7 +267,7 @@ createTopoSnapshot(topo, options?), listTopoSnapshots(options?)
 pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 TOPO_STORE_SCHEMA_VERSION
 
-TopoGraph, TopoGraphEntry, TopoGraphContourReference, TrailsLock, LockManifest, DiffResult, DiffEntry, JsonSchema
+TopoGraph, TopoGraphEntry, TopoGraphEntityReference, TrailsLock, LockManifest, DiffResult, DiffEntry, JsonSchema
 TopoGraphOverlays, TopoGraphOverlayRegistration
 ActivationGraphReport, TrailActivationReport, SignalActivationRelations
 ActivationOverviewReport, ActivationSourceReport, ActivationChainReport, ActivationEdgeReport
@@ -275,6 +275,7 @@ WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
 TopoStoreActivationContextRecord, TopoStoreExportRecord, TopoStoreResourceRecord
 TopoStoreSurfaceProjectionRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
+TopoStoreEntityRecord,
 CreateTopoSnapshotInput, ListTopoSnapshotsOptions
 ```
 
@@ -296,7 +297,7 @@ These are cold read trails and helpers for querying saved graph artifacts and pa
 // Graph-read topo and query trails
 wayfinderTopo
 wayfindOverviewTrail, wayfindSearchTrail
-wayfindTrailsTrail, wayfindContoursTrail, wayfindResourcesTrail, wayfindSignalsTrail
+wayfindTrailsTrail, wayfindEntitiesTrail, wayfindResourcesTrail, wayfindSignalsTrail
 wayfindSurfacesTrail, wayfindFacetsTrail, wayfindVersionsTrail, wayfindExamplesTrail
 wayfindErrorsTrail, wayfindAdaptersTrail, wayfindOverlayTrail
 wayfindDescribeTrail, wayfindContractTrail, wayfindNearbyTrail, wayfindImpactTrail
@@ -358,13 +359,13 @@ CrudTrails<T>, CrudOptions<T>, CrudImplementationOverrides<T>
 SyncEndpoint<T, C>, SyncOptions<TSource, TTarget, TSourceConnection, TTargetConnection>
 SyncTransform<TSource, TTarget>
 ReconcileConflict<T>, ReconcileOptions<T, C>, ReconcileStrategy<T>
-CrudOperation, CrudAccessorExpectation, TableContour<T>
+CrudOperation, CrudAccessorExpectation, TableEntity<T>
 
 // crud() options: `permit` declares a permit on every produced trail;
 // `permits: { delete: {...} }` overrides per operation (destroy trails need
-// one for permit governance); `contour` accepts an existing table contour.
-// The returned tuple exposes the contour it registered as `.contour` —
-// pass it to reconcile({ contour }) so one table registers one contour.
+// one for permit governance); `entity` accepts an existing table entity.
+// The returned tuple exposes the entity it registered as `.entity` —
+// pass it to reconcile({ entity }) so one table registers one entity.
 // reconcile() likewise accepts `permit` to declare its trail's requirement.
 ```
 
@@ -504,10 +505,10 @@ offsetToLine(source, offset), offsetToLineColumn(source, offset)
 createSourceEdit(start, end, replacement)
 validateSourceEdits(edits), applySourceEdits(source, edits)
 findTrailDefinitions(ast), findImplementationBodies(node)
-findContourDefinitions(ast, context?, options?), isImplementationCall(node)
+findEntityDefinitions(ast, context?, options?), isImplementationCall(node)
 findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
 
-AstNode, TrailDefinition, ContourDefinition, FindContourDefinitionsOptions
+AstNode, TrailDefinition, EntityDefinition, FindEntityDefinitionsOptions
 FrameworkNamespaceContext, StringLiteralMatch
 AstParentContext, AstScopeContext, AstScopeDeclaration
 AstParseResult, AstParseDiagnostic, SourceEdit, SourceLocation

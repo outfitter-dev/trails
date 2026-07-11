@@ -151,7 +151,7 @@ Use recurring shapes to avoid writing the third sibling rule.
 | --- | --- | --- |
 | Declarations-match-usage | Static declaration matches runtime call | `composes` and `ctx.compose`; `fires` and `ctx.fire`; `resources` and `db.from(ctx)` |
 | Owner-projection-parity | Derived data keeps reading its owner | Error-code maps, CRUD operations, intent literals |
-| Orphan-X | Primitive declared but never referenced | Orphan resource, signal, layer, contour |
+| Orphan-X | Primitive declared but never referenced | Orphan resource, signal, layer, entity |
 | Cycle-in-X-graph | Directed graph must not cycle | Composition graph, activation graph, layer dependency graph |
 | Collision-detection | Two declarations claim the same slot | HTTP route, webhook path, MCP tool name |
 | Schema-compatibility | Source schema satisfies consumer schema | Compose input, signal payload |

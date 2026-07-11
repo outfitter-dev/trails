@@ -17,4 +17,4 @@ export type {
 } from './reconcile.js';
 export { sync } from './sync.js';
 export type { SyncEndpoint, SyncOptions, SyncTransform } from './sync.js';
-export type { TableContour } from './utils.js';
+export type { TableEntity } from './utils.js';

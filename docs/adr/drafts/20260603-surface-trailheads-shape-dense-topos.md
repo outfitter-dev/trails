@@ -34,7 +34,7 @@ This ADR decides the surface-trailhead pattern and the first MCP implementation.
 
 ### Surface trailheads are a projection pattern, not graph nodes
 
-A surface trailhead is authored as surface projection configuration over existing trails. It is not a trail, contour, resource, signal, layer, or new graph entry kind.
+A surface trailhead is authored as surface projection configuration over existing trails. It is not a trail, entity, resource, signal, layer, or new graph entry kind.
 
 ```ts
 await surface(graph, {

@@ -1,21 +1,21 @@
-import { contourExists } from '../rules/contour-exists.js';
+import { entityExists } from '../rules/entity-exists.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const contourExistsTrail = wrapRule({
+export const entityExistsTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
       input: {
         filePath: 'entity.ts',
-        knownContourIds: ['user'],
+        knownEntityIds: ['user'],
         knownTrailIds: ['user.create'],
         sourceCode: `trail("user.create", {
-  contours: [user],
+  entities: [user],
   implementation: async (input, ctx) => Result.ok({ ok: true }),
 })`,
       },
-      name: 'Declared contours resolve to known project contours',
+      name: 'Declared entities resolve to known project entities',
     },
   ],
-  rule: contourExists,
+  rule: entityExists,
 });

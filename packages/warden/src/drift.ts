@@ -20,6 +20,7 @@ import {
   deriveTopoGraph,
   deriveTopoGraphHash,
   isTopoArtifactRegenerationError,
+  LOCK_MANIFEST_SCHEMA_VERSION,
   readLockManifest,
   readTopoGraph,
   readTrailsLock,
@@ -99,7 +100,7 @@ const readCommittedLockManifest = async (
         ],
         scope: rootLock.scope,
         summary: rootLock.summary,
-        version: 3,
+        version: LOCK_MANIFEST_SCHEMA_VERSION,
       };
     }
     return await readLockManifest({ dir: deriveTrailsDir({ rootDir }) });

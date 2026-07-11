@@ -18,8 +18,12 @@ import type {
   UpsertOf,
 } from '../types.js';
 import { versionFieldName } from '../store.js';
-import { createTableContour, mapStoreTrailError } from './utils.js';
-import type { TableContour } from './utils.js';
+import {
+  assertCurrentEntityOption,
+  createTableEntity,
+  mapStoreTrailError,
+} from './utils.js';
+import type { TableEntity } from './utils.js';
 
 type ReconcileConnection<TTable extends AnyStoreTable> = Readonly<
   Record<TTable['name'], StoreAccessor<TTable>>
@@ -42,13 +46,13 @@ export interface ReconcileOptions<
   TConnection extends ReconcileConnection<TTable>,
 > {
   /**
-   * Existing table contour to register on the reconcile trail. Pass the
-   * contour a `crud()` call over the same table exposes (its `contour`
+   * Existing table entity to register on the reconcile trail. Pass the
+   * entity a `crud()` call over the same table exposes (its `entity`
    * property) so `topo()` sees one shared instance instead of rejecting
    * two same-named rebuilds as duplicates. When omitted, the factory
    * builds its own.
    */
-  readonly contour?: TableContour<TTable>;
+  readonly entity?: TableEntity<TTable>;
   readonly description?: string;
   readonly id?: string;
   readonly on?: readonly (AnySignal | string)[];
@@ -265,6 +269,7 @@ export const reconcile = <
 >(
   options: ReconcileOptions<TTable, TConnection>
 ): Trail<UpsertOf<TTable>, EntityOf<TTable>> => {
+  assertCurrentEntityOption(options, 'reconcile() options');
   if (!options.table.versioned) {
     throw new ValidationError(
       `reconcile("${options.table.name}") requires a versioned store table.`
@@ -272,15 +277,15 @@ export const reconcile = <
   }
 
   const id = options.id ?? `${options.table.name}.reconcile`;
-  const entityContour = options.contour ?? createTableContour(options.table);
+  const tableEntity = options.entity ?? createTableEntity(options.table);
   const strategy = options.strategy ?? 'last-write-wins';
 
   return trail(id, {
-    contours: [entityContour],
     description:
       options.description ??
       `Reconcile version conflicts for "${options.table.name}" entities.`,
     detours: [createReconcileDetour(options, id, strategy)],
+    entities: [tableEntity],
     examples: deriveExamples(options.table),
     implementation: createReconcileImplementation(options, id),
     input: buildReconcileInputSchema(options.table),

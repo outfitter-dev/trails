@@ -18,11 +18,11 @@ const buildContext = (
 });
 
 const splitFileSource = (operation: string): string => `
-import { Result, contour, resource } from '@ontrails/core';
+import { Result, entity, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import { z } from 'zod';
 
-const note = contour('note', {
+const note = entity('note', {
   body: z.string(),
   id: z.string(),
   title: z.string(),
@@ -41,7 +41,7 @@ export const ${operation}Note = deriveTrail(note, '${operation}', {
 
 const importedSplitFileSource = (
   operation: string,
-  source = './shared/contours.js'
+  source = './shared/entities.js'
 ): string => `
 import { Result, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
@@ -59,11 +59,11 @@ export const ${operation}Note = deriveTrail(note, '${operation}', {
 `;
 
 const suffixedBindingSplitFileSource = (operation: string): string => `
-import { Result, contour, resource } from '@ontrails/core';
+import { Result, entity, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import { z } from 'zod';
 
-const noteContour = contour('note', {
+const noteEntity = entity('note', {
   body: z.string(),
   id: z.string(),
   title: z.string(),
@@ -74,7 +74,7 @@ const notesResource = resource('db.notes', {
   mock: () => ({}),
 });
 
-export const ${operation}Note = deriveTrail(noteContour, '${operation}', {
+export const ${operation}Note = deriveTrail(noteEntity, '${operation}', {
   implementation: async () => Result.ok({}),
   resource: notesResource,
 });
@@ -83,14 +83,14 @@ export const ${operation}Note = deriveTrail(noteContour, '${operation}', {
 const importedSuffixedBindingSplitFileSource = (operation: string): string => `
 import { Result, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
-import { noteContour } from './shared/contours.js';
+import { noteEntity } from './shared/entities.js';
 
 const notesResource = resource('db.notes', {
   create: () => Result.ok({}),
   mock: () => ({}),
 });
 
-export const ${operation}Note = deriveTrail(noteContour, '${operation}', {
+export const ${operation}Note = deriveTrail(noteEntity, '${operation}', {
   implementation: async () => Result.ok({}),
   resource: notesResource,
 });
@@ -99,11 +99,11 @@ export const ${operation}Note = deriveTrail(noteContour, '${operation}', {
 describe('incomplete-crud', () => {
   test('warns when deriveTrail only covers part of the CRUD set', () => {
     const code = `
-import { Result, contour, resource } from '@ontrails/core';
+import { Result, entity, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import { z } from 'zod';
 
-const note = contour('note', {
+const note = entity('note', {
   body: z.string(),
   id: z.string(),
   title: z.string(),
@@ -200,11 +200,11 @@ const [createNote, readNote, updateNote, deleteNote, listNote] = crud(
     expect(incompleteCrud.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('tracks deriveTrail coverage for imported contours as pending-resolution', () => {
+  test('tracks deriveTrail coverage for imported entities as pending-resolution', () => {
     const code = `
 import { Result, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
-import { note } from './shared/contours.js';
+import { note } from './shared/entities.js';
 
 const notesResource = resource('db.notes', {
   create: () => Result.ok({}),
@@ -226,18 +226,18 @@ export const readNote = deriveTrail(note, 'read', {
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('incomplete-crud');
-    // Imported contours surface as pending-resolution so coverage is still tracked.
+    // Imported entities surface as pending-resolution so coverage is still tracked.
     expect(diagnostics[0]?.message).toContain('note');
     expect(diagnostics[0]?.message).toContain('pending-resolution');
     expect(diagnostics[0]?.message).toContain('create');
     expect(diagnostics[0]?.message).toContain('read');
   });
 
-  test('does not warn when imported contour covers the full CRUD set', () => {
+  test('does not warn when imported entity covers the full CRUD set', () => {
     const code = `
 import { Result, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
-import { note } from './shared/contours.js';
+import { note } from './shared/entities.js';
 
 const notesResource = resource('db.notes', {
   create: () => Result.ok({}),
@@ -328,7 +328,7 @@ const [createArchive, readArchive] = crud(archive.tables.notes, archiveResource)
       ).toEqual([]);
     });
 
-    test('merges local and imported contour coverage for the same entity', () => {
+    test('merges local and imported entity coverage for the same entity', () => {
       const context = buildContext({
         'imported:note': ['read', 'update', 'delete', 'list'],
         note: ['create'],
@@ -350,9 +350,9 @@ const [createArchive, readArchive] = crud(archive.tables.notes, archiveResource)
       ).toEqual([]);
     });
 
-    test('merges imported coverage when the contour binding ends with Contour', () => {
+    test('merges imported coverage when the entity binding ends with Entity', () => {
       const context = buildContext({
-        'imported:noteContour': ['read', 'update', 'delete', 'list'],
+        'imported:noteEntity': ['read', 'update', 'delete', 'list'],
         note: ['create'],
       });
 
@@ -372,13 +372,13 @@ const [createArchive, readArchive] = crud(archive.tables.notes, archiveResource)
       ).toEqual([]);
     });
 
-    test('does not collapse authored contour IDs that end with Contour', () => {
+    test('does not collapse authored entity IDs that end with Entity', () => {
       const source = `
-import { Result, contour, resource } from '@ontrails/core';
+import { Result, entity, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import { z } from 'zod';
 
-const noteContour = contour('noteContour', {
+const noteEntity = entity('noteEntity', {
   body: z.string(),
   id: z.string(),
   title: z.string(),
@@ -389,14 +389,14 @@ const notesResource = resource('db.notes', {
   mock: () => ({}),
 });
 
-export const readNote = deriveTrail(noteContour, 'read', {
+export const readNote = deriveTrail(noteEntity, 'read', {
   implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
       const context = buildContext({
         note: ['create', 'update', 'delete', 'list'],
-        noteContour: ['read'],
+        noteEntity: ['read'],
       });
 
       const diagnostics = incompleteCrud.checkWithContext(
@@ -406,7 +406,7 @@ export const readNote = deriveTrail(noteContour, 'read', {
       );
 
       expect(diagnostics).toHaveLength(1);
-      expect(diagnostics[0]?.message).toContain('noteContour');
+      expect(diagnostics[0]?.message).toContain('noteEntity');
       expect(diagnostics[0]?.message).not.toContain('"note"');
     });
 
@@ -448,11 +448,11 @@ export const readNote = deriveTrail(noteContour, 'read', {
 
     test('colocated full-coverage still passes via checkWithContext', () => {
       const code = `
-import { Result, contour, resource } from '@ontrails/core';
+import { Result, entity, resource } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import { z } from 'zod';
 
-const note = contour('note', {
+const note = entity('note', {
   body: z.string(),
   id: z.string(),
   title: z.string(),

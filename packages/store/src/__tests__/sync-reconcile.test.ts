@@ -292,7 +292,7 @@ const expectSyncShape = (
   expect(syncNote.id).toBe('notes.sync');
   expect(syncNote.pattern).toBe('sync');
   expect(syncNote.resources).toEqual([sourceResource, targetResource]);
-  expect(syncNote.contours.map((candidate) => candidate.name)).toEqual([
+  expect(syncNote.entities.map((candidate) => candidate.name)).toEqual([
     'externalNotes',
     'notes',
   ]);

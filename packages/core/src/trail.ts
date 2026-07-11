@@ -11,7 +11,7 @@ import {
   isActivationEntrySpec,
   isActivationSource,
 } from './activation-source.js';
-import type { AnyContour } from './contour.js';
+import type { AnyEntity } from './entity.js';
 import type {
   FieldOverride,
   CliCommandPathInput,
@@ -510,8 +510,8 @@ export interface TrailSpec<
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
   /** CLI projection metadata for canonical command path overrides and aliases. */
   readonly cli?: CliCommandPathInput | TrailCliProjection | undefined;
-  /** Contours this trail operates on. */
-  readonly contours?: readonly AnyContour[] | undefined;
+  /** Entities this trail operates on. */
+  readonly entities?: readonly AnyEntity[] | undefined;
   /** IDs or trail objects of downstream trails this trail may invoke via ctx.compose() */
   readonly composes?: C;
   /**
@@ -578,7 +578,7 @@ export interface Trail<I, O, CI = never> extends Omit<
   TrailSpec<I, O, CI, readonly TrailRef[] | undefined>,
   | 'args'
   | 'implementation'
-  | 'contours'
+  | 'entities'
   | 'composes'
   | 'composeInput'
   | 'detours'
@@ -591,8 +591,8 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly kind: 'trail';
   readonly id: string;
   readonly implementation: Implementation<ImplementationInput<I, CI>, O>;
-  /** Contours this trail operates on (always present, default []). */
-  readonly contours: readonly AnyContour[];
+  /** Entities this trail operates on (always present, default []). */
+  readonly entities: readonly AnyEntity[];
   /** IDs of downstream trails this trail may invoke via ctx.compose() (always present, default []) */
   readonly composes: readonly string[];
   /** Composition-only input schema, merged with `input` for ctx.compose() calls (optional) */
@@ -1169,7 +1169,7 @@ const normalizeCollections = <
 ): {
   readonly args: readonly string[] | false | undefined;
   readonly activationSources: readonly ActivationEntry[];
-  readonly contours: readonly AnyContour[];
+  readonly entities: readonly AnyEntity[];
   readonly detours: readonly Detour<I, O, TrailsError>[];
   readonly fires: readonly string[];
   readonly layers: readonly Layer[];
@@ -1180,8 +1180,8 @@ const normalizeCollections = <
   return {
     activationSources,
     args: Array.isArray(spec.args) ? Object.freeze([...spec.args]) : spec.args,
-    contours: Object.freeze([...(spec.contours ?? [])]),
     detours: Object.freeze([...(spec.detours ?? [])]),
+    entities: Object.freeze([...(spec.entities ?? [])]),
     fires: Object.freeze((spec.fires ?? []).map(normalizeSignalRef)),
     layers: Object.freeze([...(spec.layers ?? [])]),
     on: extractSignalActivationIds(activationSources),
@@ -1297,7 +1297,14 @@ export function trail<
   if (!resolved.spec) {
     throw new TypeError('trail() requires a spec when an id is provided');
   }
-  if (hasOwn(resolved.spec as unknown as Record<string, unknown>, 'marker')) {
+  const rawSpec = resolved.spec as unknown as Record<string, unknown>;
+  if (hasOwn(rawSpec, 'contours')) {
+    throw new ValidationError(
+      `Trail "${resolved.id}" uses retired "contours"; use "entities" instead`
+    );
+  }
+
+  if (hasOwn(rawSpec, 'marker')) {
     throw new ValidationError(
       `Trail "${resolved.id}" must not author marker; it is projected`
     );
@@ -1311,7 +1318,7 @@ export function trail<
     visibility: rawVisibility,
     // Destructure away fields handled by normalizeCollections
     args: _a,
-    contours: _c,
+    entities: _c,
     detours: _d,
     fires: _f,
     layers: _l,

@@ -9,7 +9,7 @@ import type {
 } from '@ontrails/topographer';
 
 export const wayfinderEntityKindSchema = z.enum([
-  'contour',
+  'entity',
   'trailhead',
   'resource',
   'signal',

@@ -1,7 +1,7 @@
 import { surfaceOverlay, topo } from '@ontrails/core';
 import {
   wayfindAdaptersTrail,
-  wayfindContoursTrail,
+  wayfindEntitiesTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
@@ -107,9 +107,9 @@ const cliWayfinderCommandTrails = {
 
 const cliWayfinderSupportTrails = {
   wayfindAdaptersTrail,
-  wayfindContoursTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
+  wayfindEntitiesTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindImpactTrail,

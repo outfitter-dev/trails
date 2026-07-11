@@ -6,19 +6,19 @@ export const referenceExistsTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        filePath: 'contours.ts',
-        knownContourIds: ['gist', 'user'],
+        filePath: 'entities.ts',
+        knownEntityIds: ['gist', 'user'],
         knownTrailIds: [],
-        sourceCode: `const user = contour("user", {
+        sourceCode: `const user = entity("user", {
   id: z.string().uuid(),
 }, { identity: "id" });
 
-const gist = contour("gist", {
+const gist = entity("gist", {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: "id" });`,
       },
-      name: 'Contour references resolve to known project contours',
+      name: 'Entity references resolve to known project entities',
     },
   ],
   rule: referenceExists,

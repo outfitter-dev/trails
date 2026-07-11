@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { contour } from '../contour.js';
+import { entity } from '../entity.js';
 import { ValidationError } from '../errors.js';
 import { attachLateBoundSignalRef, cloneSignalWithId } from '../signal-ref.js';
 import { resource } from '../resource.js';
@@ -20,8 +20,8 @@ import { webhook } from '../webhook.js';
 // Mock factories
 // ---------------------------------------------------------------------------
 
-const mockContour = (name: string) =>
-  contour(
+const mockEntity = (name: string) =>
+  entity(
     name,
     {
       id: z.string().uuid(),
@@ -33,11 +33,11 @@ const mockContour = (name: string) =>
 const mockTrail = (
   id: string,
   composes?: readonly string[],
-  contours?: readonly ReturnType<typeof mockContour>[]
+  entities?: readonly ReturnType<typeof mockEntity>[]
 ) =>
   trail(id, {
     composes,
-    contours,
+    entities,
     implementation: () => Result.ok({ y: 0 }),
     input: z.object({ x: z.number() }),
     output: z.object({ y: z.number() }),
@@ -1051,23 +1051,23 @@ describe('topo', () => {
     });
   });
 
-  describe('contour collection', () => {
-    test('collects contours exported directly from modules', () => {
-      const user = mockContour('user');
+  describe('entity collection', () => {
+    test('collects entities exported directly from modules', () => {
+      const user = mockEntity('user');
       const t = topo('app', { user });
 
-      expect(t.contours.size).toBe(1);
-      expect(t.getContour('user')).toBe(user);
+      expect(t.entities.size).toBe(1);
+      expect(t.getEntity('user')).toBe(user);
     });
 
-    test('registers contours declared on trails into the topo graph', () => {
-      const user = mockContour('user');
+    test('registers entities declared on trails into the topo graph', () => {
+      const user = mockEntity('user');
       const t = topo('app', {
         createUser: mockTrail('user.create', [], [user]),
       });
 
-      expect(t.contours.size).toBe(1);
-      expect(t.getContour('user')).toBe(user);
+      expect(t.entities.size).toBe(1);
+      expect(t.getEntity('user')).toBe(user);
     });
   });
 
@@ -1102,13 +1102,13 @@ describe('topo', () => {
       );
     });
 
-    test('rejects duplicate contour names', () => {
-      const mod1 = { a: mockContour('user') };
-      const mod2 = { b: mockContour('user') };
+    test('rejects duplicate entity names', () => {
+      const mod1 = { a: mockEntity('user') };
+      const mod2 = { b: mockEntity('user') };
 
       expect(() => topo('app', mod1, mod2)).toThrow(ValidationError);
       expect(() => topo('app', mod1, mod2)).toThrow(
-        'Duplicate contour name: "user"'
+        'Duplicate entity name: "user"'
       );
     });
   });
@@ -1139,18 +1139,18 @@ describe('topo accessors', () => {
     expect(app.resourceCount).toBe(2);
   });
 
-  test('contourCount returns number of contours', () => {
-    const gist = mockContour('gist');
-    const user = mockContour('user');
+  test('entityCount returns number of entities', () => {
+    const gist = mockEntity('gist');
+    const user = mockEntity('user');
     const app = topo('test', { gist, user });
-    expect(app.contourCount).toBe(2);
+    expect(app.entityCount).toBe(2);
   });
 
   test('empty topo has zero count and empty ids', () => {
     const app = topo('empty');
     expect(app.count).toBe(0);
-    expect(app.contourCount).toBe(0);
-    expect(app.contourIds()).toEqual([]);
+    expect(app.entityCount).toBe(0);
+    expect(app.entityIds()).toEqual([]);
     expect(app.ids()).toEqual([]);
     expect(app.resourceCount).toBe(0);
     expect(app.resourceIds()).toEqual([]);
@@ -1166,11 +1166,11 @@ describe('topo accessors', () => {
     ]);
   });
 
-  test('contourIds() returns all contour names', () => {
-    const gist = mockContour('gist');
-    const user = mockContour('user');
+  test('entityIds() returns all entity names', () => {
+    const gist = mockEntity('gist');
+    const user = mockEntity('user');
     const app = topo('test', { gist, user });
-    expect([...app.contourIds()].toSorted()).toEqual(['gist', 'user']);
+    expect([...app.entityIds()].toSorted()).toEqual(['gist', 'user']);
   });
 });
 
@@ -1191,11 +1191,11 @@ describe('Topo', () => {
   const app = topo('app', mod);
 
   describe('get()', () => {
-    test('retrieves contour by name', () => {
-      const user = mockContour('user');
-      const contourApp = topo('app', { user });
+    test('retrieves entity by name', () => {
+      const user = mockEntity('user');
+      const entityApp = topo('app', { user });
 
-      expect(contourApp.getContour('user')).toBe(user);
+      expect(entityApp.getEntity('user')).toBe(user);
     });
 
     test('retrieves trail by ID', () => {
@@ -1212,11 +1212,11 @@ describe('Topo', () => {
   });
 
   describe('has()', () => {
-    test('returns true for known contour', () => {
-      const user = mockContour('user');
-      const contourApp = topo('app', { user });
+    test('returns true for known entity', () => {
+      const user = mockEntity('user');
+      const entityApp = topo('app', { user });
 
-      expect(contourApp.hasContour('user')).toBe(true);
+      expect(entityApp.hasEntity('user')).toBe(true);
     });
 
     test('returns true for known trail', () => {
@@ -1231,10 +1231,10 @@ describe('Topo', () => {
       expect(app.has('nope')).toBe(false);
     });
 
-    test('returns false for unknown contour', () => {
-      const contourApp = topo('app');
+    test('returns false for unknown entity', () => {
+      const entityApp = topo('app');
 
-      expect(contourApp.hasContour('missing')).toBe(false);
+      expect(entityApp.hasEntity('missing')).toBe(false);
     });
 
     test('returns false for event ID (signals are not trails)', () => {
@@ -1283,12 +1283,12 @@ describe('Topo', () => {
       expect(items).toContain(mod.p1);
     });
 
-    test('listContours() returns all contours', () => {
-      const gist = mockContour('gist');
-      const user = mockContour('user');
-      const contourApp = topo('app', { gist, user });
+    test('listEntities() returns all entities', () => {
+      const gist = mockEntity('gist');
+      const user = mockEntity('user');
+      const entityApp = topo('app', { gist, user });
 
-      expect(contourApp.listContours()).toEqual([gist, user]);
+      expect(entityApp.listEntities()).toEqual([gist, user]);
     });
   });
 });

@@ -1,11 +1,11 @@
 import {
-  collectContourDefinitionIds,
-  collectContourReferenceSites,
+  collectEntityDefinitionIds,
+  collectEntityReferenceSites,
   offsetToLine,
   parse,
 } from './ast.js';
 import type { AstNode } from './ast.js';
-import { mergeKnownContourIds } from './contour-ids.js';
+import { mergeKnownEntityIds } from './entity-ids.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -14,32 +14,32 @@ import type {
 } from './types.js';
 
 const buildMissingReferenceDiagnostic = (
-  sourceContour: string,
+  sourceEntity: string,
   field: string,
-  targetContour: string,
+  targetEntity: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Contour "${sourceContour}" field "${field}" references contour "${targetContour}" which is not defined in the project. Define it with contour('${targetContour}', ...) and include it in the topo, or fix the field reference if this is a typo.`,
+  message: `Entity "${sourceEntity}" field "${field}" references entity "${targetEntity}" which is not defined in the project. Define it with entity('${targetEntity}', ...) and include it in the topo, or fix the field reference if this is a typo.`,
   rule: 'reference-exists',
   severity: 'error',
 });
 
-const checkContourReferences = (
+const checkEntityReferences = (
   ast: AstNode,
   sourceCode: string,
   filePath: string,
-  knownContourIds: ReadonlySet<string>
+  knownEntityIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
     return [];
   }
 
-  return collectContourReferenceSites(ast, knownContourIds).flatMap(
+  return collectEntityReferenceSites(ast, knownEntityIds).flatMap(
     (reference) => {
-      if (knownContourIds.has(reference.target)) {
+      if (knownEntityIds.has(reference.target)) {
         return [];
       }
 
@@ -57,7 +57,7 @@ const checkContourReferences = (
 };
 
 /**
- * Checks that every contour `.id()` reference resolves to a known contour.
+ * Checks that every entity `.id()` reference resolves to a known entity.
  */
 export const referenceExists: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -66,11 +66,11 @@ export const referenceExists: ProjectAwareWardenRule = {
       return [];
     }
 
-    return checkContourReferences(
+    return checkEntityReferences(
       ast,
       sourceCode,
       filePath,
-      collectContourDefinitionIds(ast)
+      collectEntityDefinitionIds(ast)
     );
   },
   checkWithContext(
@@ -83,16 +83,16 @@ export const referenceExists: ProjectAwareWardenRule = {
       return [];
     }
 
-    const localContourIds = collectContourDefinitionIds(ast);
-    return checkContourReferences(
+    const localEntityIds = collectEntityDefinitionIds(ast);
+    return checkEntityReferences(
       ast,
       sourceCode,
       filePath,
-      mergeKnownContourIds(localContourIds, context.knownContourIds)
+      mergeKnownEntityIds(localEntityIds, context.knownEntityIds)
     );
   },
   description:
-    'Ensure every contour field declared via .id() resolves to a known contour.',
+    'Ensure every entity field declared via .id() resolves to a known entity.',
   name: 'reference-exists',
   severity: 'error',
 };

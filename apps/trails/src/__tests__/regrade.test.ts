@@ -3011,6 +3011,9 @@ describe('trails regrade', () => {
           }),
           expect.objectContaining({
             classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
+            notes: expect.arrayContaining([
+              'Identifier "contour" resolves to FunctionParam; routed to review.',
+            ]),
             outcome: 'needs-review',
             path: 'src/review.ts',
             reason: 'ast-identifier-module-boundary',
@@ -3023,6 +3026,9 @@ describe('trails regrade', () => {
                 candidateReplacement: 'entity',
                 classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
                 matchedForm: 'contour',
+                preserveCautions: expect.arrayContaining([
+                  'Identifier "contour" resolves to FunctionParam; routed to review.',
+                ]),
                 reason: 'ast-identifier-review-declaration',
                 symbol: 'contour',
               }),

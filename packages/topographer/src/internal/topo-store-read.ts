@@ -13,6 +13,7 @@ import {
 } from './topo-snapshots.js';
 import type { StoredTopoExport } from './topo-store.js';
 import { getStoredTopoExport } from './topo-store.js';
+import { topoGraphSchema } from '../types.js';
 import type {
   JsonSchema,
   LockManifest,
@@ -40,8 +41,8 @@ export interface TopoStoreTopoGraphEntryRecord extends TopoGraphEntry {
   readonly snapshotId: string;
 }
 
-export type TopoStoreContourRecord = TopoStoreTopoGraphEntryRecord & {
-  readonly kind: 'contour';
+export type TopoStoreEntityRecord = TopoStoreTopoGraphEntryRecord & {
+  readonly kind: 'entity';
 };
 
 export interface TopoStoreActivationContextRecord {
@@ -89,8 +90,8 @@ export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
   readonly activationEdges: readonly TopoGraphActivationEdge[];
   readonly activationSources: readonly TopoGraphActivationEntry[];
   readonly cli: TopoGraphEntry['cli'] | null;
-  readonly contourDetails: readonly TopoStoreContourRecord[];
-  readonly contours: readonly string[];
+  readonly entityDetails: readonly TopoStoreEntityRecord[];
+  readonly entities: readonly string[];
   readonly composes: readonly string[];
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
@@ -243,8 +244,53 @@ const parseJson = (value: string): unknown => JSON.parse(value) as unknown;
 const parseLockManifest = (stored: StoredTopoExport): LockManifest =>
   JSON.parse(stored.lockManifestJson) as LockManifest;
 
-const parseTopoGraph = (stored: StoredTopoExport): TopoGraph =>
-  JSON.parse(stored.topoGraphJson) as TopoGraph;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const hasRetiredDomainVocabulary = (value: unknown): boolean => {
+  if (!isRecord(value) || !Array.isArray(value['entries'])) {
+    return false;
+  }
+
+  return value['entries'].some(
+    (entry) =>
+      isRecord(entry) &&
+      (entry['kind'] === 'contour' || Object.hasOwn(entry, 'contours'))
+  );
+};
+
+const formatTopoGraphIssues = (
+  issues: readonly {
+    readonly message: string;
+    readonly path: readonly PropertyKey[];
+  }[]
+): string =>
+  issues
+    .slice(0, 3)
+    .map((issue) => {
+      const path =
+        issue.path.length === 0 ? '<root>' : issue.path.map(String).join('.');
+      return `${path}: ${issue.message}`;
+    })
+    .join('; ');
+
+const parseTopoGraph = (stored: StoredTopoExport): TopoGraph => {
+  const parsed = JSON.parse(stored.topoGraphJson) as unknown;
+  if (hasRetiredDomainVocabulary(parsed)) {
+    throw new ValidationError(
+      'Stored topo export uses retired "contour" vocabulary. Regenerate the Topographer store before reading it.'
+    );
+  }
+
+  const result = topoGraphSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new ValidationError(
+      `Stored topo export is not compatible with the current TopoGraph schema (${formatTopoGraphIssues(result.error.issues)}). Regenerate the Topographer store before reading it.`
+    );
+  }
+
+  return result.data;
+};
 
 const readSnapshotRef = (
   db: Database,
@@ -431,22 +477,22 @@ const readTrailActivationEdges = (
   topoGraph?.activationGraph.edges.filter((edge) => edge.trailId === trailId) ??
   [];
 
-const readTrailContourDetails = (
+const readTrailEntityDetails = (
   topoGraph: TopoGraph | undefined,
   snapshotId: string,
-  contourIds: readonly string[]
-): readonly TopoStoreContourRecord[] =>
-  contourIds
-    .map((contourId) => findTopoGraphEntry(topoGraph, 'contour', contourId))
+  entityIds: readonly string[]
+): readonly TopoStoreEntityRecord[] =>
+  entityIds
+    .map((entityId) => findTopoGraphEntry(topoGraph, 'entity', entityId))
     .filter((entry): entry is TopoGraphEntry => entry !== undefined)
     .map((entry) => toTopoGraphEntryRecord(snapshotId, entry))
-    .map((entry) => entry as TopoStoreContourRecord);
+    .map((entry) => entry as TopoStoreEntityRecord);
 
 type StoredTrailEntryDetail = Pick<
   TopoStoreTrailDetailRecord,
   | 'activationSources'
   | 'cli'
-  | 'contours'
+  | 'entities'
   | 'detours'
   | 'fieldOverrides'
   | 'governance'
@@ -459,8 +505,8 @@ type StoredTrailEntryDetail = Pick<
 const emptyStoredTrailEntryDetail = (): StoredTrailEntryDetail => ({
   activationSources: [],
   cli: null,
-  contours: [],
   detours: null,
+  entities: [],
   fieldOverrides: [],
   governance: null,
   input: null,
@@ -479,7 +525,7 @@ const mapStoredTrailEntryDetail = (
   const {
     activationSources = [],
     cli = null,
-    contours = [],
+    entities = [],
     detours = null,
     fieldOverrides = [],
     governance = null,
@@ -492,8 +538,8 @@ const mapStoredTrailEntryDetail = (
   return {
     activationSources,
     cli,
-    contours,
     detours,
+    entities,
     fieldOverrides,
     governance,
     input,
@@ -513,8 +559,8 @@ const buildTrailGraphDetail = (
   | 'activationEdges'
   | 'activationSources'
   | 'cli'
-  | 'contourDetails'
-  | 'contours'
+  | 'entityDetails'
+  | 'entities'
   | 'detours'
   | 'fieldOverrides'
   | 'governance'
@@ -533,13 +579,13 @@ const buildTrailGraphDetail = (
     activationEdges: readTrailActivationEdges(storedTopoGraph, trailId),
     activationSources: entryDetail.activationSources,
     cli: entryDetail.cli,
-    contourDetails: readTrailContourDetails(
+    detours: entryDetail.detours,
+    entities: entryDetail.entities,
+    entityDetails: readTrailEntityDetails(
       storedTopoGraph,
       snapshotId,
-      entryDetail.contours
+      entryDetail.entities
     ),
-    contours: entryDetail.contours,
-    detours: entryDetail.detours,
     fieldOverrides: entryDetail.fieldOverrides,
     governance: entryDetail.governance,
     input: entryDetail.input,
@@ -737,21 +783,21 @@ export const getTopoStoreEntry = (
   return entries.find((entry) => entry.id === id);
 };
 
-export const listTopoStoreContours = (
+export const listTopoStoreEntities = (
   db: Database,
   options?: { readonly snapshot?: TopoStoreRef }
-): readonly TopoStoreContourRecord[] =>
-  listTopoStoreEntries(db, { ...options, kind: 'contour' }).map(
-    (entry) => entry as TopoStoreContourRecord
+): readonly TopoStoreEntityRecord[] =>
+  listTopoStoreEntries(db, { ...options, kind: 'entity' }).map(
+    (entry) => entry as TopoStoreEntityRecord
   );
 
-export const getTopoStoreContour = (
+export const getTopoStoreEntity = (
   db: Database,
   id: string,
   options?: { readonly snapshot?: TopoStoreRef }
-): TopoStoreContourRecord | undefined =>
-  getTopoStoreEntry(db, id, { ...options, kind: 'contour' }) as
-    | TopoStoreContourRecord
+): TopoStoreEntityRecord | undefined =>
+  getTopoStoreEntry(db, id, { ...options, kind: 'entity' }) as
+    | TopoStoreEntityRecord
     | undefined;
 
 export const listTopoStoreTrails = (
@@ -825,9 +871,9 @@ export const getTopoStoreTrail = (
     activationSources: graphDetail.activationSources,
     cli: graphDetail.cli,
     composes: readTrailComposings(db, snapshot.id, trailId),
-    contourDetails: graphDetail.contourDetails,
-    contours: graphDetail.contours,
     detours: graphDetail.detours,
+    entities: graphDetail.entities,
+    entityDetails: graphDetail.entityDetails,
     examples: readTrailExamples(db, snapshot.id, trailId),
     fieldOverrides: graphDetail.fieldOverrides,
     governance: graphDetail.governance,

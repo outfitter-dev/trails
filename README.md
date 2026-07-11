@@ -143,7 +143,7 @@ $ myapp greet --name World
 
 | Package | What it does |
 |---------|-------------|
-| [`@ontrails/core`](./packages/core) | Result, errors, trail/signal/contour/topo, validation, schema derivation |
+| [`@ontrails/core`](./packages/core) | Result, errors, trail/signal/entity/topo, validation, schema derivation |
 | [`@ontrails/cli`](./packages/cli) | CLI command model - flag derivation, output formatting |
 | [`@ontrails/commander`](./adapters/commander) | Commander adapter for the CLI surface |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |

@@ -13,6 +13,7 @@ import {
 import {
   deriveTopoGraph,
   deriveTopoGraphHash,
+  LOCK_MANIFEST_SCHEMA_VERSION,
   writeLockManifest,
 } from '@ontrails/topographer';
 import { z } from 'zod';
@@ -168,8 +169,8 @@ const writeManifest = (rootDir: string, hash: string): Promise<string> =>
     {
       artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
       scope: { app: 'fixture.primary' },
-      summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
-      version: 3,
+      summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
+      version: LOCK_MANIFEST_SCHEMA_VERSION,
     },
     { dir: deriveTrailsDir({ rootDir }) }
   );
@@ -435,16 +436,16 @@ export const badTrail = trail('bad.throw', {
     const dir = makeTempDir();
     try {
       writeFileSync(
-        join(dir, 'contours.ts'),
-        `import { contour } from '@ontrails/core';
+        join(dir, 'entities.ts'),
+        `import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-export const first = contour('first', {
+export const first = entity('first', {
   secondId: second.id(),
   id: z.string().uuid(),
 }, { identity: 'id' });
 
-export const second = contour('second', {
+export const second = entity('second', {
   firstId: first.id(),
   id: z.string().uuid(),
 }, { identity: 'id' });
@@ -977,25 +978,25 @@ trail("entity.save", {
     expect(contractDiagnostics).toHaveLength(2);
   });
 
-  test('uses project context for contour references across files', async () => {
+  test('uses project context for entity references across files', async () => {
     const dir = makeTempDir();
     try {
       writeFileSync(
         join(dir, 'user.ts'),
-        `import { contour } from '@ontrails/core';
+        `import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-export const user = contour('user', {
+export const user = entity('user', {
   id: z.string().uuid(),
 }, { identity: 'id' });`
       );
       writeFileSync(
         join(dir, 'gist.ts'),
-        `import { contour } from '@ontrails/core';
+        `import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { user } from './user';
 
-export const gist = contour('gist', {
+export const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });`
@@ -1041,27 +1042,27 @@ trail('entity.show', {
     }
   });
 
-  test('warns on contour cycles declared across files', async () => {
+  test('warns on entity cycles declared across files', async () => {
     const dir = makeTempDir();
     try {
       writeFileSync(
         join(dir, 'user.ts'),
-        `import { contour } from '@ontrails/core';
+        `import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { gist } from './gist';
 
-export const user = contour('user', {
+export const user = entity('user', {
   gistId: gist.id(),
   id: z.string().uuid(),
 }, { identity: 'id' });`
       );
       writeFileSync(
         join(dir, 'gist.ts'),
-        `import { contour } from '@ontrails/core';
+        `import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { user } from './user';
 
-export const gist = contour('gist', {
+export const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });`

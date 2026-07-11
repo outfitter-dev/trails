@@ -19,7 +19,6 @@ const wayfindInputSchema = z
       .string()
       .optional()
       .describe('Filter graph facts delivered through an adapter package'),
-    contours: z.boolean().default(false).describe('Resolve contour facts'),
     contract: z
       .boolean()
       .default(false)
@@ -39,6 +38,7 @@ const wayfindInputSchema = z
       .boolean()
       .default(false)
       .describe('Render the describe view for the selected target'),
+    entities: z.boolean().default(false).describe('Resolve entity facts'),
     errors: z.boolean().default(false).describe('Resolve trail error facts'),
     impact: z
       .boolean()
@@ -141,7 +141,7 @@ const wayfindInputSchema = z
       input.deps ||
       input.impact ||
       (input.adapter === undefined &&
-        !input.contours &&
+        !input.entities &&
         !input.errors &&
         !input.trailheads &&
         input.intent === undefined &&
@@ -173,7 +173,7 @@ const wayfindInputSchema = z
         !input.impact &&
         input.include.length === 0 &&
         input.adapter === undefined &&
-        !input.contours &&
+        !input.entities &&
         !input.errors &&
         !input.trailheads &&
         input.intent === undefined &&
@@ -234,7 +234,7 @@ const liveModuleInput = (
 
 const hasLiveTypedFilter = (input: WayfindInput): boolean =>
   input.adapter !== undefined ||
-  input.contours ||
+  input.entities ||
   input.errors ||
   input.trailheads ||
   input.intent !== undefined ||
@@ -249,14 +249,14 @@ const populationFilters = (
   readonly intent?: WayfindInput['intent'];
   readonly kind?:
     | readonly (
-        | 'contour'
+        | 'entity'
         | 'trailhead'
         | 'resource'
         | 'signal'
         | 'surface'
         | 'trail'
       )[]
-    | 'contour'
+    | 'entity'
     | 'trailhead'
     | 'resource'
     | 'signal'
@@ -267,7 +267,7 @@ const populationFilters = (
   readonly surface?: readonly string[] | string | undefined;
 } => {
   const kinds = [
-    ...(input.contours ? ['contour' as const] : []),
+    ...(input.entities ? ['entity' as const] : []),
     ...(input.trailheads ? ['trailhead' as const] : []),
     ...(input.resources ? ['resource' as const] : []),
     ...(input.signals ? ['signal' as const] : []),
@@ -719,9 +719,9 @@ const viewPopulation = async (
       view: 'list' as const,
     };
   }
-  if (input.contours) {
+  if (input.entities) {
     return {
-      result: ctx.compose('wayfind.contours', {
+      result: ctx.compose('wayfind.entities', {
         filters,
         limit: input.limit,
         ...sourceInput(input),
@@ -799,7 +799,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
     'survey',
     'wayfind.adapters',
     'wayfind.contract',
-    'wayfind.contours',
+    'wayfind.entities',
     'wayfind.describe',
     'wayfind.errors',
     'wayfind.examples',
@@ -843,8 +843,8 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List resource facts',
     },
     {
-      input: { contours: true },
-      name: 'List contour facts',
+      input: { entities: true },
+      name: 'List entity facts',
     },
     {
       input: { signals: true },

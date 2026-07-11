@@ -9,7 +9,7 @@ import { isAbsolute, relative, resolve } from 'node:path';
 
 import { resolveTrailsProjectRoot } from '@ontrails/config';
 import {
-  getContourReferences,
+  getEntityReferences,
   matchesAnyPathGlob,
   resolveSurfaceOverlayBindings,
   surfaceBindingsFromLockOverlays,
@@ -47,8 +47,8 @@ import {
 } from './project-context.js';
 import {
   collectComposeTargetTrailIds,
-  collectContourDefinitionIds,
-  collectContourReferenceTargetsByName,
+  collectEntityDefinitionIds,
+  collectEntityReferenceTargetsByName,
   collectCrudTableIds as collectCrudTableIdsFromAst,
   collectOnTargetSignalIds as collectOnTargetSignalIdsFromAst,
   collectReconcileTableIds as collectReconcileTableIdsFromAst,
@@ -374,11 +374,11 @@ interface MutableProjectContext {
   authoredMcpSurfaceBindingSets:
     | readonly AuthoredMcpSurfaceBindingSet[]
     | undefined;
-  contourReferencesByName: Map<string, Set<string>>;
+  entityReferencesByName: Map<string, Set<string>>;
   crudTableIds: Set<string>;
   composeTargetTrailIds: Set<string>;
   crudCoverageByEntity: Map<string, Set<string>>;
-  knownContourIds: Set<string>;
+  knownEntityIds: Set<string>;
   knownResourceIds: Set<string>;
   knownSignalIds: Set<string>;
   knownTrailIds: Set<string>;
@@ -401,16 +401,16 @@ interface MutableProjectContext {
 const createMutableProjectContext = (): MutableProjectContext => ({
   authoredMcpSurfaceBindingSets: undefined,
   composeTargetTrailIds: new Set<string>(),
-  contourReferencesByName: new Map<string, Set<string>>(),
   crudCoverageByEntity: new Map<string, Set<string>>(),
   crudTableIds: new Set<string>(),
   documentedImportResolutionsByFile: new Map<
     string,
     readonly WardenImportResolution[]
   >(),
+  entityReferencesByName: new Map<string, Set<string>>(),
   exportedSymbolDefinitionsByName: new Map(),
   importResolutionsByFile: new Map<string, readonly WardenImportResolution[]>(),
-  knownContourIds: new Set<string>(),
+  knownEntityIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
   knownSignalIds: new Set<string>(),
   knownTrailIds: new Set<string>(),
@@ -421,12 +421,12 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
 });
 
-const addContourReferenceTargets = (
+const addEntityReferenceTargets = (
   context: MutableProjectContext,
-  contourName: string,
+  entityName: string,
   targets: readonly string[]
 ): void => {
-  const existing = context.contourReferencesByName.get(contourName);
+  const existing = context.entityReferencesByName.get(entityName);
   if (existing) {
     for (const target of targets) {
       existing.add(target);
@@ -434,17 +434,17 @@ const addContourReferenceTargets = (
     return;
   }
 
-  context.contourReferencesByName.set(contourName, new Set(targets));
+  context.entityReferencesByName.set(entityName, new Set(targets));
 };
 
 const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
   ...(context.authoredMcpSurfaceBindingSets === undefined
     ? {}
     : { authoredMcpSurfaceBindingSets: context.authoredMcpSurfaceBindingSets }),
-  ...(context.contourReferencesByName.size > 0
+  ...(context.entityReferencesByName.size > 0
     ? {
-        contourReferencesByName: new Map(
-          [...context.contourReferencesByName.entries()].map(
+        entityReferencesByName: new Map(
+          [...context.entityReferencesByName.entries()].map(
             ([name, targets]) => [name, [...targets]]
           )
         ),
@@ -466,7 +466,7 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
       }
     : {}),
   composeTargetTrailIds: context.composeTargetTrailIds,
-  knownContourIds: context.knownContourIds,
+  knownEntityIds: context.knownEntityIds,
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
   knownTrailIds: context.knownTrailIds,
@@ -500,17 +500,17 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
   trailIntentsById: context.trailIntentsById,
 });
 
-const collectKnownContourIds = (
+const collectKnownEntityIds = (
   sourceCode: string,
   filePath: string,
-  knownContourIds: Set<string>
+  knownEntityIds: Set<string>
 ): void => {
   const ast = parse(filePath, sourceCode);
   if (!ast) {
     return;
   }
-  for (const id of collectContourDefinitionIds(ast)) {
-    knownContourIds.add(id);
+  for (const id of collectEntityDefinitionIds(ast)) {
+    knownEntityIds.add(id);
   }
 };
 
@@ -707,8 +707,8 @@ const collectTopoKnownIds = (
   appTopo: Topo,
   context: MutableProjectContext
 ): void => {
-  for (const name of appTopo.contours.keys()) {
-    context.knownContourIds.add(name);
+  for (const name of appTopo.entities.keys()) {
+    context.knownEntityIds.add(name);
   }
 
   for (const id of appTopo.trails.keys()) {
@@ -737,15 +737,15 @@ const collectTopoComposesAndIntents = (
   }
 };
 
-const collectTopoContourReferences = (
+const collectTopoEntityReferences = (
   appTopo: Topo,
   context: MutableProjectContext
 ): void => {
-  for (const contour of appTopo.listContours()) {
-    addContourReferenceTargets(
+  for (const entity of appTopo.listEntities()) {
+    addEntityReferenceTargets(
       context,
-      contour.name,
-      getContourReferences(contour).map((reference) => reference.contour)
+      entity.name,
+      getEntityReferences(entity).map((reference) => reference.entity)
     );
   }
 };
@@ -756,17 +756,17 @@ const collectTopoTrailContext = (
 ): void => {
   collectTopoKnownIds(appTopo, context);
   collectTopoComposesAndIntents(appTopo, context);
-  collectTopoContourReferences(appTopo, context);
+  collectTopoEntityReferences(appTopo, context);
 };
 
 const collectFileKnownIds = (
   sourceFile: SourceFile,
   context: MutableProjectContext
 ): void => {
-  collectKnownContourIds(
+  collectKnownEntityIds(
     sourceFile.sourceCode,
     sourceFile.filePath,
-    context.knownContourIds
+    context.knownEntityIds
   );
   collectKnownTrailIds(
     sourceFile.sourceCode,
@@ -836,7 +836,7 @@ const collectFileProjectContext = (
   collectFileSupplementalProjectContext(sourceFile, context);
 };
 
-const collectFileContourReferences = (
+const collectFileEntityReferences = (
   sourceFile: SourceFile,
   context: MutableProjectContext
 ): void => {
@@ -845,12 +845,12 @@ const collectFileContourReferences = (
     return;
   }
 
-  const referencesByName = collectContourReferenceTargetsByName(
+  const referencesByName = collectEntityReferenceTargetsByName(
     ast,
-    context.knownContourIds
+    context.knownEntityIds
   );
-  for (const [contourName, targets] of referencesByName) {
-    addContourReferenceTargets(context, contourName, targets);
+  for (const [entityName, targets] of referencesByName) {
+    addEntityReferenceTargets(context, entityName, targets);
   }
 };
 
@@ -971,7 +971,7 @@ const buildProjectContext = (
   }
 
   for (const sourceFile of typeScriptSourceFiles) {
-    collectFileContourReferences(sourceFile, context);
+    collectFileEntityReferences(sourceFile, context);
   }
   collectFileImportResolutions(rootDir, typeScriptSourceFiles, context);
   collectFileDocumentedImportResolutions(

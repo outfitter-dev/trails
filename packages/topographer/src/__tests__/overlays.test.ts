@@ -83,7 +83,7 @@ const graphWithoutGeneratedAt = (
 const lockFor = (graph: TopoGraph): TrailsLock =>
   trailsLockSchema.parse({
     scope: { app: 'overlays-app' },
-    summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+    summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
     topoGraph: graph,
     topoGraphHash: deriveTopoGraphHash(graph),
     version: TRAILS_LOCK_SCHEMA_VERSION,

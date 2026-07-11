@@ -137,7 +137,7 @@ Validation is a framework guarantee enforced once at the boundary, not a develop
 
 ### The resolved topo lock is the story
 
-The resolved topo lock is the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, contour, and surface rendering is inspectable as graph content. Relationships are explicit. An agent reading the committed lock can understand the system without guessing from source code.
+The resolved topo lock is the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, entity, and surface rendering is inspectable as graph content. Relationships are explicit. An agent reading the committed lock can understand the system without guessing from source code.
 
 `trails.lock` is generated, checked in, and CI-diffable. It embeds the serialized `TopoGraph`, the graph hash, scope, and summary in one root file. Drift between code and the committed lock is a governance finding.
 

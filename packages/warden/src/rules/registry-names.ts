@@ -9,7 +9,7 @@
 import { activationOrphan } from './activation-orphan.js';
 import { cliCommandRouteCoherence } from './cli-command-route-coherence.js';
 import { circularRefs } from './circular-refs.js';
-import { contourExists } from './contour-exists.js';
+import { entityExists } from './entity-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
 import { composesDeclarations } from './composes-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
@@ -94,7 +94,7 @@ export const registeredRuleNames: readonly string[] = [
   cliCommandRouteCoherence.name,
   circularRefs.name,
   contextNoSurfaceTypes.name,
-  contourExists.name,
+  entityExists.name,
   composesDeclarations.name,
   deadInternalTrail.name,
   deadPublicTrail.name,

@@ -893,18 +893,6 @@ const safeRules: readonly VocabRewriteRule[] = [
     id: 'signal-runtime',
   },
   {
-    apply: (context) =>
-      collectRegexEdits(
-        context.source,
-        'entity-factory',
-        /\bentity\(/g,
-        'mark('
-      ),
-    description:
-      'Replace domain factory calls from `entity(...)` to `mark(...)`.',
-    id: 'entity-factory',
-  },
-  {
     apply: (context) => [
       ...collectRegexEdits(
         context.source,
@@ -945,20 +933,6 @@ const safeRules: readonly VocabRewriteRule[] = [
     description:
       'Replace prose-only transport terminology from `surface` / `surfaces` to `trailhead` / `trailheads` in non-code files.',
     id: 'surface-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
-        : collectRegexEdits(
-            context.source,
-            'entity-prose',
-            /\bentity\(/g,
-            'mark('
-          ),
-    description:
-      'Replace prose-only domain factory calls from `entity(...)` to `mark(...)` in non-code files.',
-    id: 'entity-prose',
   },
   {
     apply: (context) =>

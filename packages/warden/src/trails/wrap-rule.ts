@@ -54,10 +54,10 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
   ...(input.authoredMcpSurfaceBindingSets
     ? { authoredMcpSurfaceBindingSets: input.authoredMcpSurfaceBindingSets }
     : {}),
-  ...(input.contourReferencesByName
+  ...(input.entityReferencesByName
     ? {
-        contourReferencesByName: new Map(
-          Object.entries(input.contourReferencesByName)
+        entityReferencesByName: new Map(
+          Object.entries(input.entityReferencesByName)
         ),
       }
     : {}),
@@ -74,8 +74,8 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
         ),
       }
     : {}),
-  ...(input.knownContourIds
-    ? { knownContourIds: new Set(input.knownContourIds) }
+  ...(input.knownEntityIds
+    ? { knownEntityIds: new Set(input.knownEntityIds) }
     : {}),
   ...(input.importResolutionsByFile
     ? {

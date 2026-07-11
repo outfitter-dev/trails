@@ -2,13 +2,9 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import {
-  contour,
-  getContourIdMetadata,
-  getContourReferences,
-} from '../contour.js';
+import { entity, getEntityIdMetadata, getEntityReferences } from '../entity.js';
 
-const user = contour(
+const user = entity(
   'user',
   {
     email: z.string().email(),
@@ -27,7 +23,7 @@ const user = contour(
   }
 );
 
-const gist = contour(
+const gist = entity(
   'gist',
   {
     id: z.string().uuid(),
@@ -41,16 +37,16 @@ type UserId = z.infer<ReturnType<typeof user.id>>;
 type GistId = z.infer<ReturnType<typeof gist.id>>;
 
 const _ownerId: z.infer<typeof gist.shape.ownerId> = {} as UserId;
-// @ts-expect-error distinct contour ids should not be assignable
+// @ts-expect-error distinct entity ids should not be assignable
 const _mixedIds: UserId = {} as GistId;
 
-describe('contour()', () => {
+describe('entity()', () => {
   describe('basics', () => {
-    test("returns kind 'contour'", () => {
-      expect(user.kind).toBe('contour');
+    test("returns kind 'entity'", () => {
+      expect(user.kind).toBe('entity');
     });
 
-    test('preserves the contour name', () => {
+    test('preserves the entity name', () => {
       expect(user.name).toBe('user');
     });
 
@@ -82,41 +78,41 @@ describe('contour()', () => {
       expect(schema).toBe(user.id());
     });
 
-    test('attaches contour metadata to branded identity schemas', () => {
-      expect(getContourIdMetadata(user.id())).toEqual({
-        contour: 'user',
+    test('attaches entity metadata to branded identity schemas', () => {
+      expect(getEntityIdMetadata(user.id())).toEqual({
+        entity: 'user',
         identity: 'id',
       });
     });
 
     test('preserves first-write metadata when identity schemas are shared', () => {
-      const baseUser = contour(
+      const baseUser = entity(
         'user',
         { id: z.string().uuid(), name: z.string() },
         { identity: 'id' }
       );
-      const admin = contour(
+      const admin = entity(
         'admin',
         { id: baseUser.shape.id, role: z.string() },
         { identity: 'id' }
       );
 
-      // The first contour to brand the schema wins — user, not admin.
-      expect(getContourIdMetadata(baseUser.id())).toEqual({
-        contour: 'user',
+      // The first entity to brand the schema wins — user, not admin.
+      expect(getEntityIdMetadata(baseUser.id())).toEqual({
+        entity: 'user',
         identity: 'id',
       });
       // admin still has its own id() accessor
       expect(admin.id()).toBeDefined();
 
-      // Neither contour should emit its own identity as a compose-contour reference
-      expect(getContourReferences(baseUser)).toEqual([]);
-      expect(getContourReferences(admin)).toEqual([]);
+      // Neither entity should emit its own identity as a compose-entity reference
+      expect(getEntityReferences(baseUser)).toEqual([]);
+      expect(getEntityReferences(admin)).toEqual([]);
     });
 
     test('rejects identity keys that are not in the shape', () => {
       expect(() =>
-        contour(
+        entity(
           'broken',
           {
             id: z.string(),
@@ -133,9 +129,9 @@ describe('contour()', () => {
       expect(Object.isFrozen(user.examples)).toBe(true);
     });
 
-    test('validates examples against the contour schema', () => {
+    test('validates examples against the entity schema', () => {
       expect(() =>
-        contour(
+        entity(
           'broken',
           {
             id: z.string().uuid(),
@@ -184,7 +180,7 @@ describe('contour()', () => {
       ).toBe(true);
     });
 
-    test('supports compose-contour references via .id()', () => {
+    test('supports compose-entity references via .id()', () => {
       expect(
         gist.safeParse({
           id: '0f31f6ba-6ff0-41ce-9f6b-8d132b6c4b81',
@@ -192,16 +188,16 @@ describe('contour()', () => {
           title: 'Hello',
         }).success
       ).toBe(true);
-      expect(getContourIdMetadata(gist.shape.ownerId)).toEqual({
-        contour: 'user',
+      expect(getEntityIdMetadata(gist.shape.ownerId)).toEqual({
+        entity: 'user',
         identity: 'id',
       });
     });
 
-    test('lists declared contour references', () => {
-      expect(getContourReferences(gist)).toEqual([
+    test('lists declared entity references', () => {
+      expect(getEntityReferences(gist)).toEqual([
         {
-          contour: 'user',
+          entity: 'user',
           field: 'ownerId',
           identity: 'id',
         },
@@ -210,38 +206,38 @@ describe('contour()', () => {
   });
 
   describe('wrapper unwrapping', () => {
-    test('resolves .optional() contour id metadata', () => {
-      expect(getContourIdMetadata(user.id().optional())).toEqual({
-        contour: 'user',
+    test('resolves .optional() entity id metadata', () => {
+      expect(getEntityIdMetadata(user.id().optional())).toEqual({
+        entity: 'user',
         identity: 'id',
       });
     });
 
-    test('resolves .nullable() contour id metadata', () => {
-      expect(getContourIdMetadata(user.id().nullable())).toEqual({
-        contour: 'user',
+    test('resolves .nullable() entity id metadata', () => {
+      expect(getEntityIdMetadata(user.id().nullable())).toEqual({
+        entity: 'user',
         identity: 'id',
       });
     });
 
-    test('resolves .nullish() contour id metadata (two-level wrapper)', () => {
-      expect(getContourIdMetadata(user.id().nullish())).toEqual({
-        contour: 'user',
+    test('resolves .nullish() entity id metadata (two-level wrapper)', () => {
+      expect(getEntityIdMetadata(user.id().nullish())).toEqual({
+        entity: 'user',
         identity: 'id',
       });
     });
 
     test('resolves deeply nested wrappers', () => {
       expect(
-        getContourIdMetadata(user.id().nullable().optional().default(null))
+        getEntityIdMetadata(user.id().nullable().optional().default(null))
       ).toEqual({
-        contour: 'user',
+        entity: 'user',
         identity: 'id',
       });
     });
 
-    test('detects references through .nullish() wrappers in contour shapes', () => {
-      const comment = contour(
+    test('detects references through .nullish() wrappers in entity shapes', () => {
+      const comment = entity(
         'comment',
         {
           authorId: user.id().nullish(),
@@ -251,9 +247,9 @@ describe('contour()', () => {
         { identity: 'id' }
       );
 
-      expect(getContourReferences(comment)).toEqual([
+      expect(getEntityReferences(comment)).toEqual([
         {
-          contour: 'user',
+          entity: 'user',
           field: 'authorId',
           identity: 'id',
         },

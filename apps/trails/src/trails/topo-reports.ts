@@ -122,7 +122,7 @@ export interface ShippedSurfaceInventoryReport {
   }[];
 }
 
-type TopoGraphContourEntry = TopoGraphEntry & { readonly kind: 'contour' };
+type TopoGraphEntityEntry = TopoGraphEntry & { readonly kind: 'entity' };
 
 export interface TrailDetailOptions {
   readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
@@ -191,8 +191,8 @@ export interface TrailDetailReport {
     readonly surface: SurfaceLayerNames;
     readonly trail: readonly string[];
   };
-  readonly contourDetails: readonly TopoGraphContourEntry[];
-  readonly contours: readonly string[];
+  readonly entityDetails: readonly TopoGraphEntityEntry[];
+  readonly entities: readonly string[];
   readonly description: string | null;
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
@@ -679,8 +679,8 @@ const deriveResolvedTrailGraphDetail = (
   | 'activationContext'
   | 'activationEdges'
   | 'cli'
-  | 'contourDetails'
-  | 'contours'
+  | 'entityDetails'
+  | 'entities'
   | 'fieldOverrides'
   | 'governance'
   | 'input'
@@ -695,12 +695,12 @@ const deriveResolvedTrailGraphDetail = (
   const topoGraph =
     topoGraphOverride ?? (app === undefined ? undefined : deriveTopoGraph(app));
   const topoEntry = findTopoEntry(topoGraph, trailId, 'trail');
-  const contours = topoEntry?.contours ?? [];
-  const contourDetails = contours
-    .map((contourId) => findTopoEntry(topoGraph, contourId, 'contour'))
+  const entities = topoEntry?.entities ?? [];
+  const entityDetails = entities
+    .map((entityId) => findTopoEntry(topoGraph, entityId, 'entity'))
     .filter(
-      (entry): entry is TopoGraphContourEntry =>
-        entry !== undefined && entry.kind === 'contour'
+      (entry): entry is TopoGraphEntityEntry =>
+        entry !== undefined && entry.kind === 'entity'
     );
 
   return {
@@ -715,8 +715,8 @@ const deriveResolvedTrailGraphDetail = (
       fallbackActivationEdges
     ),
     cli: topoEntry?.cli ?? null,
-    contourDetails,
-    contours,
+    entities,
+    entityDetails,
     fieldOverrides: topoEntry?.fieldOverrides ?? [],
     governance: topoEntry?.governance ?? null,
     input: topoEntry?.input ?? null,
@@ -782,10 +782,10 @@ export const deriveTrailDetail = (
       trail: trailLayerNames,
     },
     composes: item.composes.toSorted(),
-    contourDetails: graphDetail.contourDetails,
-    contours: graphDetail.contours,
     description: item.description ?? null,
     detours: formatTrailDetours(item),
+    entities: graphDetail.entities,
+    entityDetails: graphDetail.entityDetails,
     examples: item.examples ?? [],
     fieldOverrides: graphDetail.fieldOverrides,
     fires: activation.fires,

@@ -106,7 +106,7 @@ export const exportedSymbolDefinitionSchema = z.object({
  * Extended input for project-aware warden rule trails.
  *
  * Adds `knownTrailIds` so the caller can supply compose-file context and avoid
- * false positives for `@see` references or compose-file contour relationships.
+ * false positives for `@see` references or compose-file entity relationships.
  */
 export const authoredMcpSurfaceBindingSetSchema = z.object({
   appName: z.string().describe('App/topo label the bindings were authored for'),
@@ -131,10 +131,6 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Trail IDs referenced by composes arrays across the project'),
-  contourReferencesByName: z
-    .record(z.string(), z.array(z.string()))
-    .optional()
-    .describe('Declared contour references keyed by source contour name'),
   crudCoverageByEntity: z
     .record(z.string(), z.array(z.string()))
     .optional()
@@ -149,6 +145,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .record(z.string(), z.array(importResolutionSchema))
     .optional()
     .describe('Resolved docs/specifier facts keyed by documentation file path'),
+  entityReferencesByName: z
+    .record(z.string(), z.array(z.string()))
+    .optional()
+    .describe('Declared entity references keyed by source entity name'),
   exportedSymbolDefinitionsByName: z
     .record(z.string(), z.array(exportedSymbolDefinitionSchema))
     .optional()
@@ -157,10 +157,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .record(z.string(), z.array(importResolutionSchema))
     .optional()
     .describe('Resolved import facts keyed by importer file path'),
-  knownContourIds: z
+  knownEntityIds: z
     .array(z.string())
     .optional()
-    .describe('Contour names known across the project'),
+    .describe('Entity names known across the project'),
   knownResourceIds: z
     .array(z.string())
     .optional()
@@ -219,7 +219,7 @@ export const topoAwareRuleInput = z.object({
         value !== null &&
         'trails' in value &&
         'resources' in value &&
-        'contours' in value &&
+        'entities' in value &&
         'signals' in value,
       { message: 'Expected a resolved Topo instance' }
     )

@@ -1,23 +1,23 @@
 import { describe, expect, test } from 'bun:test';
 
-import { contour, Result, trail } from '@ontrails/core';
+import { entity, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveTrailExamples } from '../effective-examples.js';
 
-const requireContourExample = (
-  contourDef: { examples?: readonly Record<string, unknown>[] },
+const requireEntityExample = (
+  entityDef: { examples?: readonly Record<string, unknown>[] },
   index: number
 ) => {
-  const example = contourDef.examples?.[index];
+  const example = entityDef.examples?.[index];
   expect(example).toBeDefined();
   if (!example) {
-    throw new Error(`Expected contour example at index ${index}`);
+    throw new Error(`Expected entity example at index ${index}`);
   }
   return example;
 };
 
-const userContour = contour(
+const userEntity = entity(
   'user',
   {
     email: z.string().email(),
@@ -41,11 +41,11 @@ const userContour = contour(
   }
 );
 
-const gistContour = contour(
+const gistEntity = entity(
   'gist',
   {
     id: z.string().uuid(),
-    ownerId: userContour.id(),
+    ownerId: userEntity.id(),
     title: z.string(),
   },
   {
@@ -66,7 +66,7 @@ const gistContour = contour(
 );
 
 describe('deriveTrailExamples', () => {
-  test('prefers authored trail examples over contour-derived fixtures', () => {
+  test('prefers authored trail examples over entity-derived fixtures', () => {
     const authoredExample = {
       expected: { email: 'manual@example.com', name: 'Manual' },
       input: { email: 'manual@example.com', name: 'Manual' },
@@ -74,7 +74,7 @@ describe('deriveTrailExamples', () => {
     } as const;
 
     const trailDef = trail('user.manual', {
-      contours: [userContour],
+      entities: [userEntity],
       examples: [authoredExample],
       implementation: (input: { email: string; name: string }) =>
         Result.ok(input),
@@ -85,14 +85,14 @@ describe('deriveTrailExamples', () => {
     expect(deriveTrailExamples(trailDef)).toEqual([authoredExample]);
   });
 
-  test('derives single-contour fixtures and preserves full contour output', () => {
-    const firstUserExample = requireContourExample(userContour, 0);
+  test('derives single-entity fixtures and preserves full entity output', () => {
+    const firstUserExample = requireEntityExample(userEntity, 0);
 
     const trailDef = trail('user.create', {
-      contours: [userContour],
+      entities: [userEntity],
       implementation: () => Result.ok(firstUserExample),
-      input: userContour.pick({ email: true, name: true }),
-      output: userContour,
+      input: userEntity.pick({ email: true, name: true }),
+      output: userEntity,
     });
 
     const examples = deriveTrailExamples(trailDef);
@@ -111,9 +111,9 @@ describe('deriveTrailExamples', () => {
     );
   });
 
-  test('filters contour fixtures that do not satisfy the trail input schema', () => {
+  test('filters entity fixtures that do not satisfy the trail input schema', () => {
     const trailDef = trail('user.slug-only', {
-      contours: [userContour],
+      entities: [userEntity],
       implementation: () => Result.ok({ slug: 'unused' }),
       input: z.object({ slug: z.string() }),
       output: z.object({ slug: z.string() }),
@@ -122,24 +122,24 @@ describe('deriveTrailExamples', () => {
     expect(deriveTrailExamples(trailDef)).toEqual([]);
   });
 
-  test('matches compose-contour references and exposes contour-prefixed aliases', () => {
+  test('matches compose-entity references and exposes entity-prefixed aliases', () => {
     const trailDef = trail('gist.star', {
-      contours: [userContour, gistContour],
+      entities: [userEntity, gistEntity],
       implementation: (input: { gistId: string; userId: string }) =>
         Result.ok(input),
       input: z.object({
-        gistId: gistContour.id(),
-        userId: userContour.id(),
+        gistId: gistEntity.id(),
+        userId: userEntity.id(),
       }),
       output: z.object({
-        gistId: gistContour.shape.id,
-        userId: userContour.shape.id,
+        gistId: gistEntity.shape.id,
+        userId: userEntity.shape.id,
       }),
     });
 
     const examples = deriveTrailExamples(trailDef);
     expect(examples).toHaveLength(2);
-    // No contour fixture parses as the output schema on its own (the
+    // No entity fixture parses as the output schema on its own (the
     // output expects `gistId` and `userId`, but the fixtures expose
     // `id`, `ownerId`, etc.), so derived examples are left without an
     // `expected` and fall back to schema-only validation at runtime.
@@ -162,10 +162,10 @@ describe('deriveTrailExamples', () => {
   });
 
   test('derives fixtures for strict input schemas by projecting to known keys', () => {
-    const firstUserExample = requireContourExample(userContour, 0);
+    const firstUserExample = requireEntityExample(userEntity, 0);
 
     const trailDef = trail('user.strict-create', {
-      contours: [userContour],
+      entities: [userEntity],
       implementation: (input: { email: string; name: string }) =>
         Result.ok(input),
       input: z.object({ email: z.string().email(), name: z.string() }).strict(),
@@ -180,16 +180,16 @@ describe('deriveTrailExamples', () => {
     });
   });
 
-  test('does not infer expected from merged input when no contour fixture matches the output', () => {
+  test('does not infer expected from merged input when no entity fixture matches the output', () => {
     // The output schema is a subset of the input shape, so the merged
     // derived input would parse as the output if we tried to infer from
     // it — but that inference is semantically wrong because input and
-    // output have distinct meanings. Since no contour fixture matches
-    // the output schema (userContour fixtures carry id+email+name, and
+    // output have distinct meanings. Since no entity fixture matches
+    // the output schema (userEntity fixtures carry id+email+name, and
     // the strict output only accepts email+name), `expected` must be
     // omitted entirely.
     const trailDef = trail('user.create-strict-output', {
-      contours: [userContour],
+      entities: [userEntity],
       implementation: (input: { email: string; name: string }) =>
         Result.ok(input),
       input: z.object({ email: z.string().email(), name: z.string() }),

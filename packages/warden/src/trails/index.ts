@@ -1,7 +1,7 @@
 export { activationOrphanTrail } from './activation-orphan.trail.js';
 export { cliCommandRouteCoherenceTrail } from './cli-command-route-coherence.trail.js';
 export { circularRefsTrail } from './circular-refs.trail.js';
-export { contourExistsTrail } from './contour-exists.trail.js';
+export { entityExistsTrail } from './entity-exists.trail.js';
 export { contextNoSurfaceTypesTrail } from './context-no-surface-types.trail.js';
 export { composesDeclarationsTrail } from './composes-declarations.trail.js';
 export { deadInternalTrailTrail } from './dead-internal-trail.trail.js';

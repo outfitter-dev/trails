@@ -30,9 +30,9 @@ const contractFingerprint = (entry: TopoGraphEntry): string =>
   JSON.stringify(
     canonicalize({
       composes: entry.composes,
-      contours: entry.contours,
       detours: entry.detours,
       dryRunCapable: entry.dryRunCapable,
+      entities: entry.entities,
       fires: entry.fires,
       idempotent: entry.idempotent,
       input: entry.input,
@@ -63,7 +63,7 @@ const renderTrailIds = (trailIds: readonly string[]): string =>
 const buildDiagnostic = (trailIds: readonly string[]): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
-  message: `Likely duplicate public trail contracts ${renderTrailIds(trailIds)} share the same input, output, intent, permits, resources, contours, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.`,
+  message: `Likely duplicate public trail contracts ${renderTrailIds(trailIds)} share the same input, output, intent, permits, resources, entities, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.`,
   rule: RULE_NAME,
   severity: 'warn',
 });

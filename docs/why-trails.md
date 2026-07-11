@@ -182,7 +182,7 @@ The answers became the principles: author what's new, derive what's known, overr
 
 ## What's Next
 
-The v1 implementation delivers the foundation: Result types, error taxonomy, trail, signal, and contour definitions, CLI/MCP/HTTP surfaces, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
+The v1 implementation delivers the foundation: Result types, error taxonomy, trail, signal, and entity definitions, CLI/MCP/HTTP surfaces, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
 
 The architecture points toward capabilities that follow naturally — resource capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
 

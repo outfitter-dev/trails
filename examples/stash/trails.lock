@@ -3,7 +3,7 @@
     "app": "stash"
   },
   "summary": {
-    "contours": 1,
+    "entities": 1,
     "resources": 2,
     "signals": 20,
     "trails": 20
@@ -50,17 +50,13 @@
     },
     "entries": [
       {
+        "description": "Authentication adapter",
         "exampleCount": 0,
         "id": "auth",
         "kind": "resource",
-        "surfaces": [],
-        "description": "Authentication adapter"
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "file.raw",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "file",
@@ -79,8 +75,10 @@
           ]
         },
         "description": "Serve one file of one revision as raw bytes with a content type derived from its extension",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Fetch the raw bytes of a seeded file",
             "input": {
               "name": "greet.ts",
               "seq": 1,
@@ -90,10 +88,11 @@
             "name": "Raw file bytes",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Fetch the raw bytes of a seeded file"
+            }
           },
           {
+            "description": "Unknown file names return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "name": "nope.ts",
               "seq": 1,
@@ -103,11 +102,10 @@
             "name": "Raw missing file",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown file names return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "file.raw",
         "input": {
           "properties": {
             "name": {
@@ -131,6 +129,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "kind": {
@@ -160,13 +159,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "revision.diff",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "revision",
@@ -185,18 +181,9 @@
           ]
         },
         "description": "Naive line diff between two revisions of a snippet",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "from": 1,
-              "snippetId": "snip_hello",
-              "to": 1
-            },
-            "kind": "success",
-            "name": "Diff identical revisions",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Diff a revision against itself",
             "expected": {
               "files": [
@@ -209,9 +196,21 @@
               ],
               "from": 1,
               "to": 1
+            },
+            "input": {
+              "from": 1,
+              "snippetId": "snip_hello",
+              "to": 1
+            },
+            "kind": "success",
+            "name": "Diff identical revisions",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Unknown seqs return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "from": 1,
               "snippetId": "snip_hello",
@@ -221,11 +220,10 @@
             "name": "Diff a missing revision",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown seqs return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "revision.diff",
         "input": {
           "properties": {
             "from": {
@@ -249,6 +247,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "files": {
@@ -305,13 +304,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "revision.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "revision",
@@ -330,17 +326,9 @@
           ]
         },
         "description": "Read one revision of a snippet, including full file contents",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "seq": 1,
-              "snippetId": "snip_hello"
-            },
-            "kind": "success",
-            "name": "Get a revision",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Read revision 1 of a snippet",
             "expected": {
               "createdAt": "2026-01-01T00:00:00.000Z",
@@ -355,9 +343,20 @@
               "message": "initial revision",
               "seq": 1,
               "snippetId": "snip_hello"
+            },
+            "input": {
+              "seq": 1,
+              "snippetId": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Get a revision",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Unknown seqs return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "seq": 99,
               "snippetId": "snip_hello"
@@ -366,11 +365,10 @@
             "name": "Get a missing revision",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown seqs return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "revision.get",
         "input": {
           "properties": {
             "seq": {
@@ -389,6 +387,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -455,13 +454,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "revision.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "revision",
@@ -480,16 +476,9 @@
           ]
         },
         "description": "List a snippet’s revisions in seq order",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "snippetId": "snip_hello"
-            },
-            "kind": "success",
-            "name": "List revisions",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "List the revision history for a snippet",
             "expected": {
               "revisions": [
@@ -503,9 +492,19 @@
                 }
               ],
               "total": 1
+            },
+            "input": {
+              "snippetId": "snip_hello"
+            },
+            "kind": "success",
+            "name": "List revisions",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Unknown snippet ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "snippetId": "snip_missing"
             },
@@ -513,11 +512,10 @@
             "name": "List revisions of a missing snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown snippet ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "revision.list",
         "input": {
           "properties": {
             "snippetId": {
@@ -531,6 +529,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "revisions": {
@@ -581,13 +580,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "search.index",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -622,8 +618,10 @@
           ]
         },
         "description": "Re-derive the search index rows for one snippet; deletes and secret snippets deindex",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Reindex a seeded public snippet",
             "input": {
               "snippetId": "snip_hello"
             },
@@ -631,10 +629,10 @@
             "name": "Index a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Reindex a seeded public snippet"
+            }
           }
         ],
+        "id": "search.index",
         "input": {
           "properties": {
             "snippetId": {
@@ -647,6 +645,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "on": [
           "snippet.created",
           "snippet.updated"
@@ -675,13 +674,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "search.query",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "search",
@@ -700,17 +696,9 @@
           ]
         },
         "description": "Search public snippets by keyword over the derived index",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "limit": 10,
-              "query": "greet"
-            },
-            "kind": "success",
-            "name": "Search finds a match",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Find a snippet by a word in its description",
             "expected": {
               "query": "greet",
@@ -728,9 +716,24 @@
                 }
               ],
               "total": 1
+            },
+            "input": {
+              "limit": 10,
+              "query": "greet"
+            },
+            "kind": "success",
+            "name": "Search finds a match",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Queries with no matches return an empty result set",
+            "expected": {
+              "query": "zebra",
+              "results": [],
+              "total": 0
+            },
             "input": {
               "limit": 10,
               "query": "zebra"
@@ -739,15 +742,10 @@
             "name": "Search finds nothing",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Queries with no matches return an empty result set",
-            "expected": {
-              "query": "zebra",
-              "results": [],
-              "total": 0
             }
           }
         ],
+        "id": "search.query",
         "input": {
           "properties": {
             "limit": {
@@ -766,6 +764,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "query": {
@@ -841,13 +840,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "search.reindex",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "search",
@@ -866,21 +862,24 @@
           ]
         },
         "description": "Rebuild the entire search index from scratch; requires the search:admin scope",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Full rebuild over every public snippet",
             "input": {},
             "kind": "success",
             "name": "Reindex everything",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Full rebuild over every public snippet"
+            }
           }
         ],
+        "id": "search.reindex",
         "input": {
           "properties": {},
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "snippets": {
@@ -903,13 +902,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "snippet.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -928,8 +924,10 @@
           ]
         },
         "description": "Create a snippet with its first revision",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Create a public snippet with one file",
             "input": {
               "description": "A tiny JSON config example",
               "files": [
@@ -946,13 +944,13 @@
             "name": "Create a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Create a public snippet with one file"
+            }
           }
         ],
         "fires": [
           "snippet.created"
         ],
+        "id": "snippet.create",
         "input": {
           "properties": {
             "description": {
@@ -1013,6 +1011,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -1108,13 +1107,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "snippet.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [
           "search.index"
         ],
@@ -1130,6 +1126,7 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "from": [
           "snippet.create"
         ],
@@ -1138,6 +1135,7 @@
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "snippet.created",
         "input": {
           "properties": {
             "ownerId": {
@@ -1161,6 +1159,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "ownerId": {
@@ -1186,13 +1185,10 @@
         },
         "producers": [
           "snippet.create"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "snippet.delete",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1211,8 +1207,14 @@
           ]
         },
         "description": "Delete a snippet and cascade its revisions, stars, and index entries",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Delete a snippet you own",
+            "expected": {
+              "deleted": true,
+              "id": "snip_scratch"
+            },
             "input": {
               "id": "snip_scratch"
             },
@@ -1220,14 +1222,11 @@
             "name": "Delete a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Delete a snippet you own",
-            "expected": {
-              "deleted": true,
-              "id": "snip_scratch"
             }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "snip_missing"
             },
@@ -1235,14 +1234,13 @@
             "name": "Delete a missing snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
         "fires": [
           "snippet.updated"
         ],
+        "id": "snippet.delete",
         "input": {
           "properties": {
             "id": {
@@ -1256,6 +1254,7 @@
           "type": "object"
         },
         "intent": "destroy",
+        "kind": "trail",
         "output": {
           "properties": {
             "deleted": {
@@ -1278,13 +1277,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "snippet.fork",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1308,8 +1304,10 @@
           "snippet.get"
         ],
         "description": "Fork a snippet you can see into your own account, preserving lineage",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Fork a public snippet",
             "input": {
               "id": "snip_hello"
             },
@@ -1317,10 +1315,11 @@
             "name": "Fork a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Fork a public snippet"
+            }
           },
           {
+            "description": "Unknown ids — and other users’ secret snippets — return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "snip_missing"
             },
@@ -1328,11 +1327,10 @@
             "name": "Fork a missing snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids — and other users’ secret snippets — return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "snippet.fork",
         "input": {
           "properties": {
             "id": {
@@ -1345,6 +1343,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -1437,13 +1436,10 @@
           "scopes": [
             "snippet:write"
           ]
-        }
+        },
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "snippet.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1462,16 +1458,9 @@
           ]
         },
         "description": "Show a snippet with its latest revision; secret snippets are owner-only",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "id": "snip_hello"
-            },
-            "kind": "success",
-            "name": "Get a public snippet",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Read a public snippet by id",
             "expected": {
               "createdAt": "2026-01-01T00:00:00.000Z",
@@ -1491,9 +1480,19 @@
               "updatedAt": "2026-01-01T00:00:00.000Z",
               "version": 1,
               "visibility": "public"
+            },
+            "input": {
+              "id": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Get a public snippet",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "snip_missing"
             },
@@ -1501,11 +1500,10 @@
             "name": "Get a missing snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "snippet.get",
         "input": {
           "properties": {
             "id": {
@@ -1519,6 +1517,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -1609,13 +1608,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "snippet.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1634,8 +1630,10 @@
           ]
         },
         "description": "List snippets with owner and visibility filters; secret snippets appear only for their owner",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List every snippet visible to the caller",
             "input": {
               "limit": 20,
               "offset": 0
@@ -1644,10 +1642,10 @@
             "name": "List snippets",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every snippet visible to the caller"
+            }
           },
           {
+            "description": "Filter by owner",
             "input": {
               "limit": 20,
               "offset": 0,
@@ -1657,10 +1655,10 @@
             "name": "List snippets by owner",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Filter by owner"
+            }
           }
         ],
+        "id": "snippet.list",
         "input": {
           "properties": {
             "limit": {
@@ -1689,6 +1687,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "snippets": {
@@ -1760,13 +1759,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "snippet.star",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1785,8 +1781,15 @@
           ]
         },
         "description": "Star a snippet (idempotent)",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Star a public snippet",
+            "expected": {
+              "snippetId": "snip_hello",
+              "starCount": 2,
+              "starred": true
+            },
             "input": {
               "id": "snip_hello"
             },
@@ -1794,15 +1797,11 @@
             "name": "Star a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Star a public snippet",
-            "expected": {
-              "snippetId": "snip_hello",
-              "starCount": 2,
-              "starred": true
             }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "snip_missing"
             },
@@ -1810,11 +1809,10 @@
             "name": "Star a missing snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "snippet.star",
         "idempotent": true,
         "input": {
           "properties": {
@@ -1828,6 +1826,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "snippetId": {
@@ -1854,13 +1853,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "snippet.unstar",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1879,8 +1875,15 @@
           ]
         },
         "description": "Remove your star from a snippet (idempotent)",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Unstar a snippet you have not starred is a no-op",
+            "expected": {
+              "snippetId": "snip_hello",
+              "starCount": 1,
+              "starred": false
+            },
             "input": {
               "id": "snip_hello"
             },
@@ -1888,15 +1891,10 @@
             "name": "Unstar a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unstar a snippet you have not starred is a no-op",
-            "expected": {
-              "snippetId": "snip_hello",
-              "starCount": 1,
-              "starred": false
             }
           }
         ],
+        "id": "snippet.unstar",
         "idempotent": true,
         "input": {
           "properties": {
@@ -1910,6 +1908,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "snippetId": {
@@ -1936,13 +1935,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "snippet.update",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippet",
@@ -1961,8 +1957,10 @@
           ]
         },
         "description": "Add a new revision to a snippet; earlier revisions are never mutated",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Publish a second revision of a snippet",
             "input": {
               "files": [
                 {
@@ -1978,10 +1976,11 @@
             "name": "Update a snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Publish a second revision of a snippet"
+            }
           },
           {
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "files": [
                 {
@@ -1995,14 +1994,13 @@
             "name": "Update a missing snippet",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
         "fires": [
           "snippet.updated"
         ],
+        "id": "snippet.update",
         "input": {
           "properties": {
             "files": {
@@ -2054,6 +2052,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -2125,13 +2124,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "snippet.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [
           "search.index"
         ],
@@ -2147,6 +2143,7 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "from": [
           "snippet.delete",
           "snippet.update"
@@ -2156,6 +2153,7 @@
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "snippet.updated",
         "input": {
           "properties": {
             "action": {
@@ -2175,6 +2173,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "action": {
@@ -2197,14 +2196,14 @@
         "producers": [
           "snippet.delete",
           "snippet.update"
-        ]
+        ],
+        "surfaces": []
       },
       {
         "exampleCount": 0,
         "id": "snippets",
-        "kind": "contour",
-        "surfaces": [],
         "identity": "id",
+        "kind": "entity",
         "schema": {
           "properties": {
             "createdAt": {
@@ -2253,13 +2252,10 @@
             "visibility"
           ],
           "type": "object"
-        }
+        },
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "snippets.reconcile",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "snippets",
@@ -2277,9 +2273,6 @@
             }
           ]
         },
-        "contours": [
-          "snippets"
-        ],
         "description": "Reconcile a snippet row by versioned upsert (last-write-wins on conflict)",
         "detours": [
           {
@@ -2287,6 +2280,11 @@
             "on": "ConflictError"
           }
         ],
+        "entities": [
+          "snippets"
+        ],
+        "exampleCount": 0,
+        "id": "snippets.reconcile",
         "input": {
           "properties": {
             "createdAt": {
@@ -2336,6 +2334,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -2391,21 +2390,18 @@
         "pattern": "reconcile",
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
+        "description": "SQLite snippet store: snippets, revisions, stars, users, tokens, and the derived search index.",
         "exampleCount": 0,
+        "healthcheck": true,
         "id": "stash.db",
         "kind": "resource",
-        "surfaces": [],
-        "description": "SQLite snippet store: snippets, revisions, stars, users, tokens, and the derived search index.",
-        "healthcheck": true
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:revisions.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"revisions\" entity is created.",
         "diagnostics": {
@@ -2419,11 +2415,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:revisions.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -2492,6 +2490,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2560,13 +2559,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:revisions.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"revisions\" entity is removed.",
         "diagnostics": {
@@ -2580,11 +2576,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:revisions.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -2653,6 +2651,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2721,13 +2720,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:revisions.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"revisions\" entity is updated.",
         "diagnostics": {
@@ -2741,11 +2737,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:revisions.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -2814,6 +2812,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2882,13 +2881,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:searchEntries.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"searchEntries\" entity is created.",
         "diagnostics": {
@@ -2902,11 +2898,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:searchEntries.created",
         "input": {
           "properties": {
             "id": {
@@ -2926,6 +2924,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "id": {
@@ -2945,13 +2944,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:searchEntries.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"searchEntries\" entity is removed.",
         "diagnostics": {
@@ -2965,11 +2961,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:searchEntries.removed",
         "input": {
           "properties": {
             "id": {
@@ -2989,6 +2987,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "id": {
@@ -3008,13 +3007,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:searchEntries.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"searchEntries\" entity is updated.",
         "diagnostics": {
@@ -3028,11 +3024,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:searchEntries.updated",
         "input": {
           "properties": {
             "id": {
@@ -3052,6 +3050,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "id": {
@@ -3071,13 +3070,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:snippets.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"snippets\" entity is created.",
         "diagnostics": {
@@ -3091,11 +3087,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:snippets.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -3148,6 +3146,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3200,13 +3199,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:snippets.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"snippets\" entity is removed.",
         "diagnostics": {
@@ -3220,11 +3216,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:snippets.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -3277,6 +3275,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3329,13 +3328,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:snippets.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"snippets\" entity is updated.",
         "diagnostics": {
@@ -3349,11 +3345,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:snippets.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -3406,6 +3404,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3458,13 +3457,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:stars.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"stars\" entity is created.",
         "diagnostics": {
@@ -3478,11 +3474,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:stars.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -3506,6 +3504,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3529,13 +3528,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:stars.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"stars\" entity is removed.",
         "diagnostics": {
@@ -3549,11 +3545,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:stars.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -3577,6 +3575,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3600,13 +3599,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:stars.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"stars\" entity is updated.",
         "diagnostics": {
@@ -3620,11 +3616,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:stars.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -3648,6 +3646,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3671,13 +3670,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:tokens.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"tokens\" entity is created.",
         "diagnostics": {
@@ -3691,11 +3687,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:tokens.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -3734,6 +3732,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3772,13 +3771,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:tokens.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"tokens\" entity is removed.",
         "diagnostics": {
@@ -3792,11 +3788,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:tokens.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -3835,6 +3833,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3873,13 +3872,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:tokens.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"tokens\" entity is updated.",
         "diagnostics": {
@@ -3893,11 +3889,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:tokens.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -3936,6 +3934,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -3974,13 +3973,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:users.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"users\" entity is created.",
         "diagnostics": {
@@ -3994,11 +3990,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:users.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -4018,6 +4016,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -4037,13 +4036,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:users.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"users\" entity is removed.",
         "diagnostics": {
@@ -4057,11 +4053,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:users.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -4081,6 +4079,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -4100,13 +4099,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "stash.db:users.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"users\" entity is updated.",
         "diagnostics": {
@@ -4120,11 +4116,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "stash.db:users.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -4144,6 +4142,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -4163,13 +4162,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "token.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "token",
@@ -4188,8 +4184,10 @@
           ]
         },
         "description": "Create an API token; the secret is returned once and never again",
+        "exampleCount": 1,
         "examples": [
           {
+            "description": "Mint a read-write token",
             "input": {
               "name": "ci-publisher",
               "scopes": [
@@ -4201,10 +4199,10 @@
             "name": "Create a token",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Mint a read-write token"
+            }
           }
         ],
+        "id": "token.create",
         "input": {
           "properties": {
             "name": {
@@ -4225,6 +4223,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -4266,13 +4265,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "token.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "token",
@@ -4291,14 +4287,9 @@
           ]
         },
         "description": "List your tokens with secrets redacted",
+        "exampleCount": 1,
         "examples": [
           {
-            "input": {},
-            "kind": "success",
-            "name": "List tokens",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "List tokens for the calling user",
             "expected": {
               "tokens": [
@@ -4325,14 +4316,22 @@
                 }
               ],
               "total": 2
+            },
+            "input": {},
+            "kind": "success",
+            "name": "List tokens",
+            "provenance": {
+              "source": "trail.examples"
             }
           }
         ],
+        "id": "token.list",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "tokens": {
@@ -4385,13 +4384,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "token.revoke",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "token",
@@ -4410,8 +4406,14 @@
           ]
         },
         "description": "Revoke one of your tokens; revoked tokens stop authenticating",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Revoke a spare token",
+            "expected": {
+              "id": "tok_alice_spare",
+              "revoked": true
+            },
             "input": {
               "id": "tok_alice_spare"
             },
@@ -4419,14 +4421,11 @@
             "name": "Revoke a token",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Revoke a spare token",
-            "expected": {
-              "id": "tok_alice_spare",
-              "revoked": true
             }
           },
           {
+            "description": "Unknown ids — and other users’ tokens — return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "id": "tok_missing"
             },
@@ -4434,11 +4433,10 @@
             "name": "Revoke a missing token",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown ids — and other users’ tokens — return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "token.revoke",
         "input": {
           "properties": {
             "id": {
@@ -4451,6 +4449,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -4473,13 +4472,10 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "user.me",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "user",
@@ -4498,14 +4494,9 @@
           ]
         },
         "description": "Show the user and scopes behind the calling token",
+        "exampleCount": 1,
         "examples": [
           {
-            "input": {},
-            "kind": "success",
-            "name": "Who am I",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Identify the calling token",
             "expected": {
               "id": "usr_alice",
@@ -4516,14 +4507,22 @@
                 "token:manage",
                 "search:admin"
               ]
+            },
+            "input": {},
+            "kind": "success",
+            "name": "Who am I",
+            "provenance": {
+              "source": "trail.examples"
             }
           }
         ],
+        "id": "user.me",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "id": {
@@ -4551,7 +4550,8 @@
         },
         "resources": [
           "stash.db"
-        ]
+        ],
+        "surfaces": []
       }
     ],
     "library": {
@@ -6065,7 +6065,7 @@
         }
       }
     },
-    "topoGraphSchemaVersion": 3,
+    "topoGraphSchemaVersion": 4,
     "trailheads": [
       {
         "description": "Grouped MCP entry over: token.create, token.list, token.revoke, user.me.",
@@ -6126,6 +6126,6 @@
       }
     ]
   },
-  "topoGraphHash": "e89c7fcfb21f8e50f0ca9411791a0533be9daa6a15110e612a5b180c8cddbebc",
-  "version": 4
+  "topoGraphHash": "9f2f186bac77159aef1796abb23ccece59dfb848094063597e75a8b05af14557",
+  "version": 5
 }

@@ -20,6 +20,7 @@ import {
   deriveTopoGraph,
   deriveTopoGraphHash,
   createTopoSnapshot,
+  LOCK_MANIFEST_SCHEMA_VERSION,
   writeLockManifest,
   writeTopoGraph,
   writeTrailsLock,
@@ -165,12 +166,12 @@ const lockManifestFor = (topoGraph: TopoGraph): LockManifest => ({
   ],
   scope: { app: 'demo' },
   summary: {
-    contours: countEntries(topoGraph, 'contour'),
+    entities: countEntries(topoGraph, 'entity'),
     resources: countEntries(topoGraph, 'resource'),
     signals: countEntries(topoGraph, 'signal'),
     trails: countEntries(topoGraph, 'trail'),
   },
-  version: 3,
+  version: LOCK_MANIFEST_SCHEMA_VERSION,
 });
 
 const writeArtifactsAt = async (
@@ -194,7 +195,7 @@ const writeArtifactsAt = async (
       summary: lockManifestFor(topoGraph).summary,
       topoGraph,
       topoGraphHash: deriveTopoGraphHash(topoGraph),
-      version: 4,
+      version: 5,
     } as TrailsLock,
     { dir: rootDir }
   );
@@ -342,10 +343,10 @@ describe('wayfinder graph-read query trails', () => {
   test('exports the v0 query catalog as a topo', () => {
     expect([...wayfinderTopo.ids()].toSorted()).toEqual([
       'wayfind.adapters',
-      'wayfind.contours',
       'wayfind.contract',
       'wayfind.describe',
       'wayfind.diff',
+      'wayfind.entities',
       'wayfind.errors',
       'wayfind.examples',
       'wayfind.impact',
@@ -682,10 +683,10 @@ describe('wayfinder graph-read query trails', () => {
       join(tempDir, 'trails.lock'),
       `${JSON.stringify({
         scope: { app: 'demo' },
-        summary: { contours: 0, resources: 0, signals: 0, trails: 0 },
+        summary: { entities: 0, resources: 0, signals: 0, trails: 0 },
         topoGraph,
         topoGraphHash: '0'.repeat(64),
-        version: 4,
+        version: 5,
       })}\n`
     );
 

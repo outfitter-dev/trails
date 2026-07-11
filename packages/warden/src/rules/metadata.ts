@@ -159,7 +159,7 @@ const builtinWardenRuleMetadataInput = {
   },
   'circular-refs': {
     ...durableExternal,
-    invariant: 'Contour reference graphs must be acyclic.',
+    invariant: 'Entity reference graphs must be acyclic.',
     tier: 'project-static',
   },
   'cli-command-route-coherence': {
@@ -188,11 +188,6 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant: 'Trail logic stays surface-agnostic.',
     tier: 'source-static',
-  },
-  'contour-exists': {
-    ...durableExternal,
-    invariant: 'Declared contour references resolve to known contours.',
-    tier: 'project-static',
   },
   'dead-internal-trail': {
     ...durableExternal,
@@ -262,6 +257,11 @@ const builtinWardenRuleMetadataInput = {
     invariant:
       'Public surface trails should not expose duplicate normalized contract facts.',
     tier: 'topo-aware',
+  },
+  'entity-exists': {
+    ...durableExternal,
+    invariant: 'Declared entity references resolve to known entities.',
+    tier: 'project-static',
   },
   'error-mapping-completeness': {
     ...durableExtension,
@@ -564,7 +564,7 @@ const builtinWardenRuleMetadataInput = {
   },
   'reference-exists': {
     ...durableExternal,
-    invariant: 'Reference declarations resolve to known contours.',
+    invariant: 'Reference declarations resolve to known entities.',
     tier: 'project-static',
   },
   'resolved-import-boundary': {

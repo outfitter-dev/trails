@@ -275,14 +275,14 @@ const visibleDetailSeverity = (detail: string): DiffSeverity => {
     return status === 'archived' ? 'info' : 'warning';
   }
   if (
-    /^Version \d+ (?:kind changed:|Required (?:input|contour) field ".+" added|(?:Input|Output|Contour) field ".+" (?:removed|type changed:|changed from optional to required))/.test(
+    /^Version \d+ (?:kind changed:|Required (?:input|entity) field ".+" added|(?:Input|Output|Entity) field ".+" (?:removed|type changed:|changed from optional to required))/.test(
       detail
     )
   ) {
     return 'breaking';
   }
   if (
-    /^Version \d+ (?:marker changed:|Optional (?:input|contour) field ".+" added|Output field ".+" added)/.test(
+    /^Version \d+ (?:marker changed:|Optional (?:input|entity) field ".+" added|Output field ".+" added)/.test(
       detail
     )
   ) {
@@ -669,7 +669,7 @@ const diffEntryOutput = z.object({
   change: z.enum(['added', 'removed', 'modified']),
   details: z.array(z.string()).readonly(),
   id: z.string(),
-  kind: z.enum(['contour', 'trail', 'signal', 'resource']),
+  kind: z.enum(['entity', 'trail', 'signal', 'resource']),
   severity: z.enum(['info', 'warning', 'breaking']),
 });
 

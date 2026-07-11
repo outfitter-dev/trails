@@ -49,7 +49,7 @@ export interface StoreAccessorProtocol<
 
 /**
  * Record shape returned by a resource's `from(ctx)` call, keyed by accessor
- * name. Used by `deriveTrail()` to resolve an accessor by contour name.
+ * name. Used by `deriveTrail()` to resolve an accessor by entity name.
  */
 export type StoreAccessorRecord = Readonly<
   Record<string, StoreAccessorProtocol<unknown, unknown, unknown, unknown>>

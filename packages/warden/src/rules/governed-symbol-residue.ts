@@ -1,10 +1,12 @@
 import {
+  getNodeKey,
+  getNodeValueNode,
   identifierName,
   offsetToLine,
   parseWithDiagnostics,
-  walk,
+  walkWithScopeContext,
 } from './ast.js';
-import type { AstNode } from './ast.js';
+import type { AstNode, AstScopeContext } from './ast.js';
 import { listGovernedVocabularyTransitions } from './retired-vocabulary.js';
 import type {
   GovernedVocabularySymbolRename,
@@ -34,42 +36,319 @@ const isAllowedSourcePath = (filePath: string): boolean =>
     normalizePath(filePath).endsWith(suffix)
   );
 
-const activeSymbolRenames = (): readonly GovernedVocabularySymbolRename[] =>
+interface ActiveSymbolRename {
+  readonly rename: GovernedVocabularySymbolRename;
+  readonly targetSegments: readonly string[];
+}
+
+const activeSymbolRenames = (): readonly ActiveSymbolRename[] =>
   listGovernedVocabularyTransitions()
     .filter(
       (transition) =>
         ACTIVE_STATUSES.has(transition.status) &&
         !FIX_OWNED_TRANSITION_IDS.has(transition.id)
     )
-    .flatMap((transition) => transition.symbolRenames);
+    .flatMap((transition) => {
+      const targetSegments = [
+        ...new Set(transition.symbolRenames.map((rename) => rename.to)),
+      ];
+      return transition.symbolRenames.map((rename) => ({
+        rename,
+        targetSegments,
+      }));
+    });
 
-const renameBySourceSymbol = (): ReadonlyMap<
-  string,
-  GovernedVocabularySymbolRename
-> =>
-  new Map(
-    activeSymbolRenames().map((rename) => [rename.from, rename] as const)
-  );
+const isIdentifierNamed = (node: AstNode, name: string): boolean =>
+  node.type === 'Identifier' && identifierName(node) === name;
 
-const safeFixFor = (
-  sourceCode: string,
+const identifierTokenSpan = (
   node: AstNode,
+  sourceCode: string,
+  name: string
+): { readonly end: number; readonly start: number } | null => {
+  const end = node.start + name.length;
+  return sourceCode.slice(node.start, end) === name
+    ? { end, start: node.start }
+    : null;
+};
+
+const toPascalIdentifierSegment = (value: string): string =>
+  value.length === 0
+    ? value
+    : `${value[0]?.toUpperCase() ?? ''}${value.slice(1)}`;
+
+const isScreamingSnakeIdentifier = (name: string): boolean =>
+  /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/.test(name) && name.includes('_');
+
+const replaceScreamingSnakeIdentifierSegment = (
+  name: string,
+  from: string,
+  to: string
+): string | null => {
+  if (!isScreamingSnakeIdentifier(name)) {
+    return null;
+  }
+
+  const fromSegment = from.toUpperCase();
+  const toSegment = to.toUpperCase();
+  let changed = false;
+  const nextName = name
+    .split('_')
+    .map((segment) => {
+      if (segment !== fromSegment) {
+        return segment;
+      }
+      changed = true;
+      return toSegment;
+    })
+    .join('_');
+
+  return changed ? nextName : null;
+};
+
+const replaceCamelOrPascalIdentifierSegment = (
+  name: string,
+  from: string,
+  to: string
+): string | null => {
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
+    return null;
+  }
+
+  const fromPascalSegment = toPascalIdentifierSegment(from);
+  const toPascalSegment = toPascalIdentifierSegment(to);
+  const segmentPattern = /[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|[0-9]+/g;
+  let cursor = 0;
+  let changed = false;
+  let nextName = '';
+
+  for (const match of name.matchAll(segmentPattern)) {
+    const [segment] = match;
+    const { index } = match;
+    if (index === undefined || index !== cursor) {
+      return null;
+    }
+
+    if (segment === from) {
+      changed = true;
+      nextName += to;
+    } else if (segment === fromPascalSegment) {
+      changed = true;
+      nextName += toPascalSegment;
+    } else {
+      nextName += segment;
+    }
+
+    cursor = index + segment.length;
+  }
+
+  if (cursor !== name.length || !changed) {
+    return null;
+  }
+
+  return nextName;
+};
+
+const deriveIdentifierSegmentTarget = (
+  name: string,
+  from: string,
+  to: string
+): string | null => {
+  const leadingUnderscores = /^_+/.exec(name)?.[0] ?? '';
+  const coreName =
+    leadingUnderscores.length > 0
+      ? name.slice(leadingUnderscores.length)
+      : name;
+  if (coreName.length === 0) {
+    return null;
+  }
+
+  const screamingSnakeTarget = replaceScreamingSnakeIdentifierSegment(
+    coreName,
+    from,
+    to
+  );
+  if (screamingSnakeTarget !== null) {
+    return `${leadingUnderscores}${screamingSnakeTarget}`;
+  }
+
+  const camelOrPascalTarget = replaceCamelOrPascalIdentifierSegment(
+    coreName,
+    from,
+    to
+  );
+  return camelOrPascalTarget === null
+    ? null
+    : `${leadingUnderscores}${camelOrPascalTarget}`;
+};
+
+const hasIdentifierSegment = (name: string, segment: string): boolean =>
+  deriveIdentifierSegmentTarget(name, segment, segment) !== null;
+
+interface SymbolRenameMatch {
+  readonly from: string;
+  readonly rename: GovernedVocabularySymbolRename;
+  readonly span: { readonly end: number; readonly start: number } | null;
+  readonly to: string;
+}
+
+const resolveSymbolRenameMatch = (
+  node: AstNode,
+  sourceCode: string,
   rename: GovernedVocabularySymbolRename
-): WardenFix | undefined => {
-  const end = node.start + rename.from.length;
-  if (sourceCode.slice(node.start, end) !== rename.from) {
+): SymbolRenameMatch | null => {
+  if (rename.match === 'exact') {
+    if (!isIdentifierNamed(node, rename.from)) {
+      return null;
+    }
+
+    return {
+      from: rename.from,
+      rename,
+      span: identifierTokenSpan(node, sourceCode, rename.from),
+      to: rename.to,
+    };
+  }
+
+  if (node.type !== 'Identifier') {
+    return null;
+  }
+
+  const name = identifierName(node);
+  if (name === null) {
+    return null;
+  }
+  const target = deriveIdentifierSegmentTarget(name, rename.from, rename.to);
+  if (target === null) {
+    return null;
+  }
+
+  return {
+    from: name,
+    rename,
+    span: identifierTokenSpan(node, sourceCode, name),
+    to: target,
+  };
+};
+
+const authoredPropertyKeyParentTypes = new Set([
+  'AccessorProperty',
+  'MethodDefinition',
+  'Property',
+  'PropertyDefinition',
+  'TSAbstractMethodDefinition',
+  'TSAbstractPropertyDefinition',
+  'TSMethodSignature',
+  'TSPropertySignature',
+]);
+
+const isAuthoredMemberName = (context: AstScopeContext): boolean =>
+  (context.key === 'key' &&
+    context.parent !== null &&
+    context.parent !== undefined &&
+    authoredPropertyKeyParentTypes.has(context.parent.type)) ||
+  (context.key === 'parameter' &&
+    context.parent?.type === 'TSParameterProperty');
+
+const isModuleBoundaryName = (context: AstScopeContext): boolean =>
+  context.parent?.type === 'ImportSpecifier' ||
+  context.parent?.type === 'ImportDefaultSpecifier' ||
+  context.parent?.type === 'ImportNamespaceSpecifier' ||
+  context.parent?.type === 'ExportSpecifier';
+
+const reviewReasonFor = (
+  context: AstScopeContext,
+  match: SymbolRenameMatch,
+  shorthandIdentifiers: ReadonlySet<string>,
+  targetSegments: readonly string[]
+): string | null => {
+  if (match.rename.match === 'identifier-segment') {
+    const existingTarget = targetSegments.find((segment) =>
+      hasIdentifierSegment(match.from, segment)
+    );
+    if (existingTarget !== undefined) {
+      return `already contains target segment '${existingTarget}'`;
+    }
+  }
+
+  if (shorthandIdentifiers.has(match.from)) {
+    return 'participates in an authored shorthand property';
+  }
+
+  const declaration = context.getDeclaration(match.from);
+  if (
+    declaration &&
+    match.rename.reviewDeclarationTypes.includes(declaration.type)
+  ) {
+    return `resolves to ${declaration.type}`;
+  }
+
+  if (isModuleBoundaryName(context)) {
+    return 'names an import or export boundary';
+  }
+
+  if (
+    context.key === 'property' &&
+    (context.parent?.type === 'MemberExpression' ||
+      context.parent?.type === 'StaticMemberExpression')
+  ) {
+    return 'is a member property with no governed declaration';
+  }
+
+  if (isAuthoredMemberName(context)) {
+    return 'is an authored property key';
+  }
+
+  return null;
+};
+
+const isDuplicateShorthandValueVisit = (
+  node: AstNode,
+  context: AstScopeContext
+): boolean => {
+  if (context.key !== 'value' || context.parent?.type !== 'Property') {
+    return false;
+  }
+
+  const key = getNodeKey(context.parent);
+  return key?.start === node.start && key.end === node.end;
+};
+
+const isShorthandPropertyKeyVisit = (
+  node: AstNode,
+  context: AstScopeContext
+): boolean => {
+  if (context.key !== 'key' || context.parent?.type !== 'Property') {
+    return false;
+  }
+
+  const value = getNodeValueNode(context.parent);
+  return value?.start === node.start && value.end === node.end;
+};
+
+const reviewFixFor = (
+  match: SymbolRenameMatch,
+  reviewReason: string
+): WardenFix => ({
+  class: 'term-rewrite',
+  reason: `Retired governed symbol '${match.from}' ${reviewReason}; review before migrating to '${match.to}'.`,
+  safety: 'review',
+});
+
+const safeFixFor = (match: SymbolRenameMatch): WardenFix | undefined => {
+  if (match.span === null) {
     return undefined;
   }
   return {
     class: 'term-rewrite',
     edits: [
       {
-        end,
-        replacement: rename.to,
-        start: node.start,
+        end: match.span.end,
+        replacement: match.to,
+        start: match.span.start,
       },
     ],
-    reason: `Retired governed symbol '${rename.from}' has a mechanical replacement '${rename.to}'.`,
+    reason: `Retired governed symbol '${match.from}' has a mechanical replacement '${match.to}'.`,
     safety: 'safe',
   };
 };
@@ -78,14 +357,18 @@ const diagnosticFor = (
   sourceCode: string,
   filePath: string,
   node: AstNode,
-  rename: GovernedVocabularySymbolRename
+  match: SymbolRenameMatch,
+  reviewReason: string | null
 ): WardenDiagnostic => {
-  const fix = safeFixFor(sourceCode, node, rename);
+  const fix =
+    reviewReason === null
+      ? safeFixFor(match)
+      : reviewFixFor(match, reviewReason);
   return {
     filePath,
     ...(fix === undefined ? {} : { fix }),
     line: offsetToLine(sourceCode, node.start),
-    message: `Retired governed symbol '${rename.from}' should migrate to '${rename.to}'.`,
+    message: `Retired governed symbol '${match.from}' should migrate to '${match.to}'.`,
     rule: RULE_NAME,
     severity: 'error',
   };
@@ -97,8 +380,8 @@ export const governedSymbolResidue: WardenRule = {
       return [];
     }
 
-    const renames = renameBySourceSymbol();
-    if (renames.size === 0) {
+    const renames = activeSymbolRenames();
+    if (renames.length === 0) {
       return [];
     }
 
@@ -107,19 +390,43 @@ export const governedSymbolResidue: WardenRule = {
       return [];
     }
 
-    const diagnostics: WardenDiagnostic[] = [];
-    walk(parsed.ast, (node) => {
+    const shorthandIdentifiers = new Set<string>();
+    walkWithScopeContext(parsed.ast, (node, context) => {
+      if (!isShorthandPropertyKeyVisit(node, context)) {
+        return;
+      }
       const name = identifierName(node);
-      if (name === null) {
+      if (name !== null) {
+        shorthandIdentifiers.add(name);
+      }
+    });
+
+    const diagnostics: WardenDiagnostic[] = [];
+    walkWithScopeContext(parsed.ast, (node, context) => {
+      if (isDuplicateShorthandValueVisit(node, context)) {
         return;
       }
 
-      const rename = renames.get(name);
-      if (rename === undefined) {
+      const activeMatch = renames
+        .map(({ rename, targetSegments }) => ({
+          match: resolveSymbolRenameMatch(node, sourceCode, rename),
+          targetSegments,
+        }))
+        .find((candidate) => candidate.match !== null);
+      if (activeMatch === undefined || activeMatch.match === null) {
         return;
       }
+      const { match, targetSegments } = activeMatch;
 
-      diagnostics.push(diagnosticFor(sourceCode, filePath, node, rename));
+      diagnostics.push(
+        diagnosticFor(
+          sourceCode,
+          filePath,
+          node,
+          match,
+          reviewReasonFor(context, match, shorthandIdentifiers, targetSegments)
+        )
+      );
     });
 
     return diagnostics;

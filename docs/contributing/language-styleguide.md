@@ -27,7 +27,7 @@ Shortest:
 | `implementation` | Establishes how the trail is carried out from validated input to `Result` output. |
 | `run()` | Runs a trail through the full Trails runtime pipeline. |
 | `surface()` | Opens the graph to an outside interface such as CLI, MCP, HTTP, or WebSocket. |
-| `topo()` | Assembles trails, signals, resources, contours, and related definitions into a queryable graph. |
+| `topo()` | Assembles trails, signals, resources, entities, and related definitions into a queryable graph. |
 | `detour` | Declares recovery paths when a trail cannot proceed normally. |
 | `compose` / `composes` | Declares and performs trail-to-trail composition. |
 

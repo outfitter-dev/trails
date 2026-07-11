@@ -58,19 +58,21 @@ const graph = topo('myapp', entityModule, searchModule);
 
 The topo is the center of gravity for discovery, validation, and runtime wiring. More than a registry — it is the queryable graph of everything: trails, relationships, signals, resources. The primitive is `topo()`. The value it returns is a graph.
 
-### `contour`
+### `entity`
 
-A first-class domain object with schema, identity, and examples. `contour()` defines the shape of a thing in the domain so trails, stores, tests, and topology tooling can all derive from the same authored source.
+A first-class domain object with schema, identity, and examples. `entity()` defines the shape of a thing in the domain so trails, stores, tests, and topology tooling can all derive from the same authored source.
 
 ```typescript
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: shortId(),
   description: z.string(),
   content: z.string(),
+}, {
+  identity: 'id',
 });
 ```
 
-A contour is a node in the domain graph. Trails operate on contours. Stores persist contours. Survey and governance can reason about contours as nouns rather than inferring them from repeated trail prefixes.
+An entity is a node in the domain graph. Trails operate on entities. Stores persist entities. Survey and governance can reason about entities as nouns rather than inferring them from repeated trail prefixes.
 
 ### `warden`
 
@@ -88,7 +90,7 @@ These names are the current durable graph-artifact vocabulary.
 
 #### `TopoGraph`
 
-The exported TypeScript type family for the serialized, inspectable graph content. A TopoGraph contains trail, signal, resource, contour, activation, schema, layer, example, and surface-rendering facts. It is embedded in root `trails.lock`.
+The exported TypeScript type family for the serialized, inspectable graph content. A TopoGraph contains trail, signal, resource, entity, activation, schema, layer, example, and surface-rendering facts. It is embedded in root `trails.lock`.
 
 #### `topoGraph`
 
@@ -132,6 +134,7 @@ These names are historical or migration vocabulary, not current target-state lan
 | `SurfaceMapEntry` | `TopoGraphEntry` |
 | `_surface.json` | `trails.lock` |
 | `surface_map` | `topo_graph` |
+| `contour` / `contours` | `entity` / `entities` |
 | `cross` / `crosses` | `compose` / `composes` |
 | `crossInput` | `composeInput` |
 | `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `trails.lock` when referring to the committed resolved-truth file |

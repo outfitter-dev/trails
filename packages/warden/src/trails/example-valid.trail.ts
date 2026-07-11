@@ -6,8 +6,8 @@ export const exampleValidTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        filePath: 'contours.ts',
-        sourceCode: `const user = contour("user", {
+        filePath: 'entities.ts',
+        sourceCode: `const user = entity("user", {
   id: z.string().uuid(),
   name: z.string(),
 }, {
@@ -18,7 +18,7 @@ export const exampleValidTrail = wrapRule({
   identity: "id",
 });`,
       },
-      name: 'Contour examples validate against their schema',
+      name: 'Entity examples validate against their schema',
     },
   ],
   rule: exampleValid,

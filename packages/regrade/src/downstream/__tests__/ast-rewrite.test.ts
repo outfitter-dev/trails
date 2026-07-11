@@ -1054,21 +1054,21 @@ describe('createAstIdentifierRenameClass', () => {
 
     const classes = createGovernedAstIdentifierRenameClasses(transition);
     const literalClasses = new Map(classes.map((cls) => [cls.id, cls]));
-    const contourLiteralClass = literalClasses.get(
+    const entityLiteralClass = literalClasses.get(
       'ast-string-literal-rename:v1-contour-entity:contour->entity'
     );
-    const contoursLiteralClass = literalClasses.get(
+    const entitiesLiteralClass = literalClasses.get(
       'ast-string-literal-rename:v1-contour-entity:contours->entities'
     );
     const wayfindLiteralClass = literalClasses.get(
       'ast-string-literal-rename:v1-contour-entity:wayfind.contours->wayfind.entities'
     );
-    expect(contourLiteralClass).toBeDefined();
-    expect(contoursLiteralClass).toBeDefined();
+    expect(entityLiteralClass).toBeDefined();
+    expect(entitiesLiteralClass).toBeDefined();
     expect(wayfindLiteralClass).toBeDefined();
     if (
-      contourLiteralClass === undefined ||
-      contoursLiteralClass === undefined ||
+      entityLiteralClass === undefined ||
+      entitiesLiteralClass === undefined ||
       wayfindLiteralClass === undefined
     ) {
       throw new Error('Expected contour literal rename classes.');
@@ -1083,21 +1083,21 @@ describe('createAstIdentifierRenameClass', () => {
       '',
     ].join('\n');
 
-    const singularResult = contourLiteralClass.apply(source, {
+    const singularResult = entityLiteralClass.apply(source, {
       path: 'src/contour.ts',
     });
     expect(singularResult).toMatchObject({
       kind: 'needs-review',
       reason: 'ast-string-literal-review-position',
     });
-    const pluralResult = contoursLiteralClass.apply(source, {
+    const pluralResult = entitiesLiteralClass.apply(source, {
       path: 'src/contour.ts',
     });
     expect(pluralResult).toMatchObject({
       kind: 'needs-review',
       reason: 'ast-string-literal-review-position',
     });
-    const payloadResult = contourLiteralClass.apply(
+    const payloadResult = entityLiteralClass.apply(
       'const apiPayload = { kind: "contour" };',
       { path: 'src/api.ts' }
     );
@@ -1168,7 +1168,7 @@ describe('createAstIdentifierRenameClass', () => {
       'const contourModule = require("contour");',
     ]) {
       expect(
-        contourLiteralClass.apply(moduleSource, {
+        entityLiteralClass.apply(moduleSource, {
           path: 'src/module-route.ts',
         })
       ).toMatchObject({

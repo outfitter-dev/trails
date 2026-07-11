@@ -1453,7 +1453,7 @@ const TRAIL_CALLEE_NAMES = new Set(['signal', 'trail']);
 
 /**
  * Source prefix for the Trails framework package whose namespace imports are
- * recognized as carriers of `trail()` / `signal()` / `contour()` primitives.
+ * recognized as carriers of `trail()` / `signal()` / `entity()` primitives.
  *
  * A namespaced callee like `core.trail(...)` is only treated as a framework
  * call when the receiver identifier resolves to an `import * as core from
@@ -2072,7 +2072,7 @@ const getFrameworkCallReceiver = (
  * whose callee is `<receiver>.<property>` where `<receiver>` is proven to
  * resolve to a framework namespace import (i.e. not shadowed by any
  * enclosing scope). Used to gate namespaced `core.trail(...)` /
- * `core.signal(...)` / `core.contour(...)` resolution against local shadows.
+ * `core.signal(...)` / `core.entity(...)` resolution against local shadows.
  */
 const collectFrameworkNamespacedCallStarts = (
   ast: AstNode,
@@ -2347,47 +2347,47 @@ export const findTrailDefinitions = (ast: AstNode): TrailDefinition[] => {
 };
 
 // ---------------------------------------------------------------------------
-// Contour definition extraction
+// Entity definition extraction
 // ---------------------------------------------------------------------------
 
-export interface ContourDefinition {
-  /** Local binding name when the contour is assigned to a variable. */
+export interface EntityDefinition {
+  /** Local binding name when the entity is assigned to a variable. */
   readonly bindingName?: string;
-  /** Contour name string, e.g. "user". */
+  /** Entity name string, e.g. "user". */
   readonly name: string;
-  /** Original call expression for the contour declaration. */
+  /** Original call expression for the entity declaration. */
   readonly call: AstNode;
-  /** Options object argument passed to contour(), when present. */
+  /** Options object argument passed to entity(), when present. */
   readonly options: AstNode | null;
-  /** Shape object argument passed to contour(). */
+  /** Shape object argument passed to entity(). */
   readonly shape: AstNode;
   /** Start offset of the call expression. */
   readonly start: number;
 }
 
-const CONTOUR_PRIMITIVE_NAME = 'contour';
+const ENTITY_PRIMITIVE_NAME = 'entity';
 
-const matchContourPrimitiveName = (
+const matchEntityPrimitiveName = (
   name: string | undefined | null
-): string | null => (name === CONTOUR_PRIMITIVE_NAME ? name : null);
+): string | null => (name === ENTITY_PRIMITIVE_NAME ? name : null);
 
-const getBareContourCalleeName = (callee: AstNode): string | null => {
+const getBareEntityCalleeName = (callee: AstNode): string | null => {
   if (callee.type !== 'Identifier') {
     return null;
   }
-  return matchContourPrimitiveName(
+  return matchEntityPrimitiveName(
     (callee as unknown as { name?: string }).name
   );
 };
 
 /**
- * Resolve a namespaced `ns.contour(...)` callee to its primitive name. Mirrors
+ * Resolve a namespaced `ns.entity(...)` callee to its primitive name. Mirrors
  * {@link getNamespacedTrailCalleeName}: the receiver identifier must resolve
  * to an `@ontrails/*` namespace import, and — when a scope-aware
  * `safeCallStarts` set is provided — the call site must not be shadowed by a
  * local binding of the same name.
  */
-const getNamespacedContourCalleeName = (
+const getNamespacedEntityCalleeName = (
   callExpr: AstNode,
   callee: AstNode,
   context?: ReadonlySet<string> | FrameworkNamespaceContext
@@ -2396,7 +2396,7 @@ const getNamespacedContourCalleeName = (
   if (!names) {
     return null;
   }
-  // Unlike the trail/signal variant, contour has no inline-resolution callers
+  // Unlike the trail/signal variant, entity has no inline-resolution callers
   // that legitimately invoke this without a FrameworkNamespaceContext, so the
   // strict namespace gate stays on. If a future caller needs the permissive
   // fallback, mirror the trail shape and add a regression test first.
@@ -2404,15 +2404,15 @@ const getNamespacedContourCalleeName = (
   if (!ctx || !isNamespacedCallAllowed(callExpr.start, names.receiver, ctx)) {
     return null;
   }
-  return matchContourPrimitiveName(names.property);
+  return matchEntityPrimitiveName(names.property);
 };
 
 /**
- * Resolve the callee name of a contour call expression. Matches both bare
- * `contour(...)` identifiers and namespaced `core.contour(...)` callees where
+ * Resolve the callee name of an entity call expression. Matches both bare
+ * `entity(...)` identifiers and namespaced `core.entity(...)` callees where
  * the namespace comes from an `@ontrails/*` import and is unshadowed.
  */
-const getContourCalleeName = (
+const getEntityCalleeName = (
   node: AstNode,
   context?: ReadonlySet<string> | FrameworkNamespaceContext
 ): string | null => {
@@ -2424,16 +2424,16 @@ const getContourCalleeName = (
     return null;
   }
   return (
-    getBareContourCalleeName(callee) ??
-    getNamespacedContourCalleeName(node, callee, context)
+    getBareEntityCalleeName(callee) ??
+    getNamespacedEntityCalleeName(node, callee, context)
   );
 };
 
-const extractContourDefinition = (
+const extractEntityDefinition = (
   node: AstNode,
   context?: ReadonlySet<string> | FrameworkNamespaceContext
-): Omit<ContourDefinition, 'bindingName'> | null => {
-  if (!getContourCalleeName(node, context)) {
+): Omit<EntityDefinition, 'bindingName'> | null => {
+  if (!getEntityCalleeName(node, context)) {
     return null;
   }
 
@@ -2469,10 +2469,10 @@ const getCallStartFromCandidate = (
   return expression?.type === 'CallExpression' ? expression.start : null;
 };
 
-// Statement forms that can directly contain a top-level contour call:
-//   `core.contour(...)` as a bare statement,
-//   `export const ... = core.contour(...)` (handled via VariableDeclarator),
-//   `export default core.contour(...);`.
+// Statement forms that can directly contain a top-level entity call:
+//   `core.entity(...)` as a bare statement,
+//   `export const ... = core.entity(...)` (handled via VariableDeclarator),
+//   `export default core.entity(...);`.
 const getCandidateCallHosts = (
   statement: AstNode
 ): readonly (AstNode | undefined)[] => {
@@ -2514,31 +2514,31 @@ const collectTopLevelStatementCallStarts = (
   return new Set(body.flatMap(getTopLevelCallStartsFrom));
 };
 
-export interface FindContourDefinitionsOptions {
+export interface FindEntityDefinitionsOptions {
   /**
-   * When true, skip contour calls nested inside other expressions (e.g.
-   * `core.contour('inner', {...}).id()` used as a field of an outer contour).
-   * Top-level forms are still surfaced: both `const foo = contour(...)`
-   * declarations and bare `contour('name', {...});` statement-form calls that
+   * When true, skip entity calls nested inside other expressions (e.g.
+   * `core.entity('inner', {...}).id()` used as a field of an outer entity).
+   * Top-level forms are still surfaced: both `const foo = entity(...)`
+   * declarations and bare `entity('name', {...});` statement-form calls that
    * appear directly in the program body (optionally wrapped in `export`) are
    * returned.
    *
-   * Defaults to `false`: both top-level and inline contours are returned so
-   * that reference-site resolution can reach anonymous inline contours.
+   * Defaults to `false`: both top-level and inline entities are returned so
+   * that reference-site resolution can reach anonymous inline entities.
    */
   readonly topLevelOnly?: boolean;
 }
 
 /**
- * Return every `contour('name', ...)` definition reachable from the AST, in
+ * Return every `entity('name', ...)` definition reachable from the AST, in
  * source order, deduplicated by call-expression start offset.
  *
- * Includes both top-level bindings (`const user = contour('user', ...)`) and
- * inline contour calls nested inside other expressions (e.g.
- * `contour('outer', { inner: contour('inner', ...).id() })`). Inline contours
+ * Includes both top-level bindings (`const user = entity('user', ...)`) and
+ * inline entity calls nested inside other expressions (e.g.
+ * `entity('outer', { inner: entity('inner', ...).id() })`). Inline entities
  * carry no `bindingName` because they have no local binding — this asymmetry
- * is why {@link collectNamedContourIds} returns only the top-level subset
- * while {@link collectContourDefinitionIds} returns the full set.
+ * is why {@link collectNamedEntityIds} returns only the top-level subset
+ * while {@link collectEntityDefinitionIds} returns the full set.
  *
  * Pass `{ topLevelOnly: true }` via `options` to opt out of inline discovery
  * without disturbing callers that rely on the default behavior.
@@ -2546,19 +2546,19 @@ export interface FindContourDefinitionsOptions {
  * @remarks
  * Supplying a pre-built `context` skips the second full-AST traversal inside
  * `buildFrameworkNamespaceContext` — useful for callers (such as
- * {@link collectContourReferenceSites}) that already built one.
+ * {@link collectEntityReferenceSites}) that already built one.
  */
-export const findContourDefinitions = (
+export const findEntityDefinitions = (
   ast: AstNode,
   context?: FrameworkNamespaceContext,
-  options?: FindContourDefinitionsOptions
-): ContourDefinition[] => {
-  const definitions: ContourDefinition[] = [];
+  options?: FindEntityDefinitionsOptions
+): EntityDefinition[] => {
+  const definitions: EntityDefinition[] = [];
   const seenStarts = new Set<number>();
   const resolvedContext = context ?? buildFrameworkNamespaceContext(ast);
   const topLevelOnly = options?.topLevelOnly === true;
 
-  const addContourDefinition = (definition: ContourDefinition): void => {
+  const addEntityDefinition = (definition: EntityDefinition): void => {
     if (seenStarts.has(definition.start)) {
       return;
     }
@@ -2567,7 +2567,7 @@ export const findContourDefinitions = (
     seenStarts.add(definition.start);
   };
 
-  const addNamedContourDefinition = (
+  const addNamedEntityDefinition = (
     id: AstNode | undefined,
     init: AstNode | undefined
   ): void => {
@@ -2575,23 +2575,23 @@ export const findContourDefinitions = (
       return;
     }
 
-    const definition = extractContourDefinition(init, resolvedContext);
+    const definition = extractEntityDefinition(init, resolvedContext);
     if (!definition) {
       return;
     }
 
     const bindingName = extractBindingName(id);
     if (bindingName) {
-      addContourDefinition({ ...definition, bindingName });
+      addEntityDefinition({ ...definition, bindingName });
       return;
     }
 
-    addContourDefinition(definition);
+    addEntityDefinition(definition);
   };
 
   // When `topLevelOnly` is set, collect the start offsets of call expressions
   // that sit directly in the program body as `ExpressionStatement`s (optionally
-  // wrapped in `export`). These are top-level statement-form contour calls and
+  // wrapped in `export`). These are top-level statement-form entity calls and
   // should still surface alongside `VariableDeclarator` bindings; only calls
   // nested inside other expressions are excluded.
   const topLevelStatementCallStarts = topLevelOnly
@@ -2604,7 +2604,7 @@ export const findContourDefinitions = (
         readonly id?: AstNode;
         readonly init?: AstNode;
       };
-      addNamedContourDefinition(id, init);
+      addNamedEntityDefinition(id, init);
       return;
     }
 
@@ -2615,9 +2615,9 @@ export const findContourDefinitions = (
       return;
     }
 
-    const definition = extractContourDefinition(node, resolvedContext);
+    const definition = extractEntityDefinition(node, resolvedContext);
     if (definition) {
-      addContourDefinition(definition);
+      addEntityDefinition(definition);
     }
   });
 
@@ -2625,27 +2625,25 @@ export const findContourDefinitions = (
 };
 
 /**
- * Collect the `name` of every contour definition in a parsed file, including
- * inline contours nested inside other expressions. Returns the same set of
- * names that {@link findContourDefinitions} discovers under default options.
+ * Collect the `name` of every entity definition in a parsed file, including
+ * inline entities nested inside other expressions. Returns the same set of
+ * names that {@link findEntityDefinitions} discovers under default options.
  */
-export const collectContourDefinitionIds = (
-  ast: AstNode
-): ReadonlySet<string> =>
-  new Set(findContourDefinitions(ast).map((def) => def.name));
+export const collectEntityDefinitionIds = (ast: AstNode): ReadonlySet<string> =>
+  new Set(findEntityDefinitions(ast).map((def) => def.name));
 
 /**
- * Collect the `localBinding → contourName` map for `const foo = contour(...)`
- * declarations. Inline contour calls are intentionally excluded because they
- * have no local binding — use {@link collectContourDefinitionIds} when the
+ * Collect the `localBinding → entityName` map for `const foo = entity(...)`
+ * declarations. Inline entity calls are intentionally excluded because they
+ * have no local binding — use {@link collectEntityDefinitionIds} when the
  * full set of declared names is required.
  */
-export const collectNamedContourIds = (
+export const collectNamedEntityIds = (
   ast: AstNode
 ): ReadonlyMap<string, string> => {
   const ids = new Map<string, string>();
 
-  for (const def of findContourDefinitions(ast)) {
+  for (const def of findEntityDefinitions(ast)) {
     if (def.bindingName) {
       ids.set(def.bindingName, def.name);
     }
@@ -2684,8 +2682,8 @@ const extractImportSpecifierAlias = (
   // Default imports bind the default export of the source module to the local
   // name. We cannot statically recover the exported name without compose-file
   // analysis, so the local name is the best identifier we have for resolving
-  // against `knownContourIds`. Treat the alias as an identity mapping; the
-  // downstream resolver will fall through to `knownContourIds` on the binding
+  // against `knownEntityIds`. Treat the alias as an identity mapping; the
+  // downstream resolver will fall through to `knownEntityIds` on the binding
   // name and report it as missing when not found.
   if (specifier.type === 'ImportDefaultSpecifier') {
     return { importedName: localName, localName };
@@ -2704,7 +2702,7 @@ const extractImportSpecifierAlias = (
  * specifier mappings keyed by local binding name. The value is the original
  * exported name for named imports. Default imports map to themselves because
  * the exported name cannot be recovered statically — callers should fall
- * through to `knownContourIds` membership on the local binding name.
+ * through to `knownEntityIds` membership on the local binding name.
  */
 export const collectImportAliasMap = (
   ast: AstNode
@@ -2753,15 +2751,15 @@ const addUserNamespaceBindingsFromDeclaration = (
 /**
  * Collect local binding names introduced by `import * as <name> from '<src>'`
  * declarations whose source is NOT an `@ontrails/*` framework package. These
- * are user-defined namespace imports of contour modules (e.g. `import * as
- * contours from './contours'`), used to resolve `contours.user` member-access
- * references to contour ids.
+ * are user-defined namespace imports of entity modules (e.g. `import * as
+ * entities from './entities'`), used to resolve `entities.user` member-access
+ * references to entity ids.
  *
  * Framework namespace imports (`import * as core from '@ontrails/core'`) are
  * intentionally excluded — they carry framework primitives like
- * `core.contour(...)` and are resolved by {@link buildFrameworkNamespaceContext}.
- * Mixing them here would treat `core.contour` as a reference to a contour
- * named "contour", producing false positives.
+ * `core.entity(...)` and are resolved by {@link buildFrameworkNamespaceContext}.
+ * Mixing them here would treat `core.entity` as a reference to an entity
+ * named "entity", producing false positives.
  */
 export const collectUserNamespaceImportBindings = (
   ast: AstNode
@@ -2779,9 +2777,9 @@ export const collectUserNamespaceImportBindings = (
 };
 
 /**
- * Resolution context for user-namespace member access like `contours.user`.
+ * Resolution context for user-namespace member access like `entities.user`.
  * Bundles the set of local namespace-binding names (from `import * as x from
- * './contours'`) with an optional set of proven-safe `MemberExpression` start
+ * './entities'`) with an optional set of proven-safe `MemberExpression` start
  * offsets from a scope-aware pre-pass. When `safeMemberStarts` is present, a
  * member access only resolves to a user-namespace target if its start is in
  * the set — so a function-local shadow of the namespace import does not leak
@@ -2797,8 +2795,8 @@ export interface UserNamespaceContext {
  * Walk the AST with a scope stack and collect `MemberExpression` start offsets
  * whose receiver is a user-namespace binding that is NOT shadowed by any
  * enclosing scope. Mirrors `collectFrameworkNamespacedCallStarts` for the
- * framework-namespace path so `contours.user` inside
- * `function f(contours) { ... }` is rejected as shadowed.
+ * framework-namespace path so `entities.user` inside
+ * `function f(entities) { ... }` is rejected as shadowed.
  */
 /**
  * Return the receiver-identifier name of a non-computed member access, or
@@ -2836,7 +2834,7 @@ const collectUserNamespacedMemberStarts = (
  * Build a {@link UserNamespaceContext} for `ast`, including the scope-aware
  * `safeMemberStarts` gate. Prefer this over bare
  * {@link collectUserNamespaceImportBindings} so member access like
- * `contours.user` is rejected when `contours` is shadowed by a local binding.
+ * `entities.user` is rejected when `entities` is shadowed by a local binding.
  */
 export const buildUserNamespaceContext = (
   ast: AstNode
@@ -2848,14 +2846,14 @@ export const buildUserNamespaceContext = (
   };
 };
 
-export interface ContourReferenceSite {
-  /** Field on the source contour that declares the reference. */
+export interface EntityReferenceSite {
+  /** Field on the source entity that declares the reference. */
   readonly field: string;
-  /** Source contour name. */
+  /** Source entity name. */
   readonly source: string;
   /** Start offset of the field declaration. */
   readonly start: number;
-  /** Target contour name. */
+  /** Target entity name. */
   readonly target: string;
 }
 
@@ -2878,24 +2876,24 @@ export const getPropertyName = (node: unknown): string | null => {
   return isAstNode(node) ? extractStringLiteral(node) : null;
 };
 
-const stripContourSuffix = (name: string): string => {
-  const suffix = 'Contour';
+const stripEntitySuffix = (name: string): string => {
+  const suffix = 'Entity';
   return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name;
 };
 
-const resolveKnownContourName = (
+const resolveKnownEntityName = (
   name: string,
-  knownContourIds?: ReadonlySet<string>
+  knownEntityIds?: ReadonlySet<string>
 ): string | null => {
-  if (knownContourIds?.has(name)) {
+  if (knownEntityIds?.has(name)) {
     return name;
   }
 
-  // Support the common `const userContour = contour('user', ...)` naming
-  // pattern when callers refer to the binding name instead of the contour ID.
+  // Support the common `const userEntity = entity('user', ...)` naming
+  // pattern when callers refer to the binding name instead of the entity ID.
   // Exact matches always win; suffix stripping is a fallback only.
-  const stripped = stripContourSuffix(name);
-  if (stripped !== name && knownContourIds?.has(stripped)) {
+  const stripped = stripEntitySuffix(name);
+  if (stripped !== name && knownEntityIds?.has(stripped)) {
     return stripped;
   }
 
@@ -2903,35 +2901,35 @@ const resolveKnownContourName = (
 };
 
 /**
- * Resolve a local binding name to a contour ID, honoring import aliases.
+ * Resolve a local binding name to an entity ID, honoring import aliases.
  *
  * Strategies, in order:
- * 1. Local `const foo = contour('name', ...)` binding → the contour name.
- * 2. `knownContourIds` membership on the binding name itself (or the
- *    conventional `Contour` suffix strip).
+ * 1. Local `const foo = entity('name', ...)` binding → the entity name.
+ * 2. `knownEntityIds` membership on the binding name itself (or the
+ *    conventional `Entity` suffix strip).
  * 3. `import { foo as bar }` → use the original exported name `foo`
  *    (and apply strategy 2 / suffix-stripping against it so aliased imports
  *    resolve correctly). If the imported name still isn't recognized, the
  *    imported name is returned so the caller can report it missing.
  *
  * Returns `null` only when the name belongs to no known resolution path —
- * no local binding, no known contour ID, no import, and no suffix match.
- * Returning `null` means "this identifier is not a contour reference we can
+ * no local binding, no known entity ID, no import, and no suffix match.
+ * Returning `null` means "this identifier is not an entity reference we can
  * reason about" (e.g. a bare undeclared variable), as opposed to
- * "a contour reference whose target is missing".
+ * "an entity reference whose target is missing".
  */
-export const deriveContourIdentifierName = (
+export const deriveEntityIdentifierName = (
   bindingName: string,
-  namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+  namedEntityIds: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>
 ): string | null => {
-  const localName = namedContourIds.get(bindingName);
+  const localName = namedEntityIds.get(bindingName);
   if (localName) {
     return localName;
   }
 
-  const known = resolveKnownContourName(bindingName, knownContourIds);
+  const known = resolveKnownEntityName(bindingName, knownEntityIds);
   if (known) {
     return known;
   }
@@ -2943,15 +2941,13 @@ export const deriveContourIdentifierName = (
   // missing under its original name.
   const importedName = importAliases?.get(bindingName);
   if (importedName) {
-    return (
-      resolveKnownContourName(importedName, knownContourIds) ?? importedName
-    );
+    return resolveKnownEntityName(importedName, knownEntityIds) ?? importedName;
   }
 
   return null;
 };
 
-const getContourReferenceMember = (
+const getEntityReferenceMember = (
   node: AstNode
 ): {
   readonly object?: AstNode;
@@ -2984,17 +2980,17 @@ const asUserNamespaceContext = (
 };
 
 /**
- * Resolve a user-namespace member access like `contours.user` to its contour
+ * Resolve a user-namespace member access like `entities.user` to its entity
  * id. Returns the property name (e.g. `'user'`) when the receiver identifier
  * is a known user-defined namespace binding AND — when the caller provides a
  * {@link UserNamespaceContext} with `safeMemberStarts` — the member access
  * site is in that set (i.e. the receiver is not shadowed by any enclosing
  * scope). Otherwise returns `null`.
  *
- * The property name is taken as the contour id verbatim — we cannot statically
- * resolve what `contours.user` binds to without reading the other file, so we
+ * The property name is taken as the entity id verbatim — we cannot statically
+ * resolve what `entities.user` binds to without reading the other file, so we
  * treat the member name as the candidate target and let
- * {@link deriveContourIdentifierName}'s downstream `knownContourIds` check
+ * {@link deriveEntityIdentifierName}'s downstream `knownEntityIds` check
  * report a missing target.
  */
 export const isUserNamespaceReceiverAllowed = (
@@ -3010,7 +3006,7 @@ export const isUserNamespaceReceiverAllowed = (
   return ctx.safeMemberStarts ? ctx.safeMemberStarts.has(memberStart) : true;
 };
 
-const getContourReferenceTargetFromNamespaceMember = (
+const getEntityReferenceTargetFromNamespaceMember = (
   member: {
     readonly object?: AstNode;
     readonly property?: AstNode;
@@ -3036,10 +3032,10 @@ const getContourReferenceTargetFromNamespaceMember = (
   return identifierName(property);
 };
 
-const getContourReferenceTargetFromObject = (
+const getEntityReferenceTargetFromObject = (
   object: AstNode,
-  namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+  namedEntityIds: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
   userNamespace?: ReadonlySet<string> | UserNamespaceContext
@@ -3047,18 +3043,18 @@ const getContourReferenceTargetFromObject = (
   if (object.type === 'Identifier') {
     const bindingName = identifierName(object);
     return bindingName
-      ? deriveContourIdentifierName(
+      ? deriveEntityIdentifierName(
           bindingName,
-          namedContourIds,
-          knownContourIds,
+          namedEntityIds,
+          knownEntityIds,
           importAliases
         )
       : null;
   }
 
-  const member = getContourReferenceMember(object);
+  const member = getEntityReferenceMember(object);
   if (member) {
-    const namespaceTarget = getContourReferenceTargetFromNamespaceMember(
+    const namespaceTarget = getEntityReferenceTargetFromNamespaceMember(
       member,
       userNamespace
     );
@@ -3067,10 +3063,10 @@ const getContourReferenceTargetFromObject = (
     }
   }
 
-  return extractContourDefinition(object, context)?.name ?? null;
+  return extractEntityDefinition(object, context)?.name ?? null;
 };
 
-const CONTOUR_ID_WRAPPER_METHODS = new Set([
+const ENTITY_ID_WRAPPER_METHODS = new Set([
   'brand',
   'catch',
   'default',
@@ -3082,19 +3078,19 @@ const CONTOUR_ID_WRAPPER_METHODS = new Set([
   'readonly',
 ]);
 
-const getContourIdCallMember = (
+const getEntityIdCallMember = (
   node: AstNode
 ): {
-  readonly member: NonNullable<ReturnType<typeof getContourReferenceMember>>;
+  readonly member: NonNullable<ReturnType<typeof getEntityReferenceMember>>;
   readonly propertyName: string;
 } | null => {
   const callee = node['callee'] as AstNode | undefined;
-  const member = callee ? getContourReferenceMember(callee) : null;
+  const member = callee ? getEntityReferenceMember(callee) : null;
   const propertyName = member ? identifierName(member.property) : null;
   return member && propertyName ? { member, propertyName } : null;
 };
 
-const getContourIdCallObject = function getContourIdCallObject(
+const getEntityIdCallObject = function getEntityIdCallObject(
   node: AstNode | undefined
 ): AstNode | null {
   const current = node;
@@ -3102,7 +3098,7 @@ const getContourIdCallObject = function getContourIdCallObject(
     return null;
   }
 
-  const member = getContourIdCallMember(current);
+  const member = getEntityIdCallMember(current);
   if (!member) {
     return null;
   }
@@ -3110,25 +3106,25 @@ const getContourIdCallObject = function getContourIdCallObject(
     return member.member.object ?? null;
   }
 
-  return CONTOUR_ID_WRAPPER_METHODS.has(member.propertyName)
-    ? getContourIdCallObject(member.member.object)
+  return ENTITY_ID_WRAPPER_METHODS.has(member.propertyName)
+    ? getEntityIdCallObject(member.member.object)
     : null;
 };
 
-const extractContourReferenceTarget = (
+const extractEntityReferenceTarget = (
   node: AstNode | undefined,
-  namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+  namedEntityIds: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
   userNamespace?: ReadonlySet<string> | UserNamespaceContext
 ): string | null => {
-  const object = getContourIdCallObject(node);
+  const object = getEntityIdCallObject(node);
   return object
-    ? getContourReferenceTargetFromObject(
+    ? getEntityReferenceTargetFromObject(
         object,
-        namedContourIds,
-        knownContourIds,
+        namedEntityIds,
+        knownEntityIds,
         importAliases,
         context,
         userNamespace
@@ -3136,29 +3132,29 @@ const extractContourReferenceTarget = (
     : null;
 };
 
-const getContourShapeProperties = (
-  definition: ContourDefinition
+const getEntityShapeProperties = (
+  definition: EntityDefinition
 ): readonly AstNode[] =>
   (definition.shape['properties'] as readonly AstNode[] | undefined) ?? [];
 
-const buildContourReferenceSite = (
-  definition: ContourDefinition,
+const buildEntityReferenceSite = (
+  definition: EntityDefinition,
   property: AstNode,
-  namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+  namedEntityIds: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
   userNamespace?: ReadonlySet<string> | UserNamespaceContext
-): ContourReferenceSite | null => {
+): EntityReferenceSite | null => {
   if (property.type !== 'Property') {
     return null;
   }
 
   const field = getPropertyName(property.key);
-  const target = extractContourReferenceTarget(
+  const target = extractEntityReferenceTarget(
     property.value as AstNode | undefined,
-    namedContourIds,
-    knownContourIds,
+    namedEntityIds,
+    knownEntityIds,
     importAliases,
     context,
     userNamespace
@@ -3175,20 +3171,20 @@ const buildContourReferenceSite = (
   };
 };
 
-const findContourReferenceSitesForDefinition = (
-  definition: ContourDefinition,
-  namedContourIds: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+const findEntityReferenceSitesForDefinition = (
+  definition: EntityDefinition,
+  namedEntityIds: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   context?: ReadonlySet<string> | FrameworkNamespaceContext,
   userNamespace?: ReadonlySet<string> | UserNamespaceContext
-): readonly ContourReferenceSite[] =>
-  getContourShapeProperties(definition).flatMap((property) => {
-    const reference = buildContourReferenceSite(
+): readonly EntityReferenceSite[] =>
+  getEntityShapeProperties(definition).flatMap((property) => {
+    const reference = buildEntityReferenceSite(
       definition,
       property,
-      namedContourIds,
-      knownContourIds,
+      namedEntityIds,
+      knownEntityIds,
       importAliases,
       context,
       userNamespace
@@ -3196,20 +3192,20 @@ const findContourReferenceSitesForDefinition = (
     return reference ? [reference] : [];
   });
 
-/** Collect all contour field references declared via `.id()` in a parsed file. */
-export const collectContourReferenceSites = (
+/** Collect all entity field references declared via `.id()` in a parsed file. */
+export const collectEntityReferenceSites = (
   ast: AstNode,
-  knownContourIds?: ReadonlySet<string>
-): readonly ContourReferenceSite[] => {
-  const namedContourIds = collectNamedContourIds(ast);
+  knownEntityIds?: ReadonlySet<string>
+): readonly EntityReferenceSite[] => {
+  const namedEntityIds = collectNamedEntityIds(ast);
   const importAliases = collectImportAliasMap(ast);
   const userNamespace = buildUserNamespaceContext(ast);
   const context = buildFrameworkNamespaceContext(ast);
-  return findContourDefinitions(ast, context).flatMap((definition) =>
-    findContourReferenceSitesForDefinition(
+  return findEntityDefinitions(ast, context).flatMap((definition) =>
+    findEntityReferenceSitesForDefinition(
       definition,
-      namedContourIds,
-      knownContourIds,
+      namedEntityIds,
+      knownEntityIds,
       importAliases,
       context,
       userNamespace
@@ -3217,14 +3213,14 @@ export const collectContourReferenceSites = (
   );
 };
 
-/** Collect contour reference targets keyed by source contour name. */
-export const collectContourReferenceTargetsByName = (
+/** Collect entity reference targets keyed by source entity name. */
+export const collectEntityReferenceTargetsByName = (
   ast: AstNode,
-  knownContourIds?: ReadonlySet<string>
+  knownEntityIds?: ReadonlySet<string>
 ): ReadonlyMap<string, readonly string[]> => {
   const targetsByName = new Map<string, Set<string>>();
 
-  for (const reference of collectContourReferenceSites(ast, knownContourIds)) {
+  for (const reference of collectEntityReferenceSites(ast, knownEntityIds)) {
     const existing = targetsByName.get(reference.source);
     if (existing) {
       existing.add(reference.target);

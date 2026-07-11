@@ -66,10 +66,10 @@ const writeWorkspaceTopoGraph = (
   return writeTrailsLock(
     {
       scope: { app: 'workspace' },
-      summary: { contours: 0, resources: 0, signals: 0, trails: 0 },
+      summary: { entities: 0, resources: 0, signals: 0, trails: 0 },
       topoGraph,
       topoGraphHash: deriveTopoGraphHash(topoGraph),
-      version: 4,
+      version: 5,
     } as TrailsLock,
     { dir }
   );

@@ -8,21 +8,21 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { contour, Result, trail, topo } from '@ontrails/core';
+import { entity, Result, trail, topo } from '@ontrails/core';
 import { connectDrizzle } from '@ontrails/drizzle';
 import { z } from 'zod';
 
 import { testAll } from '../all.js';
 import { store as defineStore } from '@ontrails/store';
 
-const requireContourExample = (
-  contourDef: { examples?: readonly Record<string, unknown>[] },
+const requireEntityExample = (
+  entityDef: { examples?: readonly Record<string, unknown>[] },
   index: number
 ) => {
-  const example = contourDef.examples?.[index];
+  const example = entityDef.examples?.[index];
   expect(example).toBeDefined();
   if (!example) {
-    throw new Error(`Expected contour example at index ${index}`);
+    throw new Error(`Expected entity example at index ${index}`);
   }
   return example;
 };
@@ -95,12 +95,12 @@ const mockedTrail = trail('resource.mocked.all', {
     },
   ],
   implementation: async (_input, ctx) => {
-    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
-    if (entity === null) {
+    const record = await mockDbResource.from(ctx).entities.get('seed-1');
+    if (record === null) {
       return Result.err(new Error('expected seeded entity to exist'));
     }
 
-    return Result.ok({ name: entity.name, source: entity.source });
+    return Result.ok({ name: record.name, source: record.source });
   },
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
@@ -117,19 +117,19 @@ const overrideTrail = trail('resource.override.all', {
     },
   ],
   implementation: async (_input, ctx) => {
-    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
-    if (entity === null) {
+    const record = await mockDbResource.from(ctx).entities.get('seed-1');
+    if (record === null) {
       return Result.err(new Error('expected overridden entity to exist'));
     }
 
-    return Result.ok({ name: entity.name, source: entity.source });
+    return Result.ok({ name: record.name, source: record.source });
   },
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
   resources: [mockDbResource],
 });
 
-const contourFixture = contour(
+const entityFixture = entity(
   'allFixture',
   {
     id: z.string().uuid(),
@@ -139,23 +139,23 @@ const contourFixture = contour(
     examples: [
       {
         id: 'f46b837e-6c8d-42ec-8539-536f4e6daf0e',
-        name: 'Contour-derived governance fixture',
+        name: 'Entity-derived governance fixture',
       },
     ],
     identity: 'id',
   }
 );
 
-const contourDerivedImplementation = mock(() =>
-  Result.ok(requireContourExample(contourFixture, 0))
+const entityDerivedImplementation = mock(() =>
+  Result.ok(requireEntityExample(entityFixture, 0))
 );
 
-const contourDerivedTrail = trail('contour.derived.all', {
-  contours: [contourFixture],
-  description: 'Trail that relies on contour-derived fixtures inside testAll',
-  implementation: () => contourDerivedImplementation(),
-  input: z.object({ id: contourFixture.shape.id }),
-  output: contourFixture,
+const entityDerivedTrail = trail('entity.derived.all', {
+  description: 'Trail that relies on entity-derived fixtures inside testAll',
+  entities: [entityFixture],
+  implementation: () => entityDerivedImplementation(),
+  input: z.object({ id: entityFixture.shape.id }),
+  output: entityFixture,
 });
 
 const versionAllCurrentImplementation = mock((input: { name: string }) =>
@@ -363,17 +363,17 @@ describe('testAll explicit resource overrides', () => {
   );
 });
 
-describe('testAll contour-derived fixtures', () => {
+describe('testAll entity-derived fixtures', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
-    topo('test-all-contour-derived-app', {
-      contourDerivedTrail,
-      contourFixture,
+    topo('test-all-entity-derived-app', {
+      entityDerivedTrail,
+      entityFixture,
     } as Record<string, unknown>)
   );
 
   afterAll(() => {
-    expect(contourDerivedImplementation).toHaveBeenCalledTimes(2);
+    expect(entityDerivedImplementation).toHaveBeenCalledTimes(2);
   });
 });
 

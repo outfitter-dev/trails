@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  contour,
+  entity,
   deriveTrail,
   resource,
   Result,
@@ -38,7 +38,7 @@ describe('duplicate-public-contract', () => {
         filePath: '<topo>',
         line: 1,
         message:
-          'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, contours, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
+          'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, entities, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
         rule: 'duplicate-public-contract',
         severity: 'warn',
       },
@@ -79,13 +79,13 @@ describe('duplicate-public-contract', () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test('stays quiet for factory CRUD deletes anchored to different contours', async () => {
-    const pack = contour(
+  test('stays quiet for factory CRUD deletes anchored to different entities', async () => {
+    const pack = entity(
       'pack',
       { id: z.string(), name: z.string() },
       { identity: 'id' }
     );
-    const trip = contour(
+    const trip = entity(
       'trip',
       { id: z.string(), name: z.string() },
       { identity: 'id' }
@@ -110,27 +110,27 @@ describe('duplicate-public-contract', () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test('still warns for identical contracts anchored to the same contour', async () => {
-    const pack = contour(
+  test('still warns for identical contracts anchored to the same entity', async () => {
+    const pack = entity(
       'pack',
       { id: z.string(), name: z.string() },
       { identity: 'id' }
     );
     const canonical = trail('pack.remove', {
-      contours: [pack],
+      entities: [pack],
       implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
     const duplicate = trail('pack.destroy', {
-      contours: [pack],
+      entities: [pack],
       implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
 
     const diagnostics = await duplicatePublicContract.checkTopo(
-      topo('same-contour-duplicates', { canonical, duplicate })
+      topo('same-entity-duplicates', { canonical, duplicate })
     );
 
     expect(diagnostics).toHaveLength(1);

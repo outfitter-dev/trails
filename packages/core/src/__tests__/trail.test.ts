@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { contour } from '../contour';
+import { entity } from '../entity';
 import { createTrailContext } from '../context';
 import { ConflictError, ValidationError } from '../errors';
 import { Result } from '../result';
@@ -35,7 +35,7 @@ const dbResource = resource('db.main', {
   description: 'Primary database resource',
 });
 
-const userContour = contour(
+const userEntity = entity(
   'user',
   {
     id: z.string().uuid(),
@@ -84,6 +84,18 @@ describe('trail()', () => {
       const result = await greet.implementation({ name: 'World' }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ greeting: 'Hello, World!' });
+    });
+
+    test('rejects the retired contours collection instead of preserving it', () => {
+      const retiredSpec = {
+        contours: [userEntity],
+        implementation: () => Result.ok(),
+        input: z.object({}),
+      };
+
+      expect(() => trail('legacy.contours', retiredSpec)).toThrow(
+        'uses retired "contours"; use "entities" instead'
+      );
     });
   });
 
@@ -744,33 +756,33 @@ describe('trail()', () => {
     });
   });
 
-  describe('contours', () => {
+  describe('entities', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
         implementation: () => Result.ok(),
         input: z.object({}),
       });
-      expect(minimal.contours).toEqual([]);
-      expect(Object.isFrozen(minimal.contours)).toBe(true);
+      expect(minimal.entities).toEqual([]);
+      expect(Object.isFrozen(minimal.entities)).toBe(true);
     });
 
-    test('preserves declared contour objects', () => {
-      const withContours = trail('user.create', {
-        contours: [userContour],
+    test('preserves declared entity objects', () => {
+      const withEntities = trail('user.create', {
+        entities: [userEntity],
         implementation: () => Result.ok(),
         input: z.object({}),
       });
-      expect(withContours.contours).toEqual([userContour]);
-      expect(withContours.contours[0]).toBe(userContour);
+      expect(withEntities.entities).toEqual([userEntity]);
+      expect(withEntities.entities[0]).toBe(userEntity);
     });
 
-    test('contours array is frozen', () => {
-      const withContours = trail('user.create', {
-        contours: [userContour],
+    test('entities array is frozen', () => {
+      const withEntities = trail('user.create', {
+        entities: [userEntity],
         implementation: () => Result.ok(),
         input: z.object({}),
       });
-      expect(Object.isFrozen(withContours.contours)).toBe(true);
+      expect(Object.isFrozen(withEntities.entities)).toBe(true);
     });
   });
 

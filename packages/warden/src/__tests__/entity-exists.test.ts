@@ -1,47 +1,47 @@
 import { describe, expect, test } from 'bun:test';
 
-import { contourExists } from '../rules/contour-exists.js';
+import { entityExists } from '../rules/entity-exists.js';
 
 const TEST_FILE = 'entity.ts';
 
-describe('contour-exists', () => {
+describe('entity-exists', () => {
   describe('local declarations', () => {
-    test('passes when a locally declared contour exists', () => {
+    test('passes when a locally declared entity exists', () => {
       const code = `
-import { Result, contour, trail } from '@ontrails/core';
+import { Result, entity, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
 }, { identity: 'id' });
 
 trail('user.create', {
-  contours: [user],
+  entities: [user],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
-      expect(contourExists.check(code, TEST_FILE)).toEqual([]);
+      expect(entityExists.check(code, TEST_FILE)).toEqual([]);
     });
 
-    test('keeps local contour declarations when project context is present', () => {
+    test('keeps local entity declarations when project context is present', () => {
       const code = `
-import { Result, contour, trail } from '@ontrails/core';
+import { Result, entity, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
 }, { identity: 'id' });
 
 trail('user.create', {
-  contours: [user],
+  entities: [user],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
       expect(
-        contourExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set<string>(),
+        entityExists.checkWithContext(code, TEST_FILE, {
+          knownEntityIds: new Set<string>(),
           knownTrailIds: new Set(['user.create']),
         })
       ).toEqual([]);
@@ -49,62 +49,62 @@ trail('user.create', {
   });
 
   describe('named imports', () => {
-    test('flags a missing contour declaration', () => {
+    test('flags a missing entity declaration', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import { user } from './contours';
+import { user } from './entities';
 
 trail('user.create', {
-  contours: [user],
+  entities: [user],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
-      const diagnostics = contourExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set<string>(),
+      const diagnostics = entityExists.checkWithContext(code, TEST_FILE, {
+        knownEntityIds: new Set<string>(),
         knownTrailIds: new Set(['user.create']),
       });
 
       expect(diagnostics).toHaveLength(1);
-      expect(diagnostics[0]?.rule).toBe('contour-exists');
+      expect(diagnostics[0]?.rule).toBe('entity-exists');
       expect(diagnostics[0]?.message).toContain('user');
-      expect(diagnostics[0]?.message).toContain("contour('user'");
+      expect(diagnostics[0]?.message).toContain("entity('user'");
       expect(diagnostics[0]?.message).toContain('include it in the topo');
     });
 
-    test('resolves aliased imports to the original contour name', () => {
+    test('resolves aliased imports to the original entity name', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import { user as userModel } from './contours';
+import { user as userModel } from './entities';
 
 trail('user.create', {
-  contours: [userModel],
+  entities: [userModel],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
       expect(
-        contourExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['user']),
+        entityExists.checkWithContext(code, TEST_FILE, {
+          knownEntityIds: new Set(['user']),
           knownTrailIds: new Set(['user.create']),
         })
       ).toEqual([]);
     });
 
-    test('passes when project context includes an imported contour', () => {
+    test('passes when project context includes an imported entity', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import { user } from './contours';
+import { user } from './entities';
 
 trail('user.create', {
-  contours: [user],
+  entities: [user],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
       expect(
-        contourExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['user']),
+        entityExists.checkWithContext(code, TEST_FILE, {
+          knownEntityIds: new Set(['user']),
           knownTrailIds: new Set(['user.create']),
         })
       ).toEqual([]);
@@ -112,64 +112,64 @@ trail('user.create', {
   });
 
   describe('default imports', () => {
-    test('flags missing default-imported contour declarations', () => {
+    test('flags missing default-imported entity declarations', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import userModel from './contours';
+import userModel from './entities';
 
 trail('user.create', {
-  contours: [userModel],
+  entities: [userModel],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
-      const diagnostics = contourExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set<string>(),
+      const diagnostics = entityExists.checkWithContext(code, TEST_FILE, {
+        knownEntityIds: new Set<string>(),
         knownTrailIds: new Set(['user.create']),
       });
 
       expect(diagnostics).toHaveLength(1);
-      expect(diagnostics[0]?.rule).toBe('contour-exists');
+      expect(diagnostics[0]?.rule).toBe('entity-exists');
       expect(diagnostics[0]?.message).toContain('userModel');
     });
   });
 
   describe('namespace imports', () => {
-    test('flags missing namespace-imported contour declarations', () => {
+    test('flags missing namespace-imported entity declarations', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import * as contours from './contours';
+import * as entities from './entities';
 
 trail('user.create', {
-  contours: [contours.user],
+  entities: [entities.user],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
-      const diagnostics = contourExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set<string>(),
+      const diagnostics = entityExists.checkWithContext(code, TEST_FILE, {
+        knownEntityIds: new Set<string>(),
         knownTrailIds: new Set(['user.create']),
       });
 
       expect(diagnostics).toHaveLength(1);
-      expect(diagnostics[0]?.rule).toBe('contour-exists');
+      expect(diagnostics[0]?.rule).toBe('entity-exists');
       expect(diagnostics[0]?.message).toContain('user');
     });
 
-    test('resolves namespace-imported contour declarations when known', () => {
+    test('resolves namespace-imported entity declarations when known', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import * as contours from './contours';
+import * as entities from './entities';
 
 trail('user.create', {
-  contours: [contours.user],
+  entities: [entities.user],
   implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
       expect(
-        contourExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['user']),
+        entityExists.checkWithContext(code, TEST_FILE, {
+          knownEntityIds: new Set(['user']),
           knownTrailIds: new Set(['user.create']),
         })
       ).toEqual([]);
@@ -178,12 +178,12 @@ trail('user.create', {
     test('ignores namespace member access when receiver is shadowed by a local binding', () => {
       const code = `
 import { Result, trail } from '@ontrails/core';
-import * as contours from './contours';
+import * as entities from './entities';
 
 function makeTrail() {
-  const contours = { user: 'not-a-contour' };
+  const entities = { user: 'not-a-entity' };
   return trail('user.create', {
-    contours: [contours.user],
+    entities: [entities.user],
     implementation: async () => Result.ok({ ok: true }),
   });
 }
@@ -191,12 +191,12 @@ function makeTrail() {
 makeTrail();
 `;
 
-      // The trail's \`contours: [contours.user]\` refers to a local
-      // \`const contours = ...\`, not the namespace import, so no
-      // missing-contour diagnostic should be produced.
+      // The trail's \`entities: [entities.user]\` refers to a local
+      // \`const entities = ...\`, not the namespace import, so no
+      // missing-entity diagnostic should be produced.
       expect(
-        contourExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set<string>(),
+        entityExists.checkWithContext(code, TEST_FILE, {
+          knownEntityIds: new Set<string>(),
           knownTrailIds: new Set(['user.create']),
         })
       ).toEqual([]);

@@ -24,7 +24,7 @@ import type {
   TopoSnapshot,
 } from './internal/topo-snapshots.js';
 import type {
-  TopoStoreContourRecord,
+  TopoStoreEntityRecord,
   TopoStoreEntryKind,
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
@@ -37,14 +37,14 @@ import type {
   TopoStoreTrailRecord,
 } from './internal/topo-store-read.js';
 import {
-  getTopoStoreContour,
+  getTopoStoreEntity,
   getTopoStoreEntry,
   getTopoStoreExport,
   getTopoStoreResource,
   getTopoStoreSignal,
   getTopoStoreTopoGraph,
   getTopoStoreTrail,
-  listTopoStoreContours,
+  listTopoStoreEntities,
   listTopoStoreEntries,
   listTopoStoreResources,
   listTopoStoreSignals,
@@ -183,7 +183,7 @@ const ensureTopoMigratedIfExists = (
 
 export type {
   TopoStoreActivationContextRecord,
-  TopoStoreContourRecord,
+  TopoStoreEntityRecord,
   TopoStoreEntryKind,
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
@@ -203,14 +203,14 @@ export type {
 } from './internal/topo-snapshots.js';
 
 export interface ReadOnlyTopoStore {
-  readonly contours: {
+  readonly entities: {
     get(
       id: string,
       options?: { readonly snapshot?: TopoStoreRef }
-    ): TopoStoreContourRecord | undefined;
+    ): TopoStoreEntityRecord | undefined;
     list(options?: {
       readonly snapshot?: TopoStoreRef;
-    }): readonly TopoStoreContourRecord[];
+    }): readonly TopoStoreEntityRecord[];
   };
   readonly entries: {
     get(
@@ -271,7 +271,7 @@ export interface ReadOnlyTopoStore {
 }
 
 export interface MockTopoStoreSeed {
-  readonly contours?: readonly TopoStoreContourRecord[];
+  readonly entities?: readonly TopoStoreEntityRecord[];
   readonly entries?: readonly TopoStoreTopoGraphEntryRecord[];
   readonly exports?: readonly TopoStoreExportRecord[];
   readonly resources?: readonly TopoStoreResourceRecord[];
@@ -341,11 +341,11 @@ const createSeedResolver = (seed?: MockTopoStoreSeed) => {
         }))
       )),
   ];
-  const contours = [
-    ...(seed?.contours ??
+  const entities = [
+    ...(seed?.entities ??
       entries
-        .filter((entry) => entry.kind === 'contour')
-        .map((entry) => entry as TopoStoreContourRecord)),
+        .filter((entry) => entry.kind === 'entity')
+        .map((entry) => entry as TopoStoreEntityRecord)),
   ];
 
   const resolveSnapshot = (ref?: TopoStoreRef): TopoSnapshot | undefined => {
@@ -359,7 +359,7 @@ const createSeedResolver = (seed?: MockTopoStoreSeed) => {
   };
 
   return {
-    contours,
+    entities,
     entries,
     exports,
     resolveSnapshot,
@@ -377,22 +377,22 @@ export const createMockTopoStore = (
   const resolved = createSeedResolver(seed);
 
   return {
-    contours: {
+    entities: {
       get(id, options) {
         const snapshot = resolved.resolveSnapshot(options?.snapshot);
         if (snapshot === undefined) {
           return;
         }
-        return resolved.contours.find(
-          (contour) => contour.id === id && contour.snapshotId === snapshot.id
+        return resolved.entities.find(
+          (entity) => entity.id === id && entity.snapshotId === snapshot.id
         );
       },
       list(options) {
         const snapshot = resolved.resolveSnapshot(options?.snapshot);
         return snapshot === undefined
           ? []
-          : resolved.contours.filter(
-              (contour) => contour.snapshotId === snapshot.id
+          : resolved.entities.filter(
+              (entity) => entity.snapshotId === snapshot.id
             );
       },
     },
@@ -542,15 +542,15 @@ export const createMockTopoStore = (
 export const createTopoStore = (
   options?: TrailsDbLocationOptions
 ): ReadOnlyTopoStore => ({
-  contours: {
+  entities: {
     get(id, queryOptions) {
       return withStoredTopoState(options, (db) =>
-        getTopoStoreContour(db, id, queryOptions)
+        getTopoStoreEntity(db, id, queryOptions)
       );
     },
     list(queryOptions) {
       return withStoredTopoState(options, (db) =>
-        listTopoStoreContours(db, queryOptions)
+        listTopoStoreEntities(db, queryOptions)
       );
     },
   },

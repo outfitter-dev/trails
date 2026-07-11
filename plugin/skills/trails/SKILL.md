@@ -57,7 +57,7 @@ Use these terms — they are non-negotiable in Trails codebases.
 
 Current public packages are lockstep at the same Trails framework version.
 
-- **Core model:** `@ontrails/core` owns Result, errors, trail/signal/contour/topo contracts, resources, layers, execution, validation, and adapter ports.
+- **Core model:** `@ontrails/core` owns Result, errors, trail/signal/entity/topo contracts, resources, layers, execution, validation, and adapter ports.
 - **Surfaces:** `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/hono`, and `@ontrails/http/bun` open the same topo on CLI, MCP, Hono HTTP, or Bun-native HTTP. `@ontrails/http` owns shared route derivation, OpenAPI, and the Web Fetch kernel; `@ontrails/cli` owns the framework-agnostic CLI command model; `@ontrails/vite` adapts Trails surfaces for Vite projects.
 - **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
 - **Observability:** `@ontrails/observe` defines sink contracts; `@ontrails/tracing`, `@ontrails/logtape`, and `@ontrails/pino` provide tracing/dev-state and sink adapters.

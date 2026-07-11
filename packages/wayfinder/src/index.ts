@@ -77,7 +77,7 @@ export type {
 export {
   wayfindAdaptersTrail,
   wayfindContractTrail,
-  wayfindContoursTrail,
+  wayfindEntitiesTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
   wayfindErrorsTrail,

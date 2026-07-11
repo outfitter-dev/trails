@@ -22,6 +22,7 @@ import {
   deriveTopoGraph,
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
+  LOCK_MANIFEST_SCHEMA_VERSION,
   readLockManifest,
   readTopoGraph,
   readTrailsLock,
@@ -121,7 +122,7 @@ const readCommittedLock = async (
         ],
         scope: trailsLock.scope,
         summary: trailsLock.summary,
-        version: 3,
+        version: LOCK_MANIFEST_SCHEMA_VERSION,
       },
       topoGraph: trailsLock.topoGraph as TopoGraph,
     };

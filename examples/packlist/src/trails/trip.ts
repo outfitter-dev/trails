@@ -27,8 +27,8 @@ const tripCrud = crud(packlistStore.tables.trip, db, {
 
 export const [create, read, update, remove, list] = tripCrud;
 
-/** Shared with `reconcile()` so the topo sees one `trip` contour instance. */
-export const tripContour = tripCrud.contour;
+/** Shared with `reconcile()` so the topo sees one `trip` entity instance. */
+export const tripEntity = tripCrud.entity;
 
 const tripEntitySchema = z.object({
   endDate: z.string().describe('Trip end date (ISO)'),

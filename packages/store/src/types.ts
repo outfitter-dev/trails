@@ -70,7 +70,7 @@ type ObjectOutputOf<TShape extends z.ZodRawShape> = z.core.$InferObjectOutput<
  * create/upsert inputs they meet at store/core trail boundaries.
  *
  * This is not the same type-level path core's `deriveTrail()` uses — core
- * still goes through `z.input<TContour>` / `z.output<TContour>` — but at
+ * still goes through `z.input<TEntity>` / `z.output<TEntity>` — but at
  * concrete instantiations it collapses to the same structural fixture shape
  * while preserving generic equality across the store/core seam.
  */
@@ -103,7 +103,7 @@ export type StoreFixtureInput<
  *
  * Mirror of {@link StoreFixtureInput} on the output side — computed through
  * `$InferObjectOutput<TShape, Record<never, never>>` so row types stay
- * structurally aligned with the contour output shapes they compose against.
+ * structurally aligned with the entity output shapes they compose against.
  *
  * As with {@link StoreFixtureInput}, this is a shape-based equivalent rather
  * than the identical `z.output<TSchema>` inference path core uses directly.
@@ -433,7 +433,7 @@ export type GeneratedKeysOf<TTable extends AnyStoreTable> = Extract<
  * this collapses to the same structural shape as
  * `Omit<z.input<TTable['schema']>, GeneratedKeysOf<TTable>>`, but the
  * shape-based form lets TypeScript prove structural equality with
- * `CreateInputOf<Contour, ...>` at trail boundaries without widening
+ * `CreateInputOf<Entity, ...>` at trail boundaries without widening
  * generic call sites to `Record<string, unknown>`.
  *
  * Defaulted fields remain optional because `$InferObjectInput` honors

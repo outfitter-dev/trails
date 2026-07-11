@@ -1,5 +1,5 @@
-import type { AnyContour } from './contour.js';
-import { getContourReferences } from './contour.js';
+import type { AnyEntity } from './entity.js';
+import { getEntityReferences } from './entity.js';
 import { ValidationError } from './errors.js';
 import type { AnySignal } from './signal.js';
 import type { AnyResource } from './resource.js';
@@ -11,7 +11,7 @@ export const DRAFT_ID_PREFIX = '_draft.';
 
 export type DraftDependencyKind =
   | 'compose'
-  | 'contour'
+  | 'entity'
   | 'resource'
   | 'replaced-by'
   | 'schema-reference'
@@ -27,7 +27,7 @@ export interface DraftDependency {
 
 export interface DraftDiagnostic {
   readonly id: string;
-  readonly kind: 'contour' | 'resource' | 'signal' | 'trail' | 'unknown';
+  readonly kind: 'entity' | 'resource' | 'signal' | 'trail' | 'unknown';
   readonly message: string;
   readonly rule: 'draft-contamination' | 'draft-id';
   readonly via?: DraftDependencyKind | undefined;
@@ -54,7 +54,7 @@ interface DraftReason {
   readonly via: DraftDependencyKind;
 }
 
-type TopoNode = AnyContour | AnyResource | AnySignal | AnyTrail;
+type TopoNode = AnyEntity | AnyResource | AnySignal | AnyTrail;
 
 const replacedByTarget = (value: TopoNode): string | undefined => {
   const raw = value as unknown as { replacedBy?: unknown };
@@ -93,8 +93,8 @@ const dependencyFromTarget = (
 const trailDependencies = (trail: AnyTrail): DraftDependency[] => [
   ...dependenciesFromIds(
     trail.id,
-    (trail.contours ?? []).map((contour) => contour.name),
-    'contour'
+    (trail.entities ?? []).map((entity) => entity.name),
+    'entity'
   ),
   ...dependenciesFromIds(trail.id, trail.composes, 'compose'),
   ...dependenciesFromIds(
@@ -107,10 +107,10 @@ const trailDependencies = (trail: AnyTrail): DraftDependency[] => [
   ...dependencyFromTarget(trail.id, replacedByTarget(trail), 'replaced-by'),
 ];
 
-const contourDependencies = (contour: AnyContour): DraftDependency[] =>
+const entityDependencies = (entity: AnyEntity): DraftDependency[] =>
   dependenciesFromIds(
-    contour.name,
-    getContourReferences(contour).map((reference) => reference.contour),
+    entity.name,
+    getEntityReferences(entity).map((reference) => reference.entity),
     'schema-reference'
   );
 
@@ -124,13 +124,13 @@ const resourceDependencies = (resource: AnyResource): DraftDependency[] =>
 
 const nodeKind = (
   id: string,
-  contours: ReadonlyMap<string, AnyContour>,
+  entities: ReadonlyMap<string, AnyEntity>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
 ): DraftDiagnostic['kind'] => {
-  if (contours.has(id)) {
-    return 'contour';
+  if (entities.has(id)) {
+    return 'entity';
   }
   if (trails.has(id)) {
     return 'trail';
@@ -152,7 +152,7 @@ const draftIdsFromKeys = (keys: Iterable<string>): string[] =>
 
 const collectDeclaredDraftIds = (topo: Topo): ReadonlySet<string> =>
   new Set([
-    ...draftIdsFromKeys(topo.contours.keys()),
+    ...draftIdsFromKeys(topo.entities.keys()),
     ...draftIdsFromKeys(topo.trails.keys()),
     ...draftIdsFromKeys(topo.signals.keys()),
     ...draftIdsFromKeys(topo.resources.keys()),
@@ -248,7 +248,7 @@ const contaminationFindingForId = (
   id: string,
   declaredDraftIds: ReadonlySet<string>,
   reasons: ReadonlyMap<string, DraftReason>,
-  contours: ReadonlyMap<string, AnyContour>,
+  entities: ReadonlyMap<string, AnyEntity>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
@@ -264,7 +264,7 @@ const contaminationFindingForId = (
 
   return findingForContamination(
     id,
-    nodeKind(id, contours, trails, signals, resources),
+    nodeKind(id, entities, trails, signals, resources),
     reason
   );
 };
@@ -273,7 +273,7 @@ const collectFindings = (
   declaredDraftIds: ReadonlySet<string>,
   contaminatedIds: ReadonlySet<string>,
   reasons: ReadonlyMap<string, DraftReason>,
-  contours: ReadonlyMap<string, AnyContour>,
+  entities: ReadonlyMap<string, AnyEntity>,
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
@@ -281,14 +281,14 @@ const collectFindings = (
   ...[...declaredDraftIds]
     .toSorted()
     .map((id) =>
-      findingForDraftId(id, nodeKind(id, contours, trails, signals, resources))
+      findingForDraftId(id, nodeKind(id, entities, trails, signals, resources))
     ),
   ...[...contaminatedIds].toSorted().flatMap((id) => {
     const finding = contaminationFindingForId(
       id,
       declaredDraftIds,
       reasons,
-      contours,
+      entities,
       trails,
       signals,
       resources
@@ -299,7 +299,7 @@ const collectFindings = (
 ];
 
 const collectDependencies = (topo: Topo): DraftDependency[] => [
-  ...[...topo.contours.values()].flatMap(contourDependencies),
+  ...[...topo.entities.values()].flatMap(entityDependencies),
   ...[...topo.trails.values()].flatMap(trailDependencies),
   ...[...topo.signals.values()].flatMap(signalDependencies),
   ...[...topo.resources.values()].flatMap(resourceDependencies),
@@ -316,7 +316,7 @@ export const deriveDraftReport = (topo: Topo): DraftReport => {
     declaredDraftIds,
     contaminatedIds,
     reasons,
-    topo.contours,
+    topo.entities,
     topo.trails,
     topo.signals,
     topo.resources

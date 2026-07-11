@@ -16,7 +16,7 @@ Trails already treats package releases as part of the framework contract. ADR-00
 
 That check is useful, but it still sees package files more readily than Trails contracts. A branch can change the public input or output schema of an exposed trail, or expose a trail on a new surface, while leaving the release story to reviewer memory. That fights the premise. The trail is the product, so public trail contract movement must be evaluated by release rules before a branch leaves draft.
 
-There is also a naming risk. It is tempting to promote "release" into a new primitive alongside trails, surfaces, resources, and contours. That would add concept count without improving the authored model. Release is not something a trail runs through. It is a lifecycle phase that reads resolved facts and emits human and machine outputs.
+There is also a naming risk. It is tempting to promote "release" into a new primitive alongside trails, surfaces, resources, and entities. That would add concept count without improving the authored model. Release is not something a trail runs through. It is a lifecycle phase that reads resolved facts and emits human and machine outputs.
 
 ## Decision
 

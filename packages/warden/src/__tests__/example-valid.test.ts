@@ -2,15 +2,15 @@ import { describe, expect, test } from 'bun:test';
 
 import { exampleValid } from '../rules/example-valid.js';
 
-const TEST_FILE = 'contours.ts';
+const TEST_FILE = 'entities.ts';
 
 describe('example-valid', () => {
-  test('passes when contour examples match the schema', () => {
+  test('passes when entity examples match the schema', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
   name: z.string(),
 }, {
@@ -25,12 +25,12 @@ const user = contour('user', {
     expect(exampleValid.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('flags invalid contour examples', () => {
+  test('flags invalid entity examples', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
   name: z.string(),
 }, {
@@ -51,7 +51,7 @@ const user = contour('user', {
 
   test('skips unsupported example expressions instead of guessing', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
 const buildExample = () => ({
@@ -59,7 +59,7 @@ const buildExample = () => ({
   name: 'Ada',
 });
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
   name: z.string(),
 }, {
@@ -71,16 +71,16 @@ const user = contour('user', {
     expect(exampleValid.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('keeps dependent contour validation alive when base contours omit options', () => {
+  test('keeps dependent entity validation alive when base entities omit options', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const base = contour('base', {
+const base = entity('base', {
   id: z.string().uuid(),
 });
 
-const child = contour('child', {
+const child = entity('child', {
   id: z.string().uuid(),
   baseId: base.id(),
 }, {

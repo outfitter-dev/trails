@@ -12,8 +12,9 @@ import type {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-export const TOPO_GRAPH_SCHEMA_VERSION = 3;
-export const TRAILS_LOCK_SCHEMA_VERSION = 4;
+export const TOPO_GRAPH_SCHEMA_VERSION = 4;
+export const LOCK_MANIFEST_SCHEMA_VERSION = 4;
+export const TRAILS_LOCK_SCHEMA_VERSION = 5;
 
 export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
 
@@ -24,8 +25,8 @@ export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
 /** A JSON Schema object produced by zodToJsonSchema. */
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
-export interface TopoGraphContourReference {
-  readonly contour: string;
+export interface TopoGraphEntityReference {
+  readonly entity: string;
   readonly field: string;
   readonly identity: string;
 }
@@ -74,6 +75,7 @@ export interface TopoGraphActivationEdge extends Readonly<
   Record<string, unknown>
 > {
   readonly hasWhere: boolean;
+  readonly meta?: Readonly<Record<string, unknown>> | undefined;
   readonly sourceId: string;
   readonly sourceKey: string;
   readonly sourceKind: string;
@@ -122,7 +124,7 @@ export interface TopoGraphForceEntry {
   readonly change: 'modified' | 'removed';
   readonly detail: string;
   readonly id: string;
-  readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
+  readonly kind: 'entity' | 'trail' | 'signal' | 'resource';
   readonly reason?: string | undefined;
   readonly severity: 'breaking';
   readonly source: 'trails compile --force';
@@ -210,7 +212,7 @@ export interface TopoGraphOverlayRegistration {
 
 export interface TopoGraphEntry {
   readonly id: string;
-  readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
+  readonly kind: 'entity' | 'trail' | 'signal' | 'resource';
   readonly surfaces: readonly string[];
   readonly cli?:
     | {
@@ -237,10 +239,10 @@ export interface TopoGraphEntry {
   readonly replacedBy?: string | undefined;
   readonly activationSources?: readonly TopoGraphActivationEntry[] | undefined;
   readonly composes?: readonly string[] | undefined;
-  readonly contours?: readonly string[] | undefined;
+  readonly entities?: readonly string[] | undefined;
   readonly schema?: JsonSchema | undefined;
   readonly identity?: string | undefined;
-  readonly references?: readonly TopoGraphContourReference[] | undefined;
+  readonly references?: readonly TopoGraphEntityReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
   readonly fires?: readonly string[] | undefined;
   readonly on?: readonly string[] | undefined;
@@ -350,7 +352,7 @@ const topoGraphForceEntrySchema = z
     change: z.enum(['modified', 'removed']),
     detail: z.string(),
     id: z.string(),
-    kind: z.enum(['contour', 'trail', 'signal', 'resource']),
+    kind: z.enum(['entity', 'trail', 'signal', 'resource']),
     reason: z.string().optional(),
     severity: z.literal('breaking'),
     source: z.literal('trails compile --force'),
@@ -413,28 +415,250 @@ export const topoGraphLibraryProjectionSchema = z
   })
   .strict();
 
-export const topoGraphSchema = z
+const topoGraphEntityReferenceSchema = z
   .object({
-    activationGraph: z
+    entity: z.string(),
+    field: z.string(),
+    identity: z.string(),
+  })
+  .strict();
+
+const openFactBagSchema = z.record(z.string(), z.unknown());
+
+const topoGraphWhereSchema = z
+  .object({
+    predicate: z.literal(true),
+  })
+  .strict();
+
+const topoGraphActivationSourceSchema = z
+  .object({
+    cron: z.string().optional(),
+    hasParse: z.literal(true).optional(),
+    hasPayloadSchema: z.literal(true).optional(),
+    hasVerify: z.literal(true).optional(),
+    id: z.string(),
+    input: z.unknown().optional(),
+    inputSchema: openFactBagSchema.optional(),
+    key: z.string(),
+    kind: z.string(),
+    meta: openFactBagSchema.optional(),
+    method: z.string().optional(),
+    parseOutputSchema: openFactBagSchema.optional(),
+    path: z.string().optional(),
+    payloadSchema: openFactBagSchema.optional(),
+    timezone: z.string().optional(),
+  })
+  .passthrough();
+
+const topoGraphActivationEdgeSchema = z
+  .object({
+    hasWhere: z.boolean(),
+    meta: openFactBagSchema.optional(),
+    sourceId: z.string(),
+    sourceKey: z.string(),
+    sourceKind: z.string(),
+    trailId: z.string(),
+    where: topoGraphWhereSchema.optional(),
+  })
+  .passthrough();
+
+const topoGraphActivationGraphSchema = z
+  .object({
+    edgeCount: z.number().int().nonnegative(),
+    edges: z.array(topoGraphActivationEdgeSchema),
+    sourceCount: z.number().int().nonnegative(),
+    sourceKeys: z.array(z.string()),
+    trailIds: z.array(z.string()),
+  })
+  .strict();
+
+const topoGraphActivationEntrySchema = z
+  .object({
+    meta: openFactBagSchema.optional(),
+    source: topoGraphActivationSourceSchema,
+    where: topoGraphWhereSchema.optional(),
+  })
+  .strict();
+
+const topoGraphCliRouteSchema = z
+  .object({
+    kind: z.enum(['alias', 'canonical']),
+    path: z.array(z.string()),
+    source: z.enum(['derived', 'surface', 'trail']),
+    target: z.string(),
+  })
+  .strict();
+
+const topoGraphCliSchema = z
+  .object({
+    path: z.array(z.string()),
+    routes: z.array(topoGraphCliRouteSchema).optional(),
+  })
+  .strict();
+
+const structuredTrailExampleSignalAssertionSchema = z
+  .object({
+    payload: z.unknown().optional(),
+    payloadMatch: z.unknown().optional(),
+    signalId: z.string(),
+    times: z.number().optional(),
+  })
+  .strict();
+
+const structuredTrailExampleSchema = z
+  .object({
+    description: z.string().optional(),
+    error: z.string().optional(),
+    expected: z.unknown().optional(),
+    expectedMatch: z.unknown().optional(),
+    input: z.unknown(),
+    kind: z.enum(['error', 'success']),
+    name: z.string(),
+    provenance: z
       .object({
-        edgeCount: z.number().int().nonnegative(),
-        edges: z.array(z.unknown()),
-        sourceCount: z.number().int().nonnegative(),
-        sourceKeys: z.array(z.string()),
-        trailIds: z.array(z.string()),
+        source: z.enum(['trail.examples', 'trail.versions.examples']),
       })
       .strict(),
-    activationSources: z.record(z.string(), z.unknown()),
-    entries: z.array(
-      z
-        .object({
-          exampleCount: z.number().int().nonnegative(),
-          id: z.string(),
-          kind: z.enum(['contour', 'trail', 'signal', 'resource']),
-          surfaces: z.array(z.string()),
-        })
-        .passthrough()
-    ),
+    signals: z.array(structuredTrailExampleSignalAssertionSchema).optional(),
+  })
+  .strict();
+
+const structuredSignalExampleSchema = z
+  .object({
+    kind: z.literal('payload'),
+    payload: z.unknown(),
+    provenance: z
+      .object({
+        source: z.literal('signal.examples'),
+      })
+      .strict(),
+  })
+  .strict();
+
+const topoGraphExampleSchema = z.union([
+  structuredSignalExampleSchema,
+  structuredTrailExampleSchema,
+]);
+
+const trailVersionStatusSchema = z.discriminatedUnion('state', [
+  z
+    .object({
+      migration: z.array(z.string()).optional(),
+      note: z.string().optional(),
+      state: z.literal('deprecated'),
+      successor: z.number().int().positive().optional(),
+    })
+    .passthrough(),
+  z
+    .object({
+      reason: z.string().optional(),
+      state: z.literal('archived'),
+    })
+    .passthrough(),
+]);
+
+const topoGraphVersionDetourSchema = z
+  .object({
+    maxAttempts: z.number().int().positive(),
+    on: z.string(),
+  })
+  .strict();
+
+const topoGraphVersionEntrySchema = z
+  .object({
+    composes: z.array(z.string()).optional(),
+    detours: z.array(topoGraphVersionDetourSchema).optional(),
+    exampleCount: z.number().int().nonnegative(),
+    examples: z.array(structuredTrailExampleSchema).optional(),
+    input: openFactBagSchema,
+    kind: z.enum(['fork', 'revision']),
+    marker: z.string(),
+    output: openFactBagSchema,
+    resources: z.array(z.string()).optional(),
+    status: trailVersionStatusSchema.optional(),
+  })
+  .strict();
+
+const topoGraphPermitRequirementSchema = z
+  .object({
+    scopes: z.array(z.string()),
+  })
+  .strict();
+
+const topoGraphFieldOverrideSchema = z
+  .object({
+    field: z.string(),
+    overrides: z.array(z.enum(['hint', 'label', 'message', 'options'])),
+    provenance: z
+      .object({
+        source: z.literal('trail.fields'),
+      })
+      .strict(),
+  })
+  .strict();
+
+const topoGraphLayerReferenceSchema = z
+  .object({
+    input: openFactBagSchema.optional(),
+    name: z.string(),
+    scope: z.enum(['topo', 'trail']),
+  })
+  .strict();
+
+const topoGraphEntrySchema = z
+  .object({
+    activationSources: z.array(topoGraphActivationEntrySchema).optional(),
+    cli: topoGraphCliSchema.optional(),
+    composes: z.array(z.string()).optional(),
+    consumers: z.array(z.string()).optional(),
+    deprecated: z.boolean().optional(),
+    description: z.string().optional(),
+    detours: z.array(topoGraphVersionDetourSchema).optional(),
+    diagnostics: openFactBagSchema.optional(),
+    dryRunCapable: z.boolean().optional(),
+    entities: z.array(z.string()).optional(),
+    exampleCount: z.number().int().nonnegative(),
+    examples: z.array(topoGraphExampleSchema).optional(),
+    fieldOverrides: z.array(topoGraphFieldOverrideSchema).optional(),
+    fires: z.array(z.string()).optional(),
+    forces: z.array(topoGraphForceEntrySchema).optional(),
+    from: z.array(z.string()).optional(),
+    governance: openFactBagSchema.optional(),
+    healthcheck: z.boolean().optional(),
+    id: z.string(),
+    idempotent: z.boolean().optional(),
+    identity: z.string().optional(),
+    input: openFactBagSchema.optional(),
+    intent: z.enum(['destroy', 'read', 'write']).optional(),
+    kind: z.enum(['entity', 'trail', 'signal', 'resource']),
+    layers: z.array(topoGraphLayerReferenceSchema).optional(),
+    marker: z.string().optional(),
+    meta: openFactBagSchema.optional(),
+    on: z.array(z.string()).optional(),
+    output: openFactBagSchema.optional(),
+    pattern: z.string().optional(),
+    payload: openFactBagSchema.optional(),
+    permit: z
+      .union([z.literal('public'), topoGraphPermitRequirementSchema])
+      .optional(),
+    producers: z.array(z.string()).optional(),
+    references: z.array(topoGraphEntityReferenceSchema).optional(),
+    replacedBy: z.string().optional(),
+    resources: z.array(z.string()).optional(),
+    schema: openFactBagSchema.optional(),
+    supports: z.array(z.number().int().positive()).optional(),
+    surfaces: z.array(z.string()),
+    version: z.number().int().positive().optional(),
+    versions: z.record(z.string(), topoGraphVersionEntrySchema).optional(),
+  })
+  .strict();
+
+export const topoGraphSchema = z
+  .object({
+    activationGraph: topoGraphActivationGraphSchema,
+    activationSources: z.record(z.string(), topoGraphActivationSourceSchema),
+    entries: z.array(topoGraphEntrySchema),
     forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string().optional(),
     library: topoGraphLibraryProjectionSchema.optional(),
@@ -446,7 +670,7 @@ export const topoGraphSchema = z
   .strict();
 
 /**
- * Lock v3 manifest artifact pointer.
+ * Lock v4 manifest artifact pointer.
  */
 export const lockManifestArtifactSchema = z
   .object({
@@ -458,7 +682,7 @@ export const lockManifestArtifactSchema = z
 
 export const lockManifestSummarySchema = z
   .object({
-    contours: z.number().int().nonnegative(),
+    entities: z.number().int().nonnegative(),
     resources: z.number().int().nonnegative(),
     signals: z.number().int().nonnegative(),
     trails: z.number().int().nonnegative(),
@@ -470,7 +694,7 @@ export const lockManifestSchema = z
     artifacts: z.array(lockManifestArtifactSchema).min(1),
     scope: z.record(z.string(), z.string()),
     summary: lockManifestSummarySchema,
-    version: z.literal(3),
+    version: z.literal(LOCK_MANIFEST_SCHEMA_VERSION),
   })
   .strict();
 
@@ -496,7 +720,7 @@ export type TrailsLock = z.infer<typeof trailsLockSchema>;
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'contour' | 'trail' | 'signal' | 'resource' | 'trailhead';
+  readonly kind: 'entity' | 'trail' | 'signal' | 'resource' | 'trailhead';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

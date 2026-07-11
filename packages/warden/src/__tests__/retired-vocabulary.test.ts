@@ -190,7 +190,7 @@ describe('governed vocabulary registry', () => {
   test('makes contour transition code-fact complete for apply readiness', () => {
     const entity = getGovernedVocabularyTransition('v1-contour-entity');
 
-    expect(entity?.status).toBe('planned');
+    expect(entity?.status).toBe('complete');
     expect(entity?.codeIdentifiers).toEqual(
       expect.arrayContaining(['contour', 'contours', 'wayfind.contours'])
     );

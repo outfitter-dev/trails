@@ -9,10 +9,10 @@ type Connection = Readonly<Record<string, Accessor>>;
 
 const noop = (): undefined => undefined;
 
-const buildResource = (id: string, contourName: string, accessor: Accessor) =>
+const buildResource = (id: string, entityName: string, accessor: Accessor) =>
   resource<Connection>(id, {
-    create: () => Result.ok({ [contourName]: accessor }),
-    mock: () => ({ [contourName]: accessor }),
+    create: () => Result.ok({ [entityName]: accessor }),
+    mock: () => ({ [entityName]: accessor }),
   });
 
 const buildCrudTrail = (

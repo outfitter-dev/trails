@@ -621,7 +621,7 @@ const isTopo = (value: unknown): value is Topo => {
     value['trails'] instanceof Map &&
     value['signals'] instanceof Map &&
     value['resources'] instanceof Map &&
-    value['contours'] instanceof Map &&
+    value['entities'] instanceof Map &&
     typeof value['get'] === 'function' &&
     typeof value['list'] === 'function' &&
     typeof value['name'] === 'string'

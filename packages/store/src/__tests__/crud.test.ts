@@ -316,7 +316,7 @@ describe('crud()', () => {
     expectCrudInputSchemas();
     expectCrudOutputSchemas();
     expect(createNote.resources).toEqual([notesResource]);
-    expect(createNote.contours.map((candidate) => candidate.name)).toEqual([
+    expect(createNote.entities.map((candidate) => candidate.name)).toEqual([
       'notes',
     ]);
   });
@@ -334,8 +334,8 @@ describe('crud()', () => {
         fixtures: [
           {
             // createdAt intentionally omitted — the store layer accepts it
-            // through fixtureSchema, and the contour view built by
-            // createTableContour must mirror that shape so contour example
+            // through fixtureSchema, and the entity view built by
+            // createTableEntity must mirror that shape so entity example
             // validation does not crash. The identity field stays required
             // so downstream read/update/delete inputs remain sound.
             id: 'note-1',
@@ -395,7 +395,7 @@ describe('crud()', () => {
     expect(remove.id).toBe('notes.delete');
     expect(list.id).toBe('notes.list');
 
-    // Identity input must stay required even though the contour fixture shape
+    // Identity input must stay required even though the entity fixture shape
     // relaxes generated non-identity fields for example validation.
     expect(read.input.safeParse({}).success).toBe(false);
     expect(read.input.safeParse({ id: 'note-1' }).success).toBe(true);

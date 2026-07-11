@@ -3,7 +3,7 @@
     "app": "junction"
   },
   "summary": {
-    "contours": 0,
+    "entities": 0,
     "resources": 3,
     "signals": 16,
     "trails": 23
@@ -75,17 +75,13 @@
     },
     "entries": [
       {
+        "description": "Authentication adapter",
         "exampleCount": 0,
         "id": "auth",
         "kind": "resource",
-        "surfaces": [],
-        "description": "Authentication adapter"
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "delivery.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "delivery",
@@ -104,17 +100,19 @@
           ]
         },
         "description": "List deliveries filtered by status or target",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List every delivery",
             "input": {},
             "kind": "success",
             "name": "List deliveries",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every delivery"
+            }
           },
           {
+            "description": "List only failed deliveries",
             "input": {
               "status": "failed"
             },
@@ -122,10 +120,10 @@
             "name": "List failed deliveries",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List only failed deliveries"
+            }
           }
         ],
+        "id": "delivery.list",
         "input": {
           "properties": {
             "status": {
@@ -145,6 +143,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "layers": [
           {
             "input": {
@@ -251,13 +250,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "delivery.retry",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "delivery",
@@ -279,8 +275,11 @@
           "delivery.send"
         ],
         "description": "Re-send one failed delivery through the delivery path",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Retrying the seeded failed delivery re-attempts its unreachable target and exhausts the detour",
+            "error": "RetryExhaustedError",
             "input": {
               "id": "dlv_seed_failed"
             },
@@ -288,11 +287,11 @@
             "name": "Retry a failed delivery",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Retrying the seeded failed delivery re-attempts its unreachable target and exhausts the detour",
-            "error": "RetryExhaustedError"
+            }
           },
           {
+            "description": "Returns NotFoundError for an unknown delivery id",
+            "error": "NotFoundError",
             "input": {
               "id": "dlv_missing"
             },
@@ -300,11 +299,10 @@
             "name": "Retry unknown delivery",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown delivery id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "delivery.retry",
         "input": {
           "properties": {
             "id": {
@@ -317,6 +315,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "attempts": {
@@ -380,13 +379,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 3,
-        "id": "delivery.send",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "delivery",
@@ -411,8 +407,10 @@
             "on": "NetworkError"
           }
         ],
+        "exampleCount": 3,
         "examples": [
           {
+            "description": "Deliver a payload to the reachable logbook target",
             "input": {
               "payload": {
                 "junction": "ping"
@@ -423,10 +421,11 @@
             "name": "Deliver to a reachable target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Deliver a payload to the reachable logbook target"
+            }
           },
           {
+            "description": "An unreachable target exhausts the three-retry detour and fails with RetryExhaustedError",
+            "error": "RetryExhaustedError",
             "input": {
               "payload": {
                 "junction": "ping"
@@ -437,11 +436,11 @@
             "name": "Deliver to an unreachable target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "An unreachable target exhausts the three-retry detour and fails with RetryExhaustedError",
-            "error": "RetryExhaustedError"
+            }
           },
           {
+            "description": "Disabled targets are rejected before any POST",
+            "error": "ValidationError",
             "input": {
               "payload": {
                 "junction": "ping"
@@ -452,11 +451,10 @@
             "name": "Deliver to a disabled target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Disabled targets are rejected before any POST",
-            "error": "ValidationError"
+            }
           }
         ],
+        "id": "delivery.send",
         "input": {
           "properties": {
             "eventId": {
@@ -479,6 +477,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "attempts": {
@@ -539,13 +538,10 @@
         "resources": [
           "junction.http",
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "endpoint.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "endpoint",
@@ -564,8 +560,10 @@
           ]
         },
         "description": "Register an inbound endpoint; returns the signing secret exactly once",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Register a GitHub endpoint and receive its secret",
             "input": {
               "name": "CI hooks",
               "source": "github"
@@ -574,10 +572,10 @@
             "name": "Create a GitHub endpoint",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Register a GitHub endpoint and receive its secret"
+            }
           },
           {
+            "description": "Register a generic HMAC endpoint",
             "input": {
               "name": "Internal jobs",
               "source": "generic-hmac"
@@ -586,10 +584,10 @@
             "name": "Create a generic endpoint",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Register a generic HMAC endpoint"
+            }
           }
         ],
+        "id": "endpoint.create",
         "input": {
           "properties": {
             "name": {
@@ -612,6 +610,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -661,13 +660,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "endpoint.disable",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "endpoint",
@@ -686,16 +682,9 @@
           ]
         },
         "description": "Stop accepting webhooks on an endpoint",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "id": "ep_disabled_demo"
-            },
-            "kind": "success",
-            "name": "Disable an endpoint",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Disable the seeded already-disabled endpoint (idempotent)",
             "expected": {
               "createdAt": "2026-07-01T00:00:00.000Z",
@@ -703,9 +692,19 @@
               "id": "ep_disabled_demo",
               "name": "Disabled endpoint",
               "source": "generic-hmac"
+            },
+            "input": {
+              "id": "ep_disabled_demo"
+            },
+            "kind": "success",
+            "name": "Disable an endpoint",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown endpoint id",
+            "error": "NotFoundError",
             "input": {
               "id": "ep_missing"
             },
@@ -713,11 +712,10 @@
             "name": "Disable unknown endpoint",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown endpoint id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "endpoint.disable",
         "input": {
           "properties": {
             "id": {
@@ -730,6 +728,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -774,13 +773,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "endpoint.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "endpoint",
@@ -799,16 +795,9 @@
           ]
         },
         "description": "Show one endpoint with its secret redacted",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "id": "ep_github_demo"
-            },
-            "kind": "success",
-            "name": "Get an endpoint",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Look up the seeded GitHub endpoint",
             "expected": {
               "createdAt": "2026-07-01T00:00:00.000Z",
@@ -816,9 +805,19 @@
               "id": "ep_github_demo",
               "name": "GitHub demo endpoint",
               "source": "github"
+            },
+            "input": {
+              "id": "ep_github_demo"
+            },
+            "kind": "success",
+            "name": "Get an endpoint",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown endpoint id",
+            "error": "NotFoundError",
             "input": {
               "id": "ep_missing"
             },
@@ -826,11 +825,10 @@
             "name": "Endpoint not found",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown endpoint id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "endpoint.get",
         "input": {
           "properties": {
             "id": {
@@ -844,6 +842,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -888,13 +887,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "endpoint.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "endpoint",
@@ -913,31 +909,34 @@
           ]
         },
         "description": "List registered endpoints with secrets redacted",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List every registered endpoint",
             "input": {},
             "kind": "success",
             "name": "List endpoints",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every registered endpoint"
+            }
           },
           {
+            "description": "Listing is stable when called repeatedly",
             "input": {},
             "kind": "success",
             "name": "List endpoints again",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Listing is stable when called repeatedly"
+            }
           }
         ],
+        "id": "endpoint.list",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "endpoints": {
@@ -993,13 +992,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "endpoint.rotate-secret",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "endpoint",
@@ -1018,8 +1014,10 @@
           ]
         },
         "description": "Rotate an endpoint secret; the new secret is returned exactly once and previously stored events are unaffected",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Rotate the generic endpoint used for rotation demos",
             "input": {
               "id": "ep_rotate_demo"
             },
@@ -1027,10 +1025,11 @@
             "name": "Rotate a secret",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Rotate the generic endpoint used for rotation demos"
+            }
           },
           {
+            "description": "Returns NotFoundError for an unknown endpoint id",
+            "error": "NotFoundError",
             "input": {
               "id": "ep_missing"
             },
@@ -1038,11 +1037,10 @@
             "name": "Rotate unknown endpoint",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown endpoint id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "endpoint.rotate-secret",
         "input": {
           "properties": {
             "id": {
@@ -1055,6 +1053,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "createdAt": {
@@ -1104,13 +1103,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "event.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "event",
@@ -1129,16 +1125,9 @@
           ]
         },
         "description": "Show one stored event including its payload and headers",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "id": "evt_seed_push"
-            },
-            "kind": "success",
-            "name": "Get an event",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Look up the seeded push event",
             "expected": {
               "endpointId": "ep_github_demo",
@@ -1153,9 +1142,19 @@
               "receivedAt": "2026-07-01T08:00:00.000Z",
               "signatureValid": true,
               "status": "relayed"
+            },
+            "input": {
+              "id": "evt_seed_push"
+            },
+            "kind": "success",
+            "name": "Get an event",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown event id",
+            "error": "NotFoundError",
             "input": {
               "id": "evt_missing"
             },
@@ -1163,11 +1162,10 @@
             "name": "Event not found",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown event id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "event.get",
         "input": {
           "properties": {
             "id": {
@@ -1181,6 +1179,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "endpointId": {
@@ -1237,13 +1236,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "event.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "event",
@@ -1262,17 +1258,19 @@
           ]
         },
         "description": "List received events, newest first, filtered by endpoint, status, or receipt time",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List every stored event",
             "input": {},
             "kind": "success",
             "name": "List events",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every stored event"
+            }
           },
           {
+            "description": "List only events that failed signature verification",
             "input": {
               "status": "dead"
             },
@@ -1280,10 +1278,10 @@
             "name": "List dead events",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List only events that failed signature verification"
+            }
           }
         ],
+        "id": "event.list",
         "input": {
           "properties": {
             "endpointId": {
@@ -1307,6 +1305,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "layers": [
           {
             "input": {
@@ -1406,13 +1405,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 1,
-        "id": "event.received",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [
           "relay.dispatch"
         ],
@@ -1428,6 +1424,7 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 1,
         "examples": [
           {
             "kind": "payload",
@@ -1449,6 +1446,7 @@
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "event.received",
         "input": {
           "properties": {
             "endpointId": {
@@ -1466,6 +1464,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endpointId": {
@@ -1486,13 +1485,10 @@
         "producers": [
           "event.replay",
           "webhook.receive"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "event.replay",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "event",
@@ -1511,8 +1507,14 @@
           ]
         },
         "description": "Re-fire event.received for one stored event",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Replay the seeded push event through the relay pipeline",
+            "expected": {
+              "eventId": "evt_seed_push",
+              "replayed": true
+            },
             "input": {
               "id": "evt_seed_push"
             },
@@ -1520,14 +1522,11 @@
             "name": "Replay an event",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Replay the seeded push event through the relay pipeline",
-            "expected": {
-              "eventId": "evt_seed_push",
-              "replayed": true
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown event id",
+            "error": "NotFoundError",
             "input": {
               "id": "evt_missing"
             },
@@ -1535,14 +1534,13 @@
             "name": "Replay unknown event",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown event id",
-            "error": "NotFoundError"
+            }
           }
         ],
         "fires": [
           "event.received"
         ],
+        "id": "event.replay",
         "input": {
           "properties": {
             "id": {
@@ -1555,6 +1553,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "eventId": {
@@ -1579,28 +1578,25 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
+        "description": "Outbound fetch client junction uses to POST deliveries to targets.",
         "exampleCount": 0,
         "id": "junction.http",
         "kind": "resource",
-        "surfaces": [],
-        "description": "Outbound fetch client junction uses to POST deliveries to targets."
+        "surfaces": []
       },
       {
+        "description": "SQLite-backed relay store for junction endpoints and events.",
         "exampleCount": 0,
+        "healthcheck": true,
         "id": "junction.store",
         "kind": "resource",
-        "surfaces": [],
-        "description": "SQLite-backed relay store for junction endpoints and events.",
-        "healthcheck": true
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:delivery.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"delivery\" entity is created.",
         "diagnostics": {
@@ -1614,11 +1610,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:delivery.created",
         "input": {
           "properties": {
             "attempts": {
@@ -1675,6 +1673,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "attempts": {
@@ -1731,13 +1730,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:delivery.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"delivery\" entity is removed.",
         "diagnostics": {
@@ -1751,11 +1747,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:delivery.removed",
         "input": {
           "properties": {
             "attempts": {
@@ -1812,6 +1810,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "attempts": {
@@ -1868,13 +1867,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:delivery.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"delivery\" entity is updated.",
         "diagnostics": {
@@ -1888,11 +1884,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:delivery.updated",
         "input": {
           "properties": {
             "attempts": {
@@ -1949,6 +1947,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "attempts": {
@@ -2005,13 +2004,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:endpoint.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"endpoint\" entity is created.",
         "diagnostics": {
@@ -2025,11 +2021,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:endpoint.created",
         "input": {
           "properties": {
             "createdAt": {
@@ -2072,6 +2070,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2114,13 +2113,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:endpoint.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"endpoint\" entity is removed.",
         "diagnostics": {
@@ -2134,11 +2130,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:endpoint.removed",
         "input": {
           "properties": {
             "createdAt": {
@@ -2181,6 +2179,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2223,13 +2222,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:endpoint.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"endpoint\" entity is updated.",
         "diagnostics": {
@@ -2243,11 +2239,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:endpoint.updated",
         "input": {
           "properties": {
             "createdAt": {
@@ -2290,6 +2288,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "createdAt": {
@@ -2332,13 +2331,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:event.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"event\" entity is created.",
         "diagnostics": {
@@ -2352,11 +2348,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:event.created",
         "input": {
           "properties": {
             "endpointId": {
@@ -2406,6 +2404,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endpointId": {
@@ -2455,13 +2454,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:event.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"event\" entity is removed.",
         "diagnostics": {
@@ -2475,11 +2471,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:event.removed",
         "input": {
           "properties": {
             "endpointId": {
@@ -2529,6 +2527,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endpointId": {
@@ -2578,13 +2577,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:event.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"event\" entity is updated.",
         "diagnostics": {
@@ -2598,11 +2594,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:event.updated",
         "input": {
           "properties": {
             "endpointId": {
@@ -2652,6 +2650,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "endpointId": {
@@ -2701,13 +2700,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:route.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"route\" entity is created.",
         "diagnostics": {
@@ -2721,11 +2717,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:route.created",
         "input": {
           "properties": {
             "enabled": {
@@ -2777,6 +2775,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "enabled": {
@@ -2828,13 +2827,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:route.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"route\" entity is removed.",
         "diagnostics": {
@@ -2848,11 +2844,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:route.removed",
         "input": {
           "properties": {
             "enabled": {
@@ -2904,6 +2902,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "enabled": {
@@ -2955,13 +2954,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:route.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"route\" entity is updated.",
         "diagnostics": {
@@ -2975,11 +2971,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:route.updated",
         "input": {
           "properties": {
             "enabled": {
@@ -3031,6 +3029,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "enabled": {
@@ -3082,13 +3081,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:target.created",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"target\" entity is created.",
         "diagnostics": {
@@ -3102,11 +3098,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:target.created",
         "input": {
           "properties": {
             "enabled": {
@@ -3134,6 +3132,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "enabled": {
@@ -3161,13 +3160,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:target.removed",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"target\" entity is removed.",
         "diagnostics": {
@@ -3181,11 +3177,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:target.removed",
         "input": {
           "properties": {
             "enabled": {
@@ -3213,6 +3211,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "enabled": {
@@ -3240,13 +3239,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 0,
-        "id": "junction.store:target.updated",
-        "kind": "signal",
-        "surfaces": [],
         "consumers": [],
         "description": "Fired after a \"target\" entity is updated.",
         "diagnostics": {
@@ -3260,11 +3256,13 @@
           ],
           "strictMode": true
         },
+        "exampleCount": 0,
         "governance": {
           "consumers": "trail.on",
           "payload": "signal.payload",
           "producers": "trail.fires"
         },
+        "id": "junction.store:target.updated",
         "input": {
           "properties": {
             "enabled": {
@@ -3292,6 +3290,7 @@
           ],
           "type": "object"
         },
+        "kind": "signal",
         "payload": {
           "properties": {
             "enabled": {
@@ -3319,13 +3318,10 @@
           ],
           "type": "object"
         },
-        "producers": []
+        "producers": [],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "relay.dispatch",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -3356,8 +3352,15 @@
           "delivery.send"
         ],
         "description": "Match one received event against enabled routes and compose delivery.send per match",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Dispatch the seeded push event across its single enabled GitHub route",
+            "expected": {
+              "dispatched": 1,
+              "eventId": "evt_seed_push",
+              "matched": 1
+            },
             "input": {
               "endpointId": "ep_github_demo",
               "eventId": "evt_seed_push"
@@ -3366,15 +3369,11 @@
             "name": "Dispatch a matched event",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Dispatch the seeded push event across its single enabled GitHub route",
-            "expected": {
-              "dispatched": 1,
-              "eventId": "evt_seed_push",
-              "matched": 1
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown event id",
+            "error": "NotFoundError",
             "input": {
               "endpointId": "ep_github_demo",
               "eventId": "evt_missing"
@@ -3383,11 +3382,10 @@
             "name": "Dispatch unknown event",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown event id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "relay.dispatch",
         "input": {
           "properties": {
             "endpointId": {
@@ -3405,6 +3403,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "on": [
           "event.received"
         ],
@@ -3433,13 +3432,10 @@
         "permit": "public",
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 3,
-        "id": "route.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "route",
@@ -3458,8 +3454,10 @@
           ]
         },
         "description": "Bind an endpoint to a target with an optional payload filter",
+        "exampleCount": 3,
         "examples": [
           {
+            "description": "Route the rotation-demo endpoint to the logbook target",
             "input": {
               "endpointId": "ep_rotate_demo",
               "targetId": "tgt_logbook"
@@ -3468,10 +3466,11 @@
             "name": "Create a route",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Route the rotation-demo endpoint to the logbook target"
+            }
           },
           {
+            "description": "Returns NotFoundError when the endpoint does not exist",
+            "error": "NotFoundError",
             "input": {
               "endpointId": "ep_missing",
               "targetId": "tgt_logbook"
@@ -3480,11 +3479,11 @@
             "name": "Route with unknown endpoint",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError when the endpoint does not exist",
-            "error": "NotFoundError"
+            }
           },
           {
+            "description": "Returns NotFoundError when the target does not exist",
+            "error": "NotFoundError",
             "input": {
               "endpointId": "ep_github_demo",
               "targetId": "tgt_missing"
@@ -3493,11 +3492,10 @@
             "name": "Route with unknown target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError when the target does not exist",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "route.create",
         "input": {
           "properties": {
             "endpointId": {
@@ -3523,6 +3521,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "enabled": {
@@ -3581,13 +3580,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "route.disable",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "route",
@@ -3606,16 +3602,9 @@
           ]
         },
         "description": "Pause relaying events across a route",
+        "exampleCount": 2,
         "examples": [
           {
-            "input": {
-              "id": "rt_disabled"
-            },
-            "kind": "success",
-            "name": "Disable a route",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "Disable the seeded already-disabled route (idempotent)",
             "expected": {
               "enabled": false,
@@ -3624,9 +3613,19 @@
               "filterPath": null,
               "id": "rt_disabled",
               "targetId": "tgt_disabled"
+            },
+            "input": {
+              "id": "rt_disabled"
+            },
+            "kind": "success",
+            "name": "Disable a route",
+            "provenance": {
+              "source": "trail.examples"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown route id",
+            "error": "NotFoundError",
             "input": {
               "id": "rt_missing"
             },
@@ -3634,11 +3633,10 @@
             "name": "Disable unknown route",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown route id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "route.disable",
         "input": {
           "properties": {
             "id": {
@@ -3651,6 +3649,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "enabled": {
@@ -3709,13 +3708,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "route.enable",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "route",
@@ -3734,8 +3730,10 @@
           ]
         },
         "description": "Resume relaying events across a route",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Enable the seeded toggle demo route",
             "input": {
               "id": "rt_toggle_demo"
             },
@@ -3743,10 +3741,11 @@
             "name": "Enable a route",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Enable the seeded toggle demo route"
+            }
           },
           {
+            "description": "Returns NotFoundError for an unknown route id",
+            "error": "NotFoundError",
             "input": {
               "id": "rt_missing"
             },
@@ -3754,11 +3753,10 @@
             "name": "Enable unknown route",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown route id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "route.enable",
         "input": {
           "properties": {
             "id": {
@@ -3771,6 +3769,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "enabled": {
@@ -3829,13 +3828,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "route.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "route",
@@ -3854,25 +3850,18 @@
           ]
         },
         "description": "List routes, optionally scoped to one endpoint",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List every route",
             "input": {},
             "kind": "success",
             "name": "List routes",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every route"
+            }
           },
           {
-            "input": {
-              "endpointId": "ep_stripe_demo"
-            },
-            "kind": "success",
-            "name": "List routes for one endpoint",
-            "provenance": {
-              "source": "trail.examples"
-            },
             "description": "List routes for the seeded Stripe endpoint",
             "expected": {
               "routes": [
@@ -3885,9 +3874,18 @@
                   "targetId": "tgt_logbook"
                 }
               ]
+            },
+            "input": {
+              "endpointId": "ep_stripe_demo"
+            },
+            "kind": "success",
+            "name": "List routes for one endpoint",
+            "provenance": {
+              "source": "trail.examples"
             }
           }
         ],
+        "id": "route.list",
         "input": {
           "properties": {
             "endpointId": {
@@ -3898,6 +3896,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "routes": {
@@ -3967,13 +3966,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "status.health",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "status",
@@ -3992,37 +3988,40 @@
           ]
         },
         "description": "Public liveness check",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "The relay reports healthy",
+            "expected": {
+              "status": "ok"
+            },
             "input": {},
             "kind": "success",
             "name": "Health check",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "The relay reports healthy",
-            "expected": {
-              "status": "ok"
             }
           },
           {
+            "description": "Health stays ok on repeated probes",
+            "expected": {
+              "status": "ok"
+            },
             "input": {},
             "kind": "success",
             "name": "Health check again",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Health stays ok on repeated probes",
-            "expected": {
-              "status": "ok"
             }
           }
         ],
+        "id": "status.health",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "status": {
@@ -4035,13 +4034,10 @@
           ],
           "type": "object"
         },
-        "permit": "public"
+        "permit": "public",
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "target.create",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "target",
@@ -4060,8 +4056,10 @@
           ]
         },
         "description": "Register an outbound delivery target",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Register a target URL for deliveries",
             "input": {
               "name": "Ops receiver",
               "url": "https://ops.example.test/hooks"
@@ -4070,10 +4068,10 @@
             "name": "Create a target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Register a target URL for deliveries"
+            }
           },
           {
+            "description": "Register a second target",
             "input": {
               "name": "Audit log",
               "url": "https://audit.example.test/ingest"
@@ -4082,10 +4080,10 @@
             "name": "Create another target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Register a second target"
+            }
           }
         ],
+        "id": "target.create",
         "input": {
           "properties": {
             "name": {
@@ -4103,6 +4101,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "enabled": {
@@ -4137,13 +4136,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "target.disable",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "target",
@@ -4162,8 +4158,16 @@
           ]
         },
         "description": "Stop delivering to a target",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Disable the seeded already-disabled target (idempotent)",
+            "expected": {
+              "enabled": false,
+              "id": "tgt_disabled",
+              "name": "Disabled receiver",
+              "url": "https://targets.junction.test/disabled"
+            },
             "input": {
               "id": "tgt_disabled"
             },
@@ -4171,16 +4175,11 @@
             "name": "Disable a target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Disable the seeded already-disabled target (idempotent)",
-            "expected": {
-              "enabled": false,
-              "id": "tgt_disabled",
-              "name": "Disabled receiver",
-              "url": "https://targets.junction.test/disabled"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown target id",
+            "error": "NotFoundError",
             "input": {
               "id": "tgt_missing"
             },
@@ -4188,11 +4187,10 @@
             "name": "Disable unknown target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown target id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "target.disable",
         "input": {
           "properties": {
             "id": {
@@ -4205,6 +4203,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "enabled": {
@@ -4239,13 +4238,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "target.get",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "target",
@@ -4264,8 +4260,16 @@
           ]
         },
         "description": "Show one delivery target",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Look up the seeded logbook target",
+            "expected": {
+              "enabled": true,
+              "id": "tgt_logbook",
+              "name": "Logbook receiver",
+              "url": "https://targets.junction.test/logbook"
+            },
             "input": {
               "id": "tgt_logbook"
             },
@@ -4273,16 +4277,11 @@
             "name": "Get a target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Look up the seeded logbook target",
-            "expected": {
-              "enabled": true,
-              "id": "tgt_logbook",
-              "name": "Logbook receiver",
-              "url": "https://targets.junction.test/logbook"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown target id",
+            "error": "NotFoundError",
             "input": {
               "id": "tgt_missing"
             },
@@ -4290,11 +4289,10 @@
             "name": "Target not found",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown target id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "target.get",
         "input": {
           "properties": {
             "id": {
@@ -4308,6 +4306,7 @@
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "enabled": {
@@ -4342,13 +4341,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "target.list",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "target",
@@ -4367,31 +4363,34 @@
           ]
         },
         "description": "List registered delivery targets",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "List every registered target",
             "input": {},
             "kind": "success",
             "name": "List targets",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "List every registered target"
+            }
           },
           {
+            "description": "Listing is stable when called repeatedly",
             "input": {},
             "kind": "success",
             "name": "List targets again",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Listing is stable when called repeatedly"
+            }
           }
         ],
+        "id": "target.list",
         "input": {
           "properties": {},
           "type": "object"
         },
         "intent": "read",
+        "kind": "trail",
         "output": {
           "properties": {
             "targets": {
@@ -4437,13 +4436,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 2,
-        "id": "target.test",
-        "kind": "trail",
-        "surfaces": [],
         "cli": {
           "path": [
             "target",
@@ -4465,8 +4461,14 @@
           "delivery.send"
         ],
         "description": "Send a ping payload through the real delivery path",
+        "exampleCount": 2,
         "examples": [
           {
+            "description": "Ping the reachable logbook target",
+            "expected": {
+              "delivered": true,
+              "targetId": "tgt_logbook"
+            },
             "input": {
               "id": "tgt_logbook"
             },
@@ -4474,14 +4476,11 @@
             "name": "Test a reachable target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Ping the reachable logbook target",
-            "expected": {
-              "delivered": true,
-              "targetId": "tgt_logbook"
             }
           },
           {
+            "description": "Returns NotFoundError for an unknown target id",
+            "error": "NotFoundError",
             "input": {
               "id": "tgt_missing"
             },
@@ -4489,11 +4488,10 @@
             "name": "Test unknown target",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Returns NotFoundError for an unknown target id",
-            "error": "NotFoundError"
+            }
           }
         ],
+        "id": "target.test",
         "input": {
           "properties": {
             "id": {
@@ -4506,6 +4504,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "delivered": {
@@ -4530,13 +4529,10 @@
         },
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       },
       {
-        "exampleCount": 5,
-        "id": "webhook.receive",
-        "kind": "trail",
-        "surfaces": [],
         "activationSources": [
           {
             "source": {
@@ -4588,8 +4584,10 @@
           ]
         },
         "description": "Receive a webhook, verify its HMAC signature over the raw body, record the event, and fire event.received",
+        "exampleCount": 5,
         "examples": [
           {
+            "description": "Valid GitHub delivery signed with the endpoint secret (GitHub's published docs vector)",
             "input": {
               "endpointId": "ep_github_demo",
               "headers": {
@@ -4602,10 +4600,10 @@
             "name": "Valid GitHub webhook",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Valid GitHub delivery signed with the endpoint secret (GitHub's published docs vector)"
+            }
           },
           {
+            "description": "Valid Stripe delivery with a timestamped v1 signature",
             "input": {
               "endpointId": "ep_stripe_demo",
               "headers": {
@@ -4617,10 +4615,10 @@
             "name": "Valid Stripe webhook",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Valid Stripe delivery with a timestamped v1 signature"
+            }
           },
           {
+            "description": "Valid generic HMAC-SHA256 delivery",
             "input": {
               "endpointId": "ep_generic_demo",
               "headers": {
@@ -4632,10 +4630,11 @@
             "name": "Valid generic webhook",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Valid generic HMAC-SHA256 delivery"
+            }
           },
           {
+            "description": "A tampered signature is rejected with AuthError and recorded with signatureValid: false",
+            "error": "AuthError",
             "input": {
               "endpointId": "ep_github_demo",
               "headers": {
@@ -4647,11 +4646,11 @@
             "name": "Invalid signature",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "A tampered signature is rejected with AuthError and recorded with signatureValid: false",
-            "error": "AuthError"
+            }
           },
           {
+            "description": "Unknown endpoints return NotFoundError",
+            "error": "NotFoundError",
             "input": {
               "endpointId": "ep_missing",
               "headers": {},
@@ -4661,14 +4660,13 @@
             "name": "Unknown endpoint",
             "provenance": {
               "source": "trail.examples"
-            },
-            "description": "Unknown endpoints return NotFoundError",
-            "error": "NotFoundError"
+            }
           }
         ],
         "fires": [
           "event.received"
         ],
+        "id": "webhook.receive",
         "input": {
           "properties": {
             "endpointId": {
@@ -4690,6 +4688,7 @@
           ],
           "type": "object"
         },
+        "kind": "trail",
         "output": {
           "properties": {
             "eventId": {
@@ -4715,7 +4714,8 @@
         "permit": "public",
         "resources": [
           "junction.store"
-        ]
+        ],
+        "surfaces": []
       }
     ],
     "library": {
@@ -6033,8 +6033,8 @@
         }
       ]
     },
-    "topoGraphSchemaVersion": 3
+    "topoGraphSchemaVersion": 4
   },
-  "topoGraphHash": "439544b77dc76149335579da3348ae608b11f342b4f5870b4ccf754cc056b0ac",
-  "version": 4
+  "topoGraphHash": "ffb85efa0c1987811bdf6126cc137111301fee344fadd919ebbc138f87c03f90",
+  "version": 5
 }

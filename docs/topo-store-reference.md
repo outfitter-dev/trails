@@ -278,7 +278,7 @@ store.trails.list({ intent: 'write' });
 store.trails.get('auth.login');
 store.resources.get('db.main');
 store.entries.get('auth.login', { kind: 'trail' });
-store.contours.list();
+store.entries.list({ kind: 'entity' });
 store.topoGraph.get();
 store.snapshots.list({ pinned: true });
 store.snapshots.latest();
@@ -350,7 +350,7 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `composes`, `detours`, `resources`, and `examples` arrays. It also carries resolved `TopoGraph` contract facts for blind agents: `input`, `output`, `cli`, `surfaces`, `surfaceProjections`, `contours`, `contourDetails`, `activationContext`, `activationEdges`, `activationSources`, `fieldOverrides`, `layers`, and `governance`. `surfaceProjections` are the operational rows from `topo_surfaces`; `surfaces` and the schema-rich contract fields come from the saved `TopoGraph`. For the complete shipped CLI/MCP/HTTP surface inventory, use the app-level survey projection instead of treating the operational rows as canonical.
+Extends trail record with `composes`, `detours`, `resources`, and `examples` arrays. It also carries resolved `TopoGraph` contract facts for blind agents: `input`, `output`, `cli`, `surfaces`, `surfaceProjections`, `entities`, `entityDetails`, `activationContext`, `activationEdges`, `activationSources`, `fieldOverrides`, `layers`, and `governance`. `surfaceProjections` are the operational rows from `topo_surfaces`; `surfaces` and the schema-rich contract fields come from the saved `TopoGraph`. For the complete shipped CLI/MCP/HTTP surface inventory, use the app-level survey projection instead of treating the operational rows as canonical.
 
 Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error class name and effective attempt count. Neither examples nor detours are exhaustive per-trail error inference; see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
@@ -369,11 +369,11 @@ Use `store.topoGraph.get(ref?)` when a caller needs the canonical graph content 
 
 ### `TopoStoreTopoGraphEntryRecord`
 
-Extends a `TopoGraphEntry` with the owning `snapshotId`. Use `store.entries.list({ kind })` or `store.entries.get(id, { kind })` to inspect typed saved graph entries, including surfaces, schemas, examples, activation metadata, layer attachments, field overrides, governance metadata, and contour references.
+Extends a `TopoGraphEntry` with the owning `snapshotId`. Use `store.entries.list({ kind })` or `store.entries.get(id, { kind })` to inspect typed saved graph entries, including surfaces, schemas, examples, activation metadata, layer attachments, field overrides, governance metadata, and entity references.
 
-### `TopoStoreContourRecord`
+### `TopoStoreEntityRecord`
 
-Contour-specific entry record returned by `store.contours.get(id)` and `store.contours.list()`. It is a `TopoStoreTopoGraphEntryRecord` whose `kind` is `'contour'`.
+Entity-specific entry record returned by `store.entries.get(id, { kind: 'entity' })` and `store.entries.list({ kind: 'entity' })`. It is a `TopoStoreTopoGraphEntryRecord` whose `kind` is `'entity'`.
 
 ### `TopoStoreResourceRecord`
 

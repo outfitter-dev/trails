@@ -2,19 +2,19 @@ import { describe, expect, test } from 'bun:test';
 
 import { circularRefs } from '../rules/circular-refs.js';
 
-const TEST_FILE = 'contours.ts';
+const TEST_FILE = 'entities.ts';
 
 describe('circular-refs', () => {
-  test('passes when contour references are acyclic', () => {
+  test('passes when entity references are acyclic', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
 }, { identity: 'id' });
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });
@@ -23,17 +23,17 @@ const gist = contour('gist', {
     expect(circularRefs.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('warns on direct local contour cycles', () => {
+  test('warns on direct local entity cycles', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   gistId: gist.id(),
   id: z.string().uuid(),
 }, { identity: 'id' });
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });
@@ -50,22 +50,22 @@ const gist = contour('gist', {
 
   test('warns on transitive cycles discovered through project context', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { gist } from './gist';
 
-const user = contour('user', {
+const user = entity('user', {
   gistId: gist.id(),
   id: z.string().uuid(),
 }, { identity: 'id' });
 `;
 
     const diagnostics = circularRefs.checkWithContext(code, TEST_FILE, {
-      contourReferencesByName: new Map([
+      entityReferencesByName: new Map([
         ['account', ['user']],
         ['gist', ['account']],
       ]),
-      knownContourIds: new Set(['account', 'gist', 'user']),
+      knownEntityIds: new Set(['account', 'gist', 'user']),
       knownTrailIds: new Set<string>(),
     });
 
@@ -75,17 +75,17 @@ const user = contour('user', {
     );
   });
 
-  test('warns on local cycles formed through wrapped contour id schemas', () => {
+  test('warns on local cycles formed through wrapped entity id schemas', () => {
     const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   gistId: gist.id().optional(),
   id: z.string().uuid(),
 }, { identity: 'id' });
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id().nullable(),
 }, { identity: 'id' });
@@ -100,17 +100,17 @@ const gist = contour('gist', {
 
   test('warns on local cycles formed through namespace-imported references', () => {
     const code = `
-import { contour } from '@ontrails/core';
-import * as contours from './contours';
+import { entity } from '@ontrails/core';
+import * as entities from './entities';
 
-const user = contour('user', {
+const user = entity('user', {
   id: 'x',
-  gistId: contours.gist.id(),
+  gistId: entities.gist.id(),
 }, { identity: 'id' });
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: 'x',
-  ownerId: contours.user.id(),
+  ownerId: entities.user.id(),
 }, { identity: 'id' });
 `;
 

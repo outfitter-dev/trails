@@ -1,7 +1,7 @@
 import { activationOrphan } from './activation-orphan.js';
 import { cliCommandRouteCoherence } from './cli-command-route-coherence.js';
 import { circularRefs } from './circular-refs.js';
-import { contourExists } from './contour-exists.js';
+import { entityExists } from './entity-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
 import { composesDeclarations } from './composes-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
@@ -142,7 +142,7 @@ export { activationOrphan } from './activation-orphan.js';
 export { cliCommandRouteCoherence } from './cli-command-route-coherence.js';
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { circularRefs } from './circular-refs.js';
-export { contourExists } from './contour-exists.js';
+export { entityExists } from './entity-exists.js';
 export { contextNoSurfaceTypes } from './context-no-surface-types.js';
 export { composesDeclarations } from './composes-declarations.js';
 export { deadInternalTrail } from './dead-internal-trail.js';
@@ -220,7 +220,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
 >([
   [noThrowInImplementation.name, noThrowInImplementation],
   [circularRefs.name, circularRefs],
-  [contourExists.name, contourExists],
+  [entityExists.name, entityExists],
   [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
   [composesDeclarations.name, composesDeclarations],
   [deadInternalTrail.name, deadInternalTrail],

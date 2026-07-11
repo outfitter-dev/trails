@@ -12,7 +12,7 @@ import type { WayfinderEntityKind, WayfinderEntityRef } from './filters.js';
 export const relationKindSchema = z.enum([
   'composed-by',
   'consumed-by',
-  'contour-referenced-by',
+  'entity-referenced-by',
   'trailhead-groups',
   'fired-by',
   'has-version',
@@ -23,7 +23,7 @@ export const relationKindSchema = z.enum([
 export const relationRefSchema = z.object({
   id: z.string(),
   kind: z.enum([
-    'contour',
+    'entity',
     'trailhead',
     'resource',
     'signal',
@@ -136,8 +136,8 @@ export const relationEdges = (graph: TopoGraph): readonly RelationEdge[] => {
     for (const composedId of entry.composes ?? []) {
       add(refFor(graph, composedId, 'trail'), 'composed-by', target);
     }
-    for (const contourId of entry.contours ?? []) {
-      add(refFor(graph, contourId, 'contour'), 'contour-referenced-by', target);
+    for (const entityId of entry.entities ?? []) {
+      add(refFor(graph, entityId, 'entity'), 'entity-referenced-by', target);
     }
     for (const resourceId of entry.resources ?? []) {
       add(refFor(graph, resourceId, 'resource'), 'used-by', target);

@@ -107,7 +107,7 @@ const overlayInputSchema = sourceInputSchema.extend({
 });
 
 const inspectKindSchema = z.enum([
-  'contour',
+  'entity',
   'trailhead',
   'resource',
   'signal',
@@ -219,9 +219,9 @@ const trailSummarySchema = entrySummarySchema.extend({
   version: z.number().nullable(),
 });
 
-const contourSummarySchema = entrySummarySchema.extend({
+const entitySummarySchema = entrySummarySchema.extend({
   identity: z.string().optional(),
-  kind: z.literal('contour'),
+  kind: z.literal('entity'),
   references: z.array(z.unknown()).readonly(),
 });
 
@@ -366,7 +366,7 @@ const diffEntryOutputSchema = z.object({
   change: z.enum(['added', 'removed', 'modified']),
   details: z.array(z.string()).readonly(),
   id: z.string(),
-  kind: z.enum(['contour', 'trailhead', 'resource', 'signal', 'trail']),
+  kind: z.enum(['entity', 'trailhead', 'resource', 'signal', 'trail']),
   severity: z.enum(['info', 'warning', 'breaking']),
 });
 
@@ -640,14 +640,14 @@ const trailSummaries = (graph: TopoGraph) =>
       version: entry.version ?? null,
     }));
 
-const contourSummaries = (graph: TopoGraph) =>
+const entitySummaries = (graph: TopoGraph) =>
   graph.entries
-    .filter((entry) => entry.kind === 'contour')
+    .filter((entry) => entry.kind === 'entity')
     .map((entry) => ({
       exampleCount: entry.exampleCount,
       id: entry.id,
       identity: entry.identity,
-      kind: 'contour' as const,
+      kind: 'entity' as const,
       references: entry.references ?? [],
       surfaces: entry.surfaces,
     }));
@@ -1147,7 +1147,7 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
       return {
         ...envelope(loaded),
         counts: {
-          contours: contourSummaries(graph).length,
+          entities: entitySummaries(graph).length,
           examples: exampleSummaries(graph).length,
           resources: resourceSummaries(graph).length,
           signals: signalSummaries(graph).length,
@@ -1170,7 +1170,7 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
   intent: 'read',
   output: envelopeSchema.extend({
     counts: z.object({
-      contours: z.number(),
+      entities: z.number(),
       examples: z.number(),
       resources: z.number(),
       signals: z.number(),
@@ -1240,20 +1240,20 @@ export const wayfindTrailsTrail = trail('wayfind.trails', {
   visibility: 'internal',
 });
 
-export const wayfindContoursTrail = trail('wayfind.contours', {
-  description: 'List saved contour contracts',
-  examples: [{ input: {}, name: 'List contours' }],
+export const wayfindEntitiesTrail = trail('wayfind.entities', {
+  description: 'List saved entity contracts',
+  examples: [{ input: {}, name: 'List entities' }],
   implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
-        'contour',
+        'entity',
         input.filters,
         input.limit
       );
       return {
         ...envelope(loaded),
-        contours: contourSummaries(loaded.graph).filter((entry) =>
+        entities: entitySummaries(loaded.graph).filter((entry) =>
           ids.has(entry.id)
         ),
       };
@@ -1261,7 +1261,7 @@ export const wayfindContoursTrail = trail('wayfind.contours', {
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
-    contours: z.array(contourSummarySchema).readonly(),
+    entities: z.array(entitySummarySchema).readonly(),
   }),
   visibility: 'internal',
 });
@@ -1640,10 +1640,10 @@ export const wayfindDiffTrail = trail('wayfind.diff', {
 
 export const wayfinderTopo = topo('wayfinder', {
   wayfindAdaptersTrail,
-  wayfindContoursTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
+  wayfindEntitiesTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindImpactTrail,

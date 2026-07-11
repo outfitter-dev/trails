@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import {
   NotFoundError,
+  ValidationError,
   deriveTrailsDbPath,
   openReadTrailsDb,
 } from '@ontrails/core';
@@ -21,7 +22,7 @@ import type {
   LockManifestSummary,
   ReadOptions,
   TopoGraph,
-  TopoStoreContourRecord,
+  TopoStoreEntityRecord,
   TopoStoreExportRecord,
   TopoStoreResourceRecord,
   TopoStoreSignalDetailRecord,
@@ -41,7 +42,7 @@ export type WayfinderArtifactLoaderOptions = ReadOptions &
   TrailsDbLocationOptions;
 
 export interface WayfinderTopoStoreLoad {
-  readonly contours: readonly TopoStoreContourRecord[];
+  readonly entities: readonly TopoStoreEntityRecord[];
   readonly entries: readonly TopoStoreTopoGraphEntryRecord[];
   readonly export: TopoStoreExportRecord | null;
   readonly path: string;
@@ -209,32 +210,43 @@ const readTopoStoreArtifact = (
   }
 
   const ref = { snapshotId: snapshot.id };
-  return {
-    kind: 'ok',
-    value: {
-      contours: store.contours.list({ snapshot: ref }),
-      entries: store.entries.list({ snapshot: ref }),
-      export: store.exports.get(ref) ?? null,
-      path,
-      resources: store.resources.list({ snapshot: ref }),
-      schemaVersion: TOPO_STORE_SCHEMA_VERSION,
-      signals: store.signals
-        .list({ snapshot: ref })
-        .map((signal) => store.signals.get(signal.id, { snapshot: ref }))
-        .filter(
-          (signal): signal is TopoStoreSignalDetailRecord =>
-            signal !== undefined
-        ),
-      snapshot,
-      topoGraph: store.topoGraph.get(ref) ?? null,
-      trails: store.trails
-        .list({ snapshot: ref })
-        .map((trail) => store.trails.get(trail.id, { snapshot: ref }))
-        .filter(
-          (trail): trail is TopoStoreTrailDetailRecord => trail !== undefined
-        ),
-    },
-  };
+  try {
+    return {
+      kind: 'ok',
+      value: {
+        entities: store.entities.list({ snapshot: ref }),
+        entries: store.entries.list({ snapshot: ref }),
+        export: store.exports.get(ref) ?? null,
+        path,
+        resources: store.resources.list({ snapshot: ref }),
+        schemaVersion: TOPO_STORE_SCHEMA_VERSION,
+        signals: store.signals
+          .list({ snapshot: ref })
+          .map((signal) => store.signals.get(signal.id, { snapshot: ref }))
+          .filter(
+            (signal): signal is TopoStoreSignalDetailRecord =>
+              signal !== undefined
+          ),
+        snapshot,
+        topoGraph: store.topoGraph.get(ref) ?? null,
+        trails: store.trails
+          .list({ snapshot: ref })
+          .map((trail) => store.trails.get(trail.id, { snapshot: ref }))
+          .filter(
+            (trail): trail is TopoStoreTrailDetailRecord => trail !== undefined
+          ),
+      },
+    };
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return {
+        artifact: 'topoStore',
+        kind: 'schema-version-drift',
+        message: `${error.message} Regenerate the Topographer store with \`trails compile\`.`,
+      };
+    }
+    throw error;
+  }
 };
 
 const countEntries = (
@@ -243,7 +255,7 @@ const countEntries = (
 ): number => topoGraph.entries.filter((entry) => entry.kind === kind).length;
 
 const summarizeTopoGraph = (topoGraph: TopoGraph): LockManifestSummary => ({
-  contours: countEntries(topoGraph, 'contour'),
+  entities: countEntries(topoGraph, 'entity'),
   resources: countEntries(topoGraph, 'resource'),
   signals: countEntries(topoGraph, 'signal'),
   trails: countEntries(topoGraph, 'trail'),
@@ -253,7 +265,7 @@ const summariesEqual = (
   left: LockManifestSummary,
   right: LockManifestSummary
 ): boolean =>
-  left.contours === right.contours &&
+  left.entities === right.entities &&
   left.resources === right.resources &&
   left.signals === right.signals &&
   left.trails === right.trails;

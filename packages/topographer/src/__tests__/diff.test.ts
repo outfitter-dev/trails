@@ -65,12 +65,12 @@ describe('deriveTopoGraphDiff', () => {
       expect(result.info).toHaveLength(1);
     });
 
-    test('added contour detected as info', () => {
+    test('added entity detected as info', () => {
       const prev = topoGraph([]);
-      const curr = topoGraph([entry({ id: 'user', kind: 'contour' })]);
+      const curr = topoGraph([entry({ id: 'user', kind: 'entity' })]);
       const result = deriveTopoGraphDiff(prev, curr);
 
-      expect(result.entries[0]?.details).toContain('Contour "user" added');
+      expect(result.entries[0]?.details).toContain('Entity "user" added');
       expect(result.info).toHaveLength(1);
     });
 

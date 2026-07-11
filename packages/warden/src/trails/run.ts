@@ -34,13 +34,11 @@ const appendDiagnostics = (
 type TrailIntentMap = Readonly<Record<string, Intent>>;
 
 interface ProjectRuleOptions {
-  readonly contourReferencesByName?: Readonly<
-    Record<string, readonly string[]>
-  >;
+  readonly entityReferencesByName?: Readonly<Record<string, readonly string[]>>;
   readonly composeTargetTrailIds?: readonly string[];
   readonly crudTableIds?: readonly string[];
   readonly crudCoverageByEntity?: Readonly<Record<string, readonly string[]>>;
-  readonly knownContourIds?: readonly string[];
+  readonly knownEntityIds?: readonly string[];
   readonly importResolutionsByFile?: Readonly<
     Record<string, readonly WardenImportResolution[]>
   >;
@@ -57,11 +55,11 @@ interface ProjectRuleOptions {
 }
 
 const PROJECT_OPTION_KEYS = [
-  'contourReferencesByName',
+  'entityReferencesByName',
   'composeTargetTrailIds',
   'crudTableIds',
   'crudCoverageByEntity',
-  'knownContourIds',
+  'knownEntityIds',
   'importResolutionsByFile',
   'documentedImportResolutionsByFile',
   'knownResourceIds',

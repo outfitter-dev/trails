@@ -1,9 +1,9 @@
 import {
   buildUserNamespaceContext,
-  collectContourDefinitionIds,
+  collectEntityDefinitionIds,
   collectImportAliasMap,
-  collectNamedContourIds,
-  deriveContourIdentifierName,
+  collectNamedEntityIds,
+  deriveEntityIdentifierName,
   extractFirstStringArg,
   findConfigProperty,
   findTrailDefinitions,
@@ -17,7 +17,7 @@ import {
   parse,
 } from './ast.js';
 import type { AstNode, TrailDefinition, UserNamespaceContext } from './ast.js';
-import { mergeKnownContourIds } from './contour-ids.js';
+import { mergeKnownEntityIds } from './entity-ids.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
@@ -25,17 +25,17 @@ import type {
   WardenDiagnostic,
 } from './types.js';
 
-const isContourCall = (node: AstNode): boolean =>
+const isEntityCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
-  identifierName(getNodeCallee(node)) === 'contour';
+  identifierName(getNodeCallee(node)) === 'entity';
 
-const getContourElements = (config: AstNode): readonly AstNode[] => {
-  const contoursProp = findConfigProperty(config, 'contours');
-  if (!contoursProp) {
+const getEntityElements = (config: AstNode): readonly AstNode[] => {
+  const entitiesProp = findConfigProperty(config, 'entities');
+  if (!entitiesProp) {
     return [];
   }
 
-  const arrayNode = contoursProp.value;
+  const arrayNode = entitiesProp.value;
   if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
     return [];
   }
@@ -47,13 +47,13 @@ const getContourElements = (config: AstNode): readonly AstNode[] => {
 };
 
 /**
- * Resolve `contours.user` to its contour name. When `userNamespace` carries a
+ * Resolve `entities.user` to its entity name. When `userNamespace` carries a
  * scope-aware `safeMemberStarts` set, the member access must appear in it —
- * rejecting cases where `contours` is shadowed by a local binding such as a
- * function parameter or `const contours = ...`. Without the set, falls back
+ * rejecting cases where `entities` is shadowed by a local binding such as a
+ * function parameter or `const entities = ...`. Without the set, falls back
  * to the bare name check for backward compatibility.
  */
-const resolveNamespaceMemberContourName = (
+const resolveNamespaceMemberEntityName = (
   element: AstNode,
   userNamespace: UserNamespaceContext
 ): string | null => {
@@ -72,27 +72,27 @@ const resolveNamespaceMemberContourName = (
   return property ? identifierName(property) : null;
 };
 
-const resolveDeclaredContourName = (
+const resolveDeclaredEntityName = (
   element: AstNode,
-  contourIdsByName: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+  entityIdsByName: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   userNamespace?: UserNamespaceContext
 ): string | null => {
   if (element.type === 'Identifier') {
     const name = identifierName(element);
     return name
-      ? deriveContourIdentifierName(
+      ? deriveEntityIdentifierName(
           name,
-          contourIdsByName,
-          knownContourIds,
+          entityIdsByName,
+          knownEntityIds,
           importAliases
         )
       : null;
   }
 
   if (userNamespace && userNamespace.bindings.size > 0) {
-    const namespaceTarget = resolveNamespaceMemberContourName(
+    const namespaceTarget = resolveNamespaceMemberEntityName(
       element,
       userNamespace
     );
@@ -101,40 +101,40 @@ const resolveDeclaredContourName = (
     }
   }
 
-  return isContourCall(element) ? extractFirstStringArg(element) : null;
+  return isEntityCall(element) ? extractFirstStringArg(element) : null;
 };
 
-const extractDeclaredContourNames = (
+const extractDeclaredEntityNames = (
   config: AstNode,
-  contourIdsByName: ReadonlyMap<string, string>,
-  knownContourIds?: ReadonlySet<string>,
+  entityIdsByName: ReadonlyMap<string, string>,
+  knownEntityIds?: ReadonlySet<string>,
   importAliases?: ReadonlyMap<string, string>,
   userNamespace?: UserNamespaceContext
 ): readonly string[] => [
   ...new Set(
-    getContourElements(config).flatMap((element) => {
-      const contourName = resolveDeclaredContourName(
+    getEntityElements(config).flatMap((element) => {
+      const entityName = resolveDeclaredEntityName(
         element,
-        contourIdsByName,
-        knownContourIds,
+        entityIdsByName,
+        knownEntityIds,
         importAliases,
         userNamespace
       );
-      return contourName ? [contourName] : [];
+      return entityName ? [entityName] : [];
     })
   ),
 ];
 
-const buildMissingContourDiagnostic = (
+const buildMissingEntityDiagnostic = (
   trailId: string,
-  contourName: string,
+  entityName: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares contour "${contourName}" which is not defined in the project. Define it with contour('${contourName}', ...) and include it in the topo, or fix the contours entry if this is a typo.`,
-  rule: 'contour-exists',
+  message: `Trail "${trailId}" declares entity "${entityName}" which is not defined in the project. Define it with entity('${entityName}', ...) and include it in the topo, or fix the entities entry if this is a typo.`,
+  rule: 'entity-exists',
   severity: 'error',
 });
 
@@ -142,8 +142,8 @@ const buildDiagnosticsForDefinition = (
   definition: TrailDefinition,
   sourceCode: string,
   filePath: string,
-  knownContourIds: ReadonlySet<string>,
-  contourIdsByName: ReadonlyMap<string, string>,
+  knownEntityIds: ReadonlySet<string>,
+  entityIdsByName: ReadonlyMap<string, string>,
   importAliases: ReadonlyMap<string, string>,
   userNamespace: UserNamespaceContext
 ): readonly WardenDiagnostic[] => {
@@ -152,19 +152,19 @@ const buildDiagnosticsForDefinition = (
   }
 
   const line = offsetToLine(sourceCode, definition.start);
-  return extractDeclaredContourNames(
+  return extractDeclaredEntityNames(
     definition.config,
-    contourIdsByName,
-    knownContourIds,
+    entityIdsByName,
+    knownEntityIds,
     importAliases,
     userNamespace
-  ).flatMap((contourName) =>
-    knownContourIds.has(contourName)
+  ).flatMap((entityName) =>
+    knownEntityIds.has(entityName)
       ? []
       : [
-          buildMissingContourDiagnostic(
+          buildMissingEntityDiagnostic(
             definition.id,
-            contourName,
+            entityName,
             filePath,
             line
           ),
@@ -172,13 +172,13 @@ const buildDiagnosticsForDefinition = (
   );
 };
 
-const buildContourDiagnostics = (
+const buildEntityDiagnostics = (
   ast: AstNode,
   sourceCode: string,
   filePath: string,
-  knownContourIds: ReadonlySet<string>
+  knownEntityIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
-  const contourIdsByName = collectNamedContourIds(ast);
+  const entityIdsByName = collectNamedEntityIds(ast);
   const importAliases = collectImportAliasMap(ast);
   const userNamespace = buildUserNamespaceContext(ast);
 
@@ -187,43 +187,43 @@ const buildContourDiagnostics = (
       definition,
       sourceCode,
       filePath,
-      knownContourIds,
-      contourIdsByName,
+      knownEntityIds,
+      entityIdsByName,
       importAliases,
       userNamespace
     )
   );
 };
 
-const checkContourDeclarations = (
+const checkEntityDeclarations = (
   ast: AstNode,
   sourceCode: string,
   filePath: string,
-  knownContourIds: ReadonlySet<string>
+  knownEntityIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
     return [];
   }
 
-  return buildContourDiagnostics(ast, sourceCode, filePath, knownContourIds);
+  return buildEntityDiagnostics(ast, sourceCode, filePath, knownEntityIds);
 };
 
 /**
- * Checks that every contour declared in a trail `contours` array resolves to a
- * known contour definition.
+ * Checks that every entity declared in a trail `entities` array resolves to a
+ * known entity definition.
  */
-export const contourExists: ProjectAwareWardenRule = {
+export const entityExists: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
     if (!ast) {
       return [];
     }
 
-    return checkContourDeclarations(
+    return checkEntityDeclarations(
       ast,
       sourceCode,
       filePath,
-      collectContourDefinitionIds(ast)
+      collectEntityDefinitionIds(ast)
     );
   },
   checkWithContext(
@@ -236,16 +236,16 @@ export const contourExists: ProjectAwareWardenRule = {
       return [];
     }
 
-    const localContourIds = collectContourDefinitionIds(ast);
-    return checkContourDeclarations(
+    const localEntityIds = collectEntityDefinitionIds(ast);
+    return checkEntityDeclarations(
       ast,
       sourceCode,
       filePath,
-      mergeKnownContourIds(localContourIds, context.knownContourIds)
+      mergeKnownEntityIds(localEntityIds, context.knownEntityIds)
     );
   },
   description:
-    'Ensure every contour declared on a trail resolves to a known contour definition.',
-  name: 'contour-exists',
+    'Ensure every entity declared on a trail resolves to a known entity definition.',
+  name: 'entity-exists',
   severity: 'error',
 };

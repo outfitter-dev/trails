@@ -16,7 +16,7 @@ import type { Trail, TrailSpec, TrailVersionRevisionEntry } from './trail.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { resource } from './resource.js';
 import type { Resource, ResourceSpec } from './resource.js';
-import type { ContourOptions } from './contour.js';
+import type { EntityOptions } from './entity.js';
 import type { ScheduleSpec } from './schedule.js';
 import type { WebhookSpec } from './webhook.js';
 import type { BasePermit } from './permits.js';
@@ -368,7 +368,7 @@ type AssertVersionReserved<T extends { readonly version?: never }> =
 export type NonTrailVersionReservations = [
   AssertVersionReserved<ResourceSpec<unknown>>,
   AssertVersionReserved<SignalSpec<unknown>>,
-  AssertVersionReserved<ContourOptions<{ readonly id: z.ZodString }, 'id'>>,
+  AssertVersionReserved<EntityOptions<{ readonly id: z.ZodString }, 'id'>>,
   AssertVersionReserved<ScheduleSpec>,
   AssertVersionReserved<WebhookSpec>,
 ] extends [true, true, true, true, true]

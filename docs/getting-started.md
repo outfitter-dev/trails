@@ -88,7 +88,7 @@ import * as greetModule from './trails/greet';
 export const graph = topo('myapp', greetModule);
 ```
 
-`topo()` scans the module exports for trails, signals, contours, and resources and builds the resolved graph.
+`topo()` scans the module exports for trails, signals, entities, and resources and builds the resolved graph.
 
 ## Open a CLI Surface
 

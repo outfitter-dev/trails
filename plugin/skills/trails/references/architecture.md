@@ -21,6 +21,7 @@ Core defines ports. Everything on the edges is an adapter.
                       |                               |
                       +-------> @ontrails/core <------+
                                 trail() signal()
+                                entity()
                                 resource() topo()
                                 Result Errors Layers
 ```
@@ -75,7 +76,7 @@ Every piece of information has a clear ownership model.
 |----------|------|
 | Which trails a trail composes | `ctx.compose()` calls in the implementation function |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized into root `trails.lock` |
+| TopoGraph entries and lock hash | All established trails, resources, signals, entities, examples, and derived fields, canonicalized into root `trails.lock` |
 
 Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
@@ -85,7 +86,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 
 ### Foundation
 
-`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, layers, adapter port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
+`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `entity()`/`trail()`/`signal()`, `topo()`, validation, layers, adapter port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
 
 ### Surface Adapters (left side)
 

@@ -4,13 +4,13 @@ import {
   __collectFrameworkNamespaceBindingsForTest,
   __getTrailCalleeNameForTest,
   applySourceEdits,
-  collectContourDefinitionIds,
-  collectContourReferenceSites,
-  collectNamedContourIds,
+  collectEntityDefinitionIds,
+  collectEntityReferenceSites,
+  collectNamedEntityIds,
   createSourceEdit,
-  deriveContourIdentifierName,
+  deriveEntityIdentifierName,
   extractStringLiteral,
-  findContourDefinitions,
+  findEntityDefinitions,
   findTrailDefinitions,
   getNodeArguments,
   getNodeBody,
@@ -51,25 +51,25 @@ import {
 } from '../rules/ast.js';
 import type { VariableDeclarationNode } from '../rules/ast.js';
 
-describe('deriveContourIdentifierName', () => {
-  test('supports the common *Contour binding suffix when resolving known contours', () => {
+describe('deriveEntityIdentifierName', () => {
+  test('supports the common *Entity binding suffix when resolving known entities', () => {
     expect(
-      deriveContourIdentifierName(
-        'userContour',
+      deriveEntityIdentifierName(
+        'userEntity',
         new Map<string, string>(),
         new Set(['user'])
       )
     ).toBe('user');
   });
 
-  test('prefers exact contour ids over the *Contour fallback', () => {
+  test('prefers exact entity ids over the *Entity fallback', () => {
     expect(
-      deriveContourIdentifierName(
-        'userContour',
+      deriveEntityIdentifierName(
+        'userEntity',
         new Map<string, string>(),
-        new Set(['user', 'userContour'])
+        new Set(['user', 'userEntity'])
       )
-    ).toBe('userContour');
+    ).toBe('userEntity');
   });
 });
 
@@ -670,42 +670,42 @@ describe('getTrailCalleeName permissive fallback', () => {
   });
 });
 
-describe('findContourDefinitions with namespaced callees', () => {
-  test('discovers core.contour("name", { ... }) definitions', () => {
+describe('findEntityDefinitions with namespaced callees', () => {
+  test('discovers core.entity("name", { ... }) definitions', () => {
     const source = `
       import * as core from '@ontrails/core';
-      export const user = core.contour('user', { id: 'string' });
+      export const user = core.entity('user', { id: 'string' });
     `;
     const ast = parseOrThrow(source);
-    const defs = findContourDefinitions(ast);
+    const defs = findEntityDefinitions(ast);
     expect(defs).toHaveLength(1);
     expect(defs[0]?.name).toBe('user');
   });
 
-  test('ignores unrelated ns.contour(...) where ns is not @ontrails/*', () => {
+  test('ignores unrelated ns.entity(...) where ns is not @ontrails/*', () => {
     const source = `
       import * as analytics from 'analytics';
-      analytics.contour('user', { id: 'string' });
+      analytics.entity('user', { id: 'string' });
     `;
     const ast = parseOrThrow(source);
-    expect(findContourDefinitions(ast)).toHaveLength(0);
+    expect(findEntityDefinitions(ast)).toHaveLength(0);
   });
 
   test('still rejects computed member access', () => {
     const source = `
-      const contour = 'x';
-      ns[contour]('user', { id: 'string' });
+      const entity = 'x';
+      ns[entity]('user', { id: 'string' });
     `;
     const ast = parseOrThrow(source);
-    expect(findContourDefinitions(ast)).toHaveLength(0);
+    expect(findEntityDefinitions(ast)).toHaveLength(0);
   });
 });
 
-describe('findContourDefinitions inline discovery', () => {
-  // Regression: `findContourDefinitions` descends into nested object
-  // expressions and surfaces inline `core.contour('inner', ...)` calls as
+describe('findEntityDefinitions inline discovery', () => {
+  // Regression: `findEntityDefinitions` descends into nested object
+  // expressions and surfaces inline `core.entity('inner', ...)` calls as
   // definitions alongside the outer binding. This behavior is load-bearing for
-  // reference-site resolution (see `collectContourReferenceSites`) and must
+  // reference-site resolution (see `collectEntityReferenceSites`) and must
   // not silently regress.
   const inlineSource = `
       import * as core from '@ontrails/core';
@@ -713,15 +713,15 @@ describe('findContourDefinitions inline discovery', () => {
   z
 } from 'zod';
 
-      export const outer = core.contour('outer', {
+      export const outer = core.entity('outer', {
         id: z.string().uuid(),
-        inner: core.contour('inner', { id: z.string().uuid() }).id(),
+        inner: core.entity('inner', { id: z.string().uuid() }).id(),
       });
     `;
 
-  test('returns both outer and inline contour definitions by default', () => {
+  test('returns both outer and inline entity definitions by default', () => {
     const ast = parseOrThrow(inlineSource);
-    const defs = findContourDefinitions(ast);
+    const defs = findEntityDefinitions(ast);
 
     expect(defs).toHaveLength(2);
     const names = defs.map((d) => d.name).toSorted();
@@ -730,30 +730,30 @@ describe('findContourDefinitions inline discovery', () => {
     const outer = defs.find((d) => d.name === 'outer');
     const inner = defs.find((d) => d.name === 'inner');
     expect(outer?.bindingName).toBe('outer');
-    // Inline contours are anonymous call expressions — no binding name.
+    // Inline entities are anonymous call expressions — no binding name.
     expect(inner?.bindingName).toBeUndefined();
   });
 
-  test('collectContourDefinitionIds includes inline contour ids', () => {
+  test('collectEntityDefinitionIds includes inline entity ids', () => {
     const ast = parseOrThrow(inlineSource);
-    const ids = collectContourDefinitionIds(ast);
+    const ids = collectEntityDefinitionIds(ast);
 
     expect(ids.has('outer')).toBe(true);
     expect(ids.has('inner')).toBe(true);
   });
 
-  test('collectNamedContourIds excludes inline contours (no bindingName)', () => {
+  test('collectNamedEntityIds excludes inline entities (no bindingName)', () => {
     const ast = parseOrThrow(inlineSource);
-    const named = collectNamedContourIds(ast);
+    const named = collectNamedEntityIds(ast);
 
     expect([...named.keys()].toSorted()).toEqual(['outer']);
     expect(named.get('outer')).toBe('outer');
     expect(named.has('inner')).toBe(false);
   });
 
-  test('topLevelOnly: true skips inline contour discovery', () => {
+  test('topLevelOnly: true skips inline entity discovery', () => {
     const ast = parseOrThrow(inlineSource);
-    const defs = findContourDefinitions(ast, undefined, {
+    const defs = findEntityDefinitions(ast, undefined, {
       topLevelOnly: true,
     });
 
@@ -764,8 +764,8 @@ describe('findContourDefinitions inline discovery', () => {
 
   test('topLevelOnly: true still surfaces top-level statement-form calls', () => {
     // Regression for Codex P2 on PR #222: the `topLevelOnly` guard must only
-    // exclude inline nested contour calls. Top-level bare-statement forms
-    // (`core.contour('name', {...});` directly in the program body, not
+    // exclude inline nested entity calls. Top-level bare-statement forms
+    // (`core.entity('name', {...});` directly in the program body, not
     // bound to a variable) are top-level and should still be returned.
     const statementFormSource = `
       import * as core from '@ontrails/core';
@@ -773,14 +773,14 @@ describe('findContourDefinitions inline discovery', () => {
   z
 } from 'zod';
 
-      export const bound = core.contour('bound', {
+      export const bound = core.entity('bound', {
         id: z.string().uuid(),
       });
 
-      core.contour('bare', { id: z.string().uuid() });
+      core.entity('bare', { id: z.string().uuid() });
     `;
     const ast = parseOrThrow(statementFormSource);
-    const defs = findContourDefinitions(ast, undefined, {
+    const defs = findEntityDefinitions(ast, undefined, {
       topLevelOnly: true,
     });
 
@@ -794,10 +794,10 @@ describe('findContourDefinitions inline discovery', () => {
     expect(bare?.bindingName).toBeUndefined();
   });
 
-  test('topLevelOnly: true surfaces export default core.contour(...) form', () => {
+  test('topLevelOnly: true surfaces export default core.entity(...) form', () => {
     // Regression for Greptile P2 on PR #227: collectTopLevelStatementCallStarts
     // branches on ExportDefaultDeclaration via getCandidateCallHosts, so an
-    // export-default contour declaration must still be surfaced under the
+    // export-default entity declaration must still be surfaced under the
     // topLevelOnly: true flag.
     const exportDefaultSource = `
       import * as core from '@ontrails/core';
@@ -805,12 +805,12 @@ describe('findContourDefinitions inline discovery', () => {
   z
 } from 'zod';
 
-      export default core.contour('default-export', {
+      export default core.entity('default-export', {
         id: z.string().uuid(),
       });
     `;
     const ast = parseOrThrow(exportDefaultSource);
-    const defs = findContourDefinitions(ast, undefined, {
+    const defs = findEntityDefinitions(ast, undefined, {
       topLevelOnly: true,
     });
 
@@ -821,21 +821,21 @@ describe('findContourDefinitions inline discovery', () => {
   });
 });
 
-describe('collectContourReferenceSites with namespaced inline contours', () => {
-  test('resolves core.contour(...).id() when the file context is available', () => {
+describe('collectEntityReferenceSites with namespaced inline entities', () => {
+  test('resolves core.entity(...).id() when the file context is available', () => {
     const source = `
       import * as core from '@ontrails/core';
       import {
   z
 } from 'zod';
 
-      const gist = core.contour('gist', {
+      const gist = core.entity('gist', {
         id: z.string().uuid(),
-        ownerId: core.contour('user', { id: z.string().uuid() }).id(),
+        ownerId: core.entity('user', { id: z.string().uuid() }).id(),
       });
     `;
     const ast = parseOrThrow(source);
-    const refs = collectContourReferenceSites(ast);
+    const refs = collectEntityReferenceSites(ast);
 
     expect(refs).toHaveLength(1);
     expect(refs[0]?.source).toBe('gist');
@@ -843,43 +843,43 @@ describe('collectContourReferenceSites with namespaced inline contours', () => {
     expect(refs[0]?.target).toBe('user');
   });
 
-  test('ignores analytics.contour(...).id() when the receiver is not a framework namespace', () => {
+  test('ignores analytics.entity(...).id() when the receiver is not a framework namespace', () => {
     const source = `
       import * as analytics from 'analytics';
       import {
   z
 } from 'zod';
 
-      const gist = contour('gist', {
+      const gist = entity('gist', {
         id: z.string().uuid(),
-        ownerId: analytics.contour('user', { id: z.string().uuid() }).id(),
+        ownerId: analytics.entity('user', { id: z.string().uuid() }).id(),
       });
     `;
     const ast = parseOrThrow(source);
 
-    expect(collectContourReferenceSites(ast)).toEqual([]);
+    expect(collectEntityReferenceSites(ast)).toEqual([]);
   });
 
-  test('unwraps wrapped contour id schemas before resolving the target', () => {
+  test('unwraps wrapped entity id schemas before resolving the target', () => {
     const source = `
       import {
-  contour
+  entity
 } from '@ontrails/core';
       import {
   z
 } from 'zod';
 
-      const user = contour('user', {
+      const user = entity('user', {
         id: z.string().uuid(),
       });
 
-      const gist = contour('gist', {
+      const gist = entity('gist', {
         id: z.string().uuid(),
         ownerId: user.id().nullable().optional().default(null),
       });
     `;
     const ast = parseOrThrow(source);
-    const refs = collectContourReferenceSites(ast);
+    const refs = collectEntityReferenceSites(ast);
 
     expect(refs).toHaveLength(1);
     expect(refs[0]?.source).toBe('gist');

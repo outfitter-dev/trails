@@ -1,11 +1,11 @@
 /**
  * Factory contract completeness (TRL-1195, TRL-1201): crud()/reconcile()/
- * sync() declare permits and share table contours instead of forcing
+ * sync() declare permits and share table entities instead of forcing
  * consuming apps to post-process the produced trails.
  */
 
 import { describe, expect, test } from 'bun:test';
-import { Result, resource, topo } from '@ontrails/core';
+import { Result, ValidationError, resource, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import type {
@@ -14,7 +14,7 @@ import type {
   StoreAccessor,
 } from '../index.js';
 import { store } from '../index.js';
-import type { TableContour } from '../trails/index.js';
+import type { TableEntity } from '../trails/index.js';
 import { crud, reconcile, sync } from '../trails/index.js';
 
 const noteSchema = z.object({
@@ -105,19 +105,19 @@ describe('crud() permits', () => {
   });
 });
 
-describe('shared table contours', () => {
-  test('crud exposes its contour and reconcile reuses the instance', () => {
+describe('shared table entities', () => {
+  test('crud exposes its entity and reconcile reuses the instance', () => {
     const crudTrails = crud(noteDefinition.tables.notes, notesResource);
-    expect(crudTrails.contour).toBeDefined();
-    expect(crudTrails[0].contours[0]).toBe(crudTrails.contour);
+    expect(crudTrails.entity).toBeDefined();
+    expect(crudTrails[0].entities[0]).toBe(crudTrails.entity);
 
     const reconcileNotes = reconcile({
-      contour: crudTrails.contour,
+      entity: crudTrails.entity,
       permit: { scopes: ['notes:write'] },
       resource: notesResource,
       table: noteDefinition.tables.notes,
     });
-    expect(reconcileNotes.contours[0]).toBe(crudTrails.contour);
+    expect(reconcileNotes.entities[0]).toBe(crudTrails.entity);
     expect(reconcileNotes.permit).toEqual({ scopes: ['notes:write'] });
 
     const [create, read, update, remove, list] = crudTrails;
@@ -133,7 +133,7 @@ describe('shared table contours', () => {
     ).not.toThrow();
   });
 
-  test('unshared contours still collide at topo() so the sharing is load-bearing', () => {
+  test('unshared entities still collide at topo() so the sharing is load-bearing', () => {
     const crudTrails = crud(noteDefinition.tables.notes, notesResource);
     const reconcileNotes = reconcile({
       resource: notesResource,
@@ -150,16 +150,16 @@ describe('shared table contours', () => {
         remove,
         update,
       })
-    ).toThrow(/[Dd]uplicate contour/);
+    ).toThrow(/[Dd]uplicate entity/);
   });
 
-  test('crud accepts an existing contour instance', () => {
+  test('crud accepts an existing entity instance', () => {
     const first = crud(noteDefinition.tables.notes, notesResource);
     const second = crud(noteDefinition.tables.notes, notesResource, {
-      contour: first.contour,
+      entity: first.entity,
     });
-    expect(second.contour).toBe(first.contour);
-    expect(second[0].contours[0]).toBe(first.contour);
+    expect(second.entity).toBe(first.entity);
+    expect(second[0].entities[0]).toBe(first.entity);
   });
 });
 
@@ -250,23 +250,21 @@ const writableExternalResource = resource<WritableExternalConnection>(
 );
 
 const syncNotes = (options?: {
-  readonly fromContour?: TableContour<ExternalTable>;
+  readonly fromEntity?: TableEntity<ExternalTable>;
   readonly permit?: Parameters<typeof sync>[0]['permit'];
-  readonly toContour?: TableContour<typeof noteDefinition.tables.notes>;
+  readonly toEntity?: TableEntity<typeof noteDefinition.tables.notes>;
 }) =>
   sync({
     from: {
-      ...(options?.fromContour === undefined
+      ...(options?.fromEntity === undefined
         ? {}
-        : { contour: options.fromContour }),
+        : { entity: options.fromEntity }),
       resource: externalResource,
       table: externalDefinition.tables.externalNotes,
     },
     ...(options?.permit === undefined ? {} : { permit: options.permit }),
     to: {
-      ...(options?.toContour === undefined
-        ? {}
-        : { contour: options.toContour }),
+      ...(options?.toEntity === undefined ? {} : { entity: options.toEntity }),
       resource: notesResource,
       table: noteDefinition.tables.notes,
     },
@@ -288,11 +286,11 @@ describe('sync() permits', () => {
   });
 });
 
-describe('sync() shared contours', () => {
-  test('sync reuses a crud bundle contour so topo sees one instance', () => {
+describe('sync() shared entities', () => {
+  test('sync reuses a crud bundle entity so topo sees one instance', () => {
     const crudTrails = crud(noteDefinition.tables.notes, notesResource);
-    const syncTrail = syncNotes({ toContour: crudTrails.contour });
-    expect(syncTrail.contours[1]).toBe(crudTrails.contour);
+    const syncTrail = syncNotes({ toEntity: crudTrails.entity });
+    expect(syncTrail.entities[1]).toBe(crudTrails.entity);
 
     const [create, read, update, remove, list] = crudTrails;
     expect(() =>
@@ -307,7 +305,7 @@ describe('sync() shared contours', () => {
     ).not.toThrow();
   });
 
-  test('unshared contours still collide at topo() so the sharing is load-bearing', () => {
+  test('unshared entities still collide at topo() so the sharing is load-bearing', () => {
     const crudTrails = crud(noteDefinition.tables.notes, notesResource);
     const syncTrail = syncNotes();
 
@@ -321,16 +319,16 @@ describe('sync() shared contours', () => {
         syncTrail,
         update,
       })
-    ).toThrow(/[Dd]uplicate contour/);
+    ).toThrow(/[Dd]uplicate entity/);
   });
 
-  test('sync reuses a source-side crud contour so topo sees one instance', () => {
+  test('sync reuses a source-side crud entity so topo sees one instance', () => {
     const externalCrud = crud(
       externalDefinition.tables.externalNotes,
       writableExternalResource
     );
-    const syncTrail = syncNotes({ fromContour: externalCrud.contour });
-    expect(syncTrail.contours[0]).toBe(externalCrud.contour);
+    const syncTrail = syncNotes({ fromEntity: externalCrud.entity });
+    expect(syncTrail.entities[0]).toBe(externalCrud.entity);
 
     const [create, read, update, remove, list] = externalCrud;
     expect(() =>
@@ -343,5 +341,54 @@ describe('sync() shared contours', () => {
         update,
       })
     ).not.toThrow();
+  });
+});
+
+describe('retired contour factory options', () => {
+  test('crud rejects contour instead of silently building a different entity', () => {
+    const options = { contour: true, entity: undefined };
+
+    expect(() =>
+      crud(noteDefinition.tables.notes, notesResource, options)
+    ).toThrow(ValidationError);
+  });
+
+  test('reconcile rejects contour instead of silently building a different entity', () => {
+    const options = {
+      contour: true,
+      resource: notesResource,
+      table: noteDefinition.tables.notes,
+    };
+
+    expect(() => reconcile(options)).toThrow(
+      'uses retired "contour"; use "entity" instead'
+    );
+  });
+
+  test('sync rejects contour on either endpoint', () => {
+    const createOptions = (endpoint: 'from' | 'to') => ({
+      from: {
+        ...(endpoint === 'from' ? { contour: true } : {}),
+        resource: externalResource,
+        table: externalDefinition.tables.externalNotes,
+      },
+      to: {
+        ...(endpoint === 'to' ? { contour: true } : {}),
+        resource: notesResource,
+        table: noteDefinition.tables.notes,
+      },
+      transform: (source: EntityOf<ExternalTable>) => ({
+        body: source.bodyText,
+        id: source.id,
+        title: source.heading,
+      }),
+    });
+
+    expect(() => sync(createOptions('from'))).toThrow(
+      'sync() from options uses retired "contour"'
+    );
+    expect(() => sync(createOptions('to'))).toThrow(
+      'sync() to options uses retired "contour"'
+    );
   });
 });

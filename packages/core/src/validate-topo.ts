@@ -12,8 +12,8 @@ import {
   activationSourceDeclarationSignature,
   activationSourceKey,
 } from './activation-source-projection.js';
-import type { AnyContour } from './contour.js';
-import { getContourReferences } from './contour.js';
+import type { AnyEntity } from './entity.js';
+import { getEntityReferences } from './entity.js';
 import { ValidationError } from './errors.js';
 import type { ActivationEntry } from './activation-source.js';
 import { isKnownActivationSourceKind } from './activation-source.js';
@@ -38,14 +38,14 @@ export type TopoDiagnosticCode = 'topo.missing-reference';
 
 export type TopoReferenceKind =
   | 'compose'
-  | 'contour-reference'
+  | 'entity-reference'
   | 'resource'
   | 'signal-fire'
   | 'signal-on'
   | 'signal-origin';
 
 export type TopoReferenceOwnerKind =
-  | 'contour'
+  | 'entity'
   | 'signal'
   | 'trail'
   | 'trail-version';
@@ -626,25 +626,25 @@ const checkActivationSourceInputCompatibility = (
   return issues;
 };
 
-const checkContourReferences = (
-  contours: ReadonlyMap<string, AnyContour>,
+const checkEntityReferences = (
+  entities: ReadonlyMap<string, AnyEntity>,
   topo: Topo
 ): TopoDiagnostic[] => {
   const issues: TopoDiagnostic[] = [];
 
-  for (const [name, contourDef] of contours) {
-    for (const ref of getContourReferences(contourDef)) {
-      if (!topo.hasContour(ref.contour) && !isDraftId(ref.contour)) {
+  for (const [name, entityDef] of entities) {
+    for (const ref of getEntityReferences(entityDef)) {
+      if (!topo.hasEntity(ref.entity) && !isDraftId(ref.entity)) {
         issues.push(
           missingReferenceDiagnostic({
-            message: `Contour "${name}" references "${ref.contour}" which is not in the topo`,
+            message: `Entity "${name}" references "${ref.entity}" which is not in the topo`,
             reference: {
               fromId: name,
-              fromKind: 'contour',
-              missingId: ref.contour,
-              referenceKind: 'contour-reference',
+              fromKind: 'entity',
+              missingId: ref.entity,
+              referenceKind: 'entity-reference',
             },
-            rule: 'contour-reference-exists',
+            rule: 'entity-reference-exists',
             trailId: name,
           })
         );
@@ -686,7 +686,7 @@ export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
     ...checkComposes(topo.trails, topo),
     ...checkResources(topo.trails, topo),
-    ...checkContourReferences(topo.contours, topo),
+    ...checkEntityReferences(topo.entities, topo),
     ...checkExamples(topo.trails),
     ...checkSignalOrigins(topo.signals, topo),
     ...checkSignalReferences(topo.trails, topo.signals),

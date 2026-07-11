@@ -5,7 +5,7 @@ description: Use when comparing maturity across Trails primitives without assumi
 
 # Trails Primitive Parity
 
-Use this skill when a resource, signal, contour, detour, layer, permit, tracing primitive, or other Trails concept looks less mature than trails.
+Use this skill when a resource, signal, entity, detour, layer, permit, tracing primitive, or other Trails concept looks less mature than trails.
 
 ## Workflow
 

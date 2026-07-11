@@ -21,8 +21,8 @@ import type {
   UpdateOf,
 } from '../types.js';
 import type { CrudOperation } from '../crud-doctrine.js';
-import { createTableContour } from './utils.js';
-import type { TableContour } from './utils.js';
+import { assertCurrentEntityOption, createTableEntity } from './utils.js';
+import type { TableEntity } from './utils.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
   Record<Extract<TTable['identity'], string>, StoreIdentifierOf<TTable>>
@@ -32,27 +32,27 @@ type CrudConnection<TTable extends AnyStoreTable> = Readonly<
   Record<TTable['name'], StoreAccessor<TTable>>
 >;
 
-type TableContourFieldKey<TTable extends AnyStoreTable> = Extract<
-  keyof z.output<TableContour<TTable>>,
+type TableEntityFieldKey<TTable extends AnyStoreTable> = Extract<
+  keyof z.output<TableEntity<TTable>>,
   string
 >;
 
 type GeneratedFieldsOf<TTable extends AnyStoreTable> =
-  TTable['generated'] extends readonly TableContourFieldKey<TTable>[]
+  TTable['generated'] extends readonly TableEntityFieldKey<TTable>[]
     ? TTable['generated']
     : readonly [];
 
 /**
  * Input type `deriveTrail` projects for a given CRUD operation against a
- * store table. Uses `TableContour<TTable>` so the projected input
- * structurally matches the contour-backed derivation path in
+ * store table. Uses `TableEntity<TTable>` so the projected input
+ * structurally matches the entity-backed derivation path in
  * `@ontrails/core`'s `deriveTrail`.
  */
 type DerivedInput<
   TTable extends AnyStoreTable,
   TOperation extends CrudOperation,
 > = DeriveTrailInput<
-  TableContour<TTable>,
+  TableEntity<TTable>,
   TOperation,
   GeneratedFieldsOf<TTable>
 >;
@@ -64,7 +64,7 @@ type DerivedInput<
 type DerivedOutput<
   TTable extends AnyStoreTable,
   TOperation extends CrudOperation,
-> = DeriveTrailOutput<TableContour<TTable>, TOperation>;
+> = DeriveTrailOutput<TableEntity<TTable>, TOperation>;
 
 type InternalCreateTrailOf<TTable extends AnyStoreTable> = Trail<
   DerivedInput<TTable, 'create'>,
@@ -144,12 +144,12 @@ export type CrudTrails<TTable extends AnyStoreTable> = readonly [
   list: ListTrailOf<TTable>,
 ] & {
   /**
-   * The table contour the factory registered on its trails. Pass it to
-   * `reconcile({ contour })` (or other factories over the same table) so
-   * the topo sees one shared contour instance instead of rejecting two
+   * The table entity the factory registered on its trails. Pass it to
+   * `reconcile({ entity })` (or other factories over the same table) so
+   * the topo sees one shared entity instance instead of rejecting two
    * same-named rebuilds as duplicates.
    */
-  readonly contour: TableContour<TTable>;
+  readonly entity: TableEntity<TTable>;
 };
 
 export interface CrudImplementationOverrides<TTable extends AnyStoreTable> {
@@ -166,12 +166,12 @@ export interface CrudImplementationOverrides<TTable extends AnyStoreTable> {
 export interface CrudOptions<TTable extends AnyStoreTable> {
   readonly implementation?: CrudImplementationOverrides<TTable>;
   /**
-   * Existing table contour to register on the produced trails. When
+   * Existing table entity to register on the produced trails. When
    * omitted, the factory builds one from the table. Pass a shared
    * instance when another factory (e.g. `reconcile()`) covers the same
-   * table so `topo()` sees a single contour registration.
+   * table so `topo()` sees a single entity registration.
    */
-  readonly contour?: TableContour<TTable>;
+  readonly entity?: TableEntity<TTable>;
   /**
    * Permit requirement declared on every produced trail. Factory trails
    * carry authored defaults like any hand-written trail; per-operation
@@ -210,7 +210,7 @@ interface InternalCrudImplementationOverrides<TTable extends AnyStoreTable> {
 
 interface InternalCrudOptions<TTable extends AnyStoreTable> {
   readonly implementation?: InternalCrudImplementationOverrides<TTable>;
-  readonly contour?: TableContour<TTable>;
+  readonly entity?: TableEntity<TTable>;
   readonly permit?: PermitRequirement;
   readonly permits?: Partial<Record<CrudOperation, PermitRequirement>>;
 }
@@ -283,27 +283,27 @@ const deriveCrudBaseTrails = <
 >(
   table: TTable,
   resource: Resource<TConnection>,
-  entityContour: TableContour<TTable>
+  tableEntity: TableEntity<TTable>
 ): InternalCrudBaseTrails<TTable> => {
-  // Narrow the store's `readonly string[]` to the contour's typed field-key
+  // Narrow the store's `readonly string[]` to the entity's typed field-key
   // array so `deriveTrail`'s `TGenerated` generic picks up the precise
-  // key-of shape that `CreateInputOf<Contour, TGenerated>` expects. The
+  // key-of shape that `CreateInputOf<Entity, TGenerated>` expects. The
   // runtime value is unchanged — the names in `table.generated` are already
   // keys of `table.schema.shape` by construction in `store()`.
   const generated = table.generated as GeneratedFieldsOf<TTable>;
 
   return {
-    createBase: deriveTrail(entityContour, 'create', {
+    createBase: deriveTrail(tableEntity, 'create', {
       generated,
       resource,
     }),
-    deleteBase: deriveTrail(entityContour, 'delete', {
+    deleteBase: deriveTrail(tableEntity, 'delete', {
       resource,
     }),
-    listBase: deriveTrail(entityContour, 'list', {
+    listBase: deriveTrail(tableEntity, 'list', {
       resource,
     }),
-    readBase: deriveTrail(entityContour, 'read', {
+    readBase: deriveTrail(tableEntity, 'read', {
       resource,
     }),
     // The `update` implementation synthesized by `deriveTrail` handles the partial-patch
@@ -311,7 +311,7 @@ const deriveCrudBaseTrails = <
     // `derive-trail.ts` (`updateViaReadAndUpsert`) reads the current entity,
     // merges the patch, strips the `version` field, then calls `upsert` with
     // the full merged payload — so no fields are silently lost.
-    updateBase: deriveTrail(entityContour, 'update', {
+    updateBase: deriveTrail(tableEntity, 'update', {
       generated,
       resource,
     }),
@@ -377,7 +377,7 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
 /**
  * Produce the standard CRUD trail tuple for one normalized store table.
  *
- * The factory derives schemas, examples, resources, and contour linkage from
+ * The factory derives schemas, examples, resources, and entity linkage from
  * the table metadata. Implementations default to the backend-agnostic store accessor
  * contract via `deriveTrail()`'s single-resource synthesis path. Per-operation
  * implementation overrides stay available for callers that need custom persistence
@@ -399,11 +399,12 @@ export function crud<
   resource: Resource<TConnection>,
   options: InternalCrudOptions<TTable> = {}
 ) {
-  const entityContour = options.contour ?? createTableContour(table);
-  const baseTrails = deriveCrudBaseTrails(table, resource, entityContour);
+  assertCurrentEntityOption(options, 'crud() options');
+  const tableEntity = options.entity ?? createTableEntity(table);
+  const baseTrails = deriveCrudBaseTrails(table, resource, tableEntity);
   // Narrow `table.schema` (typed `StoreObjectSchema`, which is
   // `z.ZodObject<Record<string, z.ZodType>>`) to a ZodObject keyed by the
-  // concrete shape so its `z.output` unifies with the contour-derived
+  // concrete shape so its `z.output` unifies with the entity-derived
   // output. Structurally `table.schema` already has `shape:
   // TTable['schema']['shape']` — this only refines the generic parameter.
   const entitySchema = table.schema as z.ZodObject<TTable['schema']['shape']>;
@@ -412,11 +413,11 @@ export function crud<
     entitySchema.array();
 
   const trails = buildCrudTrails(baseTrails, options, entityOutput, listOutput);
-  // Expose the registered contour so other factories over the same table
+  // Expose the registered entity so other factories over the same table
   // (reconcile, sync) can share the instance instead of rebuilding it.
   return Object.freeze(
-    Object.assign([...trails], { contour: entityContour })
+    Object.assign([...trails], { entity: tableEntity })
   ) as unknown as InternalCrudTrails<TTable> & {
-    readonly contour: TableContour<TTable>;
+    readonly entity: TableEntity<TTable>;
   };
 }

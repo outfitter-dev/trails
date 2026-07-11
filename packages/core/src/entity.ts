@@ -3,22 +3,22 @@ import { z } from 'zod';
 import type { Branded } from './branded.js';
 
 /**
- * Runtime options for a contour declaration.
+ * Runtime options for an entity declaration.
  */
-export interface ContourOptions<
+export interface EntityOptions<
   TShape extends z.ZodRawShape,
   TIdentity extends keyof TShape & string,
 > {
-  /** Field name that acts as the contour's primary identity. */
+  /** Field name that acts as the entity's primary identity. */
   readonly identity: TIdentity;
-  /** Example instances validated against the contour schema at declaration time. */
+  /** Example instances validated against the entity schema at declaration time. */
   readonly examples?: readonly z.output<z.ZodObject<TShape>>[] | undefined;
-  /** Reserved for future contour-specific design; trail versioning is trail-only. */
+  /** Reserved for future entity-specific design; trail versioning is trail-only. */
   readonly version?: never;
 }
 
-/** Type-level brand name applied to a contour's identity schema. */
-export type ContourIdBrand<TName extends string> = `${Capitalize<TName>}Id`;
+/** Type-level brand name applied to an entity's identity schema. */
+export type EntityIdBrand<TName extends string> = `${Capitalize<TName>}Id`;
 
 type BrandedSchema<
   TSchema extends z.core.$ZodType,
@@ -29,71 +29,71 @@ type BrandableSchema<TSchema extends z.core.$ZodType> = TSchema & {
   brand<TBrand extends string>(): BrandedSchema<TSchema, TBrand>;
 };
 
-/** Output value of a branded contour identity schema. */
-export type ContourIdValue<
+/** Output value of a branded entity identity schema. */
+export type EntityIdValue<
   TSchema extends z.core.$ZodType,
   TName extends string,
-> = Branded<z.output<TSchema>, ContourIdBrand<TName>>;
+> = Branded<z.output<TSchema>, EntityIdBrand<TName>>;
 
-/** Runtime metadata attached to schemas returned from `contour.id()`. */
-export interface ContourIdMetadata<
+/** Runtime metadata attached to schemas returned from `entity.id()`. */
+export interface EntityIdMetadata<
   TName extends string = string,
   TIdentity extends string = string,
 > {
-  readonly contour: TName;
+  readonly entity: TName;
   readonly identity: TIdentity;
 }
 
-/** A structural contour reference declared by another contour field schema. */
-export interface ContourReference<
+/** A structural entity reference declared by another entity field schema. */
+export interface EntityReference<
   TName extends string = string,
   TIdentity extends string = string,
-> extends ContourIdMetadata<TName, TIdentity> {
+> extends EntityIdMetadata<TName, TIdentity> {
   readonly field: string;
 }
 
-/** Symbol used to tag branded contour reference schemas at runtime. */
-export const CONTOUR_ID_METADATA = Symbol.for('@ontrails/core/contour-id');
+/** Symbol used to tag branded entity reference schemas at runtime. */
+export const ENTITY_ID_METADATA = Symbol.for('@ontrails/core/entity-id');
 
 /**
- * Module-level WeakMap storing contour identity metadata keyed by schema object.
+ * Module-level WeakMap storing entity identity metadata keyed by schema object.
  *
- * First-write-wins: when multiple contours share the same underlying schema
- * (e.g. `contour('admin', { id: user.shape.id }, ...)`), the first contour to
+ * First-write-wins: when multiple entities share the same underlying schema
+ * (e.g. `entity('admin', { id: user.shape.id }, ...)`), the first entity to
  * brand the schema claims it. Subsequent calls skip the write to prevent
  * silent metadata corruption.
  */
-const contourIdMetadata = new WeakMap<object, ContourIdMetadata>();
+const entityIdMetadata = new WeakMap<object, EntityIdMetadata>();
 
 /**
- * A contour identity schema branded for one contour and tagged with runtime
+ * An entity identity schema branded for one entity and tagged with runtime
  * metadata so the topo layer can recognize declared references later on.
  */
-export type ContourIdSchema<
+export type EntityIdSchema<
   TSchema extends z.core.$ZodType = z.core.$ZodType,
   TName extends string = string,
   TIdentity extends string = string,
-> = BrandedSchema<TSchema, ContourIdBrand<TName>> & {
-  /** @deprecated Use `getContourIdMetadata()` — metadata lives in a WeakMap, not on the schema. */
-  readonly [CONTOUR_ID_METADATA]?: ContourIdMetadata<TName, TIdentity>;
+> = BrandedSchema<TSchema, EntityIdBrand<TName>> & {
+  /** @deprecated Use `getEntityIdMetadata()` — metadata lives in a WeakMap, not on the schema. */
+  readonly [ENTITY_ID_METADATA]?: EntityIdMetadata<TName, TIdentity>;
 };
 
 /**
  * A first-class domain object with schema, identity metadata, and examples.
  *
- * A contour behaves like the `ZodObject` it wraps, so standard Zod composition
+ * An entity behaves like the `ZodObject` it wraps, so standard Zod composition
  * helpers such as `.pick()`, `.extend()`, and `.array()` continue to work.
  */
-export type Contour<
+export type Entity<
   TName extends string = string,
   TShape extends z.ZodRawShape = z.ZodRawShape,
   TIdentity extends keyof TShape & string = keyof TShape & string,
 > = z.ZodObject<TShape> & {
-  readonly kind: 'contour';
+  readonly kind: 'entity';
   readonly name: TName;
   readonly identity: TIdentity;
   readonly identitySchema: TShape[TIdentity];
-  readonly id: () => ContourIdSchema<TShape[TIdentity], TName, TIdentity>;
+  readonly id: () => EntityIdSchema<TShape[TIdentity], TName, TIdentity>;
   readonly examples?: readonly z.output<z.ZodObject<TShape>>[] | undefined;
 };
 
@@ -115,7 +115,7 @@ const assertIdentityField = <
 ): void => {
   if (!Object.hasOwn(shape, identity)) {
     throw new TypeError(
-      `contour("${name}") identity "${identity}" must match a declared field`
+      `entity("${name}") identity "${identity}" must match a declared field`
     );
   }
 };
@@ -129,7 +129,7 @@ const assertExamples = <TShape extends z.ZodRawShape>(
     const parsed = schema.safeParse(example);
     if (!parsed.success) {
       throw new TypeError(
-        `contour("${name}") example ${index} is invalid: ${formatExampleIssues(parsed.error.issues)}`
+        `entity("${name}") example ${index} is invalid: ${formatExampleIssues(parsed.error.issues)}`
       );
     }
   }
@@ -150,28 +150,28 @@ const brandIdentitySchema = <
   TName extends string,
   TIdentity extends string,
 >(
-  contour: TName,
+  entity: TName,
   identity: TIdentity,
   schema: TSchema
-): ContourIdSchema<TSchema, TName, TIdentity> => {
+): EntityIdSchema<TSchema, TName, TIdentity> => {
   const branded = (schema as BrandableSchema<TSchema>).brand<
-    ContourIdBrand<TName>
+    EntityIdBrand<TName>
   >();
 
-  // First-write-wins: if another contour already claimed this schema object
+  // First-write-wins: if another entity already claimed this schema object
   // (possible when Zod v4 brand() returns `this`), preserve the original
   // metadata rather than silently overwriting it.
-  if (!contourIdMetadata.has(branded)) {
-    contourIdMetadata.set(branded, {
-      contour,
+  if (!entityIdMetadata.has(branded)) {
+    entityIdMetadata.set(branded, {
+      entity,
       identity,
-    } satisfies ContourIdMetadata<TName, TIdentity>);
+    } satisfies EntityIdMetadata<TName, TIdentity>);
   }
 
-  return branded as ContourIdSchema<TSchema, TName, TIdentity>;
+  return branded as EntityIdSchema<TSchema, TName, TIdentity>;
 };
 
-const attachContourMetadata = <
+const attachEntityMetadata = <
   TName extends string,
   TShape extends z.ZodRawShape,
   TIdentity extends keyof TShape & string,
@@ -179,7 +179,7 @@ const attachContourMetadata = <
   schema: z.ZodObject<TShape>,
   metadata: {
     readonly examples?: readonly z.output<z.ZodObject<TShape>>[] | undefined;
-    readonly idSchema: ContourIdSchema<TShape[TIdentity], TName, TIdentity>;
+    readonly idSchema: EntityIdSchema<TShape[TIdentity], TName, TIdentity>;
     readonly identity: TIdentity;
     readonly identitySchema: TShape[TIdentity];
     readonly name: TName;
@@ -208,7 +208,7 @@ const attachContourMetadata = <
     },
     kind: {
       enumerable: true,
-      value: 'contour',
+      value: 'entity',
       writable: false,
     },
     name: {
@@ -219,10 +219,10 @@ const attachContourMetadata = <
   });
 };
 
-/** Read contour identity metadata from the module-level WeakMap, if present. */
-const readMetadata = (schema: unknown): ContourIdMetadata | undefined =>
+/** Read entity identity metadata from the module-level WeakMap, if present. */
+const readMetadata = (schema: unknown): EntityIdMetadata | undefined =>
   typeof schema === 'object' && schema !== null
-    ? contourIdMetadata.get(schema)
+    ? entityIdMetadata.get(schema)
     : undefined;
 
 /** Resolve the inner schema from a Zod wrapper (ZodOptional, ZodNullable, etc.). */
@@ -232,13 +232,13 @@ const unwrapInner = (schema: unknown): unknown => {
 };
 
 /**
- * Walk through Zod wrapper layers searching for `CONTOUR_ID_METADATA`.
+ * Walk through Zod wrapper layers searching for `ENTITY_ID_METADATA`.
  *
  * `.nullish()` produces `ZodOptional<ZodNullable<T>>` — two wrapper levels —
  * so a single-step unwrap is insufficient. This iterates until it finds the
  * metadata or exhausts all wrapper layers.
  */
-const unwrapToMetadata = (schema: unknown): ContourIdMetadata | undefined => {
+const unwrapToMetadata = (schema: unknown): EntityIdMetadata | undefined => {
   let current: unknown = schema;
   while (typeof current === 'object' && current !== null) {
     const inner = unwrapInner(current);
@@ -255,28 +255,28 @@ const unwrapToMetadata = (schema: unknown): ContourIdMetadata | undefined => {
 };
 
 /**
- * Read contour-reference metadata from a schema returned by `contour.id()`.
+ * Read entity-reference metadata from a schema returned by `entity.id()`.
  *
  * When the schema is wrapped by Zod combinators (`.optional()`, `.nullable()`,
- * `.default()`, `.nullish()`, etc.) the `CONTOUR_ID_METADATA` symbol lives on
+ * `.default()`, `.nullish()`, etc.) the `ENTITY_ID_METADATA` symbol lives on
  * the inner schema, not on the wrapper. The unwrap handles arbitrarily nested
  * wrapper levels.
  */
-export const getContourIdMetadata = (
+export const getEntityIdMetadata = (
   schema: unknown
-): ContourIdMetadata | undefined =>
+): EntityIdMetadata | undefined =>
   readMetadata(schema) ?? unwrapToMetadata(schema);
 
-/** Inspect a contour schema for fields that reference other contours via `.id()`. */
-export const getContourReferences = (
-  contour: AnyContour
-): readonly ContourReference[] =>
-  Object.entries(contour.shape)
+/** Inspect an entity schema for fields that reference other entities via `.id()`. */
+export const getEntityReferences = (
+  entity: AnyEntity
+): readonly EntityReference[] =>
+  Object.entries(entity.shape)
     .flatMap(([field, schema]) => {
-      if (field === contour.identity) {
+      if (field === entity.identity) {
         return [];
       }
-      const metadata = getContourIdMetadata(schema);
+      const metadata = getEntityIdMetadata(schema);
       if (metadata === undefined) {
         return [];
       }
@@ -285,16 +285,16 @@ export const getContourReferences = (
     })
     .toSorted((left, right) =>
       left.field === right.field
-        ? left.contour.localeCompare(right.contour)
+        ? left.entity.localeCompare(right.entity)
         : left.field.localeCompare(right.field)
     );
 
 /**
- * Create a contour definition from a raw Zod object shape.
+ * Create an entity definition from a raw Zod object shape.
  *
  * @example
  * ```typescript
- * const user = contour(
+ * const user = entity(
  *   'user',
  *   {
  *     id: z.string().uuid(),
@@ -305,15 +305,15 @@ export const getContourReferences = (
  * );
  * ```
  */
-export const contour = <
+export const entity = <
   TName extends string,
   TShape extends z.ZodRawShape,
   TIdentity extends keyof TShape & string,
 >(
   name: TName,
   shape: TShape,
-  options: ContourOptions<TShape, TIdentity>
-): Contour<TName, TShape, TIdentity> => {
+  options: EntityOptions<TShape, TIdentity>
+): Entity<TName, TShape, TIdentity> => {
   assertIdentityField(name, shape, options.identity);
 
   const schema = z.object(shape);
@@ -322,7 +322,7 @@ export const contour = <
   const identitySchema = shape[options.identity];
   if (!identitySchema) {
     throw new TypeError(
-      `contour("${name}") identity "${options.identity}" must resolve to a schema`
+      `entity("${name}") identity "${options.identity}" must resolve to a schema`
     );
   }
 
@@ -331,7 +331,7 @@ export const contour = <
     ? Object.freeze([...options.examples])
     : undefined;
 
-  attachContourMetadata(schema, {
+  attachEntityMetadata(schema, {
     examples,
     idSchema,
     identity: options.identity,
@@ -339,8 +339,8 @@ export const contour = <
     name,
   });
 
-  return schema as Contour<TName, TShape, TIdentity>;
+  return schema as Entity<TName, TShape, TIdentity>;
 };
 
-/** Existential type for heterogeneous contour collections. */
-export type AnyContour = Contour<string, z.ZodRawShape, string>;
+/** Existential type for heterogeneous entity collections. */
+export type AnyEntity = Entity<string, z.ZodRawShape, string>;

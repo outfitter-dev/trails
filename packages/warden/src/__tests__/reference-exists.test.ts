@@ -2,20 +2,20 @@ import { describe, expect, test } from 'bun:test';
 
 import { referenceExists } from '../rules/reference-exists.js';
 
-const TEST_FILE = 'contours.ts';
+const TEST_FILE = 'entities.ts';
 
 describe('reference-exists', () => {
   describe('local references', () => {
-    test('passes when a local contour reference exists', () => {
+    test('passes when a local entity reference exists', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
 }, { identity: 'id' });
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });
@@ -24,16 +24,16 @@ const gist = contour('gist', {
       expect(referenceExists.check(code, TEST_FILE)).toEqual([]);
     });
 
-    test('keeps local contour definitions when project context is present', () => {
+    test('keeps local entity definitions when project context is present', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 
-const user = contour('user', {
+const user = entity('user', {
   id: z.string().uuid(),
 }, { identity: 'id' });
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });
@@ -41,7 +41,7 @@ const gist = contour('gist', {
 
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist']),
+          knownEntityIds: new Set(['gist']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);
@@ -49,57 +49,57 @@ const gist = contour('gist', {
   });
 
   describe('named imports', () => {
-    test('flags a missing contour reference target', () => {
+    test('flags a missing entity reference target', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { user } from './user';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });
 `;
 
       const diagnostics = referenceExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set(['gist']),
+        knownEntityIds: new Set(['gist']),
         knownTrailIds: new Set<string>(),
       });
 
       expect(diagnostics).toHaveLength(1);
       expect(diagnostics[0]?.rule).toBe('reference-exists');
       expect(diagnostics[0]?.message).toContain('user');
-      expect(diagnostics[0]?.message).toContain("contour('user'");
+      expect(diagnostics[0]?.message).toContain("entity('user'");
       expect(diagnostics[0]?.message).toContain('include it in the topo');
     });
 
-    test('resolves aliased imports to the original contour id', () => {
+    test('resolves aliased imports to the original entity id', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { user as userModel } from './user';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: userModel.id(),
 }, { identity: 'id' });
 `;
 
       const diagnostics = referenceExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set(['gist', 'user']),
+        knownEntityIds: new Set(['gist', 'user']),
         knownTrailIds: new Set<string>(),
       });
 
       expect(diagnostics).toEqual([]);
     });
 
-    test('passes when project context includes an imported contour', () => {
+    test('passes when project context includes an imported entity', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { user } from './user';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id(),
 }, { identity: 'id' });
@@ -107,26 +107,26 @@ const gist = contour('gist', {
 
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist', 'user']),
+          knownEntityIds: new Set(['gist', 'user']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);
     });
 
-    test('flags a missing wrapped contour reference target', () => {
+    test('flags a missing wrapped entity reference target', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import { z } from 'zod';
 import { user } from './user';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: z.string().uuid(),
   ownerId: user.id().nullish(),
 }, { identity: 'id' });
 `;
 
       const diagnostics = referenceExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set(['gist']),
+        knownEntityIds: new Set(['gist']),
         knownTrailIds: new Set<string>(),
       });
 
@@ -137,19 +137,19 @@ const gist = contour('gist', {
   });
 
   describe('default imports', () => {
-    test('flags missing default-imported contour references', () => {
+    test('flags missing default-imported entity references', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import userModel from './user';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: 'x',
   ownerId: userModel.id(),
 }, { identity: 'id' });
 `;
 
       const diagnostics = referenceExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set(['gist']),
+        knownEntityIds: new Set(['gist']),
         knownTrailIds: new Set<string>(),
       });
 
@@ -158,12 +158,12 @@ const gist = contour('gist', {
       expect(diagnostics[0]?.message).toContain('userModel');
     });
 
-    test('resolves default-imported contour references when known', () => {
+    test('resolves default-imported entity references when known', () => {
       const code = `
-import { contour } from '@ontrails/core';
+import { entity } from '@ontrails/core';
 import user from './user';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: 'x',
   ownerId: user.id(),
 }, { identity: 'id' });
@@ -171,7 +171,7 @@ const gist = contour('gist', {
 
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist', 'user']),
+          knownEntityIds: new Set(['gist', 'user']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);
@@ -179,38 +179,38 @@ const gist = contour('gist', {
   });
 
   describe('namespace imports', () => {
-    test('keeps namespaced inline contour definitions when project context is present', () => {
+    test('keeps namespaced inline entity definitions when project context is present', () => {
       const code = `
 import * as core from '@ontrails/core';
 import { z } from 'zod';
 
-const gist = core.contour('gist', {
+const gist = core.entity('gist', {
   id: z.string().uuid(),
-  ownerId: core.contour('user', { id: z.string().uuid() }).id(),
+  ownerId: core.entity('user', { id: z.string().uuid() }).id(),
 }, { identity: 'id' });
 `;
 
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist']),
+          knownEntityIds: new Set(['gist']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);
     });
 
-    test('flags missing namespace-imported contour references', () => {
+    test('flags missing namespace-imported entity references', () => {
       const code = `
-import { contour } from '@ontrails/core';
-import * as contours from './contours';
+import { entity } from '@ontrails/core';
+import * as entities from './entities';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: 'x',
-  ownerId: contours.user.id(),
+  ownerId: entities.user.id(),
 }, { identity: 'id' });
 `;
 
       const diagnostics = referenceExists.checkWithContext(code, TEST_FILE, {
-        knownContourIds: new Set(['gist']),
+        knownEntityIds: new Set(['gist']),
         knownTrailIds: new Set<string>(),
       });
 
@@ -219,20 +219,20 @@ const gist = contour('gist', {
       expect(diagnostics[0]?.message).toContain('user');
     });
 
-    test('resolves namespace-imported contour references when known', () => {
+    test('resolves namespace-imported entity references when known', () => {
       const code = `
-import { contour } from '@ontrails/core';
-import * as contours from './contours';
+import { entity } from '@ontrails/core';
+import * as entities from './entities';
 
-const gist = contour('gist', {
+const gist = entity('gist', {
   id: 'x',
-  ownerId: contours.user.id(),
+  ownerId: entities.user.id(),
 }, { identity: 'id' });
 `;
 
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist', 'user']),
+          knownEntityIds: new Set(['gist', 'user']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);
@@ -240,23 +240,23 @@ const gist = contour('gist', {
 
     test('ignores namespace member access when receiver is shadowed by a function parameter', () => {
       const code = `
-import { contour } from '@ontrails/core';
-import * as contours from './contours';
+import { entity } from '@ontrails/core';
+import * as entities from './entities';
 
-function buildGist(contours: { user: { id: () => unknown } }) {
-  return contour('gist', {
+function buildGist(entities: { user: { id: () => unknown } }) {
+  return entity('gist', {
     id: 'x',
-    ownerId: contours.user.id(),
+    ownerId: entities.user.id(),
   }, { identity: 'id' });
 }
 `;
 
-      // The \`contours\` in \`contours.user.id()\` is the function parameter,
+      // The \`entities\` in \`entities.user.id()\` is the function parameter,
       // not the namespace import, so no missing-reference diagnostic should
       // be produced.
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist']),
+          knownEntityIds: new Set(['gist']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);
@@ -266,15 +266,15 @@ function buildGist(contours: { user: { id: () => unknown } }) {
       const code = `
 import * as core from '@ontrails/core';
 
-const gist = core.contour('gist', {
+const gist = core.entity('gist', {
   id: 'x',
-  ownerId: core.contour('user', { id: 'y' }).id(),
+  ownerId: core.entity('user', { id: 'y' }).id(),
 }, { identity: 'id' });
 `;
 
       expect(
         referenceExists.checkWithContext(code, TEST_FILE, {
-          knownContourIds: new Set(['gist']),
+          knownEntityIds: new Set(['gist']),
           knownTrailIds: new Set<string>(),
         })
       ).toEqual([]);

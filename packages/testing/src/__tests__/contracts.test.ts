@@ -1,19 +1,19 @@
 import { afterAll, describe, expect, mock, test } from 'bun:test';
 
-import { contour, Result, resource, signal, trail, topo } from '@ontrails/core';
+import { entity, Result, resource, signal, trail, topo } from '@ontrails/core';
 import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import { testContracts } from '../contracts.js';
 
-const requireContourExample = (
-  contourDef: { examples?: readonly Record<string, unknown>[] },
+const requireEntityExample = (
+  entityDef: { examples?: readonly Record<string, unknown>[] },
   index: number
 ) => {
-  const example = contourDef.examples?.[index];
+  const example = entityDef.examples?.[index];
   expect(example).toBeDefined();
   if (!example) {
-    throw new Error(`Expected contour example at index ${index}`);
+    throw new Error(`Expected entity example at index ${index}`);
   }
   return example;
 };
@@ -181,7 +181,7 @@ const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
   resources: [ctxOverrideContractResource],
 });
 
-const derivedContractContour = contour(
+const derivedContractEntity = entity(
   'contractFixture',
   {
     id: z.string().uuid(),
@@ -191,7 +191,7 @@ const derivedContractContour = contour(
     examples: [
       {
         id: '03a5873c-0ca6-43c4-9201-3cb3c07ca6bf',
-        name: 'Contour contract fixture',
+        name: 'Entity contract fixture',
       },
     ],
     identity: 'id',
@@ -199,14 +199,14 @@ const derivedContractContour = contour(
 );
 
 const derivedContractImplementation = mock(() =>
-  Result.ok(requireContourExample(derivedContractContour, 0))
+  Result.ok(requireEntityExample(derivedContractEntity, 0))
 );
 
 const derivedContractTrail = trail('contract.derived', {
-  contours: [derivedContractContour],
+  entities: [derivedContractEntity],
   implementation: () => derivedContractImplementation(),
-  input: z.object({ id: derivedContractContour.shape.id }),
-  output: derivedContractContour,
+  input: z.object({ id: derivedContractEntity.shape.id }),
+  output: derivedContractEntity,
 });
 
 const versionContractCurrentImplementation = mock((input: { name: string }) =>
@@ -397,11 +397,11 @@ describe('testContracts resource declarations', () => {
   );
 });
 
-describe('testContracts derives contour examples when trail examples are absent', () => {
+describe('testContracts derives entity examples when trail examples are absent', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('derived-contract-app', {
-      derivedContractContour,
+      derivedContractEntity,
       derivedContractTrail,
     } as Record<string, unknown>)
   );

@@ -176,8 +176,6 @@ describe('trails guide', () => {
             trail: [],
           },
           composes: [],
-          contourDetails: [],
-          contours: [],
           description: 'Say hello',
           detours: [
             {
@@ -185,6 +183,8 @@ describe('trails guide', () => {
               on: 'ConflictError',
             },
           ],
+          entities: [],
+          entityDetails: [],
           examples: [],
           fieldOverrides: [],
           fires: [],

@@ -375,7 +375,7 @@ export const testExamples = (
 
   // Composition trails: use recording compose and check coverage.
   //
-  // Composing coverage only runs against AUTHORED examples. Contour-derived
+  // Composing coverage only runs against AUTHORED examples. Entity-derived
   // fixtures are opportunistic coverage that may not exercise every
   // `ctx.compose()` branch in the trail, so asserting coverage against them
   // would produce false failures for trails whose authored intent was a

@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from 'bun:test';
 
 import {
   ConflictError,
-  contour,
+  entity,
   DerivationError,
   NotFoundError,
   Result,
@@ -800,11 +800,11 @@ describe('testExamples auto-minting permits', () => {
 // Derived-fixture composing coverage regression
 // ---------------------------------------------------------------------------
 //
-// A composition trail whose only examples come from contour-derived
+// A composition trail whose only examples come from entity-derived
 // fixtures must not fail composing-coverage — derived inputs are not
 // guaranteed to exercise every declared compose.
 
-const itemContour = contour(
+const itemEntity = entity(
   'item',
   {
     id: z.string(),
@@ -826,8 +826,8 @@ const helperTrail = trail('derived.helper', {
 
 const conditionalComposeTrail = trail('derived.conditional', {
   composes: ['derived.helper'],
-  contours: [itemContour],
   description: 'Composition trail with a compose that derived fixtures skip',
+  entities: [itemEntity],
   implementation: async (input: { id: string; name: string }, ctx) => {
     // The conditional compose is never taken for derived fixtures because
     // `shouldCompose` is always false in the synthesized input. This is

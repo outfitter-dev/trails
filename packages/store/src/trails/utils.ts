@@ -1,26 +1,31 @@
-import { InternalError, contour, isTrailsError } from '@ontrails/core';
-import type { Contour } from '@ontrails/core';
+import {
+  InternalError,
+  ValidationError,
+  entity,
+  isTrailsError,
+} from '@ontrails/core';
+import type { Entity } from '@ontrails/core';
 import type { z } from 'zod';
 
 import type { AnyStoreTable } from '../types.js';
 
 /**
- * The contour type produced by {@link createTableContour} for a given store
+ * The entity type produced by {@link createTableEntity} for a given store
  * table. Threads the table's name, schema shape, and identity through the
- * contour generics so downstream `deriveTrail()` calls project concrete
+ * entity generics so downstream `deriveTrail()` calls project concrete
  * input/output types instead of widening back to
- * `Contour<string, z.ZodRawShape, string>` (the `AnyContour` alias).
+ * `Entity<string, z.ZodRawShape, string>` (the `AnyEntity` alias).
  */
-export type TableContour<TTable extends AnyStoreTable> = Contour<
+export type TableEntity<TTable extends AnyStoreTable> = Entity<
   TTable['name'],
   TTable['schema']['shape'],
   Extract<TTable['identity'], keyof TTable['schema']['shape'] & string>
 >;
 
 /**
- * Build the shape used when deriving a contour view of a store table.
+ * Build the shape used when deriving an entity view of a store table.
  *
- * Contour validates every example against the shape passed in, so the shape
+ * Entity validates every example against the shape passed in, so the shape
  * must match how fixtures are actually shaped. Store fixtures may omit
  * framework-generated fields (`createdAt`, `version`, ...) because the
  * adapter populates them, so we mirror `fixtureSchema`'s treatment of
@@ -30,7 +35,7 @@ export type TableContour<TTable extends AnyStoreTable> = Contour<
  * `table.schema.shape` directly and crashed when a fixture omitted
  * `createdAt` or another generated field.
  */
-export const buildContourShape = (
+export const buildEntityShape = (
   table: AnyStoreTable
 ): Record<string, z.ZodType> => {
   const shape = table.schema.shape as unknown as Record<string, z.ZodType>;
@@ -52,25 +57,41 @@ export const buildContourShape = (
 };
 
 /**
- * Derive a contour view of a store table.
+ * Derive an entity view of a store table.
  *
  * Both `sync` and `reconcile` use this helper so they pick up the
  * fixture-shape treatment (generated fields optional).
  *
  * @remarks
- * Intentionally not cached. `contour()` brands the identity schema via
+ * Intentionally not cached. `entity()` brands the identity schema via
  * `Object.defineProperty(..., { writable: false })`, and re-invoking on a
  * schema that's already been branded throws TypeError. Factory call sites
- * already build the contour once per trail instance, so rebuilding on a
+ * already build the entity once per trail instance, so rebuilding on a
  * warm call is cheap and side-effect-free.
  */
-export const createTableContour = <TTable extends AnyStoreTable>(
+export const createTableEntity = <TTable extends AnyStoreTable>(
   table: TTable
-): TableContour<TTable> =>
-  contour(table.name, buildContourShape(table), {
+): TableEntity<TTable> =>
+  entity(table.name, buildEntityShape(table), {
     examples: table.fixtures as readonly Record<string, unknown>[],
     identity: table.identity,
-  }) as TableContour<TTable>;
+  }) as TableEntity<TTable>;
+
+/** Reject the retired store-factory option instead of silently ignoring it. */
+export const assertCurrentEntityOption = (
+  value: unknown,
+  owner: string
+): void => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    Object.hasOwn(value, 'contour')
+  ) {
+    throw new ValidationError(
+      `${owner} uses retired "contour"; use "entity" instead`
+    );
+  }
+};
 
 /**
  * Coerce an unknown thrown value into an Error instance, preserving the

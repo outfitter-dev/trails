@@ -15,6 +15,7 @@ import type {
   WriteOptions,
 } from './types.js';
 import {
+  LOCK_MANIFEST_SCHEMA_VERSION,
   lockManifestSchema,
   trailsLockSchema,
   topoGraphSchema,
@@ -127,7 +128,7 @@ const lockManifestFromTrailsLock = (lock: TrailsLock): LockManifest => ({
   ],
   scope: lock.scope,
   summary: lock.summary,
-  version: 3,
+  version: LOCK_MANIFEST_SCHEMA_VERSION,
 });
 
 // ---------------------------------------------------------------------------
@@ -187,7 +188,7 @@ export const readTopoGraph = async (
 // ---------------------------------------------------------------------------
 
 /**
- * Write a lock v3 manifest to `<dir>/trails.lock`.
+ * Write a lock v4 manifest to `<dir>/trails.lock`.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
@@ -219,9 +220,9 @@ export const writeTrailsLock = async (
 };
 
 /**
- * Read a lock v3 manifest from `<dir>/trails.lock`.
+ * Read a lock v4 manifest from `<dir>/trails.lock`.
  *
- * v4 root locks are projected back to the v3 manifest shape for compatibility.
+ * v5 root locks are projected back to the v4 manifest shape for compatibility.
  */
 export const readLockManifest = async (
   options?: ReadOptions

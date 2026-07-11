@@ -51,8 +51,8 @@ const labelForKind = (kind: DiffEntry['kind']): string => {
   if (kind === 'trailhead') {
     return 'Trailhead';
   }
-  if (kind === 'contour') {
-    return 'Contour';
+  if (kind === 'entity') {
+    return 'Entity';
   }
   if (kind === 'resource') {
     return 'Resource';
@@ -154,13 +154,13 @@ const getType = (schema: JsonSchema | undefined): string =>
   schema ? inferSchemaType(schema) : 'unknown';
 
 const getAddedFieldLabel = (
-  direction: 'contour' | 'input' | 'output'
+  direction: 'entity' | 'input' | 'output'
 ): string => {
   if (direction === 'output') {
     return 'Output';
   }
-  if (direction === 'contour') {
-    return 'Optional contour';
+  if (direction === 'entity') {
+    return 'Optional entity';
   }
   return 'Optional input';
 };
@@ -168,12 +168,12 @@ const getAddedFieldLabel = (
 /** Diff a single field that was added. */
 const diffAddedField = (
   acc: DetailAccumulator,
-  direction: 'contour' | 'input' | 'output',
+  direction: 'entity' | 'input' | 'output',
   key: string,
   currRequired: ReadonlySet<string>
 ): void => {
   if (
-    (direction === 'contour' || direction === 'input') &&
+    (direction === 'entity' || direction === 'input') &&
     currRequired.has(key)
   ) {
     addDetail(acc, 'breaking', `Required ${direction} field "${key}" added`);
@@ -186,7 +186,7 @@ const diffAddedField = (
 /** Diff a single field present in both prev and curr. */
 const diffModifiedField = (
   acc: DetailAccumulator,
-  direction: 'contour' | 'input' | 'output',
+  direction: 'entity' | 'input' | 'output',
   key: string,
   prevProps: Record<string, JsonSchema>,
   currProps: Record<string, JsonSchema>,
@@ -203,7 +203,7 @@ const diffModifiedField = (
     );
   }
   if (
-    (direction === 'contour' || direction === 'input') &&
+    (direction === 'entity' || direction === 'input') &&
     !prevRequired.has(key) &&
     currRequired.has(key)
   ) {
@@ -218,7 +218,7 @@ const diffModifiedField = (
 /** Diff a single key across prev/curr schemas. */
 const diffKey = (
   acc: DetailAccumulator,
-  direction: 'contour' | 'input' | 'output',
+  direction: 'entity' | 'input' | 'output',
   key: string,
   prevProps: Record<string, JsonSchema>,
   currProps: Record<string, JsonSchema>,
@@ -250,7 +250,7 @@ const diffKey = (
 
 const diffSchemaFields = (
   acc: DetailAccumulator,
-  direction: 'contour' | 'input' | 'output',
+  direction: 'entity' | 'input' | 'output',
   prev: JsonSchema | undefined,
   curr: JsonSchema | undefined
 ): void => {
@@ -398,7 +398,7 @@ const buildResourcesMessage = (added: string[], removed: string[]): string => {
   return `Resources changed: ${parts.join(', ')}`;
 };
 
-const buildContoursMessage = (added: string[], removed: string[]): string => {
+const buildEntitiesMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
   if (added.length > 0) {
     parts.push(`added "${added.join('", "')}"`);
@@ -406,7 +406,7 @@ const buildContoursMessage = (added: string[], removed: string[]): string => {
   if (removed.length > 0) {
     parts.push(`removed "${removed.join('", "')}"`);
   }
-  return `Contours changed: ${parts.join(', ')}`;
+  return `Entities changed: ${parts.join(', ')}`;
 };
 
 /** Diff composes arrays. */
@@ -860,48 +860,48 @@ const diffTrailheads = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
   return entries;
 };
 
-/** Diff declared contour arrays on trail entries. */
-const diffContours = (
+/** Diff declared entity arrays on trail entries. */
+const diffEntities = (
   acc: DetailAccumulator,
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
 ): void => {
-  const prevContours = new Set(prev.contours);
-  const currContours = new Set(curr.contours);
-  const added = [...currContours]
-    .filter((contour) => !prevContours.has(contour))
+  const prevEntities = new Set(prev.entities);
+  const currEntities = new Set(curr.entities);
+  const added = [...currEntities]
+    .filter((entity) => !prevEntities.has(entity))
     .toSorted();
-  const removed = [...prevContours]
-    .filter((contour) => !currContours.has(contour))
+  const removed = [...prevEntities]
+    .filter((entity) => !currEntities.has(entity))
     .toSorted();
   if (added.length > 0 || removed.length > 0) {
-    addDetail(acc, 'warning', buildContoursMessage(added, removed));
+    addDetail(acc, 'warning', buildEntitiesMessage(added, removed));
   }
 };
 
-const diffContourSchema = (
+const diffEntitySchema = (
   acc: DetailAccumulator,
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
 ): void => {
-  diffSchemaFields(acc, 'contour', prev.schema, curr.schema);
+  diffSchemaFields(acc, 'entity', prev.schema, curr.schema);
 
   if (prev.identity !== curr.identity) {
     addDetail(
       acc,
       'breaking',
-      `Contour identity changed: ${String(prev.identity ?? '(none)')} -> ${String(curr.identity ?? '(none)')}`
+      `Entity identity changed: ${String(prev.identity ?? '(none)')} -> ${String(curr.identity ?? '(none)')}`
     );
   }
 };
 
 const referenceLabel = (reference: {
-  readonly contour: string;
+  readonly entity: string;
   readonly field: string;
   readonly identity: string;
-}): string => `${reference.field}:${reference.contour}.${reference.identity}`;
+}): string => `${reference.field}:${reference.entity}.${reference.identity}`;
 
-const diffContourReferences = (
+const diffEntityReferences = (
   acc: DetailAccumulator,
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
@@ -923,7 +923,7 @@ const diffContourReferences = (
     addDetail(
       acc,
       'warning',
-      `Contour references added: "${added.join('", "')}"`
+      `Entity references added: "${added.join('", "')}"`
     );
   }
 
@@ -931,7 +931,7 @@ const diffContourReferences = (
     addDetail(
       acc,
       'breaking',
-      `Contour references removed: "${removed.join('", "')}"`
+      `Entity references removed: "${removed.join('", "')}"`
     );
   }
 };
@@ -945,7 +945,7 @@ const diffTrailEntryDetails = (
   diffSchemaFields(acc, 'output', prev.output, curr.output);
   diffCliPath(acc, prev, curr);
   diffComposes(acc, prev, curr);
-  diffContours(acc, prev, curr);
+  diffEntities(acc, prev, curr);
   diffResources(acc, prev, curr);
   diffVersionEntries(acc, prev, curr);
   diffVersionExampleCoverage(acc, prev, curr);
@@ -960,9 +960,9 @@ const diffEntryDetails = (
   diffSurfaces(acc, prev, curr);
   diffMetadata(acc, prev, curr);
 
-  if (curr.kind === 'contour') {
-    diffContourSchema(acc, prev, curr);
-    diffContourReferences(acc, prev, curr);
+  if (curr.kind === 'entity') {
+    diffEntitySchema(acc, prev, curr);
+    diffEntityReferences(acc, prev, curr);
     return;
   }
 

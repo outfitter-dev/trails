@@ -311,7 +311,7 @@ export const governedVocabularyTransitions =
         contour: 'entity',
         contours: 'entities',
       },
-      status: 'planned',
+      status: 'complete',
       stringLiteralRenames: [
         { from: 'contour', match: 'review', to: 'entity' },
         { from: 'contours', match: 'review', to: 'entities' },

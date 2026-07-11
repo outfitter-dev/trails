@@ -192,7 +192,7 @@ export {
   activationOrphanTrail,
   cliCommandRouteCoherenceTrail,
   circularRefsTrail,
-  contourExistsTrail,
+  entityExistsTrail,
   contextNoSurfaceTypesTrail,
   composesDeclarationsTrail,
   deadInternalTrailTrail,

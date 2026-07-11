@@ -1,6 +1,6 @@
 import {
-  collectContourReferenceTargetsByName,
-  findContourDefinitions,
+  collectEntityReferenceTargetsByName,
+  findEntityDefinitions,
   offsetToLine,
   parse,
 } from './ast.js';
@@ -75,14 +75,14 @@ const findCyclePath = (
 };
 
 const buildCircularReferenceDiagnostic = (
-  contourName: string,
+  entityName: string,
   cyclePath: readonly string[],
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Contour "${contourName}" participates in circular contour references: ${cyclePath.join(' -> ')}. Break the cycle by removing one contour reference, or extract the shared shape into a new contour neither side depends on.`,
+  message: `Entity "${entityName}" participates in circular entity references: ${cyclePath.join(' -> ')}. Break the cycle by removing one entity reference, or extract the shared shape into a new entity neither side depends on.`,
   rule: 'circular-refs',
   severity: 'warn',
 });
@@ -97,7 +97,7 @@ const checkCircularReferences = (
     return [];
   }
 
-  return findContourDefinitions(ast).flatMap((definition) => {
+  return findEntityDefinitions(ast).flatMap((definition) => {
     const cyclePath = findCyclePath(definition.name, graph);
     if (!cyclePath) {
       return [];
@@ -115,7 +115,7 @@ const checkCircularReferences = (
 };
 
 /**
- * Warns when contour references form a direct or transitive cycle.
+ * Warns when entity references form a direct or transitive cycle.
  */
 export const circularRefs: ProjectAwareWardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -124,7 +124,7 @@ export const circularRefs: ProjectAwareWardenRule = {
       return [];
     }
 
-    const graph = collectContourReferenceTargetsByName(ast);
+    const graph = collectEntityReferenceTargetsByName(ast);
     return checkCircularReferences(ast, sourceCode, filePath, graph);
   },
   checkWithContext(
@@ -137,18 +137,18 @@ export const circularRefs: ProjectAwareWardenRule = {
       return [];
     }
 
-    const localGraph = collectContourReferenceTargetsByName(
+    const localGraph = collectEntityReferenceTargetsByName(
       ast,
-      context.knownContourIds
+      context.knownEntityIds
     );
     return checkCircularReferences(
       ast,
       sourceCode,
       filePath,
-      mergeReferenceGraphs(localGraph, context.contourReferencesByName)
+      mergeReferenceGraphs(localGraph, context.entityReferencesByName)
     );
   },
-  description: 'Warn when contour references form direct or transitive cycles.',
+  description: 'Warn when entity references form direct or transitive cycles.',
   name: 'circular-refs',
   severity: 'warn',
 };
