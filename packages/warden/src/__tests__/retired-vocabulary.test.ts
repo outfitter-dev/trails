@@ -187,6 +187,46 @@ describe('governed vocabulary registry', () => {
     ]);
   });
 
+  test('makes contour transition code-fact complete for apply readiness', () => {
+    const entity = getGovernedVocabularyTransition('v1-contour-entity');
+
+    expect(entity?.status).toBe('planned');
+    expect(entity?.codeIdentifiers).toEqual(
+      expect.arrayContaining(['contour', 'contours', 'wayfind.contours'])
+    );
+    expect(entity?.safeRewriteForms).toMatchObject({
+      contour: 'entity',
+      contours: 'entities',
+    });
+    expect(entity?.stringLiteralRenames).toEqual([
+      { from: 'contour', match: 'review', to: 'entity' },
+      { from: 'contours', match: 'review', to: 'entities' },
+      { from: 'wayfind.contours', to: 'wayfind.entities' },
+    ]);
+    expect(entity?.symbolRenames).toEqual([
+      {
+        from: 'contour',
+        match: 'identifier-segment',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'entity',
+      },
+      {
+        from: 'contours',
+        match: 'identifier-segment',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'entities',
+      },
+    ]);
+
+    const literalSources =
+      entity?.stringLiteralRenames.map((rename) => rename.from) ?? [];
+    expect(literalSources).not.toContain('Contour');
+    expect(literalSources).not.toContain('Contours');
+    expect(literalSources).not.toContain('contoured');
+    expect(literalSources).not.toContain('contouring');
+    expect(literalSources).not.toContain('counter-contour');
+  });
+
   test('rejects duplicate ids and duplicate source terms', () => {
     const [transition] = governedVocabularyTransitions;
     if (transition === undefined) {

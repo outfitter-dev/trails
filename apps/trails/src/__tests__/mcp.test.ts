@@ -679,6 +679,173 @@ describe('Trails MCP surface shaping', () => {
     }
   });
 
+  test('executes contour plan code facts and review inventory through MCP', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/rewrite.ts',
+        [
+          "import { contour, contours } from './runtime';",
+          'export type ContourRecord = { contour: typeof contour };',
+          'export const contourSummarySchema = contour;',
+          'export const contoursSummarySchema = contours;',
+          'const label = "contourSummarySchema contoursList contoured";',
+          '',
+        ].join('\n')
+      );
+      writeFile(
+        dir,
+        'src/literal.ts',
+        "ctx.compose('wayfind.contours', { entities: [] });\n"
+      );
+      writeFile(
+        dir,
+        'src/review.ts',
+        [
+          "import { contour } from './runtime';",
+          'export function render(contour: () => void) {',
+          '  return contour();',
+          '}',
+          '',
+        ].join('\n')
+      );
+
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const planRegrade = requireTool(tools, 'trails_plan_regrade');
+      const previewRegrade = requireTool(tools, 'trails_preview_regrade');
+
+      const planResult = await planRegrade.handler(
+        {
+          from: 'contour',
+          rootDir: dir,
+          to: 'entity',
+        },
+        {}
+      );
+      expect(planResult.isError).toBeUndefined();
+      const result = await previewRegrade.handler(
+        {
+          includeEntries: 'all',
+          rootDir: dir,
+        },
+        {}
+      );
+
+      expect(result.isError).toBeUndefined();
+      const structured = result.structuredContent as {
+        readonly entries?: readonly {
+          readonly classId?: string;
+          readonly outcome?: string;
+          readonly path?: string;
+          readonly reason?: string;
+          readonly reviewDetails?: readonly {
+            readonly candidateReplacement?: string;
+            readonly classId?: string;
+            readonly matchedForm?: string;
+            readonly reason?: string;
+            readonly symbol?: string;
+          }[];
+        }[];
+        readonly run?: {
+          readonly plan?: {
+            readonly from?: string;
+            readonly id?: string;
+            readonly scope?: { readonly exclude?: readonly string[] };
+            readonly to?: string;
+          };
+          readonly report?: {
+            readonly gate?: {
+              readonly reasons?: readonly string[];
+              readonly status?: string;
+            };
+          };
+        };
+        readonly selectedClassIds?: readonly string[];
+      };
+
+      expect(structured.selectedClassIds).toEqual(
+        expect.arrayContaining([
+          'ast-string-literal-rename:v1-contour-entity:contour->entity',
+          'ast-string-literal-rename:v1-contour-entity:contours->entities',
+          'ast-string-literal-rename:v1-contour-entity:wayfind.contours->wayfind.entities',
+          'ast-symbol-rename:v1-contour-entity:contour->entity',
+          'ast-symbol-rename:v1-contour-entity:contours->entities',
+          'v1-contour-entity',
+        ])
+      );
+      expect(structured.run?.plan).toMatchObject({
+        from: 'contour',
+        id: 'v1-contour-entity',
+        scope: {
+          exclude: facetTrailheadRegistryExcludes,
+        },
+        to: 'entity',
+      });
+      expect(structured.run?.report?.gate).toMatchObject({
+        reasons: [
+          'deferred-forms-or-occurrences',
+          'safe-modifications-not-yet-applied',
+        ],
+        remaining: 3,
+        remainingByDisposition: {
+          'code-context-out-of-engine': 3,
+        },
+        status: 'open',
+      });
+      expect(structured.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            classId: expect.stringContaining(
+              'ast-string-literal-rename:v1-contour-entity:wayfind.contours->wayfind.entities'
+            ),
+            outcome: 'rewrite',
+            path: 'src/literal.ts',
+          }),
+          expect.objectContaining({
+            classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
+            outcome: 'needs-review',
+            path: 'src/rewrite.ts',
+            reason: 'ast-identifier-module-boundary',
+            reviewDetails: expect.arrayContaining([
+              expect.objectContaining({
+                reason: 'ast-identifier-module-boundary',
+                symbol: 'contour',
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
+            outcome: 'needs-review',
+            path: 'src/review.ts',
+            reason: 'ast-identifier-module-boundary',
+            reviewDetails: expect.arrayContaining([
+              expect.objectContaining({
+                reason: 'ast-identifier-module-boundary',
+                symbol: 'contour',
+              }),
+              expect.objectContaining({
+                candidateReplacement: 'entity',
+                classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
+                matchedForm: 'contour',
+                reason: 'ast-identifier-review-declaration',
+                symbol: 'contour',
+              }),
+            ]),
+          }),
+        ])
+      );
+      expect(readFileSync(join(dir, 'src', 'rewrite.ts'), 'utf8')).toContain(
+        'contourSummarySchema contoursList contoured'
+      );
+      expect(readFileSync(join(dir, 'src', 'review.ts'), 'utf8')).toContain(
+        'render(contour: () => void)'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('executes registry-backed regrade review forms through MCP', async () => {
     const dir = makeTempDir();
     try {

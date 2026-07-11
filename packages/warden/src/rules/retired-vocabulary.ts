@@ -56,7 +56,7 @@ export const governedVocabularySymbolRenameSchema = z.object({
 
 export const governedVocabularyLiteralRenameSchema = z.object({
   from: z.string().min(1),
-  match: z.enum(['exact', 'property-key']).optional(),
+  match: z.enum(['exact', 'property-key', 'review']).optional(),
   to: z.string().min(1),
 });
 
@@ -290,10 +290,12 @@ export const governedVocabularyTransitions =
       target: { kind: 'single', to: 'implementation' },
     }),
     defineV1Transition({
-      codeIdentifiers: ['contour', 'contours'],
+      codeIdentifiers: ['contour', 'contours', 'wayfind.contours'],
       docs: {
         guidance: [
           'Keep domain-object semantics distinct from entities in app data until the occurrence is classified.',
+          'Treat contour code/API identifiers as governed symbols, with FunctionParam shadows routed to review.',
+          'Rewrite exact framework string literals only; prose, substrings, and inflections stay outside mechanical apply.',
         ],
         summary:
           'The domain object declaration term is moving from contour to entity.',
@@ -304,17 +306,28 @@ export const governedVocabularyTransitions =
         'Move the domain object declaration vocabulary from contour to entity for v1.',
       kind: 'vocabulary',
       oldForms: ['contour', 'contours', 'Contour'],
-      reviewForms: ['Contour'],
+      reviewForms: ['Contour', 'Contours', 'contoured', 'contouring'],
       safeRewriteForms: {
         contour: 'entity',
         contours: 'entities',
       },
       status: 'planned',
+      stringLiteralRenames: [
+        { from: 'contour', match: 'review', to: 'entity' },
+        { from: 'contours', match: 'review', to: 'entities' },
+        { from: 'wayfind.contours', to: 'wayfind.entities' },
+      ],
       symbolRenames: [
-        { ...reviewFunctionParamDeclarations, from: 'contour', to: 'entity' },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'contour',
+          match: 'identifier-segment',
+          to: 'entity',
+        },
         {
           ...reviewFunctionParamDeclarations,
           from: 'contours',
+          match: 'identifier-segment',
           to: 'entities',
         },
       ],

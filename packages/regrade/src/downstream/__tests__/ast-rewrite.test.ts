@@ -125,16 +125,16 @@ describe('createAstRewriteClass', () => {
 });
 
 describe('createAstIdentifierRenameClass', () => {
-  test('renames imports, exports, properties, and references by exact identifier', () => {
+  test('renames declarations, properties, and references by exact identifier', () => {
     const cls = createAstIdentifierRenameClass({
       from: 'sourceTerm',
       to: 'targetTerm',
     });
     const result = cls.apply(
       [
-        "import { sourceTerm } from './sourceTerms';",
+        'const sourceTermSeed = 1;',
         'export const sourceTerm = { sourceTerm, nested: { sourceTerm } };',
-        'const value = obj.sourceTerm + sourceTerm;',
+        'const value = obj.sourceTerm + sourceTerm + sourceTermSeed;',
         '',
       ].join('\n'),
       { path: 'src/sourceTerm.ts' }
@@ -143,9 +143,9 @@ describe('createAstIdentifierRenameClass', () => {
     expect(result.kind).toBe('rewrite');
     expect(result.nextSource).toBe(
       [
-        "import { targetTerm } from './sourceTerms';",
+        'const sourceTermSeed = 1;',
         'export const targetTerm = { targetTerm, nested: { targetTerm } };',
-        'const value = obj.targetTerm + targetTerm;',
+        'const value = obj.targetTerm + targetTerm + sourceTermSeed;',
         '',
       ].join('\n')
     );
@@ -408,8 +408,8 @@ describe('createAstIdentifierRenameClass', () => {
 
     const result = cls.apply(
       [
-        "import { sourceTerm } from './sourceTerms';",
-        'export const current = sourceTerm();',
+        "import { otherValue } from './sourceTerms';",
+        'export const current = otherValue();',
         'function local(sourceTerm: () => void) {',
         '  return sourceTerm();',
         '}',
@@ -468,8 +468,8 @@ describe('createAstIdentifierRenameClass', () => {
 
     const result = cls.apply(
       [
-        "import { blazeInput } from './runtime';",
-        'export const current = blazeInput();',
+        "import { otherInput } from './runtime';",
+        'export const current = otherInput();',
         'function local(blazeInput: () => void) {',
         '  return blazeInput();',
         '}',
@@ -737,6 +737,447 @@ describe('createAstIdentifierRenameClass', () => {
     );
   });
 
+  test('uses identifier-segment mode for governed contour symbols', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const entitySymbolClass = classes.find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contour->entity')
+    );
+    expect(entitySymbolClass).toBeDefined();
+    if (entitySymbolClass === undefined) {
+      throw new Error('Expected contour symbol rename class.');
+    }
+
+    const result = entitySymbolClass.apply(
+      [
+        'const contour = createContour();',
+        'const createTableContour = (value: unknown) => value;',
+        'export type ContourRecord = { contour: typeof contour };',
+        'const contourSummarySchema = contour;',
+        'const contourToEntry = createTableContour(contourSummarySchema);',
+        'const CONTOUR_ID_METADATA = contourToEntry;',
+        'const countercontour = CONTOUR_ID_METADATA;',
+        'const contoured = countercontour;',
+        'const contouring = contoured;',
+        '',
+      ].join('\n'),
+      { path: 'src/contour.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'const entity = createEntity();',
+        'const createTableEntity = (value: unknown) => value;',
+        'export type EntityRecord = { entity: typeof entity };',
+        'const entitySummarySchema = entity;',
+        'const entityToEntry = createTableEntity(entitySummarySchema);',
+        'const ENTITY_ID_METADATA = entityToEntry;',
+        'const countercontour = ENTITY_ID_METADATA;',
+        'const contoured = countercontour;',
+        'const contouring = contoured;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('routes identifiers that already contain the contour target segment to review', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const entitySymbolClass = classes.find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contour->entity')
+    );
+    expect(entitySymbolClass).toBeDefined();
+    if (entitySymbolClass === undefined) {
+      throw new Error('Expected contour symbol rename class.');
+    }
+
+    const source = [
+      'const entityContour = 1;',
+      'const ENTITY_CONTOUR = entityContour;',
+      '',
+    ].join('\n');
+    const result = entitySymbolClass.apply(source, {
+      path: 'src/entity-contour.ts',
+    });
+
+    expect(result.kind).toBe('needs-review');
+    expect(result.nextSource).toBeUndefined();
+    expect(result.reviewDetails).toEqual([
+      expect.objectContaining({
+        candidateReplacement: 'entityEntity',
+        reason: 'ast-identifier-target-segment-present',
+        symbol: 'entityContour',
+      }),
+      expect.objectContaining({
+        candidateReplacement: 'ENTITY_ENTITY',
+        reason: 'ast-identifier-target-segment-present',
+        symbol: 'ENTITY_CONTOUR',
+      }),
+      expect.objectContaining({
+        candidateReplacement: 'entityEntity',
+        reason: 'ast-identifier-target-segment-present',
+        symbol: 'entityContour',
+      }),
+    ]);
+  });
+
+  test('routes governed import and export names to review', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+    const entitySymbolClass = createGovernedAstIdentifierRenameClasses(
+      transition
+    ).find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contour->entity')
+    );
+    if (entitySymbolClass === undefined) {
+      throw new Error('Expected contour symbol rename class.');
+    }
+
+    for (const source of [
+      "import { contourId } from 'external';",
+      "import contourId from 'external';",
+      "import * as contourId from 'external';",
+      'export { localContourId as contourId };',
+    ]) {
+      const result = entitySymbolClass.apply(source, {
+        path: 'src/module-boundary.ts',
+      });
+      expect(result).toMatchObject({
+        kind: 'needs-review',
+        reason: 'ast-identifier-module-boundary',
+        reviewDetails: expect.arrayContaining([
+          expect.objectContaining({
+            reason: 'ast-identifier-module-boundary',
+          }),
+        ]),
+      });
+      expect(result.nextSource).toBeUndefined();
+    }
+  });
+
+  test('uses identifier-segment mode for governed contours symbols', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const entitiesSymbolClass = classes.find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contours->entities')
+    );
+    expect(entitiesSymbolClass).toBeDefined();
+    if (entitiesSymbolClass === undefined) {
+      throw new Error('Expected contours symbol rename class.');
+    }
+
+    const result = entitiesSymbolClass.apply(
+      [
+        'const contours = listContoursSource();',
+        'const listContours = (value: unknown) => value;',
+        'export type ContoursRecord = { contours: typeof contours };',
+        'const contoursSummarySchema = contours;',
+        'const CONTOURS_ROUTE = listContours(contoursSummarySchema);',
+        'const countercontours = CONTOURS_ROUTE;',
+        '',
+      ].join('\n'),
+      { path: 'src/contours.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'const entities = listEntitiesSource();',
+        'const listEntities = (value: unknown) => value;',
+        'export type EntitiesRecord = { entities: typeof entities };',
+        'const entitiesSummarySchema = entities;',
+        'const ENTITIES_ROUTE = listEntities(entitiesSummarySchema);',
+        'const countercontours = ENTITIES_ROUTE;',
+        '',
+      ].join('\n')
+    );
+
+    const mixedTargetResult = entitiesSymbolClass.apply(
+      'const entityContours = 1;\n',
+      { path: 'src/entity-contours.ts' }
+    );
+    expect(mixedTargetResult.kind).toBe('needs-review');
+    expect(mixedTargetResult.nextSource).toBeUndefined();
+    expect(mixedTargetResult.reviewDetails).toEqual([
+      expect.objectContaining({
+        candidateReplacement: 'entityEntities',
+        reason: 'ast-identifier-target-segment-present',
+        symbol: 'entityContours',
+      }),
+    ]);
+  });
+
+  test('proves the public contour census replacements for the hard v1 cut', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const entitySymbolClass = classes.find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contour->entity')
+    );
+    const entitiesSymbolClass = classes.find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contours->entities')
+    );
+    expect(entitySymbolClass).toBeDefined();
+    expect(entitiesSymbolClass).toBeDefined();
+    if (entitySymbolClass === undefined || entitiesSymbolClass === undefined) {
+      throw new Error('Expected contour symbol rename classes.');
+    }
+
+    const source = [
+      'export interface ContourOptions {}',
+      'export type AnyContour = ContourOptions;',
+      'export type ContourReference = AnyContour;',
+      'export const getContourIdMetadata = () => undefined;',
+      'export interface TopoGraphContourReference {}',
+      'export interface TopoStoreContourRecord {}',
+      'export type TableContour = AnyContour;',
+      'export const wayfindContoursTrail = undefined;',
+      'export const getContour = () => undefined;',
+      'export const listContours = () => [];',
+      'export const contourIds = () => [];',
+      'export const contourCount = 0;',
+      '',
+    ].join('\n');
+
+    const singularResult = entitySymbolClass.apply(source, {
+      path: 'src/public-api.ts',
+    });
+    expect(singularResult.kind).toBe('rewrite');
+    const pluralResult = entitiesSymbolClass.apply(
+      singularResult.nextSource ?? '',
+      { path: 'src/public-api.ts' }
+    );
+
+    expect(pluralResult.kind).toBe('rewrite');
+    expect(pluralResult.nextSource).toBe(
+      [
+        'export interface EntityOptions {}',
+        'export type AnyEntity = EntityOptions;',
+        'export type EntityReference = AnyEntity;',
+        'export const getEntityIdMetadata = () => undefined;',
+        'export interface TopoGraphEntityReference {}',
+        'export interface TopoStoreEntityRecord {}',
+        'export type TableEntity = AnyEntity;',
+        'export const wayfindEntitiesTrail = undefined;',
+        'export const getEntity = () => undefined;',
+        'export const listEntities = () => [];',
+        'export const entityIds = () => [];',
+        'export const entityCount = 0;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('routes governed contour FunctionParam shadows to review', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const entitySymbolClass = classes.find((cls) =>
+      cls.id.includes('ast-symbol-rename:v1-contour-entity:contour->entity')
+    );
+    expect(entitySymbolClass).toBeDefined();
+    if (entitySymbolClass === undefined) {
+      throw new Error('Expected contour symbol rename class.');
+    }
+
+    const result = entitySymbolClass.apply(
+      [
+        "import { subject } from './domain';",
+        'export const current = subject();',
+        'function local(contour: () => void) {',
+        '  return contour();',
+        '}',
+        '',
+      ].join('\n'),
+      { path: 'src/contour.ts' }
+    );
+
+    expect(result.kind).toBe('needs-review');
+    expect(result.reason).toBe('ast-identifier-review-declaration');
+    expect(result.nextSource).toBeUndefined();
+    expect(result.reviewDetails).toEqual([
+      expect.objectContaining({
+        candidateReplacement: 'entity',
+        classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
+        matchedForm: 'contour',
+        preserveCautions: [
+          'Identifier "contour" resolves to FunctionParam; routed to review.',
+        ],
+        reason: 'ast-identifier-review-declaration',
+        symbol: 'contour',
+      }),
+      expect.objectContaining({
+        candidateReplacement: 'entity',
+        classId: 'ast-symbol-rename:v1-contour-entity:contour->entity',
+        matchedForm: 'contour',
+        preserveCautions: [
+          'Identifier "contour" resolves to FunctionParam; routed to review.',
+        ],
+        reason: 'ast-identifier-review-declaration',
+        symbol: 'contour',
+      }),
+    ]);
+  });
+
+  test('rewrites governed contour string literals exactly', () => {
+    const transition = getGovernedVocabularyTransition('v1-contour-entity');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected contour vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const literalClasses = new Map(classes.map((cls) => [cls.id, cls]));
+    const contourLiteralClass = literalClasses.get(
+      'ast-string-literal-rename:v1-contour-entity:contour->entity'
+    );
+    const contoursLiteralClass = literalClasses.get(
+      'ast-string-literal-rename:v1-contour-entity:contours->entities'
+    );
+    const wayfindLiteralClass = literalClasses.get(
+      'ast-string-literal-rename:v1-contour-entity:wayfind.contours->wayfind.entities'
+    );
+    expect(contourLiteralClass).toBeDefined();
+    expect(contoursLiteralClass).toBeDefined();
+    expect(wayfindLiteralClass).toBeDefined();
+    if (
+      contourLiteralClass === undefined ||
+      contoursLiteralClass === undefined ||
+      wayfindLiteralClass === undefined
+    ) {
+      throw new Error('Expected contour literal rename classes.');
+    }
+
+    const source = [
+      'const singular = "contour";',
+      "const plural = 'contours';",
+      "ctx.compose('wayfind.contours', { contours });",
+      'const prose = "contourSummarySchema contoursList wayfind.contours.extra";',
+      'const idioms = ["counter-contour", "contoured", "contouring", "Contour"];',
+      '',
+    ].join('\n');
+
+    const singularResult = contourLiteralClass.apply(source, {
+      path: 'src/contour.ts',
+    });
+    expect(singularResult).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-review-position',
+    });
+    const pluralResult = contoursLiteralClass.apply(source, {
+      path: 'src/contour.ts',
+    });
+    expect(pluralResult).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-review-position',
+    });
+    const payloadResult = contourLiteralClass.apply(
+      'const apiPayload = { kind: "contour" };',
+      { path: 'src/api.ts' }
+    );
+    expect(payloadResult).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-review-position',
+    });
+    const wayfindResult = wayfindLiteralClass.apply(source, {
+      path: 'src/contour.ts',
+    });
+
+    expect(wayfindResult.kind).toBe('rewrite');
+    expect(wayfindResult.nextSource).toBe(
+      [
+        'const singular = "contour";',
+        "const plural = 'contours';",
+        "ctx.compose('wayfind.entities', { contours });",
+        'const prose = "contourSummarySchema contoursList wayfind.contours.extra";',
+        'const idioms = ["counter-contour", "contoured", "contouring", "Contour"];',
+        '',
+      ].join('\n')
+    );
+
+    expect(
+      wayfindLiteralClass.apply(
+        'const resolved = require.resolve("wayfind.contours");',
+        { path: 'src/module-route.ts' }
+      )
+    ).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-module-specifier',
+    });
+
+    for (const mockSource of [
+      'jest.createMockFromModule("wayfind.contours");',
+      'jest.doMock("wayfind.contours");',
+      'jest.genMockFromModule("wayfind.contours");',
+      'jest.mock("wayfind.contours");',
+      'jest.requireActual("wayfind.contours");',
+      'jest.requireMock("wayfind.contours");',
+      'jest.unmock("wayfind.contours");',
+      'vi.doMock("wayfind.contours");',
+      'vi.doUnmock("wayfind.contours");',
+      'vi.importActual("wayfind.contours");',
+      'vi.importMock("wayfind.contours");',
+      'vi.mock("wayfind.contours");',
+      'vi.unmock("wayfind.contours");',
+      'mock.module("wayfind.contours");',
+      'Bun.mock.module("wayfind.contours");',
+    ]) {
+      expect(
+        wayfindLiteralClass.apply(mockSource, {
+          path: 'src/module-mock.ts',
+        })
+      ).toMatchObject({
+        kind: 'needs-review',
+        reason: 'ast-string-literal-module-specifier',
+      });
+    }
+
+    for (const moduleSource of [
+      'import { contour } from "contour";',
+      'export { contour } from "contour";',
+      "type ContourModule = import('contour').Contour;",
+      "type ContourModule = typeof import('contour');",
+      'declare module "contour" {}',
+      'import contourModule = require("contour");',
+      'const contourModule = require("contour");',
+    ]) {
+      expect(
+        contourLiteralClass.apply(moduleSource, {
+          path: 'src/module-route.ts',
+        })
+      ).toMatchObject({
+        kind: 'needs-review',
+        reason: 'ast-string-literal-module-specifier',
+      });
+    }
+  });
+
   test('routes governed registry shadow declarations to review', () => {
     const transition = getGovernedVocabularyTransition('cross-compose');
     expect(transition).toBeDefined();
@@ -755,8 +1196,8 @@ describe('createAstIdentifierRenameClass', () => {
 
     const result = crossInputClass.apply(
       [
-        "import { crossInput } from './composition';",
-        'export const current = crossInput;',
+        "import { composeRef } from './composition';",
+        'export const current = composeRef;',
         'function local(crossInput: string) {',
         '  return crossInput;',
         '}',

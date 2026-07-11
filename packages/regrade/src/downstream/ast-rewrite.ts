@@ -6,8 +6,10 @@ import type {
 import {
   applySourceEdits,
   createSourceEdit,
+  getNodeCallee,
   getStringValue,
   identifierName,
+  isMemberExpression,
   isStringLiteral,
   offsetToLineColumn,
   parseWithDiagnostics,
@@ -235,6 +237,7 @@ export interface AstIdentifierRenameClassOptions {
   readonly id?: string;
   readonly match?: AstIdentifierRenameMatchMode;
   readonly reviewDeclarationTypes?: ReadonlySet<string>;
+  readonly reviewExistingTargetSegments?: readonly string[];
   readonly shouldPreserve?: (
     occurrence: AstIdentifierRenameOccurrence
   ) => boolean;
@@ -253,18 +256,90 @@ export interface AstIdentifierRenameOccurrence {
 }
 
 export interface AstStringLiteralRenameClassOptions {
+  readonly allowModuleSpecifier?: boolean;
   readonly describe?: string;
   readonly from: string;
   readonly id?: string;
-  readonly match?: 'exact' | 'property-key';
+  readonly match?: 'exact' | 'property-key' | 'review';
   readonly shouldPreserve?: (
     occurrence: AstIdentifierRenameOccurrence
   ) => boolean;
   readonly to: string;
 }
 
+const isEsmModuleSpecifierPosition = (context: AstScopeContext): boolean =>
+  context.key === 'source' &&
+  (context.parent?.type === 'ImportDeclaration' ||
+    context.parent?.type === 'ExportAllDeclaration' ||
+    context.parent?.type === 'ExportNamedDeclaration' ||
+    context.parent?.type === 'ImportExpression' ||
+    context.parent?.type === 'TSImportType');
+
+const isTypeScriptModuleSpecifierPosition = (
+  context: AstScopeContext
+): boolean =>
+  (context.key === 'id' && context.parent?.type === 'TSModuleDeclaration') ||
+  (context.key === 'expression' &&
+    context.parent?.type === 'TSExternalModuleReference');
+
+const memberAccessPath = (node: AstNode | undefined): string | null => {
+  const name = identifierName(node);
+  if (name !== null) {
+    return name;
+  }
+  if (!isMemberExpression(node)) {
+    return null;
+  }
+  const object = memberAccessPath(node.object);
+  const property = identifierName(node.property);
+  return object === null || property === null ? null : `${object}.${property}`;
+};
+
+const MODULE_LOADER_CALLEES = new Set([
+  'Bun.mock.module',
+  'jest.createMockFromModule',
+  'jest.doMock',
+  'jest.genMockFromModule',
+  'jest.mock',
+  'jest.requireActual',
+  'jest.requireMock',
+  'jest.unmock',
+  'mock.module',
+  'require',
+  'require.resolve',
+  'vi.doMock',
+  'vi.doUnmock',
+  'vi.importActual',
+  'vi.importMock',
+  'vi.mock',
+  'vi.unmock',
+]);
+
+const isLoaderModuleSpecifierPosition = (context: AstScopeContext): boolean => {
+  if (
+    context.key !== 'arguments' ||
+    context.parent?.type !== 'CallExpression'
+  ) {
+    return false;
+  }
+
+  const callee = memberAccessPath(getNodeCallee(context.parent));
+  return callee !== null && MODULE_LOADER_CALLEES.has(callee);
+};
+
+const isModuleSpecifierPosition = (context: AstScopeContext): boolean =>
+  isEsmModuleSpecifierPosition(context) ||
+  isTypeScriptModuleSpecifierPosition(context) ||
+  isLoaderModuleSpecifierPosition(context);
+
 const isIdentifierNamed = (node: AstNode, name: string): boolean =>
   node.type === 'Identifier' && identifierName(node) === name;
+
+const stringLiteralNeedsReview = (
+  match: AstStringLiteralRenameClassOptions['match'],
+  contextKey: AstScopeContext['key']
+): boolean =>
+  match === 'review' || (match === 'property-key' && contextKey !== 'key');
 
 const identifierTokenSpan = (
   node: AstNode,
@@ -387,6 +462,9 @@ const deriveIdentifierSegmentTarget = (
     : `${leadingUnderscores}${camelOrPascalTarget}`;
 };
 
+const hasIdentifierSegment = (name: string, segment: string): boolean =>
+  deriveIdentifierSegmentTarget(name, segment, segment) !== null;
+
 interface AstIdentifierRenameMatch {
   readonly from: string;
   readonly span: { readonly end: number; readonly start: number } | null;
@@ -498,6 +576,40 @@ export const createAstIdentifierRenameClass = (
         return null;
       }
 
+      const existingTargetSegment = (
+        options.reviewExistingTargetSegments ?? [options.to]
+      ).find((segment) => hasIdentifierSegment(match.from, segment));
+      if (
+        matchMode === 'identifier-segment' &&
+        existingTargetSegment !== undefined
+      ) {
+        const location = offsetToLineColumn(context.source, span.start);
+        const caution = `Identifier "${match.from}" already contains target segment "${existingTargetSegment}"; routed to review.`;
+        return {
+          detail: {
+            candidateReplacement: match.to,
+            expectedTarget: `Review identifier "${match.from}" before replacing "${options.from}" with "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: match.from,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'ast-identifier-target-segment-present',
+            signals: ['ast:identifier-rename'],
+            span: {
+              column: location.column,
+              end: span.end,
+              line: location.line,
+              start: span.start,
+            },
+            suggestedValidation: 'bun run typecheck',
+            symbol: match.from,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'ast-identifier-target-segment-present',
+        };
+      }
+
       const declaration = context.getDeclaration(match.from);
       if (declaration && reviewDeclarationTypes.has(declaration.type)) {
         const location = offsetToLineColumn(context.source, span.start);
@@ -524,6 +636,39 @@ export const createAstIdentifierRenameClass = (
           kind: 'review',
           note: caution,
           reason: 'ast-identifier-review-declaration',
+        };
+      }
+
+      if (
+        context.parent?.type === 'ImportSpecifier' ||
+        context.parent?.type === 'ImportDefaultSpecifier' ||
+        context.parent?.type === 'ImportNamespaceSpecifier' ||
+        context.parent?.type === 'ExportSpecifier'
+      ) {
+        const location = offsetToLineColumn(context.source, span.start);
+        const caution = `Identifier "${match.from}" names an import or export boundary; routed to review.`;
+        return {
+          detail: {
+            candidateReplacement: match.to,
+            expectedTarget: `Review public or foreign identifier "${match.from}" before renaming it to "${match.to}".`,
+            judgment: 'unresolved',
+            matchedForm: match.from,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'ast-identifier-module-boundary',
+            signals: ['ast:identifier-rename'],
+            span: {
+              column: location.column,
+              end: span.end,
+              line: location.line,
+              start: span.start,
+            },
+            suggestedValidation: 'bun run typecheck',
+            symbol: match.from,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'ast-identifier-module-boundary',
         };
       }
 
@@ -606,19 +751,22 @@ export const createAstStringLiteralRenameClass = (
         return null;
       }
 
-      if (options.match === 'property-key' && context.key !== 'key') {
+      if (
+        options.allowModuleSpecifier !== true &&
+        isModuleSpecifierPosition(context)
+      ) {
         const location = offsetToLineColumn(context.source, node.start);
-        const caution = `String literal "${options.from}" is not an authored property key; routed to review.`;
+        const caution = `String literal "${options.from}" is a module specifier; routed to review.`;
         return {
           detail: {
             candidateReplacement: options.to,
-            expectedTarget: `Review whether string literal "${options.from}" names the authored contract field before renaming it to "${options.to}".`,
+            expectedTarget: `Review module route "${options.from}" before renaming it to "${options.to}".`,
             judgment: 'unresolved',
             matchedForm: options.from,
             nodeKind: node.type,
             preserveCautions: [caution],
-            reason: 'ast-string-literal-review-position',
-            signals: ['ast:string-literal-rename', 'ast:property-key-required'],
+            reason: 'ast-string-literal-module-specifier',
+            signals: ['ast:string-literal-rename', 'ast:module-specifier'],
             span: {
               column: location.column,
               end: node.end,
@@ -626,7 +774,39 @@ export const createAstStringLiteralRenameClass = (
               start: node.start,
             },
             suggestedValidation:
-              'Confirm the literal is a trail contract field before changing it.',
+              'Confirm the module route is owned by this transition before changing it.',
+            symbol: options.from,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'ast-string-literal-module-specifier',
+        };
+      }
+
+      if (stringLiteralNeedsReview(options.match, context.key)) {
+        const location = offsetToLineColumn(context.source, node.start);
+        const caution = `String literal "${options.from}" is not proven framework-owned; routed to review.`;
+        return {
+          detail: {
+            candidateReplacement: options.to,
+            expectedTarget: `Review whether string literal "${options.from}" is framework-owned before renaming it to "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: options.from,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'ast-string-literal-review-position',
+            signals: [
+              'ast:string-literal-rename',
+              'ast:framework-position-required',
+            ],
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation:
+              'Confirm the literal is owned by a Trails contract before changing it.',
             symbol: options.from,
           },
           kind: 'review',
@@ -650,30 +830,37 @@ export const createGovernedAstIdentifierRenameClasses = (
       occurrence: AstIdentifierRenameOccurrence
     ) => boolean;
   } = {}
-): readonly RegradeClass[] => [
-  ...transition.symbolRenames.map((rename) =>
-    createAstIdentifierRenameClass({
-      describe: `Rename governed symbol "${rename.from}" to "${rename.to}" for ${transition.id}.`,
-      from: rename.from,
-      id: `ast-symbol-rename:${transition.id}:${rename.from}->${rename.to}`,
-      match: rename.match,
-      reviewDeclarationTypes: new Set(rename.reviewDeclarationTypes),
-      ...(options.shouldPreserve === undefined
-        ? {}
-        : { shouldPreserve: options.shouldPreserve }),
-      to: rename.to,
-    })
-  ),
-  ...transition.stringLiteralRenames.map((rename) =>
-    createAstStringLiteralRenameClass({
-      describe: `Rename governed string literal "${rename.from}" to "${rename.to}" for ${transition.id}.`,
-      from: rename.from,
-      id: `ast-string-literal-rename:${transition.id}:${rename.from}->${rename.to}`,
-      ...(rename.match === undefined ? {} : { match: rename.match }),
-      ...(options.shouldPreserve === undefined
-        ? {}
-        : { shouldPreserve: options.shouldPreserve }),
-      to: rename.to,
-    })
-  ),
-];
+): readonly RegradeClass[] => {
+  const targetSegments = [
+    ...new Set(transition.symbolRenames.map((rename) => rename.to)),
+  ];
+
+  return [
+    ...transition.symbolRenames.map((rename) =>
+      createAstIdentifierRenameClass({
+        describe: `Rename governed symbol "${rename.from}" to "${rename.to}" for ${transition.id}.`,
+        from: rename.from,
+        id: `ast-symbol-rename:${transition.id}:${rename.from}->${rename.to}`,
+        match: rename.match,
+        reviewDeclarationTypes: new Set(rename.reviewDeclarationTypes),
+        reviewExistingTargetSegments: targetSegments,
+        ...(options.shouldPreserve === undefined
+          ? {}
+          : { shouldPreserve: options.shouldPreserve }),
+        to: rename.to,
+      })
+    ),
+    ...transition.stringLiteralRenames.map((rename) =>
+      createAstStringLiteralRenameClass({
+        describe: `Rename governed string literal "${rename.from}" to "${rename.to}" for ${transition.id}.`,
+        from: rename.from,
+        id: `ast-string-literal-rename:${transition.id}:${rename.from}->${rename.to}`,
+        ...(rename.match === undefined ? {} : { match: rename.match }),
+        ...(options.shouldPreserve === undefined
+          ? {}
+          : { shouldPreserve: options.shouldPreserve }),
+        to: rename.to,
+      })
+    ),
+  ];
+};
