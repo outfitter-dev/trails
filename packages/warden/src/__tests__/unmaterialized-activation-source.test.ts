@@ -3,7 +3,15 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { Result, schedule, signal, topo, trail, webhook } from '@ontrails/core';
+import {
+  Result,
+  queue,
+  schedule,
+  signal,
+  topo,
+  trail,
+  webhook,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { runWarden } from '../cli.js';
@@ -64,7 +72,18 @@ describe('unmaterialized-activation-source', () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test('stays quiet for schedule, signal, and webhook activation sources', async () => {
+  test('stays quiet for queue, schedule, signal, and webhook activation sources', async () => {
+    const queueConsumer = trail('invoice.queue-consume', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ invoiceId: z.string() }),
+      on: [
+        queue('queue.invoice.paid', {
+          parse: z.object({ invoiceId: z.string() }),
+          queue: 'invoice-paid',
+        }),
+      ],
+      output: z.object({ ok: z.boolean() }),
+    });
     const scheduleConsumer = trail('invoice.reconcile', {
       implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
@@ -75,6 +94,7 @@ describe('unmaterialized-activation-source', () => {
     const diagnostics = await unmaterializedActivationSource.checkTopo(
       topo('materialized-sources', {
         created,
+        queueConsumer,
         scheduleConsumer,
         signalConsumer,
         signalProducer,

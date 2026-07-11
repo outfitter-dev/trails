@@ -18,6 +18,7 @@ import { ValidationError } from './errors.js';
 import type { ActivationEntry } from './activation-source.js';
 import { isKnownActivationSourceKind } from './activation-source.js';
 import { isDraftId } from './draft.js';
+import { validateQueueSource } from './queue.js';
 import type { AnySignal } from './signal.js';
 import { validateScheduleSource } from './schedule.js';
 import { Result } from './result.js';
@@ -524,6 +525,21 @@ const checkActivationSources = (
             trailId: id,
           });
         }
+      }
+
+      const queueIssues = validateQueueSource(activation.source);
+      for (const issue of queueIssues) {
+        issues.push({
+          inputPath: [issue.field],
+          message: `Trail declares queue source "${activation.source.id}" with invalid ${issue.field}: ${issue.message}`,
+          rule: 'activation-queue-valid',
+          schemaIssues: [
+            { code: issue.field, message: issue.message, path: [issue.field] },
+          ],
+          sourceId: activation.source.id,
+          sourceKind: activation.source.kind,
+          trailId: id,
+        });
       }
 
       const scheduleIssues = validateScheduleSource(activation.source);

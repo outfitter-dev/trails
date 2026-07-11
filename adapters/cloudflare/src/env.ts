@@ -19,6 +19,7 @@ import {
   matchesTrailPattern,
   Result,
   filterSurfaceTrails,
+  isLiveTrailVersionEntry,
 } from '@ontrails/core';
 import type {
   AnyResource,
@@ -110,6 +111,10 @@ export interface BuildEnvResourceOverridesOptions extends Pick<
 > {
   /** Resource IDs already provided explicitly; env resolution skips them. */
   readonly except?: readonly string[] | undefined;
+  /** Worker entrypoint whose reachable resources should be materialized. */
+  readonly entrypoint?: 'fetch' | 'queue' | undefined;
+  /** Physical queue delivered to the current queue entrypoint. */
+  readonly queue?: string | undefined;
 }
 
 const isInternalTrail = (
@@ -134,18 +139,25 @@ const passesIncludeFilter = (
   matchesAnyPattern(trailId, include);
 
 /**
- * Mirror of the fetch kernel's webhook trail eligibility: webhook consumers
- * become HTTP routes even though `filterSurfaceTrails` skips
- * activation-driven trails, so the bridge applies the same rules here.
+ * Mirror of Worker activation eligibility for one entrypoint. Activation
+ * consumers are skipped by `filterSurfaceTrails`, so the bridge selects them
+ * explicitly without making fetch depend on queue-only resources.
  */
-const isEligibleWebhookTrail = (
+const isEligibleWorkerActivationTrail = (
   graphTrail: Trail<unknown, unknown, unknown>,
   options: BuildEnvResourceOverridesOptions
 ): boolean => {
-  const hasWebhookSource = graphTrail.activationSources.some(
-    (activation) => activation.source.kind === 'webhook'
+  const activationKind =
+    (options.entrypoint ?? 'fetch') === 'queue' ? 'queue' : 'webhook';
+  const hasWorkerActivationSource = graphTrail.activationSources.some(
+    (activation) =>
+      activation.source.kind === activationKind &&
+      (activationKind !== 'queue' ||
+        options.queue === undefined ||
+        (typeof activation.source.queue === 'string' &&
+          activation.source.queue.trim() === options.queue))
   );
-  if (!hasWebhookSource) {
+  if (!hasWorkerActivationSource) {
     return false;
   }
   if (
@@ -173,20 +185,41 @@ const collectSurfaceEligibleTrails = (
 ): readonly Trail<unknown, unknown, unknown>[] => {
   const trails = graph.list();
   const eligible = new Map<string, Trail<unknown, unknown, unknown>>();
-  const filtered = filterSurfaceTrails(trails, {
-    exclude: options.exclude,
-    include: options.include,
-    intent: options.intent,
-  });
-  for (const graphTrail of filtered) {
-    eligible.set(graphTrail.id, graphTrail);
+  if ((options.entrypoint ?? 'fetch') === 'fetch') {
+    const filtered = filterSurfaceTrails(trails, {
+      exclude: options.exclude,
+      include: options.include,
+      intent: options.intent,
+    });
+    for (const graphTrail of filtered) {
+      eligible.set(graphTrail.id, graphTrail);
+    }
   }
   for (const graphTrail of trails) {
     if (
       !eligible.has(graphTrail.id) &&
-      isEligibleWebhookTrail(graphTrail, options)
+      isEligibleWorkerActivationTrail(graphTrail, options)
     ) {
       eligible.set(graphTrail.id, graphTrail);
+    }
+  }
+  const byId = new Map(trails.map((graphTrail) => [graphTrail.id, graphTrail]));
+  const pending = [...eligible.values()];
+  for (const graphTrail of pending) {
+    const composedIds = [
+      ...graphTrail.composes,
+      ...Object.values(graphTrail.versions ?? {})
+        .filter(isLiveTrailVersionEntry)
+        .flatMap((entry) => entry.composes ?? []),
+    ];
+    for (const reference of composedIds) {
+      const composedId =
+        typeof reference === 'string' ? reference : reference.id;
+      const composed = byId.get(composedId);
+      if (composed !== undefined && !eligible.has(composed.id)) {
+        eligible.set(composed.id, composed);
+        pending.push(composed);
+      }
     }
   }
   return [...eligible.values()];
@@ -194,16 +227,16 @@ const collectSurfaceEligibleTrails = (
 
 /**
  * All resources a trail can execute with: the current contract's declarations
- * plus any fork version entry's own `resources`, since core runs historical
- * forks with the entry's resource set.
+ * plus any live fork version entry's own `resources`, since core runs
+ * supported historical forks with the entry's resource set.
  */
 const declaredTrailResources = (
   graphTrail: Trail<unknown, unknown, unknown>
 ): readonly AnyResource[] => [
   ...graphTrail.resources,
-  ...Object.values(graphTrail.versions ?? {}).flatMap(
-    (entry) => entry.resources ?? []
-  ),
+  ...Object.values(graphTrail.versions ?? {})
+    .filter(isLiveTrailVersionEntry)
+    .flatMap((entry) => entry.resources ?? []),
 ];
 
 const collectEnvBoundResources = (
@@ -228,8 +261,8 @@ const collectEnvBoundResources = (
 
 /**
  * Resolve every env-bound resource declared by the topo's surface-eligible
- * trails (including fork-version resources) into a resource override map for
- * one Worker env.
+ * trails (including live fork-version resources) into a resource override map
+ * for one Worker env.
  *
  * Returns `Result.err` when a required binding is missing from the env or a
  * binding value fails the resource's narrowing check. Trails filtered off the

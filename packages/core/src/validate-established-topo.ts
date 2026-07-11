@@ -12,12 +12,18 @@ const PROJECTION_BLOCKING_RULES = new Set([
   'activation-source-definition-unique',
   'activation-source-edge-unique',
   'activation-source-kind-known',
+  'activation-queue-valid',
   'activation-schedule-valid',
   'resource-exists',
   'signal-fire-exists',
   'signal-on-exists',
   'signal-origin-exists',
 ]);
+
+const isProjectionBlockingIssue = (issue: TopoDiagnostic): boolean =>
+  PROJECTION_BLOCKING_RULES.has(issue.rule) ||
+  (issue.rule === 'activation-source-input-compatible' &&
+    issue.sourceKind === 'queue');
 
 const keepProjectionBlockingIssues = (
   result: ReturnType<typeof validateTopo>
@@ -29,9 +35,7 @@ const keepProjectionBlockingIssues = (
   const issues = (
     result.error.context as { issues?: readonly TopoDiagnostic[] } | undefined
   )?.issues;
-  const remainingIssues = issues?.filter((issue) =>
-    PROJECTION_BLOCKING_RULES.has(issue.rule)
-  );
+  const remainingIssues = issues?.filter(isProjectionBlockingIssue);
 
   if (remainingIssues === undefined || remainingIssues.length === 0) {
     return Result.ok();

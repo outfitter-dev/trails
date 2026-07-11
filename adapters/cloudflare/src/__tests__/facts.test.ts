@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { cloudflareOverlay } from '../facts.js';
 import { cloudflareD1 } from '../d1/index.js';
 import { cloudflareKv } from '../kv/index.js';
+import { cloudflareQueue } from '../queues/index.js';
 
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 const notesStore = defineStore({
@@ -74,6 +75,25 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'DB', resourceId: 'notes.store' }],
+    });
+  });
+
+  test('derives Queue producer resources through the shared env binding registry', () => {
+    const jobs = cloudflareQueue<{ id: string }>('jobs', { binding: 'JOBS' });
+    const enqueueJob = trail('job.enqueue', {
+      implementation: async (input, ctx) => {
+        await jobs.from(ctx).send(input);
+        return Result.ok({ queued: true });
+      },
+      input: z.object({ id: z.string() }),
+      intent: 'write',
+      output: z.object({ queued: z.boolean() }),
+      resources: [jobs],
+    });
+    const app = topo('cf-facts-queue', { enqueueJob, jobs });
+
+    expect(cloudflareOverlay.derive(app)).toEqual({
+      bindings: [{ binding: 'JOBS', resourceId: 'jobs' }],
     });
   });
 

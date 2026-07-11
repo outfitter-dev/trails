@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { entity } from '../entity.js';
 import { ValidationError } from '../errors.js';
+import { queue } from '../queue.js';
 import {
   attachLateBoundSignalRef,
   cloneSignalWithId,
@@ -881,10 +882,14 @@ describe('topo', () => {
       );
     });
 
-    test('keeps schedule and webhook activation sources inert during topo construction', () => {
+    test('keeps schedule, webhook, and queue activation sources inert during topo construction', () => {
       const scheduleSource = schedule('schedule.nightly-close', {
         cron: '0 2 * * *',
         input: { olderThanDays: 90 },
+      });
+      const queueSource = queue('queue.stripe.payment', {
+        parse: z.object({ paymentId: z.string() }),
+        queue: 'stripe-payment',
       });
       const webhookSource = webhook('webhook.stripe.payment', {
         parse: z.object({ paymentId: z.string() }),
@@ -895,13 +900,14 @@ describe('topo', () => {
         reconcile: trail('billing.reconcile', {
           implementation: () => Result.ok({ ok: true }),
           input: z.object({}),
-          on: [scheduleSource, { source: webhookSource }],
+          on: [scheduleSource, queueSource, { source: webhookSource }],
           output: z.object({ ok: z.boolean() }),
         }),
       });
 
       expect(app.get('billing.reconcile')?.activationSources).toEqual([
         { source: scheduleSource },
+        { source: queueSource },
         { source: webhookSource },
       ]);
     });

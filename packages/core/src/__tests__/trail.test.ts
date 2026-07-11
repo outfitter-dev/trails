@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { entity } from '../entity';
 import { createTrailContext } from '../context';
 import { ConflictError, ValidationError } from '../errors';
+import { queue } from '../queue';
 import { Result } from '../result';
 import { resource } from '../resource';
 import { schedule } from '../schedule';
@@ -1018,11 +1019,15 @@ describe('trail() fires/on normalization', () => {
     expect(Object.isFrozen(t.activationSources[0]?.source.meta)).toBe(true);
   });
 
-  test('schedule and webhook source objects stay inert and normalized', () => {
+  test('schedule, webhook, and queue source objects stay inert and normalized', () => {
     const scheduleSource = schedule('schedule.nightly-close', {
       cron: '0 2 * * *',
       input: { olderThanDays: 90 },
       timezone: 'UTC',
+    });
+    const queueSource = queue('queue.billing.settled', {
+      parse: z.object({ paymentId: z.string() }),
+      queue: 'billing-settled',
     });
     const webhookSource = webhook('webhook.stripe.payment', {
       meta: { provider: 'stripe' },
@@ -1035,6 +1040,7 @@ describe('trail() fires/on normalization', () => {
       input: z.object({}),
       on: [
         scheduleSource,
+        queueSource,
         { meta: { owner: 'billing' }, source: webhookSource },
       ],
     });
@@ -1042,6 +1048,7 @@ describe('trail() fires/on normalization', () => {
     expect(t.on).toEqual([]);
     expect(t.activationSources).toEqual([
       { source: scheduleSource },
+      { source: queueSource },
       {
         meta: { owner: 'billing' },
         source: webhookSource,

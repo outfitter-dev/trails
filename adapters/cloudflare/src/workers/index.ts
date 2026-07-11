@@ -28,6 +28,8 @@ import type { ResolveHttpPermit } from '@ontrails/http';
 
 import { buildEnvResourceOverrides } from '../env.js';
 import type { WorkersEnv } from '../env.js';
+import { createQueueHandler } from '../queues/index.js';
+import type { CloudflareQueueBatch } from '../queues/index.js';
 
 export {
   buildEnvResourceOverrides,
@@ -89,6 +91,11 @@ export interface CloudflareWorker {
     env?: WorkersEnv | undefined,
     executionCtx?: WorkersExecutionContext | undefined
   ): Promise<Response>;
+  queue(
+    batch: CloudflareQueueBatch,
+    env?: WorkersEnv | undefined,
+    executionCtx?: WorkersExecutionContext | undefined
+  ): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +128,18 @@ const mapCaughtError = (error: unknown): Response => {
   );
 };
 
+const mapCaughtQueueError = (
+  error: unknown,
+  batch: CloudflareQueueBatch
+): void => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.error(
+    '[ontrails:cloudflare/workers] Failed to materialize queue handler',
+    projectErrorDiagnostics(err)
+  );
+  batch.retryAll();
+};
+
 // ---------------------------------------------------------------------------
 // createWorkersHandler
 // ---------------------------------------------------------------------------
@@ -128,7 +147,9 @@ const mapCaughtError = (error: unknown): Response => {
 const resolveResourceOverrides = (
   graph: Topo,
   env: WorkersEnv,
-  options: CreateWorkersHandlerOptions
+  options: CreateWorkersHandlerOptions,
+  entrypoint: 'fetch' | 'queue',
+  queueName?: string
 ): ResourceOverrideMap => {
   // Explicit overrides are the documented escape hatch, so they resolve
   // first: an overridden resource never requires its env binding. Surface
@@ -139,10 +160,12 @@ const resolveResourceOverrides = (
       ? options.resources(env)
       : (options.resources ?? {});
   const envOverrides = buildEnvResourceOverrides(graph, env, {
+    entrypoint,
     except: Object.keys(userOverrides),
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
+    queue: queueName,
   });
   if (envOverrides.isErr()) {
     throw envOverrides.error;
@@ -153,6 +176,12 @@ const resolveResourceOverrides = (
 interface MaterializedHandler {
   readonly env: WorkersEnv | undefined;
   readonly handle: (request: Request) => Promise<Response>;
+}
+
+interface MaterializedQueueHandler {
+  readonly env: WorkersEnv | undefined;
+  readonly handle: (batch: CloudflareQueueBatch) => Promise<void>;
+  readonly queue: string;
 }
 
 /**
@@ -176,6 +205,7 @@ export const createWorkersHandler = (
   options: CreateWorkersHandlerOptions = {}
 ): CloudflareWorker => {
   let materialized: MaterializedHandler | undefined;
+  let materializedQueue: MaterializedQueueHandler | undefined;
 
   const handlerFor = (
     env: WorkersEnv | undefined
@@ -193,10 +223,41 @@ export const createWorkersHandler = (
       layers: options.layers,
       maxJsonBodyBytes: options.maxJsonBodyBytes,
       resolvePermit: options.resolvePermit,
-      resources: resolveResourceOverrides(graph, env ?? {}, options),
+      resources: resolveResourceOverrides(graph, env ?? {}, options, 'fetch'),
       validate: options.validate,
     });
     materialized = { env, handle };
+    return handle;
+  };
+
+  const queueHandlerFor = (
+    env: WorkersEnv | undefined,
+    queueName: string
+  ): ((batch: CloudflareQueueBatch) => Promise<void>) => {
+    if (
+      materializedQueue !== undefined &&
+      materializedQueue.env === env &&
+      materializedQueue.queue === queueName
+    ) {
+      return materializedQueue.handle;
+    }
+    const handle = createQueueHandler(graph, {
+      configValues: options.configValues,
+      createContext: options.createContext,
+      exclude: options.exclude,
+      include: options.include,
+      intent: options.intent,
+      layers: options.layers,
+      resources: resolveResourceOverrides(
+        graph,
+        env ?? {},
+        options,
+        'queue',
+        queueName
+      ),
+      validate: options.validate,
+    });
+    materializedQueue = { env, handle, queue: queueName };
     return handle;
   };
 
@@ -206,6 +267,13 @@ export const createWorkersHandler = (
         return await handlerFor(env)(request);
       } catch (error: unknown) {
         return mapCaughtError(error);
+      }
+    },
+    queue: async (batch, env, _executionCtx) => {
+      try {
+        await queueHandlerFor(env, batch.queue)(batch);
+      } catch (error: unknown) {
+        mapCaughtQueueError(error, batch);
       }
     },
   };

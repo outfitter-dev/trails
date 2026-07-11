@@ -12,6 +12,7 @@ export interface ActivationProvenanceSource {
   readonly kind: ActivationSourceKind;
   readonly meta?: ActivationSourceMeta | undefined;
   readonly producerTrailId?: string | undefined;
+  readonly queue?: string | undefined;
   readonly timezone?: string | undefined;
 }
 
@@ -41,6 +42,7 @@ const isActivationProvenanceSource = (
   typeof value['kind'] === 'string' &&
   optionalString(value['cron']) &&
   optionalString(value['producerTrailId']) &&
+  optionalString(value['queue']) &&
   optionalString(value['timezone']) &&
   (value['meta'] === undefined || isObjectRecord(value['meta']));
 
@@ -99,6 +101,9 @@ export const buildActivationProvenanceTraceAttrs = (
   if (activation.source.producerTrailId !== undefined) {
     attrs['trails.activation.source.producer_trail.id'] =
       activation.source.producerTrailId;
+  }
+  if (activation.source.queue !== undefined) {
+    attrs['trails.activation.source.queue'] = activation.source.queue;
   }
   if (activation.source.cron !== undefined) {
     attrs['trails.activation.source.cron'] = activation.source.cron;

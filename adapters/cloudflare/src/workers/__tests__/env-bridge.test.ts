@@ -7,7 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
-import { Result, topo, trail } from '@ontrails/core';
+import { queue, Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import { cloudflareKv, createMemoryKv } from '../../kv/index.js';
@@ -172,6 +172,41 @@ describe('workers env bridge', () => {
     expect(filteredOut.status).toBe(404);
   });
 
+  test('fetch materialization ignores queue-only env resources', async () => {
+    const ping = trail('ping', {
+      implementation: (input) => Result.ok({ reply: input.message }),
+      input: z.object({ message: z.string() }),
+      intent: 'read',
+      output: z.object({ reply: z.string() }),
+    });
+    const consume = trail('job.consume', {
+      implementation: async (input, ctx) => {
+        await flags.from(ctx).put(input.id, 'done');
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      on: [
+        queue('queue.jobs', {
+          parse: z.object({ id: z.string() }),
+          queue: 'jobs',
+        }),
+      ],
+      output: z.object({ ok: z.boolean() }),
+      resources: [flags],
+    });
+    const worker = createWorkersHandler(
+      topo('cf-env-bridge-queue-isolation', { consume, flags, ping })
+    );
+
+    const response = await worker.fetch(
+      new Request('http://localhost/ping?message=hi'),
+      {}
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { reply: 'hi' } });
+  });
+
   test('resolves env bindings declared only by fork version entries', async () => {
     const versionedFlag = trail('flag.versioned', {
       implementation: (input) => Result.ok({ value: `static:${input.key}` }),
@@ -211,5 +246,84 @@ describe('workers env bridge', () => {
       { FLAGS: kv }
     );
     expect(await readValue(currentResponse)).toBe('static:color');
+  });
+
+  test('does not materialize resources reachable only from archived versions', async () => {
+    const archivedChild = trail('flag.archived.child', {
+      implementation: async (input, ctx) => {
+        const value = await flags.from(ctx).get(input.key);
+        return Result.ok({ value });
+      },
+      input: z.object({ key: z.string() }),
+      intent: 'read',
+      output: z.object({ value: z.string().nullable() }),
+      resources: [flags],
+      visibility: 'internal',
+    });
+    const archivedParent = trail('flag.archived', {
+      implementation: (input) => Result.ok({ value: `static:${input.key}` }),
+      input: z.object({ key: z.string() }),
+      intent: 'read',
+      output: z.object({ value: z.string().nullable() }),
+      version: 2,
+      versions: {
+        1: {
+          composes: [archivedChild],
+          implementation: async (input, ctx) =>
+            await ctx.compose(archivedChild, input),
+          input: z.object({ key: z.string() }),
+          output: z.object({ value: z.string().nullable() }),
+          status: { state: 'archived' },
+        },
+      },
+    });
+    const worker = createWorkersHandler(
+      topo('cf-env-bridge-archived-compose', {
+        archivedChild,
+        archivedParent,
+        flags,
+      })
+    );
+
+    const response = await worker.fetch(
+      new Request('http://localhost/flag/archived?key=color'),
+      {}
+    );
+
+    expect(response.status).toBe(200);
+    expect(await readValue(response)).toBe('static:color');
+  });
+
+  test('does not materialize resources declared directly by archived versions', async () => {
+    const archivedResource = trail('flag.archived-resource', {
+      implementation: (input) => Result.ok({ value: `static:${input.key}` }),
+      input: z.object({ key: z.string() }),
+      intent: 'read',
+      output: z.object({ value: z.string().nullable() }),
+      version: 2,
+      versions: {
+        1: {
+          implementation: async (input, ctx) => {
+            const value = await flags.from(ctx).get(input.key);
+            return Result.ok({ value });
+          },
+          input: z.object({ key: z.string() }),
+          output: z.object({ value: z.string().nullable() }),
+          resources: [flags],
+          status: { state: 'archived' },
+        },
+      },
+    });
+    const worker = createWorkersHandler(
+      topo('cf-env-bridge-archived-resource', { archivedResource, flags })
+    );
+
+    const response = await worker.fetch(
+      new Request('http://localhost/flag/archived-resource?key=color'),
+      {}
+    );
+
+    expect(response.status).toBe(200);
+    expect(await readValue(response)).toBe('static:color');
   });
 });

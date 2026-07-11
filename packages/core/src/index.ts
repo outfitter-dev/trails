@@ -300,6 +300,8 @@ export { inputOf, outputOf } from './type-utils.js';
 // Signal
 export { signal } from './signal.js';
 export type { AnySignal, Signal, SignalSpec } from './signal.js';
+export { queue, validateQueueSource } from './queue.js';
+export type { QueueSource, QueueSpec, QueueValidationIssue } from './queue.js';
 export { schedule, validateScheduleSource } from './schedule.js';
 export type {
   ScheduleSource,

@@ -9,6 +9,23 @@ import {
 import { Result } from '../result.js';
 
 describe('activation source projection', () => {
+  test('projects queue names as durable source facts', () => {
+    const source = {
+      id: 'queue.email.outbox',
+      kind: 'queue' as const,
+      parse: z.object({ messageId: z.string() }),
+      queue: ' email-outbox ',
+    };
+
+    expect(projectActivationSourceDeclaration(source)).toMatchObject({
+      key: 'queue:queue.email.outbox',
+      queue: 'email-outbox',
+    });
+    expect(activationSourceDeclarationSignature(source)).toContain(
+      '"queue":"email-outbox"'
+    );
+  });
+
   test('canonicalizes webhook paths in declaration signatures', () => {
     const source = {
       id: 'billing.payment-received',

@@ -5,6 +5,8 @@
  * - `@ontrails/cloudflare/workers` — HTTP surface materializer (fetch handler)
  * - `@ontrails/cloudflare/kv` — key-value resource
  * - `@ontrails/cloudflare/d1` — D1-backed store resource
+ * - `@ontrails/cloudflare/queues` — Queue producer resource and consumer
+ *   materializer
  *
  * The root export re-exports the subpaths for convenience and adapter
  * tooling, and owns the adapter's `trails.lock` overlay overlay
@@ -44,6 +46,28 @@ export type {
   CloudflareKvPutOptions,
   CreateMemoryKvOptions,
 } from './kv/index.js';
+export {
+  cloudflareQueue,
+  createMemoryQueue,
+  createQueueHandler,
+} from './queues/index.js';
+export type {
+  CloudflareQueue,
+  CloudflareQueueBatch,
+  CloudflareQueueHandler,
+  CloudflareQueueMessage,
+  CloudflareQueueMetrics,
+  CloudflareQueueOptions,
+  CloudflareQueueRetryOptions,
+  CloudflareQueueSendBatchOptions,
+  CloudflareQueueSendOptions,
+  CloudflareQueueSendRequest,
+  CloudflareQueueSendResult,
+  CloudflareQueuesContentType,
+  CreateQueueHandlerOptions,
+  MemoryCloudflareQueue,
+  MemoryQueueMessage,
+} from './queues/index.js';
 export { createWorkersHandler } from './workers/index.js';
 export type {
   CloudflareWorker,

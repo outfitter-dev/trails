@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { AnySignal } from './signal.js';
 
 export const activationSourceKinds = Object.freeze([
+  'queue',
   'signal',
   'schedule',
   'webhook',
@@ -31,6 +32,7 @@ export interface ActivationSource {
   readonly parse?: ActivationSourceParse | undefined;
   readonly path?: string | undefined;
   readonly payload?: z.ZodType<unknown> | undefined;
+  readonly queue?: string | undefined;
   readonly timezone?: string | undefined;
   readonly verify?: unknown;
 }

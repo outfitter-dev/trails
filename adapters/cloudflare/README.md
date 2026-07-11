@@ -7,14 +7,14 @@ The Cloudflare adapter collection for Trails. One package, one subpath per Cloud
 | `@ontrails/cloudflare/workers` | HTTP surface materializer (fetch handler) | ✅ |
 | `@ontrails/cloudflare/kv` | Key-value resource | ✅ |
 | `@ontrails/cloudflare/d1` | D1-backed store resource | ✅ |
-| `/queues` | Activation source + outbound delivery | Planned |
+| `@ontrails/cloudflare/queues` | Queue producer resource + consumer materializer | ✅ |
 | `/r2` | Blob/object resource | Planned |
 
 Adapter composition doctrine applies throughout: subpaths take primitive-authored declarations (a resource definition, a surface config) and never shadow authoring verbs. Bindings arrive ambiently on the Worker `env`, so runtime dependencies are near-zero.
 
-## `/workers` — the fetch-handler materializer
+## `/workers` — the Worker materializer
 
-`createWorkersHandler(graph, options)` produces the `{ fetch(request, env, ctx) }` Worker export by delegating to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error projection, and webhook handling behave identically.
+`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error projection, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer.
 
 ```ts
 // src/worker.ts
@@ -143,9 +143,65 @@ Capability boundaries are explicit:
 
 Every `cloudflareD1` resource carries an in-memory mock factory seeded from table fixtures or `mockSeed`, so `testAll(app)` remains configuration-free. Miniflare can provide a real D1 binding for local integration tests without a Cloudflare account.
 
+## `/queues` — Queue producer and consumer support
+
+`cloudflareQueue(id, { binding })` authors a resource wrapping a Cloudflare Queue producer binding. Trails declare it with `resources: [...]` and send messages with `jobs.from(ctx).send(...)` or `sendBatch(...)`.
+
+```ts
+import { cloudflareQueue } from '@ontrails/cloudflare/queues';
+import { Result, queue, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+const jobs = cloudflareQueue<{ id: string }>('jobs', { binding: 'JOBS' });
+
+const enqueueJob = trail('job.enqueue', {
+  implementation: async (input, ctx) => {
+    await jobs.from(ctx).send({ id: input.id });
+    return Result.ok({ queued: true });
+  },
+  input: z.object({ id: z.string() }),
+  output: z.object({ queued: z.boolean() }),
+  resources: [jobs],
+});
+```
+
+Queue consumers are authored with the core `queue()` activation source and materialized by `createWorkersHandler`:
+
+```ts
+const consumeJob = trail('job.consume', {
+  implementation: async (input) => Result.ok({ processed: input.id }),
+  input: z.object({ id: z.string() }),
+  on: [
+    queue('queue.jobs', {
+      queue: 'jobs',
+      parse: z.object({ id: z.string() }),
+    }),
+  ],
+  output: z.object({ processed: z.string() }),
+});
+```
+
+Declare the producer binding and consumer in wrangler config:
+
+```toml
+[[queues.producers]]
+binding = "JOBS"
+queue = "jobs"
+
+[[queues.consumers]]
+queue = "jobs"
+max_batch_size = 10
+max_retries = 3
+dead_letter_queue = "jobs-dlq"
+```
+
+The consumer materializer acknowledges each message after all matching Trails queue consumers succeed, skip by `where`, or return `CancelledError`. It also traces and acknowledges non-retryable Trails errors, including validation failures, so permanently invalid messages do not churn through the queue. Errors explicitly marked retryable call `message.retry(...)`; Cloudflare's retry and dead-letter configuration decides when a retried message moves to a DLQ. `RateLimitError.retryAfter` is passed through as `delaySeconds`.
+
+Every `cloudflareQueue` resource carries an in-memory mock (`createMemoryQueue`) so producer trails work in `testAll(app)` and unit tests can inspect sent messages. The local Worker-env regression test exercises a queue-activated trail using KV through the env bridge; the Miniflare lane remains focused on HTTP/webhook/KV/D1 until its queue harness is wired in this repo.
+
 ## Local integration testing
 
-Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with real KV and D1 bindings, and exercises HTTP, webhook, KV, and D1 store routes. See `src/__tests__/miniflare.test.ts`. Real-account deploys are manual and never CI-required.
+Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with real KV and D1 bindings, and exercises HTTP, webhook, KV, and D1 store routes. Queue producer and consumer behavior is covered by focused Worker-handler tests under `src/queues/__tests__/queues.test.ts`. Real-account deploys are manual and never CI-required.
 
 ## Lock facts
 

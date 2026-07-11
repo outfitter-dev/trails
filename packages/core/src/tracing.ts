@@ -28,6 +28,7 @@ export type SignalTraceRecordName =
 /** Activation boundary records emitted by runtime materializers. */
 export type ActivationTraceRecordName =
   | 'activation.cycle_detected'
+  | 'activation.queue'
   | 'activation.scheduled'
   | 'activation.webhook'
   | 'activation.webhook.invalid';

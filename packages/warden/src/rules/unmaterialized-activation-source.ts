@@ -6,6 +6,7 @@ const RULE_NAME = 'unmaterialized-activation-source';
 const TOPO_FILE = '<topo>';
 
 const MATERIALIZED_SOURCE_KINDS = new Set<ActivationSourceKind>([
+  'queue',
   'schedule',
   'signal',
   'webhook',

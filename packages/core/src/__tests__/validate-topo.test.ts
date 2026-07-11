@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { deriveDraftReport, isDraftId } from '../draft.js';
 import { entity } from '../entity.js';
 import { validateEstablishedTopo } from '../validate-established-topo.js';
+import { queue } from '../queue.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
 import { trail } from '../trail.js';
@@ -755,7 +756,7 @@ describe('validateTopo', () => {
         consumer: trail('entity.consume', {
           implementation: noop,
           input: z.object({}),
-          on: [{ id: 'queue.entity.created', kind: 'queue' }],
+          on: [{ id: 'mailbox.entity.created', kind: 'mailbox' }],
         }),
       });
 
@@ -765,8 +766,8 @@ describe('validateTopo', () => {
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('activation-source-kind-known');
-      expect(issues[0]?.message).toContain('queue.entity.created');
-      expect(issues[0]?.message).toContain('queue');
+      expect(issues[0]?.message).toContain('mailbox.entity.created');
+      expect(issues[0]?.message).toContain('mailbox');
     });
 
     test('duplicate source-to-trail activation entries produce diagnostics', () => {
@@ -1172,6 +1173,62 @@ describe('validateTopo', () => {
       );
     });
 
+    test('invalid queue name and parse shape produce source diagnostics', () => {
+      const app = topo('app', {
+        receive: trail('payment.receive', {
+          implementation: noop,
+          input: z.object({ paymentId: z.string() }),
+          on: [
+            {
+              id: 'queue.stripe.payment',
+              kind: 'queue',
+              queue: '',
+            },
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result).filter(
+        (entry) => entry.rule === 'activation-queue-valid'
+      );
+      expect(issues).toHaveLength(2);
+      expect(issues.map((issue) => issue.inputPath)).toEqual([
+        ['queue'],
+        ['parse'],
+      ]);
+      expect(issues.every((issue) => issue.sourceKind === 'queue')).toBe(true);
+    });
+
+    test('malformed queue value produces diagnostics instead of throwing', () => {
+      const app = topo('app', {
+        receive: trail('payment.receive', {
+          implementation: noop,
+          input: z.object({ paymentId: z.string() }),
+          on: [
+            {
+              id: 'queue.stripe.payment',
+              kind: 'queue',
+              parse: z.object({ paymentId: z.string() }),
+              queue: 42,
+            } as never,
+          ],
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+      expect(
+        extractIssues(result).some(
+          (issue) =>
+            issue.rule === 'activation-queue-valid' &&
+            issue.inputPath?.[0] === 'queue'
+        )
+      ).toBe(true);
+    });
+
     test('invalid webhook path and parse shape produce source diagnostics', () => {
       const app = topo('app', {
         receive: trail('payment.receive', {
@@ -1202,6 +1259,25 @@ describe('validateTopo', () => {
       expect(issues.every((issue) => issue.sourceKind === 'webhook')).toBe(
         true
       );
+    });
+
+    test('compatible queue parse output and trail input pass', () => {
+      const app = topo('app', {
+        receive: trail('payment.receive', {
+          implementation: noop,
+          input: z.object({ paymentId: z.string() }),
+          on: [
+            queue('queue.stripe.payment', {
+              parse: {
+                output: z.object({ paymentId: z.string() }),
+              },
+              queue: 'stripe-payment',
+            }),
+          ],
+        }),
+      });
+
+      expect(validateTopo(app).isOk()).toBe(true);
     });
 
     test('compatible webhook parse output and trail input pass', () => {
@@ -1547,7 +1623,7 @@ describe('validateEstablishedTopo', () => {
     expect(issues[0]?.rule).toBe('signal-fire-exists');
   });
 
-  test('allows activation source compatibility issues outside projection checks', () => {
+  test('allows signal compatibility issues outside projection checks', () => {
     const app = topo('app', {
       consumer: trail('order.consume', {
         implementation: noop,
@@ -1571,12 +1647,37 @@ describe('validateEstablishedTopo', () => {
     expect(established.isOk()).toBe(true);
   });
 
+  test('blocks incompatible queue payloads from established projections', () => {
+    const app = topo('app', {
+      consumer: trail('job.consume', {
+        implementation: noop,
+        input: z.object({ id: z.string() }),
+        on: [
+          queue('queue.jobs', {
+            parse: z.object({ id: z.number() }),
+            queue: 'jobs',
+          }),
+        ],
+      }),
+    });
+
+    const result = validateEstablishedTopo(app);
+
+    expect(result.isErr()).toBe(true);
+    expect(extractIssues(result)).toEqual([
+      expect.objectContaining({
+        rule: 'activation-source-input-compatible',
+        sourceKind: 'queue',
+      }),
+    ]);
+  });
+
   test('fails when established activation source kind is unsupported', () => {
     const app = topo('app', {
-      consume: trail('queue.consume', {
+      consume: trail('mailbox.consume', {
         implementation: noop,
         input: z.object({}),
-        on: [{ id: 'queue.work', kind: 'queue' }],
+        on: [{ id: 'mailbox.work', kind: 'mailbox' }],
       }),
     });
 
@@ -1609,6 +1710,54 @@ describe('validateEstablishedTopo', () => {
     const issues = extractIssues(result);
     expect(issues).toHaveLength(1);
     expect(issues[0]?.rule).toBe('activation-schedule-valid');
+  });
+
+  test('treats equivalent manual queue names as one source declaration', () => {
+    const parse = z.object({ jobId: z.string() });
+    const app = topo('app', {
+      first: trail('job.first', {
+        implementation: noop,
+        input: parse,
+        on: [{ id: 'queue.jobs', kind: 'queue', parse, queue: 'jobs' }],
+      }),
+      second: trail('job.second', {
+        implementation: noop,
+        input: parse,
+        on: [{ id: 'queue.jobs', kind: 'queue', parse, queue: ' jobs ' }],
+      }),
+    });
+
+    const result = validateTopo(app);
+    expect(
+      extractIssues(result).some(
+        (issue) => issue.rule === 'activation-source-definition-unique'
+      )
+    ).toBe(false);
+  });
+
+  test('fails when established queue activation source is invalid', () => {
+    const app = topo('app', {
+      consume: trail('queue.consume', {
+        implementation: noop,
+        input: z.object({}),
+        on: [
+          {
+            id: 'queue.invalid',
+            kind: 'queue',
+            queue: '',
+          },
+        ],
+      }),
+    });
+
+    const result = validateEstablishedTopo(app);
+    expect(result.isErr()).toBe(true);
+
+    const issues = extractIssues(result);
+    expect(issues).toHaveLength(2);
+    expect(
+      issues.every((issue) => issue.rule === 'activation-queue-valid')
+    ).toBe(true);
   });
 
   test('fails when established trails depend on draft signal edges', () => {

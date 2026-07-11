@@ -32,6 +32,25 @@ describe('writeActivationTraceRecord', () => {
     expect(record?.name).toBe('activation.webhook');
   });
 
+  test('accepts queue activation records', async () => {
+    const writes: unknown[] = [];
+    const sink: TraceSink = {
+      write(record) {
+        writes.push(record);
+      },
+    };
+    registerTraceSink(sink);
+
+    const record = await writeActivationTraceRecord(
+      'activation.queue',
+      { 'trails.activation.source.queue': 'email-outbox' },
+      'ok'
+    );
+
+    expect(record?.name).toBe('activation.queue');
+    expect(writes).toHaveLength(1);
+  });
+
   test('returns undefined when the sink synchronously throws', async () => {
     const sink: TraceSink = {
       write() {

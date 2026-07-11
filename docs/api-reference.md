@@ -10,6 +10,7 @@ Canonical public surface-facing reference. For naming conventions and decision h
 // Definitions
 trail(id, spec)                    // define a unit of work (with optional composes for composition)
 signal(id, spec)                    // define a payload schema with provenance
+queue(id, spec)                     // define an inert queue activation source
 schedule(id, spec)                  // define an inert cron activation source
 webhook(id, spec)                   // define an inert HTTP webhook activation source
 entity(name, shape, options)        // define a first-class domain object with identity metadata
@@ -29,9 +30,9 @@ deriveTrailsStateHome(options?), deriveTrailsProjectKey(options?)
 // has moved to @ontrails/topography per ADR-0042. See that section below.
 
 // Types
-Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Entity<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
+Trail<I, O>, Signal<T>, QueueSource<T>, ScheduleSource, WebhookSource<T>, Entity<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
 ObserveConfig, ObserveInput, LogSink, TraceSink
-TrailSpec<I, O>, SignalSpec<T>, ScheduleSpec, WebhookSpec<T>, ResourceSpec<T>, TrailExample<I, O>
+TrailSpec<I, O>, SignalSpec<T>, QueueSpec<T>, ScheduleSpec, WebhookSpec<T>, ResourceSpec<T>, TrailExample<I, O>
 AnyTrail, AnySignal, AnyEntity, AnyResource, ResourceContext, ResourceOverrideMap
 BlobRef, BlobRefDescriptor
 EntityOptions, EntityIdBrand, EntityIdMetadata, EntityIdSchema, EntityIdValue, EntityReference
@@ -108,6 +109,9 @@ GlobConfig, TrailIdGlob, PathGlob, PathScope
 validateSurfaceTopo(topo, options?) // shared established-topo guard for surface projections
 withSurfaceMarker(surface, ctx?)    // merge a surface marker into execution context extensions
 BaseSurfaceOptions, SurfaceSelectionOptions, SurfaceValidationOptions, SurfaceConfigValues
+
+// Queue activation sources
+validateQueueSource(source)          // validate queue name and parse shape
 
 // Webhook activation sources
 webhookMethods

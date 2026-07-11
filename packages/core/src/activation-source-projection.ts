@@ -159,6 +159,12 @@ export const projectActivationSourceDeclaration = (
       record['payloadSchema'] = toSortedJsonSchema(source.payload);
     }
   }
+  if (source.queue !== undefined) {
+    record['queue'] =
+      typeof source.queue === 'string'
+        ? source.queue.trim()
+        : canonicalize(source.queue);
+  }
   if (source.timezone !== undefined) {
     record['timezone'] = source.timezone;
   }
