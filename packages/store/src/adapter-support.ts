@@ -19,6 +19,21 @@ type MutableTables<TStore extends AnyStoreDefinition> = {
 
 type StoreSignalChange = 'created' | 'removed' | 'updated';
 
+const storeSignalTokenCounter = Symbol.for(
+  '@ontrails/store.late-bound-signal-counter'
+);
+
+const takeStoreSignalTokenCounter = (): number => {
+  const globals = globalThis as Record<PropertyKey, unknown>;
+  const current = globals[storeSignalTokenCounter];
+  const next = typeof current === 'number' ? current : 0;
+  globals[storeSignalTokenCounter] = next + 1;
+  return next;
+};
+
+const createStoreSignalToken = (change: StoreSignalChange): string =>
+  `store-${change}-${takeStoreSignalTokenCounter()}`;
+
 const createStoreSignalDescription = (
   tableName: string,
   change: StoreSignalChange
@@ -51,7 +66,7 @@ const createStoreSignal = <TPayload>(
     }),
     {
       kind: 'store-derived',
-      token: Bun.randomUUIDv7(),
+      token: createStoreSignalToken(change),
     }
   );
 

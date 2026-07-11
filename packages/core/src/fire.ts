@@ -98,6 +98,9 @@ const frameworkFireFns = new WeakSet<FireFn>();
 export const isFrameworkFireFn = (fire: FireFn | undefined): boolean =>
   fire !== undefined && frameworkFireFns.has(fire);
 
+const createFireId = (): string =>
+  typeof Bun === 'undefined' ? crypto.randomUUID() : Bun.randomUUIDv7();
+
 type FireDispatchTracker = Set<Promise<void>>;
 
 const getFireDispatchTracker = (
@@ -284,7 +287,7 @@ const deriveFireDiagnosticMetadata = (
 ): FireDiagnosticMetadata => {
   const trace = producerCtx ? getTraceContext(producerCtx) : undefined;
   const parent = getActivationProvenance(producerCtx);
-  const fireId = Bun.randomUUIDv7();
+  const fireId = createFireId();
   return {
     activation: {
       fireId,

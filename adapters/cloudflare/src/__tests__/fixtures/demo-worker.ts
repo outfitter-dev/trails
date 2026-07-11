@@ -14,12 +14,24 @@ import {
   trail,
   webhook,
 } from '@ontrails/core';
+import { store as defineStore } from '@ontrails/store';
 import { z } from 'zod';
 
+import { cloudflareD1 } from '../../d1/index.js';
 import { cloudflareKv } from '../../kv/index.js';
 import { createWorkersHandler } from '../../workers/index.js';
 
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
+const notesStore = defineStore({
+  notes: {
+    identity: 'id',
+    schema: z.object({ body: z.string(), id: z.string() }),
+  },
+});
+const notes = cloudflareD1(notesStore, {
+  binding: 'DB',
+  id: 'notes.store',
+});
 
 const ping = trail('ping', {
   implementation: (input) => Result.ok({ reply: `pong:${input.message}` }),
@@ -50,6 +62,26 @@ const showFlag = trail('flag.show', {
   resources: [flags],
 });
 
+const saveNote = trail('note.save', {
+  implementation: async (input, ctx) =>
+    Result.ok(await notes.from(ctx).notes.upsert(input)),
+  input: z.object({ body: z.string(), id: z.string() }),
+  intent: 'write',
+  output: z.object({ body: z.string(), id: z.string() }),
+  resources: [notes],
+});
+
+const showNote = trail('note.show', {
+  implementation: async (input, ctx) =>
+    Result.ok({ note: await notes.from(ctx).notes.get(input.id) }),
+  input: z.object({ id: z.string() }),
+  intent: 'read',
+  output: z.object({
+    note: z.object({ body: z.string(), id: z.string() }).nullable(),
+  }),
+  resources: [notes],
+});
+
 const deploySecret = 'demo-secret';
 const deployWebhook = webhook('webhook.deploy.finished', {
   parse: z.object({ deployId: z.string() }),
@@ -73,10 +105,13 @@ const recordDeploy = trail('deploy.record', {
 
 const graph = topo('cf-demo', {
   flags,
+  notes,
   ping,
   recordDeploy,
   saveFlag,
+  saveNote,
   showFlag,
+  showNote,
 });
 
 export default createWorkersHandler(graph);

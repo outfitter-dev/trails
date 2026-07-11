@@ -260,7 +260,7 @@ export const buildEnvResourceOverrides = (
     if (value === undefined) {
       return Result.err(
         new InternalError(
-          `Worker env is missing binding "${spec.binding}" required by resource "${declared.id}". Declare the binding in your wrangler configuration (for example a kv_namespaces entry) or provide an explicit resource override.`,
+          `Worker env is missing binding "${spec.binding}" required by resource "${declared.id}". Declare the binding in your wrangler configuration (for example kv_namespaces, d1_databases, r2_buckets, or queues) or provide an explicit resource override.`,
           { context: { binding: spec.binding, resourceId: declared.id } }
         )
       );

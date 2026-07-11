@@ -518,6 +518,30 @@ describe('signal registration', () => {
     );
   });
 
+  test('late-binds signal ids when table names contain the scope separator', () => {
+    const definition = defineStore({
+      'audit:items': { identity: 'id', schema: itemSchema },
+    });
+    const storeResource = jsonFile(definition, {
+      dir: topoDir,
+      id: 'primary-store',
+    });
+    const onCreated = trail('audit.items.on-created', {
+      implementation: () => Result.ok({ seen: true }),
+      input: z.object({}).passthrough(),
+      on: [definition.tables['audit:items'].signals.created],
+    });
+
+    const graph = topo('jsonfile-delimiter-safe-signals', {
+      onCreated,
+      storeResource,
+    } as Record<string, unknown>);
+
+    expect(graph.get('audit.items.on-created')?.on).toContain(
+      'primary-store:audit:items.created'
+    );
+  });
+
   test('rejects unresolved pre-bind handles when the same store is bound twice', () => {
     const definition = defineStore({
       items: { identity: 'id', schema: itemSchema },

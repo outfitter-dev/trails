@@ -9,12 +9,20 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Result, topo, trail } from '@ontrails/core';
+import { store as defineStore } from '@ontrails/store';
 import { z } from 'zod';
 
 import { cloudflareOverlay } from '../facts.js';
+import { cloudflareD1 } from '../d1/index.js';
 import { cloudflareKv } from '../kv/index.js';
 
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
+const notesStore = defineStore({
+  notes: {
+    identity: 'id',
+    schema: z.object({ body: z.string(), id: z.string() }),
+  },
+});
 
 const showFlag = trail('flag.show', {
   implementation: async (input, ctx) => {
@@ -47,6 +55,26 @@ describe('cloudflareOverlay', () => {
       cloudflareOverlay.derive(app)
     );
     expect(parsed.success).toBe(true);
+  });
+
+  test('derives D1 store resources through the shared env binding registry', () => {
+    const notes = cloudflareD1(notesStore, {
+      binding: 'DB',
+      id: 'notes.store',
+    });
+    const saveNote = trail('note.save', {
+      implementation: async (input, ctx) =>
+        Result.ok(await notes.from(ctx).notes.upsert(input)),
+      input: z.object({ body: z.string(), id: z.string() }),
+      intent: 'write',
+      output: z.object({ body: z.string(), id: z.string() }),
+      resources: [notes],
+    });
+    const app = topo('cf-facts-d1', { notes, saveNote });
+
+    expect(cloudflareOverlay.derive(app)).toEqual({
+      bindings: [{ binding: 'DB', resourceId: 'notes.store' }],
+    });
   });
 
   test('derive is deterministic: same topo, deeply-equal and identically ordered facts', () => {

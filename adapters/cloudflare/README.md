@@ -6,7 +6,7 @@ The Cloudflare adapter collection for Trails. One package, one subpath per Cloud
 | --- | --- | --- |
 | `@ontrails/cloudflare/workers` | HTTP surface materializer (fetch handler) | ✅ |
 | `@ontrails/cloudflare/kv` | Key-value resource | ✅ |
-| `/d1` | Store driver | Planned |
+| `@ontrails/cloudflare/d1` | D1-backed store resource | ✅ |
 | `/queues` | Activation source + outbound delivery | Planned |
 | `/r2` | Blob/object resource | Planned |
 
@@ -96,9 +96,56 @@ testAll(graph);
 
 `createMemoryKv()` is also exported directly for hand-rolled tests, with an injectable clock for TTL assertions. Two documented divergences from the real binding: the mock does not enforce KV's 60-second minimum TTL, and when both `expiration` and `expirationTtl` are passed the mock prefers `expirationTtl` where the real binding rejects the combination.
 
+## `/d1` — the store resource
+
+`cloudflareD1(definition, { binding, id })` binds an `@ontrails/store` definition to a Cloudflare D1 database. Trails declare the returned resource and use the standard store accessors (`get`, `list`, `upsert`, `remove`) through `db.from(ctx)`.
+
+```ts
+import { cloudflareD1 } from '@ontrails/cloudflare/d1';
+import { trail, Result } from '@ontrails/core';
+import { store } from '@ontrails/store';
+import { z } from 'zod';
+
+const definition = store({
+  notes: {
+    identity: 'id',
+    schema: z.object({ id: z.string(), body: z.string() }),
+  },
+});
+
+const db = cloudflareD1(definition, { binding: 'DB', id: 'notes.store' });
+
+const saveNote = trail('note.save', {
+  implementation: async (input, ctx) =>
+    Result.ok(await db.from(ctx).notes.upsert(input)),
+  input: z.object({ id: z.string(), body: z.string() }),
+  intent: 'write',
+  output: z.object({ id: z.string(), body: z.string() }),
+  resources: [db],
+});
+```
+
+Declare the binding in wrangler config:
+
+```toml
+d1_databases = [
+  { binding = "DB", database_name = "my-worker", database_id = "<database-id>" }
+]
+```
+
+The first implementation stores one JSON entity per D1 row (`id TEXT PRIMARY KEY`, `entity TEXT NOT NULL`, nullable `version INTEGER`) in adapter-owned tables prefixed by the resource id. It preserves the backend-agnostic store contract, including generated identity fields, `createdAt`/`updatedAt` generation, versioned-table optimistic concurrency (`ConflictError` on stale `version`), fixture/mock seeding, and store-derived `created`/`updated`/`removed` signals.
+
+Capability boundaries are explicit:
+
+- `indexed`/`indexes`, `references`, and `search` stay store metadata for this driver; the D1 adapter does not create secondary indexes, foreign keys, or FTS tables yet.
+- `list(filters)` performs simple equality filtering in the adapter after reading table rows, then applies `offset`/`limit`.
+- `connectD1(definition, database, options)` is exported for tests and advanced runtimes that already hold a D1 binding. Schema creation and optional runtime `seed` run lazily before the first accessor call so the Workers env bridge can resolve resources synchronously. Runtime seed rows require explicit stable identities and are insert-only, so rematerializing a Worker cannot overwrite user edits.
+
+Every `cloudflareD1` resource carries an in-memory mock factory seeded from table fixtures or `mockSeed`, so `testAll(app)` remains configuration-free. Miniflare can provide a real D1 binding for local integration tests without a Cloudflare account.
+
 ## Local integration testing
 
-Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with a real KV namespace, and exercises HTTP, webhook, and KV routes. See `src/__tests__/miniflare.test.ts`. Real-account deploys are manual and never CI-required.
+Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with real KV and D1 bindings, and exercises HTTP, webhook, KV, and D1 store routes. See `src/__tests__/miniflare.test.ts`. Real-account deploys are manual and never CI-required.
 
 ## Lock facts
 
@@ -114,4 +161,4 @@ export const app = topo('my-worker', { readFlag });
 export const trailsOverlays = [cloudflareOverlay];
 ```
 
-`trails compile` validates the derived facts against the schema and embeds them as `overlays.cloudflare`; `trails wayfind --facts cloudflare` reads them back. Toolchains that predate a overlay's namespace preserve it byte-for-byte — adding a new fact family never edits the lock schema or graph type.
+`trails compile` validates the derived facts against the schema and embeds them as `overlays.cloudflare`; `trails wayfind --overlay cloudflare` reads them back. Toolchains that predate an overlay's namespace preserve it byte-for-byte — adding a new fact family never edits the lock schema or graph type.

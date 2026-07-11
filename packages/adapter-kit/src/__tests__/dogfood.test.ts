@@ -18,6 +18,16 @@ const expectedAdapters = [
     testingImport: '@ontrails/http/testing',
   },
   {
+    conformancePath: 'adapters/cloudflare/src/d1/__tests__/d1.test.ts',
+    key: '@ontrails/cloudflare/d1',
+    ownerPackage: '@ontrails/store',
+    packageName: '@ontrails/cloudflare/d1',
+    placement: 'extracted',
+    target: 'store',
+    targetKey: '@ontrails/store:store',
+    testingImport: '@ontrails/store/testing',
+  },
+  {
     conformancePath: 'adapters/drizzle/src/__tests__/drizzle.test.ts',
     key: '@ontrails/drizzle',
     ownerPackage: '@ontrails/store',

@@ -4,7 +4,12 @@ import { z } from 'zod';
 
 import { entity } from '../entity.js';
 import { ValidationError } from '../errors.js';
-import { attachLateBoundSignalRef, cloneSignalWithId } from '../signal-ref.js';
+import {
+  attachLateBoundSignalRef,
+  cloneSignalWithId,
+  createLateBoundSignalMarker,
+  parseLateBoundSignalMarker,
+} from '../signal-ref.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
 import { run } from '../run.js';
@@ -1026,6 +1031,21 @@ describe('topo', () => {
         output: z.object({ ok: z.boolean() }),
       });
       expect(canonicalConsumer.on).toEqual(['identity:users.created']);
+    });
+
+    test('late-bound markers round-trip delimiter-bearing opaque tokens', () => {
+      const marker = createLateBoundSignalMarker(
+        { kind: 'store-derived', token: 'tenant:created' },
+        'audit:items.created'
+      );
+
+      expect(parseLateBoundSignalMarker(marker)).toEqual({
+        displayId: 'audit:items.created',
+        token: 'tenant:created',
+      });
+      expect(
+        parseLateBoundSignalMarker('@@trails:late-bound-signal-ref:%:items')
+      ).toBeNull();
     });
 
     test('rejects ambiguous late-bound store signal refs', () => {

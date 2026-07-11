@@ -38,6 +38,7 @@
       },
       "peerDependencies": {
         "@ontrails/http": "workspace:^",
+        "@ontrails/store": "workspace:^",
         "zod": "catalog:",
       },
     },

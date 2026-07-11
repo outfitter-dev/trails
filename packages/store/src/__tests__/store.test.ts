@@ -261,6 +261,24 @@ describe('@ontrails/store', () => {
     });
   });
 
+  test('keeps late-bound tokens unique across loaded package copies', async () => {
+    const moduleUrl = new URL('../adapter-support.ts', import.meta.url).href;
+    const firstSupport = await import(`${moduleUrl}?duplicate-copy=first`);
+    const secondSupport = await import(`${moduleUrl}?duplicate-copy=second`);
+    const first = firstSupport.createStoreTableSignals('gists', gistSchema);
+    const second = secondSupport.createStoreTableSignals('gists', gistSchema);
+    const firstTokens = new Set(
+      Object.values(first).map(
+        (candidate) => getLateBoundSignalRef(candidate)?.token
+      )
+    );
+    const secondTokens = Object.values(second).map(
+      (candidate) => getLateBoundSignalRef(candidate)?.token
+    );
+
+    expect(secondTokens.every((token) => !firstTokens.has(token))).toBe(true);
+  });
+
   test('accepts an explicit backend-agnostic kind', () => {
     const db = store(
       {

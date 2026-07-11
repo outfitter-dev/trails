@@ -14,11 +14,12 @@
     ".": "./src/index.ts",
     "./workers": "./src/workers/index.ts",
     "./kv": "./src/kv/index.ts",
+    "./d1": "./src/d1/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "bun test",
+    "test": "bun test --max-concurrency=1",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
@@ -33,11 +34,17 @@
   },
   "peerDependencies": {
     "@ontrails/http": "workspace:^",
+    "@ontrails/store": "workspace:^",
     "zod": "catalog:"
   },
   "trails": {
     "adapter": {
       "target": "http"
+    },
+    "adapters": {
+      "./d1": {
+        "target": "store"
+      }
     }
   }
 }

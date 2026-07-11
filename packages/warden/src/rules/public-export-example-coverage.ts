@@ -115,7 +115,7 @@ export const PUBLIC_API_EXAMPLE_TARGETS: readonly PublicApiPackageTarget[] = [
   },
   {
     indexPath: 'adapters/cloudflare/src/index.ts',
-    minimumExports: ['createWorkersHandler', 'cloudflareKv'],
+    minimumExports: ['createWorkersHandler', 'cloudflareKv', 'cloudflareD1'],
     packageName: '@ontrails/cloudflare',
   },
 ] as const;

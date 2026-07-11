@@ -11,6 +11,7 @@ export interface LateBoundSignalMarker {
 }
 
 const LATE_BOUND_SIGNAL_REF = Symbol('trails.late-bound-signal-ref');
+const LATE_BOUND_SIGNAL_BOUND = Symbol('trails.late-bound-signal-bound');
 const LATE_BOUND_SIGNAL_MARKER_PREFIX = '@@trails:late-bound-signal-ref:';
 
 const defineLateBoundSignalRef = <T extends object>(
@@ -25,6 +26,22 @@ const defineLateBoundSignalRef = <T extends object>(
   });
   return value;
 };
+
+const defineLateBoundSignalBound = <T extends object>(value: T): T => {
+  Object.defineProperty(value, LATE_BOUND_SIGNAL_BOUND, {
+    configurable: false,
+    enumerable: false,
+    value: true,
+    writable: false,
+  });
+  return value;
+};
+
+export const isBoundLateBoundSignal = (
+  signal: Pick<AnySignal, 'id'> | undefined
+): boolean =>
+  signal !== undefined &&
+  (signal as Record<PropertyKey, unknown>)[LATE_BOUND_SIGNAL_BOUND] === true;
 
 export const getLateBoundSignalRef = (
   signal: Pick<AnySignal, 'id'> | undefined
@@ -58,14 +75,17 @@ export const cloneSignalWithId = <T>(
   };
   const ref = getLateBoundSignalRef(signal);
   return Object.freeze(
-    ref ? defineLateBoundSignalRef(clone, ref) : clone
+    ref
+      ? defineLateBoundSignalBound(defineLateBoundSignalRef(clone, ref))
+      : clone
   ) as Signal<T>;
 };
 
 export const createLateBoundSignalMarker = (
   ref: LateBoundSignalRef,
   displayId: string
-): string => `${LATE_BOUND_SIGNAL_MARKER_PREFIX}${ref.token}:${displayId}`;
+): string =>
+  `${LATE_BOUND_SIGNAL_MARKER_PREFIX}${encodeURIComponent(ref.token)}:${displayId}`;
 
 export const parseLateBoundSignalMarker = (
   value: string
@@ -80,8 +100,12 @@ export const parseLateBoundSignalMarker = (
     return null;
   }
 
-  return {
-    displayId: remainder.slice(separator + 1),
-    token: remainder.slice(0, separator),
-  };
+  try {
+    const token = decodeURIComponent(remainder.slice(0, separator));
+    return token.length === 0
+      ? null
+      : { displayId: remainder.slice(separator + 1), token };
+  } catch {
+    return null;
+  }
 };

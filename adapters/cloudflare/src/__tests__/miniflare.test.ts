@@ -1,8 +1,8 @@
 /**
  * Miniflare integration lane: bundles the demo Worker fixture and executes it
  * under workerd. This is the local-first integration proof — no Cloudflare
- * account is required — covering HTTP routes, a webhook route, and the KV
- * resource served through the env bridge.
+ * account is required — covering HTTP routes, a webhook route, KV, and a D1
+ * store resource served through the env bridge.
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -45,6 +45,7 @@ describe('demo worker under miniflare', () => {
     const script = await bundleWorkerScript();
     mf = new Miniflare({
       compatibilityDate: '2026-06-01',
+      d1Databases: ['DB'],
       kvNamespaces: ['FLAGS'],
       modules: true,
       script,
@@ -76,6 +77,26 @@ describe('demo worker under miniflare', () => {
     );
     expect(shown.status).toBe(200);
     expect(await shown.json()).toEqual({ data: { value: 'red' } });
+  });
+
+  test('serves D1-backed store trails through the env bridge', async () => {
+    const saved = await mf.dispatchFetch('http://localhost/note/save', {
+      body: JSON.stringify({ body: 'hello from d1', id: 'note_1' }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toEqual({
+      data: { body: 'hello from d1', id: 'note_1' },
+    });
+
+    const shown = await mf.dispatchFetch(
+      'http://localhost/note/show?id=note_1'
+    );
+    expect(shown.status).toBe(200);
+    expect(await shown.json()).toEqual({
+      data: { note: { body: 'hello from d1', id: 'note_1' } },
+    });
   });
 
   test('serves a webhook route with verification', async () => {
