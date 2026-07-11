@@ -1,5 +1,11 @@
 # @ontrails/observe
 
+## 1.0.0-beta.40
+
+### Major Changes
+
+- [`b94cf85`](https://github.com/outfitter-dev/trails/commit/b94cf85011dfe18d34dfdaa74efe381b6295d5e1): Fold LogTape and Pino log forwarding into `@ontrails/observe/logtape` and `@ontrails/observe/pino`, and remove the standalone `@ontrails/logtape` and `@ontrails/pino` workspaces.
+
 ## 1.0.0-beta.39
 
 ## 1.0.0-beta.38

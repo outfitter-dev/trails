@@ -1,5 +1,14 @@
 # @ontrails/tracing
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+
 ## 1.0.0-beta.39
 
 ## 1.0.0-beta.38

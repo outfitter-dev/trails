@@ -1,5 +1,50 @@
 # @ontrails/topography
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+- [`35e5fed`](https://github.com/outfitter-dev/trails/commit/35e5fedd228e498783f479f0dd502e2f3ec772b8): Fold the Wayfinder graph-read catalog into `@ontrails/topography`. Wayfind
+  remains the product, trail-id, CLI, and MCP brand, but there is no longer an
+  `@ontrails/wayfinder` package to install or import. Programmatic consumers
+  should move imports such as `wayfinderTopo`, `wayfindOverviewTrail`,
+  `loadWayfinderArtifacts`, and the Wayfinder filter/provenance types to
+  `@ontrails/topography`.
+
+  Expose that package move as a governed Regrade transition so exact
+  `@ontrails/wayfinder` imports can move safely while product vocabulary and near
+  routes remain unchanged for review. Regrade routes package manifests through
+  structured review instead of rewriting dependency keys as plain text.
+
+  The Trails operator now reads all `wayfind.*` query trails and artifact helpers
+  from `@ontrails/topography` while preserving the existing CLI/MCP schemas,
+  route IDs, output shapes, and internal trail visibility.
+
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
 ## 1.0.0-beta.39
 
 ### Minor Changes

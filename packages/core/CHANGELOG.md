@@ -1,5 +1,61 @@
 # @ontrails/core
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`1e64ee7`](https://github.com/outfitter-dev/trails/commit/1e64ee7bc270901486c5bb51ac38bf045c924adc): Add first-class queue activation sources with `queue()` in `@ontrails/core`.
+  Queue sources validate their runtime queue name and parse contract, project the
+  queue name into durable topo facts, participate in activation input
+  compatibility, and block established outputs when malformed.
+
+  Add `@ontrails/cloudflare/queues` with `cloudflareQueue`, `createMemoryQueue`,
+  and `createQueueHandler`. Cloudflare Workers now expose both `fetch` and
+  `queue` entrypoints from `createWorkersHandler`, resolve env-bound resources for
+  queue-activated trails, acknowledge successful/skipped/cancelled messages, and
+  acknowledge traced non-retryable Trails errors so permanently invalid messages
+  do not churn through the queue. Failures explicitly marked retryable enter
+  Cloudflare's retry and DLQ flow, with rate-limit delays preserved.
+
+  `@ontrails/warden` now treats queue activation sources as materialized and
+  requires `cloudflareQueue` public export example coverage.
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+
+### Patch Changes
+
+- [`9874e0b`](https://github.com/outfitter-dev/trails/commit/9874e0bb034c0f98edeb19833d9d3519c2a07a4c): Add `@ontrails/cloudflare/d1`, an env-bound Cloudflare D1 store resource for `@ontrails/store` definitions. The new subpath exports `cloudflareD1` and `connectD1`, supports the backend-agnostic store accessor contract (`get`, `list`, `upsert`, `remove`), versioned-table optimistic concurrency, fixture/mock seeding, store-derived write signals, Miniflare-backed conformance tests, and Worker env-bridge integration.
+
+  `@ontrails/core` and `@ontrails/store` no longer require the Bun global for signal fire ids or late-bound store signal tokens, so store definitions and store-derived signal emission work inside Worker modules. `@ontrails/warden` now treats `cloudflareD1` as a required Cloudflare public export with `@example` coverage.
+
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
 ## 1.0.0-beta.39
 
 ### Patch Changes

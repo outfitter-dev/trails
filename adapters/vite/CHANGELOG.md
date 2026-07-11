@@ -1,5 +1,7 @@
 # @ontrails/vite
 
+## 1.0.0-beta.40
+
 ## 1.0.0-beta.39
 
 ## 1.0.0-beta.38

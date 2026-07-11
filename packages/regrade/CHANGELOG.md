@@ -1,5 +1,84 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`aedb87b`](https://github.com/outfitter-dev/trails/commit/aedb87b3b536c5849636c7a5951c51e1e7f0d1cc): Add governed identifier-segment renames for AST-backed migrations. Regrade can
+  now migrate camelCase, PascalCase, leading-underscore, and SCREAMING_SNAKE
+  identifier segments, including single-segment forms such as `BLAZE` and
+  `_BLAZE`, while preserving exact-mode behavior and rejecting lowercase
+  substring, concatenated acronym, or inflection matches.
+
+### Patch Changes
+
+- [`01b9204`](https://github.com/outfitter-dev/trails/commit/01b92046db52c71f22a871e58a308d7a94483cab): Harden governed v1 vocabulary transitions with property-key-only blaze literal
+  rewrites, structured review for ambiguous literal positions, explicit
+  scratch/history boundaries, and scan-only preservation for migration plans and
+  historical decision evidence.
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+- [`35cbe28`](https://github.com/outfitter-dev/trails/commit/35cbe289db46539b3689dbf6cf8ab0e5d9a1b09c): Found `@ontrails/source` as the shared source-code AST kernel for parsing,
+  walking, locations, edits, literals, and generic Trails syntax recognition.
+  Warden, Regrade, Wayfinder, and the Trails operator now import those shared
+  mechanics from `@ontrails/source`; the legacy Warden AST route is removed by the
+  stacked hard cutover.
+- [`35e5fed`](https://github.com/outfitter-dev/trails/commit/35e5fedd228e498783f479f0dd502e2f3ec772b8): Fold the Wayfinder graph-read catalog into `@ontrails/topography`. Wayfind
+  remains the product, trail-id, CLI, and MCP brand, but there is no longer an
+  `@ontrails/wayfinder` package to install or import. Programmatic consumers
+  should move imports such as `wayfinderTopo`, `wayfindOverviewTrail`,
+  `loadWayfinderArtifacts`, and the Wayfinder filter/provenance types to
+  `@ontrails/topography`.
+
+  Expose that package move as a governed Regrade transition so exact
+  `@ontrails/wayfinder` imports can move safely while product vocabulary and near
+  routes remain unchanged for review. Regrade routes package manifests through
+  structured review instead of rewriting dependency keys as plain text.
+
+  The Trails operator now reads all `wayfind.*` query trails and artifact helpers
+  from `@ontrails/topography` while preserving the existing CLI/MCP schemas,
+  route IDs, output shapes, and internal trail visibility.
+
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
+- [`a45cead`](https://github.com/outfitter-dev/trails/commit/a45cead6e3ddf6ce606bf5e663b74c0d3b5664b8): Make the planned contour-to-entity Regrade transition code-fact complete for
+  apply readiness while leaving the repository cutover status planned.
+  Identifiers that already contain the target segment now stay in the review
+  inventory instead of producing duplicated target names.
+- [`8a1ac00`](https://github.com/outfitter-dev/trails/commit/8a1ac00b5d789be41ca6e464358c96b01e442bf4): Govern the exact `@ontrails/warden/ast` to `@ontrails/source` package route
+  transition for Regrade string-literal and module-specifier rewrites exposed
+  through the Trails CLI and MCP tools. Safe rewrites now require the owning
+  manifest to already declare the target package; otherwise Regrade preserves the
+  occurrence with dependency repair guidance. Invalid manifests remain unchanged
+  and produce structured repair guidance that names the owning manifest. Explicit
+  preserve rules remain no-ops before dependency validation, and dotted or
+  subpath-like near routes remain deferred instead of becoming invented imports.
+
 ## 1.0.0-beta.39
 
 ### Minor Changes

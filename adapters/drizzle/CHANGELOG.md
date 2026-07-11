@@ -1,5 +1,11 @@
 # @ontrails/drizzle
 
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- [`9bf592d`](https://github.com/outfitter-dev/trails/commit/9bf592ddba46aa12e3f4e6ffc0f772f7a41ed3df): Declare verified first-party adapter metadata for Drizzle, HTTP/Bun, and Store/Jsonfile so shared adapter checks can dogfood real owner targets.
+
 ## 1.0.0-beta.39
 
 ## 1.0.0-beta.38
