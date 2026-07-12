@@ -1,5 +1,11 @@
 # trails
 
+## 1.0.0-beta.41
+
+### Patch Changes
+
+- [`19406e0`](https://github.com/outfitter-dev/trails/commit/19406e06f825c5ba4460b153eaf2ade721a749d7): Classify unauthenticated scoped-package dist-tag fallbacks as first publications after npm has already reported the package missing, and preserve registry probe details in release-policy blockers.
+
 ## 1.0.0-beta.40
 
 ### Minor Changes
