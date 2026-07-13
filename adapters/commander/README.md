@@ -35,6 +35,17 @@ if (commands.isErr()) {
 const program = toCommander(commands.value, { name: 'myapp' });
 ```
 
+## Multiselect flags
+
+Schema fields such as `z.array(z.enum(['cli', 'mcp', 'http']))` derive a bounded multiselect flag. The shared CLI argv normalizer lets adapters accept both contiguous and repeated forms; Commander applies it automatically:
+
+```bash
+myapp create --surfaces cli mcp http
+myapp create --surfaces cli --surfaces mcp --surfaces http
+```
+
+The first matching token after the flag is its explicit value. After that first value, additional collection stops before known child routes or values outside the declared choices. Adopters do not need custom parsing or surface configuration for either form.
+
 ## Installation
 
 ```bash

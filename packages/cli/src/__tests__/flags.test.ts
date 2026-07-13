@@ -198,7 +198,7 @@ describe('deriveFlags', () => {
       expect(flag.variadic).toBe(true);
     });
 
-    test('z.array(z.enum()) derives a repeatable multiselect flag', () => {
+    test('z.array(z.enum()) derives a bounded multiselect flag', () => {
       const flags = deriveFlags(
         z.object({ include: z.array(z.enum(['examples', 'errors'])) })
       );

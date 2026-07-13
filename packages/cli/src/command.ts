@@ -40,6 +40,14 @@ export interface CliFlag {
   readonly default?: unknown | undefined;
   readonly choices?: string[] | undefined;
   readonly valueAliases?: readonly CliFlagValueAlias[] | undefined;
+  /**
+   * Whether one flag occurrence consumes an unbounded value sequence.
+   *
+   * Bounded multiselects remain non-variadic so a parser does not greedily
+   * consume every following token. CLI adapters should pass argv through
+   * `normalizeCliArgv` to support both contiguous and repeated bounded-choice
+   * syntax while preserving child routes after the first explicit value.
+   */
   readonly variadic: boolean;
 }
 

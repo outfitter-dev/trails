@@ -7,6 +7,7 @@ export type {
   CliArg,
   CliFlagValueAlias,
 } from './command.js';
+export { normalizeCliArgv } from './argv.js';
 
 // Build
 export { deriveCliCommands } from './build.js';

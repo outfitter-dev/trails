@@ -18,6 +18,14 @@ import {
 } from '@ontrails/cli';
 import { Command, InvalidArgumentError, Option } from 'commander';
 
+import {
+  invocationOptionMatches,
+  isNegativeNumberArg,
+  optionConsumesFollowingValue,
+  TrailsCommanderProgram,
+  visibleOptionsFor,
+} from './multiselect-argv.js';
+
 // ---------------------------------------------------------------------------
 // Options
 // ---------------------------------------------------------------------------
@@ -224,87 +232,6 @@ const rootCommandFor = (command: Command): Command => {
 const invocationArgsFor = (command: Command): readonly string[] =>
   rootCommandFor(command).args;
 
-const visibleOptionsFor = (command: Command): readonly Option[] => {
-  const commands: Command[] = [];
-  let current: Command | null = command;
-  while (current !== null) {
-    commands.push(current);
-    current = current.parent;
-  }
-  return commands.toReversed().flatMap((owner) => owner.options);
-};
-
-interface InvocationOptionMatch {
-  readonly inlineValue: boolean;
-  readonly option: Option;
-}
-
-const findShortOption = (
-  options: readonly Option[],
-  short: string
-): Option | undefined => options.find((candidate) => candidate.short === short);
-
-const invocationOptionMatches = (
-  options: readonly Option[],
-  token: string
-): readonly InvocationOptionMatch[] => {
-  const exact = options.filter(
-    (option) => token === option.long || token === option.short
-  );
-  if (exact.length > 0) {
-    return exact.map((option) => ({ inlineValue: false, option }));
-  }
-
-  const longWithValue = options.filter(
-    (option) =>
-      option.long !== undefined &&
-      (option.required || option.optional) &&
-      token.startsWith(`${option.long}=`)
-  );
-  if (longWithValue.length > 0) {
-    return longWithValue.map((option) => ({ inlineValue: true, option }));
-  }
-
-  if (token.length <= 2 || token[0] !== '-' || token[1] === '-') {
-    return [];
-  }
-
-  const matches: InvocationOptionMatch[] = [];
-  let group = token.slice(1);
-  while (group.length > 0) {
-    const option = findShortOption(options, `-${group[0]}`);
-    if (option === undefined) {
-      break;
-    }
-    const inlineValue =
-      (option.required || option.optional) && group.length > 1;
-    matches.push({ inlineValue, option });
-    if (option.required || option.optional) {
-      break;
-    }
-    group = group.slice(1);
-  }
-  return matches;
-};
-
-const isNegativeNumberArg = (command: Command, token: string): boolean => {
-  if (!/^-(\d+|\d*\.\d+)(e[+-]?\d+)?$/.test(token)) {
-    return false;
-  }
-
-  for (
-    let current: Command | null = command;
-    current !== null;
-    current = current.parent
-  ) {
-    if (current.options.some((option) => /^-\d$/.test(option.short ?? ''))) {
-      return false;
-    }
-  }
-
-  return true;
-};
-
 const isVariadicOptionValue = (
   command: Command,
   option: Option | undefined,
@@ -312,17 +239,6 @@ const isVariadicOptionValue = (
 ): boolean =>
   option !== undefined &&
   (!token.startsWith('-') || isNegativeNumberArg(command, token));
-
-const optionConsumesFollowingValue = (
-  command: Command,
-  match: InvocationOptionMatch,
-  nextToken: string | undefined
-): boolean =>
-  !match.inlineValue &&
-  (match.option.required ||
-    (match.option.optional &&
-      nextToken !== undefined &&
-      (!nextToken.startsWith('-') || isNegativeNumberArg(command, nextToken))));
 
 interface InvocationScan {
   readonly pathEnd: number | undefined;
@@ -506,8 +422,13 @@ const getUserSuppliedFlagKeys = (
 ): ReadonlySet<string> => {
   const userSupplied = new Set<string>();
   for (const key of getFlagOptionKeys(flags)) {
-    if (isUserSuppliedOption(command, key)) {
-      userSupplied.add(key);
+    let owner: Command | null = command;
+    while (owner !== null) {
+      if (isUserSuppliedOption(owner, key)) {
+        userSupplied.add(key);
+        break;
+      }
+      owner = owner.parent;
     }
   }
   return userSupplied;
@@ -999,7 +920,7 @@ export const toCommander = (
   options?: ToCommanderOptions
 ): Command => {
   validateCliCommands(commands);
-  const program = new Command();
+  const program = new TrailsCommanderProgram(commands);
   applyOptions(program, options);
   const topoName = options?.topoName ?? options?.name ?? program.name();
   const nodes = new Map<string, CommandNodeState>();

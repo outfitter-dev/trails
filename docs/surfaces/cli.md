@@ -100,6 +100,7 @@ Flags are derived from the trail's Zod input schema when the shape can be repres
 | `z.number()` | `--count <value>` | Required number |
 | `z.boolean()` | `--verbose` | Boolean switch |
 | `z.enum(["a", "b"])` | `--format <value>` | With `.choices()` |
+| `z.array(z.enum(["a", "b"]))` | `--mode <value>` | `--mode a b` or `--mode a --mode b` |
 | `z.array(z.string())` | `--tag <values...>` | Repeatable: `--tag a --tag b` |
 | `z.optional(z.string())` | `--name [value]` | Optional |
 | `z.string().default("x")` | `--name [value]` | With default |
@@ -109,6 +110,10 @@ Flags are derived from the trail's Zod input schema when the shape can be repres
 **Descriptions:** `.describe("text")` on Zod fields becomes the flag help text.
 
 Nested objects and arrays of objects are intentionally omitted from automatic flag derivation. The CLI prefers fewer flags over dishonest flags.
+
+Bounded multiselects accept contiguous and repeated forms through the framework-owned `normalizeCliArgv()` grammar. The first matching token after a flag is its explicit value. After that first value, additional collection stops before a known child command or the first value outside the declared choices. CLI adapters validate the command model and apply this normalization before parsing.
+
+When a nested command repeats an inherited bounded multiselect flag, its parsing shape and choices must stay equivalent. Divergent nested definitions are rejected before adapter wiring instead of depending on parser-specific option shadowing.
 
 Versioned trails also get a surface-owned `--trail-version <version>` flag. The flag accepts a live version number or unambiguous marker prefix and is stripped before trail input validation, so version negotiation stays at the CLI boundary.
 

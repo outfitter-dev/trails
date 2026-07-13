@@ -170,6 +170,7 @@ Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@o
 deriveCliCommands(graph, options?)     // projection: Result-returning command definitions
 validateCliCommands(commands)          // validate command tree shape and collisions
 deriveFlags(schema, overrides?)        // Zod → CLI flags
+normalizeCliArgv(commands, argv)        // normalize framework-owned argv grammar
 output(value, mode)                    // write to stdout in text/json/jsonl
 deriveOutputMode(flags, topoName)      // determine output format from flags/topo-derived env
 

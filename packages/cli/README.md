@@ -52,6 +52,7 @@ program.parse();
 | `deriveCliCommands(graph)` | Framework-agnostic command builder, returns `Result<CliCommand[], Error>` |
 | `validateCliCommands(commands)` | Validate `CliCommand[]` shapes before wiring a CLI adapter |
 | `deriveFlags(schema)` | Extract honest CLI flags from a Zod schema |
+| `normalizeCliArgv(commands, argv)` | Normalize framework-owned CLI syntax before adapter parsing |
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
 | `deriveOutputMode(flags, topoName)` | Derive output mode from flags and topo-derived env vars (`<TOPO>_JSON`, `<TOPO>_JSONL`) |
 
@@ -74,12 +75,15 @@ Flags come from the Zod schema automatically when the field shape can be represe
 | `z.string()` | `--name <value>` | Required |
 | `z.boolean()` | `--verbose` | Switch |
 | `z.enum(["a","b"])` | `--format <value>` | With choices |
+| `z.array(z.enum(["a","b"]))` | `--mode a b` or `--mode a --mode b` | Bounded multiselect |
 | `z.array(z.string())` | `--tag <values...>` | Repeatable |
 | `z.optional(...)` | `--name [value]` | Optional |
 
 `camelCase` fields become `--kebab-case` flags. `.describe()` becomes help text.
 
 Nested objects and arrays of objects are intentionally omitted from automatic flag derivation. The CLI prefers fewer flags over dishonest flags.
+
+CLI adapters should pass user argv through `normalizeCliArgv(commands, argv)` before parsing. This gives bounded multiselects one framework-owned grammar: contiguous and repeated values are both accepted. The first matching token after a flag is its explicit value; after that first value, additional collection stops before known child routes or values outside the declared choices.
 
 Enum flags can expose standalone boolean aliases when a surface wants pipe-friendly shortcuts without inventing parallel flags. The alias still normalizes to the canonical enum field before the trail input is validated:
 

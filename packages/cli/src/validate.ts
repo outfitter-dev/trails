@@ -153,6 +153,89 @@ const validateCommandFlags = (command: CliCommand): void => {
   }
 };
 
+const isStrictPathPrefix = (
+  prefix: readonly string[],
+  path: readonly string[]
+): boolean =>
+  prefix.length < path.length &&
+  prefix.every((segment, index) => path[index] === segment);
+
+const sortedStrings = (values: readonly string[] | undefined): string[] =>
+  [...(values ?? [])].toSorted();
+
+const sortedAliases = (flag: CliFlag): readonly string[] =>
+  (flag.valueAliases ?? [])
+    .map((alias) => `${alias.name}\0${alias.value}`)
+    .toSorted();
+
+const sameParsingSemantics = (left: CliFlag, right: CliFlag): boolean =>
+  left.name === right.name &&
+  left.short === right.short &&
+  left.type === right.type &&
+  left.required === right.required &&
+  left.variadic === right.variadic &&
+  left.role === right.role &&
+  JSON.stringify(left.default) === JSON.stringify(right.default) &&
+  JSON.stringify(sortedStrings(left.choices)) ===
+    JSON.stringify(sortedStrings(right.choices)) &&
+  JSON.stringify(sortedAliases(left)) === JSON.stringify(sortedAliases(right));
+
+const isBoundedMultiselect = (flag: CliFlag): boolean =>
+  flag.type === 'string[]' &&
+  !flag.variadic &&
+  flag.choices !== undefined &&
+  flag.choices.length > 0;
+
+const findConflictingInheritedFlag = (
+  ancestor: CliCommand,
+  descendant: CliCommand
+):
+  | { readonly ancestorFlag: CliFlag; readonly descendantFlag: CliFlag }
+  | undefined => {
+  for (const descendantFlag of descendant.flags) {
+    for (const ancestorFlag of ancestor.flags) {
+      const sharesLong = ancestorFlag.name === descendantFlag.name;
+      const sharesShort =
+        ancestorFlag.short !== undefined &&
+        ancestorFlag.short === descendantFlag.short;
+      if (
+        (sharesLong || sharesShort) &&
+        (isBoundedMultiselect(ancestorFlag) ||
+          isBoundedMultiselect(descendantFlag)) &&
+        !sameParsingSemantics(ancestorFlag, descendantFlag)
+      ) {
+        return { ancestorFlag, descendantFlag };
+      }
+    }
+  }
+  return undefined;
+};
+
+const validateInheritedFlagSemantics = (
+  commands: readonly CliCommand[]
+): void => {
+  for (const descendant of commands) {
+    for (const descendantRoute of commandRoutes(descendant)) {
+      for (const ancestor of commands) {
+        if (ancestor === descendant) {
+          continue;
+        }
+        for (const ancestorRoute of commandRoutes(ancestor)) {
+          if (!isStrictPathPrefix(ancestorRoute.path, descendantRoute.path)) {
+            continue;
+          }
+          const conflict = findConflictingInheritedFlag(ancestor, descendant);
+          if (conflict !== undefined) {
+            throw new ValidationError(
+              `CLI flag --${conflict.descendantFlag.name} on command ${renderPath(descendantRoute.path)} conflicts with inherited parsing semantics from command ${renderPath(ancestorRoute.path)}`
+            );
+          }
+        }
+      }
+    }
+  }
+};
+
 /**
  * Validate command paths and flag collisions before wiring a CLI adapter.
  *
@@ -180,4 +263,5 @@ export const validateCliCommands = (commands: readonly CliCommand[]): void => {
   }
 
   validateUniquePaths(commands);
+  validateInheritedFlagSemantics(commands);
 };

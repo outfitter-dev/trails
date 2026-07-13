@@ -1799,6 +1799,72 @@ describe('toCommander validation', () => {
     });
   });
 
+  test('accepts contiguous choice-array values without consuming the bare child token', async () => {
+    let received:
+      | {
+          readonly args: Record<string, unknown>;
+          readonly opts: Record<string, unknown>;
+        }
+      | undefined;
+    const commands = [
+      {
+        args: [{ name: 'target', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = { args, opts };
+          return await Result.ok('wayfind');
+        },
+        flags: [
+          {
+            choices: ['errors', 'examples'],
+            default: [],
+            name: 'include',
+            required: false,
+            type: 'string[]' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['wayfind'] as const,
+        trail: trail('wayfind.navigate', {
+          implementation: () => Result.ok('wayfind'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => await Result.ok('search'),
+        flags: [],
+        intent: 'read' as const,
+        path: ['wayfind', 'search'] as const,
+        trail: trail('wayfind.search', {
+          implementation: () => Result.ok('search'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'wayfind',
+      '--include',
+      'examples',
+      'errors',
+      'search',
+    ]);
+
+    expect(received).toEqual({
+      args: { target: 'search' },
+      opts: { include: ['examples', 'errors'] },
+    });
+  });
+
   test('routes matching trailing parent flags through parent fallback', async () => {
     const calls: string[] = [];
     const commands = [
@@ -2007,6 +2073,347 @@ describe('toCommander option wiring', () => {
     const formatOpt = opts.find((entry) => entry.long === '--format');
     expect(formatOpt).toBeDefined();
     expect(formatOpt?.argChoices).toEqual(['json', 'text']);
+  });
+
+  test('accepts contiguous and repeated values for derived multiselect flags', async () => {
+    const received: string[][] = [];
+    const configure = trail('configure', {
+      implementation: (input: { surfaces: string[] }) => {
+        received.push(input.surfaces);
+        return Result.ok('configured');
+      },
+      input: z.object({
+        surfaces: z.array(z.enum(['cli', 'mcp', 'http'])),
+      }),
+    });
+
+    const parse = async (argv: readonly string[]) => {
+      const commands = buildCommands(makeApp(configure), {
+        onResult: noopResult,
+      });
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+      await program.parseAsync(argv, { from: 'user' });
+    };
+
+    await parse(['configure', '--surfaces', 'cli', 'mcp', 'http']);
+    await parse([
+      'configure',
+      '--surfaces',
+      'cli',
+      '--surfaces',
+      'mcp',
+      '--surfaces',
+      'http',
+    ]);
+
+    expect(received).toEqual([
+      ['cli', 'mcp', 'http'],
+      ['cli', 'mcp', 'http'],
+    ]);
+  });
+
+  test('normalizes implicit eval argv for bounded multiselect flags', async () => {
+    const received: string[][] = [];
+    const configure = trail('configure', {
+      implementation: (input: { surfaces: string[] }) => {
+        received.push(input.surfaces);
+        return Result.ok('configured');
+      },
+      input: z.object({
+        surfaces: z.array(z.enum(['cli', 'mcp', 'http'])),
+      }),
+    });
+    const commands = buildCommands(makeApp(configure), {
+      onResult: noopResult,
+    });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    const originalArgv = [...process.argv];
+    const originalExecArgv = [...process.execArgv];
+
+    try {
+      process.argv.splice(
+        0,
+        process.argv.length,
+        'bun',
+        'configure',
+        '--surfaces',
+        'cli',
+        'mcp'
+      );
+      process.execArgv.splice(0, process.execArgv.length, '-e');
+      await program.parseAsync();
+    } finally {
+      process.argv.splice(0, process.argv.length, ...originalArgv);
+      process.execArgv.splice(0, process.execArgv.length, ...originalExecArgv);
+    }
+
+    expect(received).toEqual([['cli', 'mcp']]);
+  });
+
+  test('gives implicit eval argv precedence over Electron offsets', async () => {
+    const received: string[][] = [];
+    const configure = trail('configure', {
+      implementation: (input: { surfaces: string[] }) => {
+        received.push(input.surfaces);
+        return Result.ok('configured');
+      },
+      input: z.object({
+        surfaces: z.array(z.enum(['cli', 'mcp', 'http'])),
+      }),
+    });
+    const commands = buildCommands(makeApp(configure), {
+      onResult: noopResult,
+    });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    const originalArgv = [...process.argv];
+    const originalExecArgv = [...process.execArgv];
+
+    try {
+      Object.defineProperty(process.versions, 'electron', {
+        configurable: true,
+        value: 'test',
+      });
+      Object.defineProperty(process, 'defaultApp', {
+        configurable: true,
+        value: true,
+      });
+      process.argv.splice(
+        0,
+        process.argv.length,
+        'electron',
+        'configure',
+        '--surfaces',
+        'cli',
+        'mcp'
+      );
+      process.execArgv.splice(0, process.execArgv.length, '-e');
+      await program.parseAsync();
+    } finally {
+      process.argv.splice(0, process.argv.length, ...originalArgv);
+      process.execArgv.splice(0, process.execArgv.length, ...originalExecArgv);
+      Reflect.deleteProperty(process.versions, 'electron');
+      Reflect.deleteProperty(process, 'defaultApp');
+    }
+
+    expect(received).toEqual([['cli', 'mcp']]);
+  });
+
+  test('keeps a matching additional choice available as a child route', async () => {
+    const calls: string[] = [];
+    const includeFlag = {
+      choices: ['examples', 'search'],
+      name: 'include',
+      required: false,
+      type: 'string[]' as const,
+      variadic: false,
+    };
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async () => {
+          calls.push('wayfind');
+          return await Result.ok();
+        },
+        flags: [includeFlag],
+        intent: 'read',
+        path: ['wayfind'],
+        trail: trail('wayfind', { implementation: () => Result.ok() }),
+      },
+      {
+        args: [],
+        execute: async () => {
+          calls.push('wayfind.search');
+          return await Result.ok();
+        },
+        flags: [includeFlag],
+        intent: 'read',
+        path: ['wayfind', 'search'],
+        trail: trail('wayfind.search', { implementation: () => Result.ok() }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['wayfind', '--include', 'examples', 'search'], {
+      from: 'user',
+    });
+
+    expect(calls).toEqual(['wayfind.search']);
+  });
+
+  test('preserves explicit provenance for equivalent inherited bounded flags', async () => {
+    let supplied: ReadonlySet<string> | undefined;
+    const modesFlag = {
+      choices: ['one', 'two'],
+      default: ['one'],
+      name: 'modes',
+      required: false,
+      type: 'string[]' as const,
+      variadic: false,
+    };
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async () => await Result.ok(),
+        flags: [modesFlag],
+        intent: 'read',
+        path: ['alpha'],
+        trail: trail('alpha', { implementation: () => Result.ok() }),
+      },
+      {
+        args: [],
+        execute: async (_args, _flags, _ctx, options) => {
+          supplied = options?.userSuppliedFlagKeys;
+          return await Result.ok();
+        },
+        flags: [modesFlag],
+        intent: 'read',
+        path: ['alpha', 'child'],
+        trail: trail('alpha.child', { implementation: () => Result.ok() }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['alpha', 'child', '--modes', 'one'], {
+      from: 'user',
+    });
+
+    expect(supplied).toEqual(new Set(['modes']));
+  });
+
+  test('preserves required option values that look like bounded flags', async () => {
+    let received:
+      | {
+          readonly args: Record<string, unknown>;
+          readonly flags: Record<string, unknown>;
+        }
+      | undefined;
+    const commands: CliCommand[] = [
+      {
+        args: [
+          { name: 'first', required: false, variadic: false },
+          { name: 'second', required: false, variadic: false },
+        ],
+        execute: async (args, flags) => {
+          received = { args, flags };
+          return await Result.ok();
+        },
+        flags: [
+          {
+            name: 'label',
+            required: true,
+            type: 'string',
+            variadic: false,
+          },
+          {
+            choices: ['cli', 'mcp'],
+            name: 'surfaces',
+            required: false,
+            type: 'string[]',
+            variadic: false,
+          },
+        ],
+        intent: 'read',
+        path: ['configure'],
+        trail: trail('configure', { implementation: () => Result.ok() }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(
+      ['configure', '--label', '--surfaces', 'cli', 'mcp'],
+      { from: 'user' }
+    );
+
+    expect(received).toEqual({
+      args: { first: 'cli', second: 'mcp' },
+      flags: { label: '--surfaces' },
+    });
+  });
+
+  test('normalizes a bounded flag after a required variadic flag', async () => {
+    let received: Record<string, unknown> | undefined;
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async (_args, flags) => {
+          received = flags;
+          return await Result.ok();
+        },
+        flags: [
+          {
+            name: 'tags',
+            required: true,
+            type: 'string[]',
+            variadic: true,
+          },
+          {
+            choices: ['cli', 'mcp'],
+            name: 'surfaces',
+            required: true,
+            type: 'string[]',
+            variadic: false,
+          },
+        ],
+        intent: 'read',
+        path: ['configure'],
+        trail: trail('configure', { implementation: () => Result.ok() }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(
+      ['configure', '--tags', 'a', '--surfaces', 'cli', 'mcp'],
+      { from: 'user' }
+    );
+
+    expect(received).toEqual({ surfaces: ['cli', 'mcp'], tags: ['a'] });
+  });
+
+  test('gives a declared digit short flag precedence over numeric inference', async () => {
+    let received: Record<string, unknown> | undefined;
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async (_args, flags) => {
+          received = flags;
+          return await Result.ok();
+        },
+        flags: [
+          {
+            name: 'threshold',
+            required: false,
+            type: 'number',
+            variadic: false,
+          },
+          {
+            choices: ['a', 'b'],
+            name: 'modes',
+            required: false,
+            short: '1',
+            type: 'string[]',
+            variadic: false,
+          },
+        ],
+        intent: 'read',
+        path: ['run'],
+        trail: trail('run', { implementation: () => Result.ok() }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['run', '--threshold', '-1', 'a', 'b'], {
+      from: 'user',
+    });
+
+    expect(received).toEqual({ modes: ['a', 'b'], threshold: true });
   });
 
   test('value aliases parse as canonical enum flag values', async () => {
