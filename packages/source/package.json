@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/source",
-  "version": "1.0.0-beta.41",
+  "version": "1.0.0-beta.42",
   "description": "Shared source-code AST parsing, walking, location, edit, literal, and Trails syntax helpers.",
   "files": [
     "src/**/*.ts",

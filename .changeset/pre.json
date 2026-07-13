@@ -60,6 +60,7 @@
     "codex-review-fixes",
     "commander-adapter-package",
     "commander-consumer-cutover",
+    "commander-contiguous-multiselect",
     "commander-error-detail-lines",
     "compose-cutover",
     "compose-straggler-cleanup",

@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/cloudflare",
-  "version": "1.0.0-beta.41",
+  "version": "1.0.0-beta.42",
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",

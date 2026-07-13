@@ -1,5 +1,11 @@
 # @ontrails/cli
 
+## 1.0.0-beta.42
+
+### Patch Changes
+
+- [`454e935`](https://github.com/outfitter-dev/trails/commit/454e935088782a181df89a205c0ff6f2eb936434): Define bounded multiselect argv normalization in the framework CLI model and apply it automatically in the Commander adapter, accepting both contiguous and repeated forms while preserving child routes after the first explicit value.
+
 ## 1.0.0-beta.41
 
 ## 1.0.0-beta.40
