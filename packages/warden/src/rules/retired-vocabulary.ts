@@ -394,6 +394,66 @@ export const governedVocabularyTransitions =
       target: { kind: 'single', to: '@ontrails/observability' },
     }),
     defineV1Transition({
+      codeIdentifiers: ['@ontrails/observability/logtape'],
+      docs: {
+        guidance: [
+          'Move the temporary observability subpath to the extracted LogTape adapter package.',
+          'Do not retain a compatibility subpath: the extracted package owns the real LogTape dependency boundary.',
+        ],
+        summary:
+          'The temporary LogTape forwarding subpath was extracted into a real top-level adapter package.',
+      },
+      from: '@ontrails/observability/logtape',
+      id: 'v1-observability-logtape-extraction',
+      intent:
+        'Replace the temporary LogTape forwarding subpath with the extracted @ontrails/logtape adapter.',
+      kind: 'vocabulary',
+      oldForms: ['@ontrails/observability/logtape'],
+      reviewForms: [],
+      safeRewriteForms: {
+        '@ontrails/observability/logtape': '@ontrails/logtape',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/observability/logtape',
+          moduleSpecifier: { targetPackage: '@ontrails/logtape' },
+          to: '@ontrails/logtape',
+        },
+      ],
+      target: { kind: 'single', to: '@ontrails/logtape' },
+    }),
+    defineV1Transition({
+      codeIdentifiers: ['@ontrails/observability/pino'],
+      docs: {
+        guidance: [
+          'Move the temporary observability subpath to the extracted Pino adapter package.',
+          'Do not retain a compatibility subpath: the extracted package owns the real Pino dependency boundary.',
+        ],
+        summary:
+          'The temporary Pino forwarding subpath was extracted into a real top-level adapter package.',
+      },
+      from: '@ontrails/observability/pino',
+      id: 'v1-observability-pino-extraction',
+      intent:
+        'Replace the temporary Pino forwarding subpath with the extracted @ontrails/pino adapter.',
+      kind: 'vocabulary',
+      oldForms: ['@ontrails/observability/pino'],
+      reviewForms: [],
+      safeRewriteForms: {
+        '@ontrails/observability/pino': '@ontrails/pino',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/observability/pino',
+          moduleSpecifier: { targetPackage: '@ontrails/pino' },
+          to: '@ontrails/pino',
+        },
+      ],
+      target: { kind: 'single', to: '@ontrails/pino' },
+    }),
+    defineV1Transition({
       codeIdentifiers: ['@ontrails/tracing', 'packages/tracing'],
       docs: {
         guidance: [

@@ -98,6 +98,7 @@ declare const surface: any;
 declare const test: (name: string, fn: () => unknown) => void;
 declare const topo: any;
 declare const trail: any;
+declare const trails: readonly unknown[];
 declare const ValidationError: unknown;
 declare const value: unknown;
 declare const z: any;
@@ -138,6 +139,7 @@ export const checkDrift: any;
 export const clearConfigState: any;
 export const clearTraceSink: any;
 export const combine: any;
+export const configure: any;
 export const connectDrizzle: any;
 export const connectReadOnlyDrizzle: any;
 export const configResource: any;
@@ -191,6 +193,7 @@ export const formatJson: any;
 export const formatSummary: any;
 export const formatWardenReport: any;
 export const getLogger: any;
+export const getConsoleSink: any;
 export const getPermit: any;
 export const getStoredTopoExport: any;
 export const jsonFile: any;
@@ -269,6 +272,8 @@ export const PACKAGE_APP_ADAPTER_READMES = [
   'adapters/hono/README.md',
   'adapters/vite/README.md',
   'adapters/drizzle/README.md',
+  'adapters/logtape/README.md',
+  'adapters/pino/README.md',
   'apps/trails/README.md',
   'apps/trails-demo/README.md',
 ] as const;
@@ -356,6 +361,14 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   {
     prelude: COMMON_README_PRELUDE,
     readmePath: 'adapters/drizzle/README.md',
+  },
+  {
+    prelude: COMMON_README_PRELUDE,
+    readmePath: 'adapters/logtape/README.md',
+  },
+  {
+    prelude: COMMON_README_PRELUDE,
+    readmePath: 'adapters/pino/README.md',
   },
   {
     allowNoSnippets: true,
@@ -757,6 +770,7 @@ const runSnippetTypecheck = (
           paths: {
             '@logtape/logtape': ['module-stubs/readme-module.d.ts'],
             '@ontrails/*': ['module-stubs/readme-module.d.ts'],
+            pino: ['module-stubs/readme-module.d.ts'],
             vite: ['module-stubs/readme-module.d.ts'],
           },
           skipLibCheck: true,

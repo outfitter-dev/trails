@@ -58,6 +58,26 @@ const expectedAdapters = [
     testingImport: '@ontrails/http/testing',
   },
   {
+    conformancePath: 'adapters/logtape/src/__tests__/conformance.test.ts',
+    key: '@ontrails/logtape',
+    ownerPackage: '@ontrails/observability',
+    packageName: '@ontrails/logtape',
+    placement: 'extracted',
+    target: 'observability',
+    targetKey: '@ontrails/observability:observability',
+    testingImport: '@ontrails/observability/testing',
+  },
+  {
+    conformancePath: 'adapters/pino/src/__tests__/conformance.test.ts',
+    key: '@ontrails/pino',
+    ownerPackage: '@ontrails/observability',
+    packageName: '@ontrails/pino',
+    placement: 'extracted',
+    target: 'observability',
+    targetKey: '@ontrails/observability:observability',
+    testingImport: '@ontrails/observability/testing',
+  },
+  {
     conformancePath: 'packages/store/src/jsonfile/conformance.test.ts',
     key: '@ontrails/store/jsonfile',
     ownerPackage: '@ontrails/store',
@@ -75,6 +95,7 @@ describe('first-party adapter dogfood', () => {
 
     expect(report.targets.map((target) => target.key)).toEqual([
       '@ontrails/http:http',
+      '@ontrails/observability:observability',
       '@ontrails/store:store',
     ]);
 
@@ -134,6 +155,13 @@ describe('first-party adapter dogfood', () => {
           ownerPackage: '@ontrails/store',
           target: 'store',
           targetKey: '@ontrails/store:store',
+        }),
+        expect.objectContaining({
+          key: '@ontrails/observability:observability:available',
+          kind: 'available',
+          ownerPackage: '@ontrails/observability',
+          target: 'observability',
+          targetKey: '@ontrails/observability:observability',
         }),
       ])
     );

@@ -672,20 +672,20 @@ CombinedSink, ConsoleSinkOptions, FileSinkOptions, FileLogSink, FileSinkConfig
 MemorySinkOptions, MemoryTraceSink, PrettyFormatterOptions
 ```
 
-## `@ontrails/observability/logtape`
+## `@ontrails/logtape`
 
 ```typescript
-createLogtapeSink({ logger })         // forward observe LogRecord values to a LogTape-shaped logger
+createLogtapeSink(options?)            // forward Trails records through a real LogTape logger
 
-LogtapeLoggerLike, LogtapeSinkOptions
+LogtapeSinkOptions
 ```
 
-## `@ontrails/observability/pino`
+## `@ontrails/pino`
 
 ```typescript
-createPinoSink(logger, options?)       // forward observe LogRecord values to a Pino-shaped logger
+createPinoSink(options?)                // construct or accept a real Pino logger
 
-PinoLogMethod, PinoLoggerLike, PinoSinkOptions
+PinoLogSink, PinoSinkOptions
 ```
 
 ## Intrinsic tracing and developer state
@@ -738,7 +738,7 @@ TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupRepor
 
 Import intrinsic trace contracts and `createMemorySink()` from `@ontrails/core` or `@ontrails/observability` as indicated above. The developer-state APIs live at `@ontrails/observability/dev`.
 
-For v1, OpenTelemetry trace export lives at `@ontrails/observability/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/observability/pino` separately for Pino-shaped log forwarding.
+For v1, OpenTelemetry trace export lives at `@ontrails/observability/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/pino` separately for Pino log forwarding.
 
 ## `@ontrails/observability/otel`
 

@@ -13,10 +13,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./dev": "./src/dev.ts",
-    "./logtape": "./src/logtape.ts",
     "./otel": "./src/otel.ts",
     "./package.json": "./package.json",
-    "./pino": "./src/pino.ts"
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "build": "tsc -b",
@@ -28,5 +27,20 @@
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
     "zod": "catalog:"
+  },
+  "trails": {
+    "adapterTargets": {
+      "observability": {
+        "conformance": {
+          "adapterType": "ObservabilityAdapterConformanceAdapter",
+          "casesFactory": "createObservabilityAdapterConformanceCases",
+          "runner": "runConformance"
+        },
+        "placements": [
+          "extracted"
+        ],
+        "testingImport": "@ontrails/observability/testing"
+      }
+    }
   }
 }

@@ -19,6 +19,8 @@ describe('governed vocabulary registry', () => {
       'v1-blaze-implementation',
       'v1-contour-entity',
       'v1-observe-observability',
+      'v1-observability-logtape-extraction',
+      'v1-observability-pino-extraction',
       'v1-tracing-owner-fold',
       'v1-tracing-otel-observability-otel',
       'v1-topographer-topography',
@@ -32,6 +34,8 @@ describe('governed vocabulary registry', () => {
       'blaze',
       'contour',
       '@ontrails/observe',
+      '@ontrails/observability/logtape',
+      '@ontrails/observability/pino',
       '@ontrails/tracing',
       '@ontrails/tracing/otel',
       'topographer',
@@ -64,6 +68,15 @@ describe('governed vocabulary registry', () => {
       'v1-observe-observability'
     );
     expect(observability?.status).toBe('complete');
+
+    expect(
+      getGovernedVocabularyTransition('v1-observability-logtape-extraction')
+        ?.target
+    ).toEqual({ kind: 'single', to: '@ontrails/logtape' });
+    expect(
+      getGovernedVocabularyTransition('v1-observability-pino-extraction')
+        ?.target
+    ).toEqual({ kind: 'single', to: '@ontrails/pino' });
 
     const tracing = getGovernedVocabularyTransition('v1-tracing-owner-fold');
     expect(tracing?.target.kind).toBe('classified');
