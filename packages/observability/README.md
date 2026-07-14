@@ -1,4 +1,4 @@
-# @ontrails/observe
+# @ontrails/observability
 
 Primitive observability contracts for Trails.
 
@@ -6,13 +6,13 @@ This package is the public home for log and trace sink shapes used by Trails app
 
 ## V1 package boundary
 
-Use `@ontrails/observe` for app-facing observability contracts and sinks: `LogSink`, `TraceSink`, `combine(...)`, console/file sinks, bounded memory sinks, and trace rendering.
+Use `@ontrails/observability` for app-facing observability contracts and sinks: `LogSink`, `TraceSink`, `combine(...)`, console/file sinks, bounded memory sinks, and trace rendering.
 
 `@ontrails/core` owns intrinsic tracing execution: `TraceRecord`, `ctx.trace()`, trace context propagation, and the process-level trace sink registry.
 
 `@ontrails/tracing` remains a compatibility and developer-state package for tracing-specific local tooling: query/status trails, the SQLite dev store, sampling helpers, and the supported `@ontrails/tracing/otel` OpenTelemetry adapter subpath.
 
-For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. That adapter translates Trails-native `TraceRecord` values to callback-delivered OTel-shaped spans without requiring the OpenTelemetry SDK as a runtime dependency. Use `@ontrails/observe/pino` separately when forwarding log records to a Pino-shaped logger.
+For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. That adapter translates Trails-native `TraceRecord` values to callback-delivered OTel-shaped spans without requiring the OpenTelemetry SDK as a runtime dependency. Use `@ontrails/observability/pino` separately when forwarding log records to a Pino-shaped logger.
 
 ```typescript
 import {
@@ -20,7 +20,7 @@ import {
   createConsoleSink,
   createFileSink,
   createMemorySink,
-} from '@ontrails/observe';
+} from '@ontrails/observability';
 
 const sink = combine(
   createConsoleSink(),
@@ -33,10 +33,10 @@ const sink = combine(
 
 ## Log Forwarding Subpaths
 
-Use `@ontrails/observe/logtape` when forwarding Trails log records to an existing LogTape-shaped logger:
+Use `@ontrails/observability/logtape` when forwarding Trails log records to an existing LogTape-shaped logger:
 
 ```typescript
-import { createLogtapeSink } from '@ontrails/observe/logtape';
+import { createLogtapeSink } from '@ontrails/observability/logtape';
 
 const logger = {
   debug(message: string, props?: Record<string, unknown>) {},
@@ -49,10 +49,10 @@ const logger = {
 const sink = createLogtapeSink({ logger });
 ```
 
-Use `@ontrails/observe/pino` when an app already owns a Pino logger:
+Use `@ontrails/observability/pino` when an app already owns a Pino logger:
 
 ```typescript
-import { createPinoSink } from '@ontrails/observe/pino';
+import { createPinoSink } from '@ontrails/observability/pino';
 
 const logger = {
   debug(payload: Record<string, unknown>, message?: string) {},
@@ -67,4 +67,4 @@ const sink = createPinoSink(logger);
 
 ## Migration from `@ontrails/logging`
 
-`@ontrails/logging` was retired before v1. Move sink contracts, console/file sinks, formatters, and bounded memory sinks to `@ontrails/observe`. Use `@ontrails/observe/logtape` for LogTape forwarding, `@ontrails/observe/pino` for Pino forwarding, and `@ontrails/tracing` for tracing registry, dev-store, query/status, sampling, and OTel adapter APIs.
+`@ontrails/logging` was retired before v1. Move sink contracts, console/file sinks, formatters, and bounded memory sinks to `@ontrails/observability`. Use `@ontrails/observability/logtape` for LogTape forwarding, `@ontrails/observability/pino` for Pino forwarding, and `@ontrails/tracing` for tracing registry, dev-store, query/status, sampling, and OTel adapter APIs.

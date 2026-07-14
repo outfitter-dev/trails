@@ -46,9 +46,9 @@ const createRecord = (overrides: Partial<LogRecord> = {}): LogRecord => ({
   ...overrides,
 });
 
-describe('@ontrails/observe/pino', () => {
+describe('@ontrails/observability/pino', () => {
   test('exports the package identifier', () => {
-    expect(pinoPackageName).toBe('@ontrails/observe/pino');
+    expect(pinoPackageName).toBe('@ontrails/observability/pino');
   });
 
   test.each([

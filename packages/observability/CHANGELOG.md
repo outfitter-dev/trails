@@ -1,4 +1,4 @@
-# @ontrails/observe
+# @ontrails/observability
 
 ## 1.0.0-beta.42
 

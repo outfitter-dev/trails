@@ -23,7 +23,7 @@
     "@ontrails/hono": "workspace:^",
     "@ontrails/http": "workspace:^",
     "@ontrails/mcp": "workspace:^",
-    "@ontrails/observe": "workspace:^",
+    "@ontrails/observability": "workspace:^",
     "@ontrails/store": "workspace:^",
     "@ontrails/tracing": "workspace:^",
     "zod": "catalog:"

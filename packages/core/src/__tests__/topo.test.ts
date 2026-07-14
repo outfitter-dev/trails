@@ -187,7 +187,7 @@ describe('topo', () => {
       expect(t.observe).toBeDefined();
       expect(t.observe?.log).toBeDefined();
       expect(t.observe?.trace).toBeUndefined();
-      // The default sink mirrors the shape of `@ontrails/observe`'s
+      // The default sink mirrors the shape of `@ontrails/observability`'s
       // `createConsoleSink` without depending on it.
       const log = t.observe?.log;
       if (log === undefined || !('write' in log)) {

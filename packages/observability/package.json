@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/observe",
+  "name": "@ontrails/observability",
   "version": "1.0.0-beta.42",
   "files": [
     "src/**/*.ts",

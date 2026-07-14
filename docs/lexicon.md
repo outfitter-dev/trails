@@ -369,7 +369,7 @@ const result = await ctx.trace('db.query', async () => {
 });
 ```
 
-Industry-standard terminology, aligned with OpenTelemetry. Production observability lives in `@ontrails/observe`.
+Industry-standard terminology, aligned with OpenTelemetry. Production observability lives in `@ontrails/observability`.
 
 ### `pattern`
 

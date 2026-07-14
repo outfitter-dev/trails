@@ -18,6 +18,7 @@ describe('governed vocabulary registry', () => {
       'cross-compose',
       'v1-blaze-implementation',
       'v1-contour-entity',
+      'v1-observe-observability',
       'v1-topographer-topography',
       'v1-facet-trailhead',
       'v1-warden-ast-source',
@@ -28,6 +29,7 @@ describe('governed vocabulary registry', () => {
       'cross',
       'blaze',
       'contour',
+      '@ontrails/observe',
       'topographer',
       'facet',
       '@ontrails/warden/ast',
@@ -53,6 +55,11 @@ describe('governed vocabulary registry', () => {
       'v1-topographer-topography'
     );
     expect(topography?.status).toBe('complete');
+
+    const observability = getGovernedVocabularyTransition(
+      'v1-observe-observability'
+    );
+    expect(observability?.status).toBe('complete');
   });
 
   test('validates registry shape and rejects incomplete entries', () => {

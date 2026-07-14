@@ -117,7 +117,7 @@ Warden uses inference to verify that declarations match actual code. The TopoGra
 
 ### Observed — learned from runtime
 
-Intrinsic tracing in `@ontrails/core` captures what actually happens at runtime: execution duration, error distributions, and trace context propagation. `@ontrails/observe` owns production log/trace sink contracts and built-in sinks; `@ontrails/tracing` owns developer-state query tooling, dev stores, sampling helpers, and the supported OTel adapter subpath. Observations close the loop -- declarations define intent, observations verify reality.
+Intrinsic tracing in `@ontrails/core` captures what actually happens at runtime: execution duration, error distributions, and trace context propagation. `@ontrails/observability` owns production log/trace sink contracts and built-in sinks; `@ontrails/tracing` owns developer-state query tooling, dev stores, sampling helpers, and the supported OTel adapter subpath. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -164,10 +164,10 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
-| `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
+| `@ontrails/observability` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
 | `@ontrails/tracing` | Tracing compatibility, query/status trails, Trails state-store dev storage, sampling helpers, OTel adapter | None beyond core |
-| `@ontrails/observe/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
-| `@ontrails/observe/pino` | Pino sink adapter for `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
+| `@ontrails/observability/logtape` | Temporary LogTape sink adapter for `@ontrails/observability` | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/observability/pino` | Temporary Pino sink adapter for `@ontrails/observability` | None (accepts any Pino-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -198,7 +198,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/permits (core)
 @ontrails/store (core)
 @ontrails/drizzle (store, drizzle-orm)
-@ontrails/observe (core)
+@ontrails/observability (core)
 @ontrails/tracing (core)
 @ontrails/testing (core, cli, mcp, observe)
 @ontrails/topography (core, zod, adapter-kit)
@@ -209,8 +209,8 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
-@ontrails/observe/logtape (observe)
-@ontrails/observe/pino (observe)
+@ontrails/observability/logtape (observability)
+@ontrails/observability/pino (observability)
 apps/trails (surface packages, source, regrade, topography, tracing, warden)
 ```
 

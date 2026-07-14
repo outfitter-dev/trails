@@ -157,10 +157,10 @@ $ myapp greet --name World
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testComposes()`, contract testing, surface harnesses |
 | [`@ontrails/topography`](./packages/topography) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence, Wayfind graph-read query APIs |
 | [`@ontrails/source`](./packages/source) | Shared source-code AST parsing, walking, locations, edits, literals, and Trails syntax helpers |
-| [`@ontrails/observe`](./packages/observe) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
+| [`@ontrails/observability`](./packages/observability) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
 | [`@ontrails/tracing`](./packages/tracing) | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter |
-| [`@ontrails/observe/logtape`](./packages/observe) | Adapter subpath that forwards Trails log records to a LogTape-shaped logger |
-| [`@ontrails/observe/pino`](./packages/observe) | Adapter subpath that forwards Trails log records to a Pino-shaped logger |
+| [`@ontrails/observability/logtape`](./packages/observability) | Temporary adapter subpath that forwards Trails log records to a LogTape-shaped logger |
+| [`@ontrails/observability/pino`](./packages/observability) | Temporary adapter subpath that forwards Trails log records to a Pino-shaped logger |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
 
 ## Documentation

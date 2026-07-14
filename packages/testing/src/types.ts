@@ -3,7 +3,7 @@
  */
 
 import type { AnyTrail, Logger, TraceFn } from '@ontrails/core';
-import type { LogLevel, LogRecord } from '@ontrails/observe';
+import type { LogLevel, LogRecord } from '@ontrails/observability';
 
 // ---------------------------------------------------------------------------
 // Test Scenario (for testTrail)

@@ -647,7 +647,7 @@ createTestPermit(overrides?)         // create a permit for tests
 createPermitForTrail(trail)          // create a permit matching a trail's requirements
 ```
 
-## `@ontrails/observe`
+## `@ontrails/observability`
 
 ```typescript
 // Log and trace sink contracts
@@ -672,7 +672,7 @@ CombinedSink, ConsoleSinkOptions, FileSinkOptions, FileLogSink, FileSinkConfig
 MemorySinkOptions, MemoryTraceSink, PrettyFormatterOptions
 ```
 
-## `@ontrails/observe/logtape`
+## `@ontrails/observability/logtape`
 
 ```typescript
 createLogtapeSink({ logger })         // forward observe LogRecord values to a LogTape-shaped logger
@@ -680,7 +680,7 @@ createLogtapeSink({ logger })         // forward observe LogRecord values to a L
 LogtapeLoggerLike, LogtapeSinkOptions
 ```
 
-## `@ontrails/observe/pino`
+## `@ontrails/observability/pino`
 
 ```typescript
 createPinoSink(logger, options?)       // forward observe LogRecord values to a Pino-shaped logger
@@ -709,7 +709,7 @@ writeActivationTraceRecord(name, attrs, status?, category?, parent?) // write an
 createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
-// Compatibility/local testing sinks (wrapping @ontrails/observe; prefer @ontrails/observe for new sink usage)
+// Compatibility/local testing sinks (wrapping @ontrails/observability; prefer @ontrails/observability for new sink usage)
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development
@@ -737,7 +737,7 @@ DEFAULT_SAMPLING                     // default sampling rates by intent
 TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupReport
 ```
 
-For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/observe/pino` separately for Pino-shaped log forwarding.
+For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/observability/pino` separately for Pino-shaped log forwarding.
 
 ## `@ontrails/tracing/otel`
 

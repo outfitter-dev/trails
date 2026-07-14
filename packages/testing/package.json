@@ -35,7 +35,7 @@
     "@ontrails/core": "workspace:^",
     "@ontrails/http": "workspace:^",
     "@ontrails/mcp": "workspace:^",
-    "@ontrails/observe": "workspace:^",
+    "@ontrails/observability": "workspace:^",
     "zod": "catalog:"
   },
   "peerDependenciesMeta": {

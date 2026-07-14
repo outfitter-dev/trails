@@ -413,7 +413,7 @@ const trailPermit = createPermitForTrail(showTrail);
 **Tracing memory sink.** Tracing is intrinsic to `executeTrail`, but records are only emitted when a real sink is installed. Register `createMemorySink()` to capture records in memory for assertion, then use `clearTraceSink()` to restore the `NOOP_SINK` baseline:
 
 ```typescript
-import { createMemorySink } from '@ontrails/observe';
+import { createMemorySink } from '@ontrails/observability';
 import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 
 const sink = createMemorySink({ maxRecords: 100 });

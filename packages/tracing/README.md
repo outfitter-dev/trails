@@ -6,7 +6,7 @@ Tracing is built into `executeTrail`. When a real sink is installed, each trail 
 
 ## V1 package boundary
 
-Use `@ontrails/observe` for the production observability boundary: log and trace sink contracts, `combine(...)`, console/file sinks, bounded memory sinks, and trace tree rendering.
+Use `@ontrails/observability` for the production observability boundary: log and trace sink contracts, `combine(...)`, console/file sinks, bounded memory sinks, and trace tree rendering.
 
 Use `@ontrails/tracing` when you need compatibility imports for core tracing primitives or tracing-specific developer-state APIs such as `tracingResource`, `tracingStatus`, `tracingQuery`, `createDevStore`, sampling helpers, or dev-store cleanup helpers.
 
@@ -21,14 +21,14 @@ For migration, `@ontrails/tracing` still re-exports core tracing primitives such
 ### 1. Register a sink
 
 ```typescript
-import { createMemorySink } from '@ontrails/observe';
+import { createMemorySink } from '@ontrails/observability';
 import { registerTraceSink } from '@ontrails/core';
 
 const sink = createMemorySink({ maxRecords: 1000 });
 registerTraceSink(sink);
 ```
 
-Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use `@ontrails/observe` for app-level sink contracts and zero-dependency sinks, use this package's dev store for local tracing state, or use the OTel adapter to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
+Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use `@ontrails/observability` for app-level sink contracts and zero-dependency sinks, use this package's dev store for local tracing state, or use the OTel adapter to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
 
 Signal fan-out records use lexicon-aligned names: `signal.fired`, `signal.invalid`, `signal.handler.invoked`, `signal.handler.completed`, and `signal.handler.failed`. Signal record attrs carry IDs and redacted payload summaries, never raw payloads by default.
 
@@ -107,7 +107,7 @@ Invoke programmatically via `run()` or `ctx.compose('tracing.query', { trailId: 
 For testing and demos:
 
 ```typescript
-import { createMemorySink } from '@ontrails/observe';
+import { createMemorySink } from '@ontrails/observability';
 import { clearTraceSink, registerTraceSink } from '@ontrails/core';
 
 const sink = createMemorySink({ maxRecords: 500 });
@@ -122,7 +122,7 @@ try {
 }
 ```
 
-`createMemorySink()` is bounded by default. Older records drop once `maxRecords` is reached, and `sink.droppedCount` reports how many were discarded since the last `sink.clear()`. The `@ontrails/tracing` export is a compatibility wrapper over the `@ontrails/observe` implementation: prefer `@ontrails/observe` for new sink usage, and keep the tracing import only when migrating older code. `createBoundedMemorySink()` is an explicit alias for the same factory. `clearTraceSink()` restores `NOOP_SINK`.
+`createMemorySink()` is bounded by default. Older records drop once `maxRecords` is reached, and `sink.droppedCount` reports how many were discarded since the last `sink.clear()`. The `@ontrails/tracing` export is a compatibility wrapper over the `@ontrails/observability` implementation: prefer `@ontrails/observability` for new sink usage, and keep the tracing import only when migrating older code. `createBoundedMemorySink()` is an explicit alias for the same factory. `clearTraceSink()` restores `NOOP_SINK`.
 
 ### Dev store
 
@@ -178,7 +178,7 @@ Lineage follows the Trails-native `TraceRecord` fields. Root records without a p
 
 `batchSize` must be a positive integer and defaults to `1`, which means every write flushes immediately unless you set a higher value. Writes auto-flush when the buffer reaches that threshold, and `flush()` drains any remaining records. Concurrent `flush()` calls share the same in-flight drain. If the exporter rejects, the failed batch is restored ahead of newer queued records so a later `flush()` can retry without silent loss.
 
-Use `@ontrails/observe` for app-facing sink contracts, `combine(...)`, built-in console/file/memory sinks, and trace tree rendering. Use `@ontrails/observe/pino` when you need to forward Trails log records to a Pino-shaped logger. The OTel adapter is trace export only; it complements those packages rather than replacing the observability boundary.
+Use `@ontrails/observability` for app-facing sink contracts, `combine(...)`, built-in console/file/memory sinks, and trace tree rendering. Use `@ontrails/observability/pino` when you need to forward Trails log records to a Pino-shaped logger. The OTel adapter is trace export only; it complements those packages rather than replacing the observability boundary.
 
 ## Sampling
 
@@ -200,7 +200,7 @@ if (shouldSample('read', config)) {
 ## Testing
 
 ```typescript
-import { createMemorySink } from '@ontrails/observe';
+import { createMemorySink } from '@ontrails/observability';
 import { clearTraceSink, registerTraceSink } from '@ontrails/core';
 import { testAll } from '@ontrails/testing';
 
@@ -221,5 +221,5 @@ Use `clearTraceSink()` or `registerTraceSink(NOOP_SINK)` to switch back to the s
 ## Installation
 
 ```bash
-bun add @ontrails/core @ontrails/observe @ontrails/tracing
+bun add @ontrails/core @ontrails/observability @ontrails/tracing
 ```

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { TraceRecord } from '@ontrails/observe';
+import type { TraceRecord } from '@ontrails/observability';
 import { renderTraceTree } from '../renderer.js';
 
 interface RecordOverrides {

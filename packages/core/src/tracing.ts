@@ -4,7 +4,7 @@
  * This module is the home for the trace record type, the sink interface,
  * the sink registry, and the helpers `executeTrail` uses to create root
  * trace records and child spans. Core keeps this minimal contract public so
- * `@ontrails/observe`, `@ontrails/tracing`, adapters, and tests share the
+ * `@ontrails/observability`, `@ontrails/tracing`, adapters, and tests share the
  * same intrinsic execution record shape.
  *
  * Tracing is intrinsic: every `executeTrail` call automatically produces a
@@ -59,7 +59,7 @@ export interface TraceRecord {
  * Minimal shape a tracing sink must satisfy.
  *
  * Kept intentionally tiny so adapters in `@ontrails/tracing`,
- * `@ontrails/observe`, and user code can all satisfy it without
+ * `@ontrails/observability`, and user code can all satisfy it without
  * additional dependencies.
  */
 export interface TraceSink {

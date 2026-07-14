@@ -34,7 +34,7 @@ const createRecordingLogger = () => {
   return { calls, logger };
 };
 
-describe('@ontrails/observe/logtape', () => {
+describe('@ontrails/observability/logtape', () => {
   test('forwards records to the underlying LogTape logger by level', () => {
     const { calls, logger } = createRecordingLogger();
     const sink = createLogtapeSink({ logger });

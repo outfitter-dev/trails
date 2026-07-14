@@ -260,7 +260,7 @@ export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/oxlint-plugin/README.md',
   'packages/mcp/README.md',
   'packages/cli/README.md',
-  'packages/observe/README.md',
+  'packages/observability/README.md',
   'packages/testing/README.md',
   'packages/http/README.md',
   'packages/warden/README.md',
@@ -309,7 +309,7 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   },
   {
     prelude: COMMON_README_PRELUDE,
-    readmePath: 'packages/observe/README.md',
+    readmePath: 'packages/observability/README.md',
   },
   {
     localFiles: {

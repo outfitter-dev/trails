@@ -108,10 +108,10 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
-| `@ontrails/observe` | Log and trace sink contracts, sink composition, built-in sinks, trace rendering | None beyond core |
+| `@ontrails/observability` | Log and trace sink contracts, sink composition, built-in sinks, trace rendering | None beyond core |
 | `@ontrails/tracing` | Compatibility tracing exports, SQLite dev store, query/status trails, OTel adapter | None beyond core |
-| `@ontrails/observe/logtape` | LogTape sink adapter over `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
-| `@ontrails/observe/pino` | Pino sink adapter over `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
+| `@ontrails/observability/logtape` | Temporary LogTape sink adapter over `@ontrails/observability` | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/observability/pino` | Temporary Pino sink adapter over `@ontrails/observability` | None (accepts any Pino-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -132,7 +132,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
   <- @ontrails/tracing (core)
-  <- @ontrails/observe (core)
+  <- @ontrails/observability (core)
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, observe; optional cli/mcp/http subpaths)
@@ -141,8 +141,8 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/commander (cli, commander)
   <- @ontrails/hono (http, hono)
   <- @ontrails/vite (node:stream only)
-  <- @ontrails/observe/logtape (observe)
-  <- @ontrails/observe/pino (observe)
+  <- @ontrails/observability/logtape (observability)
+  <- @ontrails/observability/pino (observability)
 ```
 
 ## Data Flow

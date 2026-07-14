@@ -54,8 +54,8 @@ const ALLOWED_DUPLICATE_EXPORT_GROUPS: readonly {
       'ObserveConfig',
       'ObserveInput',
     ],
-    reason: '@ontrails/observe mirrors core observability contracts',
-    workspaceNames: ['@ontrails/core', '@ontrails/observe'],
+    reason: '@ontrails/observability mirrors core observability contracts',
+    workspaceNames: ['@ontrails/core', '@ontrails/observability'],
   },
   {
     names: [
@@ -66,8 +66,8 @@ const ALLOWED_DUPLICATE_EXPORT_GROUPS: readonly {
       'createMemorySink',
     ],
     reason:
-      '@ontrails/tracing compatibility memory sink mirrors @ontrails/observe',
-    workspaceNames: ['@ontrails/observe', '@ontrails/tracing'],
+      '@ontrails/tracing compatibility memory sink mirrors @ontrails/observability',
+    workspaceNames: ['@ontrails/observability', '@ontrails/tracing'],
   },
   {
     names: [
@@ -94,10 +94,10 @@ const ALLOWED_DUPLICATE_EXPORT_GROUPS: readonly {
   {
     names: ['TraceContext', 'TraceRecord', 'TraceSink'],
     reason:
-      '@ontrails/observe and @ontrails/tracing mirror core trace contracts',
+      '@ontrails/observability and @ontrails/tracing mirror core trace contracts',
     workspaceNames: [
       '@ontrails/core',
-      '@ontrails/observe',
+      '@ontrails/observability',
       '@ontrails/tracing',
     ],
   },

@@ -2,7 +2,7 @@
  * Test logger that captures log records for assertion.
  */
 
-import type { LogLevel, LogRecord } from '@ontrails/observe';
+import type { LogLevel, LogRecord } from '@ontrails/observability';
 
 import type { TestLogger } from './types.js';
 

@@ -210,10 +210,10 @@ const stringifyDefaultConsoleRecord = (record: LogRecord): string => {
 };
 
 /**
- * In-core mirror of `@ontrails/observe`'s `createConsoleSink` shape, kept
+ * In-core mirror of `@ontrails/observability`'s `createConsoleSink` shape, kept
  * minimal and private to avoid a reverse dependency from `@ontrails/core`
- * onto `@ontrails/observe`. It mirrors the console level mapping in
- * `packages/observe/src/sinks.ts:50` and emits each record as a single-line
+ * onto `@ontrails/observability`. It mirrors the console level mapping in
+ * `packages/observability/src/sinks.ts:50` and emits each record as a single-line
  * JSON object written to the matching `console.{debug|info|warn|error}` method.
  *
  * @remarks
@@ -231,7 +231,7 @@ const createDefaultConsoleSink = (): LogSink => ({
       return;
     }
     const payload = stringifyDefaultConsoleRecord(record);
-    // oxlint-disable-next-line trails-local/no-console-in-packages -- ADR 0041 mandates a default console logger in core; this is the single sanctioned console boundary, mirroring `@ontrails/observe`'s `createConsoleSink`.
+    // oxlint-disable-next-line trails-local/no-console-in-packages -- ADR 0041 mandates a default console logger in core; this is the single sanctioned console boundary, mirroring `@ontrails/observability`'s `createConsoleSink`.
     console[method](payload);
   },
 });
@@ -252,7 +252,7 @@ export const normalizeObserve = (
     // ADR 0041 promises a non-null `ctx.logger` with zero configuration.
     // Returning the default config here lets the existing topo → adapter
     // path project this log sink into `ctx.logger` without a second
-    // resolution point or a reverse dependency on `@ontrails/observe`.
+    // resolution point or a reverse dependency on `@ontrails/observability`.
     return DEFAULT_OBSERVE_CONFIG;
   }
 

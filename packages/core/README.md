@@ -161,7 +161,7 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 
 The root package also exposes a few low-level contracts that other framework packages build on:
 
-- **Intrinsic tracing** -- `TraceRecord`, `TraceSink`, `TraceContext`, and the sink registry helpers are the core-owned execution record shape shared by `@ontrails/observe`, `@ontrails/tracing`, and adapters.
+- **Intrinsic tracing** -- `TraceRecord`, `TraceSink`, `TraceContext`, and the sink registry helpers are the core-owned execution record shape shared by `@ontrails/observability`, `@ontrails/tracing`, and adapters.
 - **Trails DB** -- `deriveTrailsDbPath`, `deriveTrailsStateDir`, `deriveTrailsStateHome`, `deriveTrailsProjectKey`, `deriveTrailsDir`, `ensureSubsystemSchema`, `openReadTrailsDb`, and `openWriteTrailsDb` are the generic database primitive used by framework subsystems.
 - **Surface projection helpers** -- safe error projection, layer field projection, compose-batch validation, late-bound signal references, and Zod default-wrapper stripping are stable root exports for first-party surfaces, store helpers, and tests.
 

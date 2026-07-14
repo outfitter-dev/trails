@@ -26,7 +26,7 @@
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance
-- **[Observability Guide](../packages/observe/README.md)** — Log/trace sink contracts, built-in sinks, sink composition
+- **[Observability Guide](../packages/observability/README.md)** — Log/trace sink contracts, built-in sinks, sink composition
 - **[Tracing Guide](../packages/tracing/README.md)** — Execution recording, sinks, sampling, manual instrumentation
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
 

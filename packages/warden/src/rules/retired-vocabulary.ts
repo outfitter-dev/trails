@@ -341,6 +341,60 @@ export const governedVocabularyTransitions =
     }),
     defineV1Transition({
       codeIdentifiers: [
+        '@ontrails/observe',
+        '@ontrails/observe/logtape',
+        '@ontrails/observe/pino',
+        'packages/observe',
+      ],
+      docs: {
+        guidance: [
+          'Treat the public package routes as exact code strings and module specifiers, not as general observability vocabulary.',
+          'Rewrite the temporary Pino and LogTape subpaths only to their renamed temporary owner; their extraction to top-level adapters is a later transition.',
+        ],
+        summary:
+          'The dependency-light observability owner moved from @ontrails/observe to @ontrails/observability.',
+      },
+      from: '@ontrails/observe',
+      id: 'v1-observe-observability',
+      intent:
+        'Rename the dependency-light observability owner and its temporary adapter subpaths for v1.',
+      kind: 'vocabulary',
+      oldForms: [
+        '@ontrails/observe',
+        '@ontrails/observe/logtape',
+        '@ontrails/observe/pino',
+        'packages/observe',
+      ],
+      reviewForms: [],
+      safeRewriteForms: {
+        '@ontrails/observe': '@ontrails/observability',
+        '@ontrails/observe/logtape': '@ontrails/observability/logtape',
+        '@ontrails/observe/pino': '@ontrails/observability/pino',
+        'packages/observe': 'packages/observability',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/observe',
+          moduleSpecifier: { targetPackage: '@ontrails/observability' },
+          to: '@ontrails/observability',
+        },
+        {
+          from: '@ontrails/observe/logtape',
+          moduleSpecifier: { targetPackage: '@ontrails/observability' },
+          to: '@ontrails/observability/logtape',
+        },
+        {
+          from: '@ontrails/observe/pino',
+          moduleSpecifier: { targetPackage: '@ontrails/observability' },
+          to: '@ontrails/observability/pino',
+        },
+        { from: 'packages/observe', to: 'packages/observability' },
+      ],
+      target: { kind: 'single', to: '@ontrails/observability' },
+    }),
+    defineV1Transition({
+      codeIdentifiers: [
         '@ontrails/topographer',
         '@ontrails/topographer/backend-support',
         '0042-core-topographer-boundary-doctrine',

@@ -43,7 +43,7 @@ export const changelogHistoryPaths = [
   'packages/http/CHANGELOG.md',
   'packages/library/CHANGELOG.md',
   'packages/mcp/CHANGELOG.md',
-  'packages/observe/CHANGELOG.md',
+  'packages/observability/CHANGELOG.md',
   'packages/oxlint-plugin/CHANGELOG.md',
   'packages/permits/CHANGELOG.md',
   'packages/regrade/CHANGELOG.md',

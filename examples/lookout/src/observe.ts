@@ -7,8 +7,8 @@
  * runtime wrote.
  */
 
-import { createConsoleSink } from '@ontrails/observe';
-import type { ObserveConfig } from '@ontrails/observe';
+import { createConsoleSink } from '@ontrails/observability';
+import type { ObserveConfig } from '@ontrails/observability';
 import { createDevStore, registerTraceStore } from '@ontrails/tracing';
 
 export const traceStore = createDevStore();

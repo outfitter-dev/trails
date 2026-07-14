@@ -9,13 +9,13 @@ import type {
   TraceContext,
   TraceRecord,
   TraceSink,
-} from '@ontrails/observe';
+} from '@ontrails/observability';
 
 const createLogRecord = (level: LogLevel): LogRecord => ({
   category: 'observe.test',
   level,
   message: 'observability package type smoke',
-  metadata: { package: '@ontrails/observe' },
+  metadata: { package: '@ontrails/observability' },
   timestamp: new Date(0),
 });
 
@@ -30,7 +30,7 @@ const createTraceRecord = (): TraceRecord => ({
   traceId: 'trace-1',
 });
 
-describe('@ontrails/observe', () => {
+describe('@ontrails/observability', () => {
   test('re-exports core log and trace contracts', async () => {
     const logRecords: LogRecord[] = [];
     const traceRecords: TraceRecord[] = [];

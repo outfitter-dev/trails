@@ -1,7 +1,7 @@
 /**
  * Primitive observability API for Trails.
  *
- * `@ontrails/observe` is the public package for log and trace sink contracts.
+ * `@ontrails/observability` is the public package for log and trace sink contracts.
  * Adapter packages should build on these types instead of importing
  * framework internals directly.
  *

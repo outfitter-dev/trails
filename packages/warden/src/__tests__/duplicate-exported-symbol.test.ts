@@ -252,10 +252,10 @@ export function internalOnly() {}
               workspaceName: '@ontrails/core',
             }),
             definition({
-              filePath: '/repo/packages/observe/src/index.ts',
+              filePath: '/repo/packages/observability/src/index.ts',
               name: 'TraceRecord',
-              workspaceName: '@ontrails/observe',
-              workspaceRoot: '/repo/packages/observe',
+              workspaceName: '@ontrails/observability',
+              workspaceRoot: '/repo/packages/observability',
             }),
             definition({
               filePath: '/repo/packages/tracing/src/index.ts',

@@ -3,7 +3,7 @@ import type { LogLevel, LogRecord, LogSink } from './index.js';
 /**
  * Package identifier for the supported Pino adapter subpath.
  */
-export const pinoPackageName = '@ontrails/observe/pino';
+export const pinoPackageName = '@ontrails/observability/pino';
 
 /**
  * Signature for a Pino-compatible logger method used when forwarding Trails

@@ -98,7 +98,7 @@ The repo-local plugin lives in `packages/oxlint-plugin`, builds to `dist`, and i
 
 Current local rules are intentionally low-blast:
 
-- `no-console-in-packages` keeps package code quiet, with `@ontrails/observe` as the explicit sink owner.
+- `no-console-in-packages` keeps package code quiet, with `@ontrails/observability` as the explicit sink owner.
 - `no-process-exit-in-packages` keeps hard exits out of packages except the CLI.
 - `no-process-env-in-packages` keeps environment access close to config, CLI, and core boundaries.
 - `no-deep-relative-import` discourages fragile upward imports.

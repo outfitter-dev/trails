@@ -5,7 +5,7 @@
  * intrinsic tracing pipeline in `@ontrails/core` records every trail-,
  * span-, signal-, and activation-level event during the invocation. After
  * the trail completes (success or failure), the records are rendered as a
- * tree to stderr via `renderTraceTree` from `@ontrails/observe`. Under
+ * tree to stderr via `renderTraceTree` from `@ontrails/observability`. Under
  * `--json`, the structured `TraceRecord[]` is also emitted on stdout as
  * the `tracing` field of a Result envelope.
  *
@@ -25,8 +25,8 @@
 
 import { getTraceSink, registerTraceSink } from '@ontrails/core';
 import type { TraceRecord, TraceSink } from '@ontrails/core';
-import { createMemorySink, renderTraceTree } from '@ontrails/observe';
-import type { MemoryTraceSink } from '@ontrails/observe';
+import { createMemorySink, renderTraceTree } from '@ontrails/observability';
+import type { MemoryTraceSink } from '@ontrails/observability';
 
 // ---------------------------------------------------------------------------
 // Argv detection

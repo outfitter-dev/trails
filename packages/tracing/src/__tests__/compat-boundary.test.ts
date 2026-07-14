@@ -18,7 +18,7 @@ import type { TraceRecord } from '@ontrails/core';
 import {
   DEFAULT_MEMORY_SINK_MAX_RECORDS as OBSERVE_MEMORY_SINK_MAX_RECORDS,
   createMemorySink as createObserveMemorySink,
-} from '@ontrails/observe';
+} from '@ontrails/observability';
 
 import {
   NOOP_SINK,

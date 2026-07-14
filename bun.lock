@@ -102,7 +102,7 @@
         "@ontrails/core": "workspace:^",
         "@ontrails/http": "workspace:^",
         "@ontrails/mcp": "workspace:^",
-        "@ontrails/observe": "workspace:^",
+        "@ontrails/observability": "workspace:^",
         "@ontrails/permits": "workspace:^",
         "@ontrails/regrade": "workspace:^",
         "@ontrails/source": "workspace:^",
@@ -177,7 +177,7 @@
         "@ontrails/hono": "workspace:^",
         "@ontrails/http": "workspace:^",
         "@ontrails/mcp": "workspace:^",
-        "@ontrails/observe": "workspace:^",
+        "@ontrails/observability": "workspace:^",
         "@ontrails/store": "workspace:^",
         "@ontrails/tracing": "workspace:^",
         "zod": "catalog:",
@@ -317,8 +317,8 @@
         "zod": "catalog:",
       },
     },
-    "packages/observe": {
-      "name": "@ontrails/observe",
+    "packages/observability": {
+      "name": "@ontrails/observability",
       "version": "1.0.0-beta.42",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
@@ -383,7 +383,7 @@
         "@ontrails/core": "workspace:^",
         "@ontrails/http": "workspace:^",
         "@ontrails/mcp": "workspace:^",
-        "@ontrails/observe": "workspace:^",
+        "@ontrails/observability": "workspace:^",
         "zod": "catalog:",
       },
       "optionalPeers": [
@@ -407,7 +407,7 @@
       "name": "@ontrails/tracing",
       "version": "1.0.0-beta.42",
       "dependencies": {
-        "@ontrails/observe": "workspace:^",
+        "@ontrails/observability": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
@@ -624,7 +624,7 @@
 
     "@ontrails/mcp": ["@ontrails/mcp@workspace:packages/mcp"],
 
-    "@ontrails/observe": ["@ontrails/observe@workspace:packages/observe"],
+    "@ontrails/observability": ["@ontrails/observability@workspace:packages/observability"],
 
     "@ontrails/oxlint-plugin": ["@ontrails/oxlint-plugin@workspace:packages/oxlint-plugin"],
 

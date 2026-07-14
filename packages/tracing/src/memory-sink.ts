@@ -1,11 +1,11 @@
 import {
   DEFAULT_MEMORY_SINK_MAX_RECORDS,
   createMemorySink as createObserveMemorySink,
-} from '@ontrails/observe';
+} from '@ontrails/observability';
 import type {
   MemorySinkOptions,
   MemoryTraceSink as ObserveMemoryTraceSink,
-} from '@ontrails/observe';
+} from '@ontrails/observability';
 import type { TraceRecord, TraceSink } from '@ontrails/core';
 
 export { DEFAULT_MEMORY_SINK_MAX_RECORDS };
@@ -51,7 +51,7 @@ const adaptObserveMemorySink = (
   };
 };
 
-/** Compatibility wrapper over the canonical `@ontrails/observe` memory sink. */
+/** Compatibility wrapper over the canonical `@ontrails/observability` memory sink. */
 export const createMemorySink = (
   options: MemorySinkOptions = {}
 ): MemoryTraceSink => adaptObserveMemorySink(createObserveMemorySink(options));
