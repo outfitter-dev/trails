@@ -11,9 +11,9 @@ How to migrate consumers from the retired `@ontrails/logging` package to the v1 
 | Bounded in-memory trace sink and trace rendering | `@ontrails/observability` |
 | LogTape forwarding | `@ontrails/observability/logtape` |
 | Pino forwarding | `@ontrails/observability/pino` |
-| Trace sink registry, `ctx.trace()`, and intrinsic execution records | `@ontrails/core` through `executeTrail`; registry helpers are re-exported by `@ontrails/tracing` |
-| Tracing query/status trails, SQLite dev store, sampling helpers | `@ontrails/tracing` |
-| OpenTelemetry export | `@ontrails/tracing/otel` |
+| Trace sink registry, `ctx.trace()`, and intrinsic execution records | `@ontrails/core` through `executeTrail` |
+| Tracing query/status trails, SQLite dev store, sampling helpers | `@ontrails/observability/dev` |
+| OpenTelemetry export | `@ontrails/observability/otel` |
 
 `@ontrails/logging` is no longer part of the workspace or prerelease package set. Do not add it to new apps.
 
@@ -45,11 +45,11 @@ Rename the LogTape forwarding factory and move it under the observability packag
 + import { createLogtapeSink } from '@ontrails/observability/logtape';
 ```
 
-Use `@ontrails/tracing/otel` for OpenTelemetry trace export:
+Use `@ontrails/observability/otel` for OpenTelemetry trace export:
 
 ```typescript
-import { createOtelAdapter } from '@ontrails/tracing/otel';
-import { registerTraceSink } from '@ontrails/tracing';
+import { registerTraceSink } from '@ontrails/core';
+import { createOtelAdapter } from '@ontrails/observability/otel';
 
 const exporter = async (spans: unknown) => {
   // Forward spans to your collector.
@@ -89,7 +89,7 @@ Remove the old dependency and add the replacement packages you actually need. Fo
   "dependencies": {
 -   "@ontrails/logging": "^1.0.0-beta.15",
 +   "@ontrails/observability": "1.0.0-beta.42",
-    "@ontrails/tracing": "1.0.0-beta.40"
+    "@ontrails/observability": "1.0.0-beta.42"
   }
 }
 ```
@@ -101,7 +101,7 @@ For apps that also forward to a LogTape-shaped logger, use the temporary `@ontra
   "dependencies": {
 -   "@ontrails/logging": "^1.0.0-beta.15",
 +   "@ontrails/observability": "1.0.0-beta.42",
-    "@ontrails/tracing": "1.0.0-beta.40"
+    "@ontrails/observability": "1.0.0-beta.42"
   }
 }
 ```
@@ -113,7 +113,6 @@ For apps that forward to a Pino-shaped logger, use the temporary `@ontrails/obse
   "dependencies": {
 -   "@ontrails/logging": "^1.0.0-beta.15",
 +   "@ontrails/observability": "1.0.0-beta.42",
-+   "@ontrails/tracing": "1.0.0-beta.42",
 +   "pino": "^9.0.0"
   }
 }
@@ -121,11 +120,11 @@ For apps that forward to a Pino-shaped logger, use the temporary `@ontrails/obse
 
 ## Testing
 
-For trace assertions, install the memory sink from `@ontrails/observability` and the registry helpers from `@ontrails/tracing`:
+For trace assertions, install the memory sink from `@ontrails/observability` and the registry helpers from `@ontrails/core`:
 
 ```typescript
 import { createMemorySink } from '@ontrails/observability';
-import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { registerTraceSink, clearTraceSink } from '@ontrails/core';
 
 const sink = createMemorySink({ maxRecords: 100 });
 registerTraceSink(sink);
@@ -139,4 +138,4 @@ try {
 
 ## What Stays Historical
 
-Changelogs and release notes may still mention historical package routes when they are explicitly describing older beta history. Current-facing docs and examples should use `@ontrails/observability`, `@ontrails/tracing`, `surface`, and `adapter`.
+Changelogs and release notes may still mention historical package routes when they are explicitly describing older beta history. Current-facing docs and examples should use `@ontrails/observability`, its `/dev` and `/otel` subpaths where applicable, `surface`, and `adapter`.

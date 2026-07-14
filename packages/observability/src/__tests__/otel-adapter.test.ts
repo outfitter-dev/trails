@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { TraceRecord } from '../trace-record.js';
-import { createOtelAdapter } from '../adapters/otel.js';
-import type { OtelSpan } from '../adapters/otel.js';
+import type { TraceRecord } from '@ontrails/core';
+
+import { createOtelAdapter } from '../otel.js';
+import type { OtelSpan } from '../otel.js';
 
 /** Build a minimal TraceRecord for testing with sensible defaults. */
 const makeRecord = (overrides: Partial<TraceRecord> = {}): TraceRecord => ({

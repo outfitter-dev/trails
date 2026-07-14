@@ -18,7 +18,7 @@ import {
   applyTraceCleanup,
   countTraceRecords,
   previewTraceCleanup,
-} from '@ontrails/tracing';
+} from '@ontrails/observability/dev';
 
 import {
   removeFileIfPresent,

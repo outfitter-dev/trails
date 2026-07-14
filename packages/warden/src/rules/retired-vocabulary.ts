@@ -394,6 +394,70 @@ export const governedVocabularyTransitions =
       target: { kind: 'single', to: '@ontrails/observability' },
     }),
     defineV1Transition({
+      codeIdentifiers: ['@ontrails/tracing', 'packages/tracing'],
+      docs: {
+        guidance: [
+          'Classify root imports by ownership: intrinsic trace contracts belong to @ontrails/core and developer-state APIs belong to @ontrails/observability/dev.',
+          'Do not mechanically redirect the tracing root because it formerly combined more than one owner.',
+        ],
+        summary:
+          'The former tracing root was folded into core and the observability developer-state subpath.',
+      },
+      from: '@ontrails/tracing',
+      id: 'v1-tracing-owner-fold',
+      intent:
+        'Remove the multi-owner tracing package without inventing a false one-to-one package redirect.',
+      kind: 'vocabulary',
+      oldForms: ['@ontrails/tracing', 'packages/tracing'],
+      reviewForms: [],
+      safeRewriteForms: {},
+      status: 'complete',
+      target: {
+        guidance:
+          'Root tracing imports require ownership classification; use @ontrails/core for intrinsic contracts and @ontrails/observability/dev for developer-state APIs.',
+        kind: 'classified',
+        options: [
+          {
+            to: '@ontrails/core',
+            when: 'The imported symbol is an intrinsic trace record, context, or sink registry contract.',
+          },
+          {
+            to: '@ontrails/observability/dev',
+            when: 'The imported symbol is developer-state storage, sampling, or tracing query/status tooling.',
+          },
+        ],
+      },
+    }),
+    defineV1Transition({
+      codeIdentifiers: ['@ontrails/tracing/otel'],
+      docs: {
+        guidance: [
+          'Rewrite the exact OTel adapter subpath after the observability package declares its /otel export.',
+        ],
+        summary:
+          'The supported OTel adapter moved to the observability package.',
+      },
+      from: '@ontrails/tracing/otel',
+      id: 'v1-tracing-otel-observability-otel',
+      intent:
+        'Move the dependency-light OTel adapter from the removed tracing package to @ontrails/observability/otel.',
+      kind: 'vocabulary',
+      oldForms: ['@ontrails/tracing/otel'],
+      reviewForms: [],
+      safeRewriteForms: {
+        '@ontrails/tracing/otel': '@ontrails/observability/otel',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/tracing/otel',
+          moduleSpecifier: { targetPackage: '@ontrails/observability' },
+          to: '@ontrails/observability/otel',
+        },
+      ],
+      target: { kind: 'single', to: '@ontrails/observability/otel' },
+    }),
+    defineV1Transition({
       codeIdentifiers: [
         '@ontrails/topographer',
         '@ontrails/topographer/backend-support',

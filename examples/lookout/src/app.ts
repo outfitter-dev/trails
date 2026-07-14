@@ -10,7 +10,7 @@ import {
   tracingQuery,
   tracingResource,
   tracingStatus,
-} from '@ontrails/tracing';
+} from '@ontrails/observability/dev';
 
 import { observeConfig } from './observe.js';
 import * as probeHttp from './resources/probe-http.js';

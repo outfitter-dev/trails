@@ -252,7 +252,6 @@ export default {} as any;
 `.trim();
 
 export const PACKAGE_APP_ADAPTER_READMES = [
-  'packages/tracing/README.md',
   'packages/source/README.md',
   'packages/core/README.md',
   'packages/config/README.md',
@@ -275,10 +274,6 @@ export const PACKAGE_APP_ADAPTER_READMES = [
 ] as const;
 
 export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
-  {
-    prelude: COMMON_README_PRELUDE,
-    readmePath: 'packages/tracing/README.md',
-  },
   {
     prelude: COMMON_README_PRELUDE,
     readmePath: 'packages/source/README.md',
@@ -681,7 +676,7 @@ const resolveWorkspaceModulePath = (moduleSpecifier: string): string => {
     }
 
     // Prefer the package.json `exports` map so subpath exports like
-    // `@ontrails/tracing/otel` resolve to their real source file.
+    // `@ontrails/observability/otel` resolves to its real source file.
     const packageJson = JSON.parse(
       readFileSync(packageJsonPath, 'utf8')
     ) as PackageJson;

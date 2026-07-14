@@ -18,7 +18,6 @@
     "vocab:audit": "bun scripts/vocab-cutover-audit.ts",
     "vocab:audit:json": "bun scripts/vocab-cutover-audit.ts --json",
     "vocab:rewrite": "bun scripts/vocab-cutover-rewrite.ts",
-    "bench:tracing": "bun packages/tracing/scripts/benchmark-intrinsic-tracing.ts",
     "docs:links": "bun scripts/check-markdown-links.ts",
     "docs:snippets": "bun scripts/check-readme-snippets.ts",
     "docs:wrap-check": "bun scripts/check-hardwrap.ts",

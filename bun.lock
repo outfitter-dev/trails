@@ -107,7 +107,6 @@
         "@ontrails/regrade": "workspace:^",
         "@ontrails/source": "workspace:^",
         "@ontrails/topography": "workspace:^",
-        "@ontrails/tracing": "workspace:^",
         "@ontrails/warden": "workspace:^",
         "commander": "catalog:",
         "typescript": "^5.9.3",
@@ -179,7 +178,6 @@
         "@ontrails/mcp": "workspace:^",
         "@ontrails/observability": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "@ontrails/tracing": "workspace:^",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -322,6 +320,7 @@
       "version": "1.0.0-beta.42",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
+        "zod": "catalog:",
       },
     },
     "packages/oxlint-plugin": {
@@ -397,17 +396,6 @@
       "version": "1.0.0-beta.42",
       "dependencies": {
         "@ontrails/adapter-kit": "workspace:^",
-      },
-      "peerDependencies": {
-        "@ontrails/core": "workspace:^",
-        "zod": "catalog:",
-      },
-    },
-    "packages/tracing": {
-      "name": "@ontrails/tracing",
-      "version": "1.0.0-beta.42",
-      "dependencies": {
-        "@ontrails/observability": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
@@ -639,8 +627,6 @@
     "@ontrails/testing": ["@ontrails/testing@workspace:packages/testing"],
 
     "@ontrails/topography": ["@ontrails/topography@workspace:packages/topography"],
-
-    "@ontrails/tracing": ["@ontrails/tracing@workspace:packages/tracing"],
 
     "@ontrails/trails": ["@ontrails/trails@workspace:apps/trails"],
 

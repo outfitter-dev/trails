@@ -9,7 +9,10 @@
 
 import { createConsoleSink } from '@ontrails/observability';
 import type { ObserveConfig } from '@ontrails/observability';
-import { createDevStore, registerTraceStore } from '@ontrails/tracing';
+import {
+  createDevStore,
+  registerTraceStore,
+} from '@ontrails/observability/dev';
 
 export const traceStore = createDevStore();
 

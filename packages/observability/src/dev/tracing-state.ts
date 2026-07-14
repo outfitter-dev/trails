@@ -1,6 +1,6 @@
 import { DEFAULT_SAMPLING } from './sampling.js';
 import type { SamplingConfig } from './sampling.js';
-import type { TraceStore } from './stores/dev.js';
+import type { TraceStore } from './store.js';
 
 /** Full telemetry subsystem state carried by tracingResource. */
 export interface TracingState {

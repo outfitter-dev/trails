@@ -14,15 +14,15 @@ describe('parseImportedBindings', () => {
     const bindings = parseImportedBindings(`import {
   createMemorySink,
   registerTraceSink,
-} from '@ontrails/tracing';`);
+} from '@ontrails/observability';`);
 
     expect(bindings).toEqual([
       {
-        moduleSpecifier: '@ontrails/tracing',
+        moduleSpecifier: '@ontrails/observability',
         name: 'createMemorySink',
       },
       {
-        moduleSpecifier: '@ontrails/tracing',
+        moduleSpecifier: '@ontrails/observability',
         name: 'registerTraceSink',
       },
     ]);
@@ -33,16 +33,16 @@ describe('parseImportedBindings', () => {
   type MemorySink,
   createMemorySink as makeMemorySink,
   registerTraceSink,
-} from '@ontrails/tracing';
+} from '@ontrails/observability';
 import type { Topo } from '@ontrails/core';`);
 
     expect(bindings).toEqual([
       {
-        moduleSpecifier: '@ontrails/tracing',
+        moduleSpecifier: '@ontrails/observability',
         name: 'createMemorySink',
       },
       {
-        moduleSpecifier: '@ontrails/tracing',
+        moduleSpecifier: '@ontrails/observability',
         name: 'registerTraceSink',
       },
     ]);

@@ -25,7 +25,6 @@
     "@ontrails/mcp": "workspace:^",
     "@ontrails/observability": "workspace:^",
     "@ontrails/store": "workspace:^",
-    "@ontrails/tracing": "workspace:^",
     "zod": "catalog:"
   },
   "devDependencies": {

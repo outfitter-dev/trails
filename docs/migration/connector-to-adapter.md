@@ -19,7 +19,7 @@ This guide is temporary. Deprecate it after first-party Trails projects and down
 | `JwtConnectorOptions` | `JwtAdapterOptions` | Update JWT option type imports from `@ontrails/permits/jwt`. |
 | `createJwtConnector(options)` | `createJwtAdapter(options)` | Update JWT auth factory imports from `@ontrails/permits/jwt`. |
 | auth resource config `{ connector: 'jwt' \| 'none' }` | `{ adapter: 'jwt' \| 'none' }` | Rename the discriminant in auth resource config and test fixtures. |
-| `createOtelConnector(options)` | `createOtelAdapter(options)` | Update OTel trace sink factory imports from `@ontrails/tracing/otel` or `@ontrails/tracing`; the exporter option is required. |
+| `createOtelConnector(options)` | `createOtelAdapter(options)` | Update OTel trace sink factory imports from `@ontrails/observability/otel`; the exporter option is required. |
 | `OtelConnectorOptions` | `OtelAdapterOptions` | Update OTel option type imports. |
 | `StoreConnectorOptions` | `StoreAdapterOptions` | Update store adapter option type imports from `@ontrails/store`. |
 | workspace root `connectors/` | `adapters/` | Update local workspace paths and regenerate `bun.lock` with `bun install`. |
@@ -29,7 +29,7 @@ This guide is temporary. Deprecate it after first-party Trails projects and down
 Built-in adapter subpaths remain intentionally scoped to their owning package when they are dependency-light:
 
 - `@ontrails/permits/jwt` remains the JWT auth adapter subpath.
-- `@ontrails/tracing/otel` remains the OpenTelemetry trace adapter subpath.
+- `@ontrails/observability/otel` remains the OpenTelemetry trace adapter subpath.
 
 Do not extract `@ontrails/jwt` or `@ontrails/otel` as part of this migration.
 
@@ -50,8 +50,8 @@ import type { AuthAdapter } from '@ontrails/permits';
 import { authAdapterSchema } from '@ontrails/permits';
 import { createJwtAdapter } from '@ontrails/permits/jwt';
 import type { JwtAdapterOptions } from '@ontrails/permits/jwt';
-import { createOtelAdapter } from '@ontrails/tracing/otel';
-import type { OtelAdapterOptions } from '@ontrails/tracing/otel';
+import { createOtelAdapter } from '@ontrails/observability/otel';
+import type { OtelAdapterOptions } from '@ontrails/observability/otel';
 ```
 
 Remove imports of `AuthConnector`, `authConnectorSchema`, `JwtConnectorOptions`, `createJwtConnector`, `OtelConnectorOptions`, and `createOtelConnector`.

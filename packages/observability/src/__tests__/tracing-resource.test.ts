@@ -3,11 +3,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { DEFAULT_SAMPLING } from '../sampling.js';
-import { createDevStore } from '../stores/dev.js';
-import type { TracingState } from '../tracing-state.js';
-import { clearTracingState, registerTracingState } from '../tracing-state.js';
-import { tracingResource } from '../tracing-resource.js';
+import { DEFAULT_SAMPLING } from '../dev/sampling.js';
+import { createDevStore } from '../dev/store.js';
+import type { TracingState } from '../dev/tracing-state.js';
+import {
+  clearTracingState,
+  registerTracingState,
+} from '../dev/tracing-state.js';
+import { tracingResource } from '../dev/tracing-resource.js';
 
 describe('tracingResource', () => {
   let tmpDir: string | undefined;

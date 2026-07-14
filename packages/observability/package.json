@@ -12,7 +12,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./dev": "./src/dev.ts",
     "./logtape": "./src/logtape.ts",
+    "./otel": "./src/otel.ts",
     "./package.json": "./package.json",
     "./pino": "./src/pino.ts"
   },
@@ -24,6 +26,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "peerDependencies": {
-    "@ontrails/core": "workspace:^"
+    "@ontrails/core": "workspace:^",
+    "zod": "catalog:"
   }
 }

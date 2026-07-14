@@ -1,7 +1,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { DevStoreQueryOptions } from '../stores/dev.js';
+import type { DevStoreQueryOptions } from '../store.js';
 import { tracingResource } from '../tracing-resource.js';
 
 /** Output schema for individual trace records. */

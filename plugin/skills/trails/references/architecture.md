@@ -109,7 +109,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observability` | Log and trace sink contracts, sink composition, built-in sinks, trace rendering | None beyond core |
-| `@ontrails/tracing` | Compatibility tracing exports, SQLite dev store, query/status trails, OTel adapter | None beyond core |
+| `@ontrails/observability` | Sink contracts plus `/dev` SQLite state/query trails and `/otel` export | None beyond core |
 | `@ontrails/observability/logtape` | Temporary LogTape sink adapter over `@ontrails/observability` | None (accepts any LogTape-shaped logger via a structural interface) |
 | `@ontrails/observability/pino` | Temporary Pino sink adapter over `@ontrails/observability` | None (accepts any Pino-shaped logger via a structural interface) |
 
@@ -131,7 +131,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/library (core)
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
-  <- @ontrails/tracing (core)
+  <- @ontrails/observability (core)
   <- @ontrails/observability (core)
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)

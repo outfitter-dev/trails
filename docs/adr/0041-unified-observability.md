@@ -4,7 +4,7 @@ slug: unified-observability
 title: Unified Observability
 status: accepted
 created: 2026-04-09
-updated: 2026-07-01
+updated: 2026-07-13
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 13, 39]
 ---
@@ -129,38 +129,38 @@ This keeps activation visible in traces even when no normal trail record exists,
 | `createFileSink(options)` | Append log records to a file; retention and rotation stay external. |
 | `createMemorySink(options?)` | Retain bounded trace records for local tooling and tests. |
 
-Future adapter exports beyond the v1 boundary remain packaging decisions. For v1, the dependency-light production sink contracts live in `@ontrails/observe`, while `@ontrails/tracing` intentionally owns tracing-specific developer-state tooling and the supported `@ontrails/tracing/otel` adapter subpath.
+Future adapter exports beyond the v1 boundary remain packaging decisions. For v1, the dependency-light production sink contracts live in `@ontrails/observability`; its `/dev` subpath owns tracing-specific developer-state tooling and its `/otel` subpath owns the supported OTel adapter.
 
 ### V1 package boundary
 
-For v1, `@ontrails/observe` is the canonical production observability package. App code and adapters that need log and trace sink contracts, sink composition, zero-dependency console/file/memory sinks, or trace rendering should import those APIs from `@ontrails/observe`.
+For v1, `@ontrails/observability` is the canonical observability package. App code and adapters that need log and trace sink contracts, sink composition, zero-dependency console/file/memory sinks, or trace rendering import those APIs from its root.
 
-`@ontrails/tracing` remains an intentional compatibility and developer-state package. It re-exports core tracing primitives so existing imports continue to work, and it owns tracing-specific local tooling that is not just a sink contract: sampling helpers, the tracing resource, tracing query/status trails, the SQLite dev store, and dev-state maintenance helpers.
+`@ontrails/observability/dev` owns tracing-specific local tooling that is not a production sink contract: sampling helpers, the tracing resource, tracing query/status trails, the SQLite dev store, and dev-state maintenance helpers. Intrinsic trace records, context propagation, signal trace helpers, and the process-level sink registry remain in `@ontrails/core`; there is no compatibility re-export package.
 
-`@ontrails/tracing/otel` remains the supported v1 OpenTelemetry adapter subpath. The API uses adapter vocabulary (`createOtelAdapter`, `OtelAdapterOptions`) and may move to a dedicated adapter package in a later release, but v1 does not require creating `@ontrails/otel`.
+`@ontrails/observability/otel` is the supported v1 OpenTelemetry adapter subpath. The API uses adapter vocabulary (`createOtelAdapter`, `OtelAdapterOptions`) and may move to a dedicated adapter package in a later release, but v1 does not require creating `@ontrails/otel`.
 
-**Migration closure (2026-07-01):** The split described above has landed. `@ontrails/tracing` no longer owns parallel implementations of signal trace construction or bounded memory sink retention. It re-exports the core signal helpers and wraps the observe-owned memory sink for compatibility.
+**Amendment (2026-07-13):** the temporary tracing compatibility package was removed once its remaining developer-state and OTel ownership had a truthful home. This is a multi-owner fold, not a root-package redirect: old root imports must be classified between core and `/dev`; the exact OTel subpath moves to `/otel`.
 
 ### Dev-time tracing vs production observability
 
-The split is deliberate. Core handles the inner development loop. `@ontrails/observe` handles production.
+The split is deliberate. Core owns intrinsic execution contracts. `@ontrails/observability` owns production sinks plus its explicit developer-state and OTel subpaths.
 
-| Concern | Core and `@ontrails/tracing` | `@ontrails/observe` and adapters |
+| Concern | `@ontrails/core` | `@ontrails/observability` and adapters |
 | --- | --- | --- |
 | Logging | Core logger contract, `ctx.logger` | Console/file sinks, pretty formatter, LogTape adapter |
-| Tracing | `TraceRecord`, `ctx.trace()`, propagation, sink registry, `NOOP_SINK`, sampling helpers, SQLite dev store, `@ontrails/tracing/otel` | Bounded memory sink, trace rendering, future production adapters |
-| Configuration | Zero — works out of the box; tracing dev-state bootstrap when query trails need a store | Adapter-level options for sinks, formatting, batching, and forwarding |
-| Dependencies | Core stays dependency-free; `@ontrails/tracing` owns `bun:sqlite` dev-state and the v1 OTel bridge | No dependencies beyond core for the shipped `@ontrails/observe` package |
+| Tracing | `TraceRecord`, `ctx.trace()`, propagation, sink registry, `NOOP_SINK` | `/dev` sampling helpers and SQLite state; `/otel` export; bounded memory sink and trace rendering at root |
+| Configuration | Zero — works out of the box | Developer-state bootstrap plus adapter-level options for sinks, formatting, batching, and forwarding |
+| Dependencies | Core stays dependency-free | No dependencies beyond core for the shipped package; `/dev` uses Bun SQLite and zod through the existing contract |
 
-A developer never needs `@ontrails/observe` to define or run trails. They need it when app code wants an explicit sink, trace rendering, file/console log output, or durable/exported observability. `@ontrails/tracing` remains the v1 home for local tracing state and query tooling.
+A developer never needs `@ontrails/observability` to define or run trails. They need it when app code wants an explicit sink, trace rendering, file/console log output, durable/exported observability, or the opt-in developer-state helpers under `/dev`.
 
 ### Topo configuration
 
 Observability follows the Trails posture: zero config by default, one declaration to customize.
 
-The process-level sink registry still keeps `NOOP_SINK` as the disabled baseline. Core owns that registry and the trace record contract, but not a storage sink. Bounded memory tracing is a package-level sink exposed by `@ontrails/observe` for app code and local tooling, and by `@ontrails/tracing` as a compatibility wrapper. Core does not allocate trace records until a real sink is installed.
+The process-level sink registry still keeps `NOOP_SINK` as the disabled baseline. Core owns that registry and the trace record contract, but not a storage sink. Bounded memory tracing is a package-level sink exposed by `@ontrails/observability` for app code and local tooling. Core does not allocate trace records until a real sink is installed.
 
-Without `@ontrails/observe`, the default execution path stays inert:
+Without `@ontrails/observability`, the default execution path stays inert:
 
 ```typescript
 const app = topo('myapp', trails)
@@ -171,7 +171,7 @@ const app = topo('myapp', trails)
 For local tooling or production, plug in an adapter or sink:
 
 ```typescript
-import { createMemorySink } from '@ontrails/observe'
+import { createMemorySink } from '@ontrails/observability'
 
 const app = topo('myapp', trails, {
   observe: createMemorySink({ maxRecords: 500 }),
@@ -197,7 +197,7 @@ import {
   createConsoleSink,
   createFileSink,
   createMemorySink,
-} from '@ontrails/observe'
+} from '@ontrails/observability'
 
 const app = topo('myapp', trails, {
   observe: combine(
@@ -218,8 +218,8 @@ Still one `observe:` declaration. The complexity lives in the adapter, not the t
 | `Track` | `TraceRecord` (internal type; developer-facing word is "trace") |
 | `trackerGate` | built-in tracing (intrinsic to `executeTrail`, not a separately attached layer) |
 | `tracker.from(ctx).track('name', fn)` | `ctx.trace('name', fn)` |
-| `@ontrails/tracing` sinks | `@ontrails/observe` contracts and adapters |
-| `@ontrails/logging` sinks | `@ontrails/observe` contracts and adapters |
+| `@ontrails/tracing` sinks | `@ontrails/core` plus `@ontrails/observability` ownership subpaths |
+| `@ontrails/logging` sinks | `@ontrails/observability` contracts and adapters |
 | `crumbs` (original) | no longer relevant |
 
 The developer-facing logger vocabulary does not change. `ctx.logger.info()`, `ctx.logger.error()` — these are already plain language.
@@ -241,7 +241,7 @@ registerTraceSink, getTraceSink      // process-level sink registry
 // Built-in tracing intrinsic to executeTrail
 ```
 
-Everything else — developer-configurable memory sinks, OTel, file sinks, SQLite dev stores, pretty formatters, sampling configuration — belongs in `@ontrails/observe` or compatibility/adapter packages that build on the same contracts.
+Everything else — developer-configurable memory sinks, OTel, file sinks, SQLite dev stores, pretty formatters, and sampling configuration — belongs in `@ontrails/observability` or its explicit ownership subpaths.
 
 ## Non-goals
 

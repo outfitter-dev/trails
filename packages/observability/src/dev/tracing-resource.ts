@@ -3,7 +3,7 @@ import { Result, resource } from '@ontrails/core';
 import type { TracingState } from './tracing-state.js';
 import { getTracingState } from './tracing-state.js';
 import { DEFAULT_SAMPLING } from './sampling.js';
-import { toTraceStore } from './stores/dev.js';
+import { toTraceStore } from './store.js';
 
 /** Default state when no explicit state has been registered. */
 const defaultState: TracingState = {

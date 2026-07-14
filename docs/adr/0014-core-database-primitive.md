@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails is Bun-native. Bun ships `bun:sqlite` as a first-class built-in: in-process, zero-latency, WAL-capable, with prepared statements and transactions. It adds no dependency. It's the same non-dependency as `node:fs`.
 
-Before this ADR, the framework had exactly one SQLite usage: the tracing DevStore in `@ontrails/tracing`, which recorded execution tracks to a subsystem-local database.[^devstore] It was an island. The tracing wrote to it; nothing else read from it or benefited from its existence.
+Before this ADR, the framework had exactly one SQLite usage: the tracing DevStore, now owned by `@ontrails/observability/dev`, which recorded execution tracks to a subsystem-local database.[^devstore] It was an island. The tracing wrote to it; nothing else read from it or benefited from its existence.
 
 Meanwhile, the framework generates and consumes several categories of structural and operational data that are persisted as JSON files or held in memory:
 

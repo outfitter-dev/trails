@@ -10,6 +10,13 @@ import type {
   TraceRecord,
   TraceSink,
 } from '@ontrails/observability';
+import {
+  DEFAULT_SAMPLING,
+  tracingQuery,
+  tracingResource,
+  tracingStatus,
+} from '@ontrails/observability/dev';
+import { createOtelAdapter } from '@ontrails/observability/otel';
 
 const createLogRecord = (level: LogLevel): LogRecord => ({
   category: 'observe.test',
@@ -79,5 +86,22 @@ describe('@ontrails/observability', () => {
     expect(traceRecords[0]?.traceId).toBe(context.traceId);
     expect(capabilities).toEqual({ log: true, trace: true });
     expect(messages).toEqual([context.traceId]);
+  });
+
+  test('exposes developer state and OTel through explicit subpaths', async () => {
+    const exported: unknown[] = [];
+    const otel = createOtelAdapter({
+      exporter: (spans) => {
+        exported.push(...spans);
+      },
+    });
+
+    await otel.write(createTraceRecord());
+
+    expect(DEFAULT_SAMPLING).toEqual({ destroy: 1, read: 0.05, write: 1 });
+    expect(tracingResource.id).toBe('tracing');
+    expect(tracingQuery.id).toBe('tracing.query');
+    expect(tracingStatus.id).toBe('tracing.status');
+    expect(exported).toHaveLength(1);
   });
 });

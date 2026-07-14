@@ -51,7 +51,6 @@ export const changelogHistoryPaths = [
   'packages/store/CHANGELOG.md',
   'packages/testing/CHANGELOG.md',
   'packages/topography/CHANGELOG.md',
-  'packages/tracing/CHANGELOG.md',
   'packages/warden/CHANGELOG.md',
 ] as const;
 
@@ -235,7 +234,7 @@ export const auditRules: readonly VocabAuditRule[] = [
       'packages/testing/src/harness-cli.ts',
       'packages/topography/src/__tests__/topo-store.test.ts',
       'packages/topography/src/topo-store.ts',
-      'packages/tracing/src/internal/dev-state.ts',
+      'packages/observability/src/dev/internal/dev-state.ts',
     ],
     id: 'run-field',
     pattern: String.raw`\brun\s*:\s*(?:(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>|function\s*\()`,

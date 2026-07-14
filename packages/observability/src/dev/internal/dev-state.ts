@@ -2,7 +2,7 @@ import type { Database } from 'bun:sqlite';
 
 import { ensureSubsystemSchema, openWriteTrailsDb } from '@ontrails/core';
 
-import type { DevStoreOptions } from '../stores/dev.js';
+import type { DevStoreOptions } from '../store.js';
 
 export const DEFAULT_MAX_RECORDS = 10_000;
 export const DEFAULT_MAX_AGE = 7 * 24 * 60 * 60 * 1000;

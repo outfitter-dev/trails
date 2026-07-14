@@ -688,12 +688,12 @@ createPinoSink(logger, options?)       // forward observe LogRecord values to a 
 PinoLogMethod, PinoLoggerLike, PinoSinkOptions
 ```
 
-## `@ontrails/tracing`
+## Intrinsic tracing and developer state
 
 Tracing is intrinsic in `executeTrail`. With a real sink installed, a trail execution writes a root `TraceRecord`, `ctx.trace(label, fn)` writes child spans, typed signal fan-out records `signal.*` lifecycle entries, and activation materializers record `activation.*` boundary entries. With `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays a passthrough.
 
 ```typescript
-// Sink registration (from @ontrails/core and re-exported from @ontrails/tracing)
+// Sink registration (from @ontrails/core)
 registerTraceSink(sink)              // install a sink for trace records
 getTraceSink()                       // get the currently registered sink
 clearTraceSink()                     // revert to the default no-op sink
@@ -701,15 +701,15 @@ NOOP_SINK                            // stable disabled-tracing sentinel
 TRACE_CONTEXT_KEY                    // context extensions key for the active trace context
 createTraceRecord(options)           // construct a root or child TraceRecord explicitly
 
-// Activation boundary helpers (from @ontrails/core and re-exported from @ontrails/tracing)
+// Activation boundary helpers (from @ontrails/core)
 createActivationTraceRecord(name, options?) // construct an activation boundary TraceRecord
 writeActivationTraceRecord(name, attrs, status?, category?, parent?) // write an activation boundary TraceRecord
 
-// Signal lifecycle helpers (from @ontrails/core and re-exported from @ontrails/tracing)
+// Signal lifecycle helpers (from @ontrails/core)
 createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
-// Compatibility/local testing sinks (wrapping @ontrails/observability; prefer @ontrails/observability for new sink usage)
+// Developer-state tools (from @ontrails/observability/dev)
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development
@@ -728,7 +728,6 @@ tracingQuery                         // trail: query execution history with filt
 // Context access (inside a trail implementation)
 ctx.trace(label, fn)                 // record a nested span around fn
 getTraceContext(ctx)                 // get current trace context
-createChildTraceContext(parent)      // create a child trace context
 
 // Sampling
 shouldSample(intent, config?)        // sampling decision based on intent
@@ -737,11 +736,13 @@ DEFAULT_SAMPLING                     // default sampling rates by intent
 TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupReport
 ```
 
-For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/observability/pino` separately for Pino-shaped log forwarding.
+Import intrinsic trace contracts and `createMemorySink()` from `@ontrails/core` or `@ontrails/observability` as indicated above. The developer-state APIs live at `@ontrails/observability/dev`.
 
-## `@ontrails/tracing/otel`
+For v1, OpenTelemetry trace export lives at `@ontrails/observability/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/observability/pino` separately for Pino-shaped log forwarding.
 
-`@ontrails/tracing/otel` is the v1 OpenTelemetry adapter home. It translates Trails-native `TraceRecord` values outward and does not require an OpenTelemetry SDK runtime dependency.
+## `@ontrails/observability/otel`
+
+`@ontrails/observability/otel` is the v1 OpenTelemetry adapter home. It translates Trails-native `TraceRecord` values outward and does not require an OpenTelemetry SDK runtime dependency.
 
 ```typescript
 createOtelAdapter(options)           // create a TraceSink with explicit flush()

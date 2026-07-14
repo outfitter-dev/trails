@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 
-import { DEFAULT_SAMPLING, shouldSample } from '../sampling.js';
+import { DEFAULT_SAMPLING, shouldSample } from '../dev/sampling.js';
 
 type Intent = 'read' | 'write' | 'destroy' | undefined;
 

@@ -9,7 +9,7 @@ import {
   applyTraceCleanup,
   countTraceRecords,
   ensureTraceSchema,
-} from '../internal/dev-state.js';
+} from './internal/dev-state.js';
 
 import type { TraceRecord, TraceSink } from '@ontrails/core';
 

@@ -22,7 +22,7 @@ The useful cases follow one pattern:
 - diagnostic base fields belong in `@ontrails/core`;
 - app and package code should consume those owners instead of copying the kernel locally.
 
-The tracing cleanup is the live proof. [ADR-0041](0041-unified-observability.md) already says core owns intrinsic tracing, `@ontrails/observe` owns app-facing sink contracts, and `@ontrails/tracing` remains compatibility plus developer state. This stack uses that boundary to remove the signal trace helper fork from `packages/tracing/src/signal-trace.ts` and the bounded memory sink fork from `packages/tracing/src/memory-sink.ts`.
+The observability cleanup is the live proof. [ADR-0041](0041-unified-observability.md) says core owns intrinsic tracing, `@ontrails/observability` owns app-facing sink contracts, its `/dev` subpath owns developer state, and `/otel` owns the OTel adapter. This stack removed the former tracing package after moving the remaining ownership to those boundaries.
 
 Without a package ownership rule, each cleanup is argued from scratch. Agents can fix the local duplicate while missing the reusable owner. That is how parallel ledgers grow.
 

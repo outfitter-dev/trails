@@ -39,7 +39,6 @@
     "@ontrails/regrade": "workspace:^",
     "@ontrails/source": "workspace:^",
     "@ontrails/topography": "workspace:^",
-    "@ontrails/tracing": "workspace:^",
     "@ontrails/warden": "workspace:^",
     "commander": "catalog:",
     "typescript": "^5.9.3",

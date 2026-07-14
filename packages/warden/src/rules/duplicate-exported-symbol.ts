@@ -58,48 +58,9 @@ const ALLOWED_DUPLICATE_EXPORT_GROUPS: readonly {
     workspaceNames: ['@ontrails/core', '@ontrails/observability'],
   },
   {
-    names: [
-      'DEFAULT_MEMORY_SINK_MAX_RECORDS',
-      'MemorySinkOptions',
-      'MemoryTraceSink',
-      'createBoundedMemorySink',
-      'createMemorySink',
-    ],
-    reason:
-      '@ontrails/tracing compatibility memory sink mirrors @ontrails/observability',
-    workspaceNames: ['@ontrails/observability', '@ontrails/tracing'],
-  },
-  {
-    names: [
-      'ActivationTraceRecordName',
-      'NOOP_SINK',
-      'SignalTraceRecordName',
-      'TRACE_CONTEXT_KEY',
-      'TraceFn',
-      'clearTraceSink',
-      'createActivationTraceRecord',
-      'createSignalTraceRecord',
-      'createTraceRecord',
-      'getTraceContext',
-      'getTraceSink',
-      'registerTraceSink',
-      'traceContextFromRecord',
-      'writeActivationTraceRecord',
-      'writeSignalTraceRecord',
-    ],
-    reason:
-      '@ontrails/tracing mirrors core tracing contracts for compatibility',
-    workspaceNames: ['@ontrails/core', '@ontrails/tracing'],
-  },
-  {
     names: ['TraceContext', 'TraceRecord', 'TraceSink'],
-    reason:
-      '@ontrails/observability and @ontrails/tracing mirror core trace contracts',
-    workspaceNames: [
-      '@ontrails/core',
-      '@ontrails/observability',
-      '@ontrails/tracing',
-    ],
+    reason: '@ontrails/observability mirrors core trace contracts',
+    workspaceNames: ['@ontrails/core', '@ontrails/observability'],
   },
   {
     names: ['AuthError', 'PermitError'],

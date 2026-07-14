@@ -16,7 +16,7 @@ import {
   openReadTrailsDb,
   TimeoutError,
 } from '@ontrails/core';
-import { createDevStore } from '@ontrails/tracing';
+import { createDevStore } from '@ontrails/observability/dev';
 
 import { devCleanTrail } from '../trails/dev-clean.js';
 import { devResetTrail } from '../trails/dev-reset.js';

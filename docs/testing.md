@@ -414,7 +414,7 @@ const trailPermit = createPermitForTrail(showTrail);
 
 ```typescript
 import { createMemorySink } from '@ontrails/observability';
-import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { registerTraceSink, clearTraceSink } from '@ontrails/core';
 
 const sink = createMemorySink({ maxRecords: 100 });
 registerTraceSink(sink);

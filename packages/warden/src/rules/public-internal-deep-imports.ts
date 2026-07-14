@@ -20,9 +20,7 @@ import type { WardenPublicWorkspace } from '../workspaces.js';
 
 const RULE_NAME = 'public-internal-deep-imports';
 const ONTRAILS_SPECIFIER_PATTERN = /^(@ontrails\/[^/]+)(?:\/(.+))?$/;
-const ROOT_BARREL_INTERNAL_RE_EXPORT_ALLOWLIST = new Set([
-  '@ontrails/tracing:./internal/dev-state.js',
-]);
+const ROOT_BARREL_INTERNAL_RE_EXPORT_ALLOWLIST = new Set<string>();
 
 interface ReExportSite {
   readonly importSource: string;

@@ -19,6 +19,8 @@ describe('governed vocabulary registry', () => {
       'v1-blaze-implementation',
       'v1-contour-entity',
       'v1-observe-observability',
+      'v1-tracing-owner-fold',
+      'v1-tracing-otel-observability-otel',
       'v1-topographer-topography',
       'v1-facet-trailhead',
       'v1-warden-ast-source',
@@ -30,6 +32,8 @@ describe('governed vocabulary registry', () => {
       'blaze',
       'contour',
       '@ontrails/observe',
+      '@ontrails/tracing',
+      '@ontrails/tracing/otel',
       'topographer',
       'facet',
       '@ontrails/warden/ast',
@@ -60,6 +64,17 @@ describe('governed vocabulary registry', () => {
       'v1-observe-observability'
     );
     expect(observability?.status).toBe('complete');
+
+    const tracing = getGovernedVocabularyTransition('v1-tracing-owner-fold');
+    expect(tracing?.target.kind).toBe('classified');
+
+    const otel = getGovernedVocabularyTransition(
+      'v1-tracing-otel-observability-otel'
+    );
+    expect(otel?.target).toEqual({
+      kind: 'single',
+      to: '@ontrails/observability/otel',
+    });
   });
 
   test('validates registry shape and rejects incomplete entries', () => {

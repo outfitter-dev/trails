@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 > **Status updates**
 >
 > - **2026-04-08:** Originally landed as "Tracker" and renamed to "Tracing" by [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md), implemented via TRL-196. The tracker→tracing rename, the `tracingLayer` → intrinsic-in-`executeTrail` collapse, and the `ctx.trace(label, fn)` API replacing `tracker.from(ctx).track(...)` all land through that ADR. The underlying recording, sink, and sampling design described here still governs; only the attachment mechanism and naming changed.
-> - **2026-07-01:** The ADR-0041 package migration is now complete for the v1 boundary. `@ontrails/core` owns trace records, trace context, sink registration, activation records, and signal trace writing. `@ontrails/observe` owns production sink contracts and bounded memory sink behavior. `@ontrails/tracing` remains as compatibility re-exports plus tracing-specific developer state: sampling helpers, `tracingResource`, query/status trails, SQLite dev store, dev-state maintenance, and the supported `@ontrails/tracing/otel` adapter subpath.
+> - **2026-07-13 amendment:** `@ontrails/core` owns trace records, trace context, sink registration, activation records, and signal trace writing. `@ontrails/observability` owns production sink contracts and bounded memory sink behavior; its `/dev` subpath owns sampling, query/status trails, SQLite dev state, and maintenance, while `/otel` owns the OTel adapter. The former tracing root had multiple owners and was removed without a one-to-one redirect.
 
 ## Context
 

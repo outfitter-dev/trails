@@ -2498,7 +2498,7 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
-          "context": "The tracing cleanup is the live proof. [ADR-0041](0041-unified-observability.md) already says core owns intrinsic tracing, `@ontrails/observe` owns app-facing sink contracts, and `@ontrails/tracing` r",
+          "context": "The observability cleanup is the live proof. [ADR-0041](0041-unified-observability.md) says core owns intrinsic tracing, `@ontrails/observability` owns app-facing sink contracts, its `/dev` subpath ow",
           "from": "0051",
           "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
         },
@@ -2535,7 +2535,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Unified Observability",
-      "updated": "2026-07-01"
+      "updated": "2026-07-13"
     },
     {
       "created": "2026-05-02",

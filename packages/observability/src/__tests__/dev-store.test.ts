@@ -5,9 +5,10 @@ import { join } from 'node:path';
 
 import { deriveTrailsDbPath } from '@ontrails/core';
 
-import type { TraceRecord } from '../trace-record.js';
-import type { DevStore } from '../stores/dev.js';
-import { createDevStore } from '../stores/dev.js';
+import type { TraceRecord } from '@ontrails/core';
+
+import type { DevStore } from '../dev/store.js';
+import { createDevStore } from '../dev/store.js';
 
 /** Build a minimal TraceRecord for testing. */
 const makeRecord = (overrides?: Partial<TraceRecord>): TraceRecord => ({

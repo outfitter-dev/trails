@@ -4,14 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { createResourceLookup, passthroughTrace } from '@ontrails/core';
-import type { TrailContext } from '@ontrails/core';
+import type { TraceRecord, TrailContext } from '@ontrails/core';
 
-import type { TraceRecord } from '../trace-record.js';
-import type { TracingState } from '../tracing-state.js';
-import { DEFAULT_SAMPLING } from '../sampling.js';
-import type { DevStore } from '../stores/dev.js';
-import { createDevStore } from '../stores/dev.js';
-import { tracingQuery } from '../trails/tracing-query.js';
+import type { TracingState } from '../dev/tracing-state.js';
+import { DEFAULT_SAMPLING } from '../dev/sampling.js';
+import type { DevStore } from '../dev/store.js';
+import { createDevStore } from '../dev/store.js';
+import { tracingQuery } from '../dev/trails/tracing-query.js';
 
 /** Build a TrailContext with tracingResource resolved in extensions. */
 const buildCtx = (state: TracingState): TrailContext => {

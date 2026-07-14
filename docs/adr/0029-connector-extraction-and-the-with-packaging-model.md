@@ -141,7 +141,7 @@ For HTTP:
 
 `@ontrails/hono` remains extracted because Hono is a third-party framework and a real dependency boundary. It composes over `@ontrails/http/fetch` rather than duplicating Web request parsing, error projection, webhook handling, or diagnostics.
 
-This rule does not imply a standalone package for every vendor-named adapter. For example, v1 OTel support remains at `@ontrails/tracing/otel` unless the implementation needs a hard OpenTelemetry SDK dependency or a separate release boundary.
+This rule does not imply a standalone package for every vendor-named adapter. For example, v1 OTel support remains at `@ontrails/observability/otel` unless the implementation needs a hard OpenTelemetry SDK dependency or a separate release boundary.
 
 ### Adapters can stack
 

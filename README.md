@@ -158,7 +158,7 @@ $ myapp greet --name World
 | [`@ontrails/topography`](./packages/topography) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence, Wayfind graph-read query APIs |
 | [`@ontrails/source`](./packages/source) | Shared source-code AST parsing, walking, locations, edits, literals, and Trails syntax helpers |
 | [`@ontrails/observability`](./packages/observability) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
-| [`@ontrails/tracing`](./packages/tracing) | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter |
+| [`@ontrails/observability`](./packages/observability) | Log and trace sinks, `/dev` query/status and `trails.db` state, sampling helpers, `/otel` export |
 | [`@ontrails/observability/logtape`](./packages/observability) | Temporary adapter subpath that forwards Trails log records to a LogTape-shaped logger |
 | [`@ontrails/observability/pino`](./packages/observability) | Temporary adapter subpath that forwards Trails log records to a Pino-shaped logger |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |

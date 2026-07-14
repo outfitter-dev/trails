@@ -10,9 +10,9 @@ Use `@ontrails/observability` for app-facing observability contracts and sinks: 
 
 `@ontrails/core` owns intrinsic tracing execution: `TraceRecord`, `ctx.trace()`, trace context propagation, and the process-level trace sink registry.
 
-`@ontrails/tracing` remains a compatibility and developer-state package for tracing-specific local tooling: query/status trails, the SQLite dev store, sampling helpers, and the supported `@ontrails/tracing/otel` OpenTelemetry adapter subpath.
+`@ontrails/observability/dev` owns developer-state tooling: query/status trails, the SQLite dev store, sampling helpers, and state maintenance. Import intrinsic trace records, contexts, and the process-level sink registry from `@ontrails/core`.
 
-For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. That adapter translates Trails-native `TraceRecord` values to callback-delivered OTel-shaped spans without requiring the OpenTelemetry SDK as a runtime dependency. Use `@ontrails/observability/pino` separately when forwarding log records to a Pino-shaped logger.
+For v1, OpenTelemetry trace export lives at `@ontrails/observability/otel`; there is no standalone `@ontrails/otel` package. That adapter translates Trails-native `TraceRecord` values to callback-delivered OTel-shaped spans without requiring the OpenTelemetry SDK as a runtime dependency. Use `@ontrails/observability/pino` separately when forwarding log records to a Pino-shaped logger.
 
 ```typescript
 import {
@@ -67,4 +67,4 @@ const sink = createPinoSink(logger);
 
 ## Migration from `@ontrails/logging`
 
-`@ontrails/logging` was retired before v1. Move sink contracts, console/file sinks, formatters, and bounded memory sinks to `@ontrails/observability`. Use `@ontrails/observability/logtape` for LogTape forwarding, `@ontrails/observability/pino` for Pino forwarding, and `@ontrails/tracing` for tracing registry, dev-store, query/status, sampling, and OTel adapter APIs.
+`@ontrails/logging` was retired before v1. Move sink contracts, console/file sinks, formatters, and bounded memory sinks to `@ontrails/observability`. Use `@ontrails/observability/logtape` for LogTape forwarding, `@ontrails/observability/pino` for Pino forwarding, `@ontrails/observability/dev` for developer-state tooling, and `@ontrails/core` for intrinsic trace contracts.
