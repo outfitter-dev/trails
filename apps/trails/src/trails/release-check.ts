@@ -44,6 +44,13 @@ const contractReleaseFactSchema = z.object({
   workspacePath: z.string().optional(),
 });
 
+const packageRouteReleaseFactSchema = z.object({
+  kind: z.enum(['classified', 'single']),
+  sourcePackage: z.string(),
+  targetPackage: z.string().optional(),
+  transitionId: z.string(),
+});
+
 const releaseCheckOutputSchema = z.object({
   activePackageChangesetsWithoutReleaseFacts: z.array(z.string()).readonly(),
   affectedPackages: z.array(z.string()).readonly(),
@@ -55,6 +62,7 @@ const releaseCheckOutputSchema = z.object({
   formatted: z.string(),
   matchedRuleIds: z.array(z.string()).readonly(),
   noReleaseOverride: z.boolean(),
+  packageRouteFacts: z.array(packageRouteReleaseFactSchema).readonly(),
   passed: z.boolean(),
   releaseNone: z.boolean(),
   uncoveredContractFacts: z.array(contractReleaseFactSchema).readonly(),

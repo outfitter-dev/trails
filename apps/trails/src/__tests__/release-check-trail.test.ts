@@ -1,5 +1,6 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import { afterEach, describe, expect, test } from 'bun:test';
+import { execSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -87,6 +88,12 @@ const makeTempRoot = (): string => {
     name: '@ontrails/trails',
   });
   writeFile(root, 'apps/trails/src/app.ts', 'export {};\n');
+  execSync('git init', { cwd: root, stdio: 'ignore' });
+  execSync('git add .', { cwd: root, stdio: 'ignore' });
+  execSync(
+    'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+    { cwd: root, stdio: 'ignore' }
+  );
   return root;
 };
 
@@ -133,7 +140,7 @@ describe('trails release check', () => {
     ]);
 
     const result = await releaseCheckTrail.implementation(
-      { changedFiles: changedFilesPath, rootDir: root },
+      { baseRef: 'HEAD', changedFiles: changedFilesPath, rootDir: root },
       { cwd: root, env: { TRAILS_ENV: 'test' } } as never
     );
 
@@ -169,7 +176,7 @@ describe('trails release check', () => {
     );
 
     const result = await releaseCheckTrail.implementation(
-      { changedFiles: changedFilesPath, rootDir: root },
+      { baseRef: 'HEAD', changedFiles: changedFilesPath, rootDir: root },
       { cwd: root, env: { TRAILS_ENV: 'test' } } as never
     );
 
@@ -179,7 +186,7 @@ describe('trails release check', () => {
     }
     expect(result.value.passed).toBe(true);
     expect(result.value.configPath).toBe(join(root, 'trails.config.ts'));
-  });
+  }, 30_000);
 
   test('loads release rules from trails.config.json', async () => {
     const root = makeTempRoot();
@@ -199,7 +206,7 @@ describe('trails release check', () => {
     });
 
     const result = await releaseCheckTrail.implementation(
-      { changedFiles: changedFilesPath, rootDir: root },
+      { baseRef: 'HEAD', changedFiles: changedFilesPath, rootDir: root },
       { cwd: root, env: { TRAILS_ENV: 'test' } } as never
     );
 
@@ -222,6 +229,8 @@ describe('trails release check', () => {
       root,
       '--changed-files',
       changedFilesPath,
+      '--base-ref',
+      'HEAD',
       '--json',
     ]);
 

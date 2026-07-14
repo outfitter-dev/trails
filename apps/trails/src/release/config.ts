@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const releaseFactTypeValues = [
   'package-content',
+  'public-package-route',
   'public-trail-contract',
 ] as const;
 
@@ -31,6 +32,15 @@ export type ReleaseRule = z.output<typeof releaseRuleSchema>;
 export type ReleaseRuleInput = z.input<typeof releaseRuleSchema>;
 
 export const defaultReleaseRules = [
+  {
+    description:
+      'Public package removals require an exact governed Regrade route or classified multi-owner fold plus branch-local release intent.',
+    enabled: true,
+    facts: ['public-package-route'],
+    id: 'public-package-route-requires-regrade',
+    intent: ['changeset'],
+    severity: 'error',
+  },
   {
     description:
       'Publishable package content changes require positive release intent.',

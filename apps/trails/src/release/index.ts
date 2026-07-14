@@ -32,6 +32,11 @@ export {
   type ContractSourceSnapshot,
 } from './contract-facts.js';
 export {
+  findPackageRouteReleaseFacts,
+  type PackageRouteReleaseDiagnostic,
+  type PackageRouteReleaseFact,
+} from './package-route-facts.js';
+export {
   defaultReleaseConfig,
   defaultReleaseRules,
   releaseConfigSchema,

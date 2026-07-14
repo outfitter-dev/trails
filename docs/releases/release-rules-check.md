@@ -32,9 +32,10 @@ In this repo, `bun run dogfood:packed` and `bun run wayfinder:dogfood` remain pa
 
 ## Facts
 
-The current default rules inspect two fact families:
+The current default rules inspect three fact families:
 
 - `package-content`: changed shipping files inside non-private publishable `@ontrails/*` workspaces.
+- `public-package-route`: a non-private publishable package present at the base ref but absent now. The release check requires an exact governed Regrade transition. Its single target must be a current publishable package; a classified transition is the explicit non-migratable reason for a truthful multi-owner fold.
 - `public-trail-contract`: changed public trail additions/removals, visibility transitions, input schemas, output schemas, or surface exposure.
 
 The public contract detector is intentionally source-static for this first slice. It reports trail id, changed aspect, source path, affected package, and base/current source hashes when available. Future release facts can graduate to Topography or Wayfinder graph diffs once baseline/current artifact handling is settled.
@@ -55,20 +56,21 @@ export default defineConfig({
 });
 ```
 
-The default config includes two error rules:
+The default config includes three error rules:
 
 - `package-content-requires-intent`
+- `public-package-route-requires-regrade`
 - `public-trail-contract-requires-intent`
 
-Rules are project policy, not branch paperwork. A branch satisfies a matching rule by carrying positive release intent.
+Rules are project policy, not branch paperwork. A branch satisfies package-content and public-trail-contract rules by carrying positive release intent. A public-package-route fact additionally requires the exact governed route and a branch-local changeset covering its surviving single target or one current classified owner; this keeps a package retirement from degrading into a module-not-found error plus prose. The transition registry is the Regrade owner, while `release.check` owns the before/after package-inventory verdict.
 
 ## Intent
 
 A branch-local `.changeset/*.md` entry is the normal intent source. It says the branch changes user-visible package content and should flow into Changesets, package changelogs, and the next version plan.
 
-`release:none` remains a compatibility no-release override. It is a claim, not the primitive. Use it only when the branch touches package files but does not ship user-visible package content, and record the reason in the PR, issue, or handoff. A branch with both `release:none` and changed changeset files fails.
+`release:none` remains a compatibility no-release override. It is a claim, not the primitive. Use it only when the branch touches package files but does not ship user-visible package content, and record the reason in the PR, issue, or handoff. It never bypasses a public-package-route requirement: package retirement is user-visible even when no other package-content fact remains. A branch with both `release:none` and changed changeset files fails.
 
-An active package changeset is also release intent. If a branch adds or modifies `.changeset/*.md` without any matching package-content, generated version release, or public trail contract fact, the check fails. Deleted changesets are ignored for this inverse guard so cleanup branches can remove mistaken release intent without adding package noise.
+An active package changeset is also release intent. If a branch adds or modifies `.changeset/*.md` without any matching package-content, public-package-route, generated version release, or public trail contract fact, the check fails. Deleted changesets are ignored for this inverse guard so cleanup branches can remove mistaken release intent without adding package noise.
 
 ## Graphite Stacks
 

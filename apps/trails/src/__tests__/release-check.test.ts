@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import {
   checkReleaseRules,
   discoverWorkspaces,
+  runReleaseCheck,
   runReleaseCheckCli,
 } from '../release/check.js';
 import type { WorkspaceInfo } from '../release/check.js';
@@ -48,6 +49,12 @@ const contractFact = (
   workspacePath: 'packages/core',
 });
 
+const basePackage = (name: string): WorkspaceInfo => ({
+  isPrivate: false,
+  name,
+  relativePath: `packages/${name.slice('@ontrails/'.length)}`,
+});
+
 const withTempRepo = <T>(
   setup: (repoRoot: string) => T
 ): { readonly repoRoot: string; readonly value: T } => {
@@ -66,6 +73,247 @@ const withTempRepo = <T>(
 };
 
 describe('checkReleaseRules', () => {
+  test('fails a removed public package without an exact governed route', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/not-governed')],
+        changedFiles: [],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('does not let release:none bypass an ungoverned public package removal', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/not-governed')],
+        changedFiles: [],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('accepts an exact governed package rename with a present target', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'observe-rename.md'),
+        "---\n'@ontrails/observability': major\n---\n\nRename observability owner.\n"
+      );
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/observe')],
+        changedFiles: ['.changeset/observe-rename.md'],
+        repoRoot,
+        workspaces: [...workspaces, basePackage('@ontrails/observability')],
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.packageRouteFacts).toEqual([
+        {
+          kind: 'single',
+          sourcePackage: '@ontrails/observe',
+          targetPackage: '@ontrails/observability',
+          transitionId: 'v1-observe-observability',
+        },
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('fails an exact governed route when its target package is absent', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/observe')],
+        changedFiles: [],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Governed Regrade route 'v1-observe-observability' maps '@ontrails/observe' to '@ontrails/observability', but that publishable target package is absent. Add the target package before applying the route, or use a classified transition with an explicit non-migratable reason for a multi-owner fold.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('accepts a classified governed fold without inventing a root target', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'tracing-fold.md'),
+        "---\n'@ontrails/core': patch\n---\n\nFold tracing ownership.\n"
+      );
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/tracing')],
+        changedFiles: ['.changeset/tracing-fold.md'],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.packageRouteFacts).toEqual([
+        {
+          kind: 'classified',
+          sourcePackage: '@ontrails/tracing',
+          transitionId: 'v1-tracing-owner-fold',
+        },
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('requires a branch-local changeset for a governed public package route', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/tracing')],
+        changedFiles: [],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        'Public package route changesets must cover a surviving owner: @ontrails/tracing',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects an unrelated changeset for a single package route', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'unrelated.md'),
+        "---\n'@ontrails/core': patch\n---\n\nUnrelated.\n"
+      );
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/observe')],
+        changedFiles: ['.changeset/unrelated.md'],
+        repoRoot,
+        workspaces: [...workspaces, basePackage('@ontrails/observability')],
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        'Public package route changesets must cover a surviving owner: @ontrails/observe',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('accepts an exact governed module-specifier package route', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'topography-rename.md'),
+        "---\n'@ontrails/topography': major\n---\n\nRename topography owner.\n"
+      );
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/topographer')],
+        changedFiles: ['.changeset/topography-rename.md'],
+        repoRoot,
+        workspaces: [...workspaces, basePackage('@ontrails/topography')],
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.packageRouteFacts).toEqual([
+        {
+          kind: 'single',
+          sourcePackage: '@ontrails/topographer',
+          targetPackage: '@ontrails/topography',
+          transitionId: 'v1-topographer-topography',
+        },
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('counts a package route as evidence for an active changeset', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'tracing-fold.md'),
+        "---\n'@ontrails/core': patch\n---\n\nFold tracing ownership.\n"
+      );
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [basePackage('@ontrails/tracing')],
+        changedFiles: ['.changeset/tracing-fold.md'],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.activePackageChangesetsWithoutReleaseFacts).toEqual([]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('ignores private, added, and subpath-only package changes', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseRules({
+        baseWorkspaces: [
+          {
+            isPrivate: true,
+            name: '@ontrails/private-old',
+            relativePath: 'tools/private-old',
+          },
+        ],
+        changedFiles: [],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.packageRouteFacts).toEqual([]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
   test('fails package-affecting publishable workspace changes without a covering changeset', () => {
     const { repoRoot } = withTempRepo(() => {});
 
@@ -511,6 +759,465 @@ export const userCreate = trail('user.create', {
     }
   });
 
+  test('fails when an explicit base ref cannot provide the workspace inventory', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'core'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'core', 'package.json'),
+        JSON.stringify({ name: '@ontrails/core' })
+      );
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        baseRef: 'missing-base-ref',
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Release check could not read the base workspace inventory from 'missing-base-ref'. Fetch or provide a valid --base-ref before checking package routes.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('requires a base ref for changed-file release checks', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        'Release check requires --base-ref when --changed-files is used.',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('derives removed packages from base workspace patterns with a leading dot', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'core'), { recursive: true });
+      mkdirSync(join(repoRoot, 'packages', 'retired'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['./packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'core', 'package.json'),
+        JSON.stringify({ name: '@ontrails/core' })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'retired', 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      rmSync(join(repoRoot, 'packages', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        baseRef: 'HEAD',
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('derives package routes for direct checks with a base ref', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'retired'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'retired', 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      rmSync(join(repoRoot, 'packages', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+
+      const result = checkReleaseRules({
+        baseRef: 'HEAD',
+        changedFiles: [],
+        repoRoot,
+        workspaces: [],
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('derives removals from a trailing-slash base workspace selector', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'retired'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/retired/'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'retired', 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      rmSync(join(repoRoot, 'packages', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        baseRef: 'HEAD',
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('derives removed packages from an exact root workspace in the base', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed', workspaces: ['.'] })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        baseRef: 'HEAD',
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('derives removals from a dot-slash root workspace selector', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed', workspaces: ['./'] })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        baseRef: 'HEAD',
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('derives removals from an explicit base when current workspaces are absent', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'retired'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'retired', 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      rmSync(join(repoRoot, 'packages', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      writeFileSync(join(repoRoot, 'changed-files.txt'), '');
+
+      const result = await runReleaseCheck({
+        baseRef: 'HEAD',
+        changedFilesPath: join(repoRoot, 'changed-files.txt'),
+        repoRoot,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('defaults local checks to origin main when current workspaces are absent', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'retired'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'retired', 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init --initial-branch=main', {
+        cwd: repoRoot,
+        stdio: 'ignore',
+      });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      execSync('git update-ref refs/remotes/origin/main HEAD', {
+        cwd: repoRoot,
+        stdio: 'ignore',
+      });
+      rmSync(join(repoRoot, 'packages', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      execSync('git add -A', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m retire',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+
+      const result = await runReleaseCheck({ repoRoot });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Public package removal '@ontrails/not-governed' requires an exact governed Regrade route. Add the route to the governed transition registry, then run trails regrade plan/check.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects unsupported base workspace patterns', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'retired'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/**'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'retired', 'package.json'),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init --initial-branch=main', {
+        cwd: repoRoot,
+        stdio: 'ignore',
+      });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      execSync('git update-ref refs/remotes/origin/main HEAD', {
+        cwd: repoRoot,
+        stdio: 'ignore',
+      });
+      rmSync(join(repoRoot, 'packages', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      execSync('git add -A', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m retire',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+
+      const result = await runReleaseCheck({ repoRoot });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Unsupported workspace pattern 'packages/**'. The release check supports exact workspace paths and one-level '/*' globs.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects base workspace patterns with a nested glob', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-base-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'core', 'plugins', 'retired'), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*/plugins/*'] })
+      );
+      writeFileSync(
+        join(
+          repoRoot,
+          'packages',
+          'core',
+          'plugins',
+          'retired',
+          'package.json'
+        ),
+        JSON.stringify({ name: '@ontrails/not-governed' })
+      );
+      execSync('git init --initial-branch=main', {
+        cwd: repoRoot,
+        stdio: 'ignore',
+      });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+      execSync('git update-ref refs/remotes/origin/main HEAD', {
+        cwd: repoRoot,
+        stdio: 'ignore',
+      });
+      rmSync(join(repoRoot, 'packages', 'core', 'plugins', 'retired'), {
+        force: true,
+        recursive: true,
+      });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'app' })
+      );
+      execSync('git add -A', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m retire',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+
+      const result = await runReleaseCheck({ repoRoot });
+
+      expect(result.passed).toBe(false);
+      expect(result.errors).toEqual([
+        "Unsupported workspace pattern 'packages/*/plugins/*'. The release check supports exact workspace paths and one-level '/*' globs.",
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('passes as a no-op in non-workspace generated apps', async () => {
     const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-app-'));
 
@@ -518,6 +1225,29 @@ export const userCreate = trail('user.create', {
       writeFileSync(
         join(repoRoot, 'package.json'),
         JSON.stringify({ name: 'fresh-app' })
+      );
+
+      await expect(runReleaseCheckCli(['--repo-root', repoRoot])).resolves.toBe(
+        0
+      );
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('passes as a no-op in a git generated app without origin main', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-app-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'fresh-app' })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
       );
 
       await expect(runReleaseCheckCli(['--repo-root', repoRoot])).resolves.toBe(
@@ -594,6 +1324,23 @@ describe('discoverWorkspaces', () => {
 
       await expect(discoverWorkspaces(repoRoot)).rejects.toThrow(
         "Unsupported workspace pattern 'packages/**'"
+      );
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects workspace patterns with a nested glob', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-workspaces-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*/plugins/*'] })
+      );
+
+      await expect(discoverWorkspaces(repoRoot)).rejects.toThrow(
+        "Unsupported workspace pattern 'packages/*/plugins/*'"
       );
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });

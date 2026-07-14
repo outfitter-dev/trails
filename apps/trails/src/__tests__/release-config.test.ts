@@ -7,15 +7,18 @@ import {
 } from '../release/index.js';
 
 describe('release config schema', () => {
-  test('defaults to package and public contract release rules', () => {
+  test('defaults to package, package-route, and public contract release rules', () => {
     expect(defaultReleaseConfig.rules.map((rule) => rule.id)).toEqual([
+      'public-package-route-requires-regrade',
       'package-content-requires-intent',
       'public-trail-contract-requires-intent',
     ]);
     expect(defaultReleaseConfig.rules.map((rule) => rule.facts)).toEqual([
+      ['public-package-route'],
       ['package-content'],
       ['public-trail-contract'],
     ]);
+    expect(defaultReleaseConfig.rules[0]?.intent).toEqual(['changeset']);
   });
 
   test('accepts project-defined release rules', () => {
@@ -44,6 +47,7 @@ describe('release config schema', () => {
   test('keeps fact type vocabulary tight', () => {
     expect(releaseFactTypeValues).toEqual([
       'package-content',
+      'public-package-route',
       'public-trail-contract',
     ]);
   });

@@ -8,6 +8,8 @@ import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
 import { findPublicTrailContractChangeFacts } from './contract-facts.js';
 import type { ContractReleaseFact } from './contract-facts.js';
+import { findPackageRouteReleaseFacts } from './package-route-facts.js';
+import type { PackageRouteReleaseFact } from './package-route-facts.js';
 
 interface PackageJson {
   readonly name?: string;
@@ -23,6 +25,8 @@ export interface WorkspaceInfo {
 
 export interface ReleaseCheckInput {
   readonly baseRef?: string;
+  readonly baseWorkspaceError?: string;
+  readonly baseWorkspaces?: readonly WorkspaceInfo[];
   readonly changedFiles: readonly string[];
   readonly contractFacts?: readonly ContractReleaseFact[];
   readonly noReleaseOverride?: boolean;
@@ -42,6 +46,7 @@ export interface ReleaseCheckResult {
   readonly errors: readonly string[];
   readonly matchedRuleIds: readonly string[];
   readonly noReleaseOverride: boolean;
+  readonly packageRouteFacts: readonly PackageRouteReleaseFact[];
   readonly passed: boolean;
   /** Compatibility alias for the existing GitHub label and package script. */
   readonly releaseNone: boolean;
@@ -97,10 +102,20 @@ const VERSION_RELEASE_WORKSPACE_FILES = new Set([
   'package.json',
 ]);
 const normalizePath = (path: string): string =>
-  path.replaceAll('\\', '/').replace(/^\.\//u, '');
+  path.replaceAll('\\', '/').replace(/^\.\//u, '').replace(/\/+$/u, '');
+
+const normalizeWorkspacePattern = (pattern: string): string =>
+  normalizePath(pattern) || '.';
 
 const hasWorkspaceGlobSyntax = (pattern: string): boolean =>
   WORKSPACE_GLOB_SYNTAX_PATTERN.test(pattern);
+
+const isSupportedWorkspacePattern = (pattern: string): boolean =>
+  !hasWorkspaceGlobSyntax(pattern) ||
+  (pattern.endsWith('/*') && !hasWorkspaceGlobSyntax(pattern.slice(0, -2)));
+
+const unsupportedWorkspacePatternError = (pattern: string): string =>
+  `Unsupported workspace pattern '${pattern}'. The release check supports exact workspace paths and one-level '/*' globs.`;
 
 const readJson = async <T>(path: string): Promise<T> =>
   (await Bun.file(path).json()) as T;
@@ -112,6 +127,10 @@ const discoverWorkspaceDirs = async (
   const dirs: string[] = [];
 
   for (const pattern of patterns) {
+    if (!isSupportedWorkspacePattern(pattern)) {
+      throw new Error(unsupportedWorkspacePatternError(pattern));
+    }
+
     if (pattern.endsWith('/*')) {
       const parent = join(repoRoot, pattern.slice(0, -2));
       let names: string[] = [];
@@ -143,12 +162,6 @@ const discoverWorkspaceDirs = async (
     if (await Bun.file(join(dir, 'package.json')).exists()) {
       dirs.push(dir);
       continue;
-    }
-
-    if (hasWorkspaceGlobSyntax(pattern)) {
-      throw new Error(
-        `Unsupported workspace pattern '${pattern}'. The release check supports exact workspace paths and one-level '/*' globs.`
-      );
     }
 
     throw new Error(
@@ -188,6 +201,126 @@ export const discoverWorkspaces = async (
   return workspaces.toSorted((left, right) =>
     left.relativePath.localeCompare(right.relativePath)
   );
+};
+
+interface BaseWorkspaceDiscovery {
+  readonly error?: string;
+  readonly workspaces: readonly WorkspaceInfo[];
+}
+
+const baseWorkspaceReadError = (baseRef: string): string =>
+  `Release check could not read the base workspace inventory from '${baseRef}'. Fetch or provide a valid --base-ref before checking package routes.`;
+
+const discoverBaseWorkspaces = (
+  repoRoot: string,
+  baseRef: string | undefined
+): BaseWorkspaceDiscovery => {
+  if (baseRef === undefined) {
+    return { workspaces: [] };
+  }
+
+  const root = Bun.spawnSync({
+    cmd: ['git', 'show', `${baseRef}:package.json`],
+    cwd: repoRoot,
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+  if (root.exitCode !== 0) {
+    return { error: baseWorkspaceReadError(baseRef), workspaces: [] };
+  }
+  const workspacePatterns = (
+    JSON.parse(root.stdout.toString()) as PackageJson
+  ).workspaces?.map(normalizeWorkspacePattern);
+  if (!workspacePatterns || workspacePatterns.length === 0) {
+    return { workspaces: [] };
+  }
+  const unsupportedPattern = workspacePatterns.find(
+    (pattern) => !isSupportedWorkspacePattern(pattern)
+  );
+  if (unsupportedPattern) {
+    return {
+      error: unsupportedWorkspacePatternError(unsupportedPattern),
+      workspaces: [],
+    };
+  }
+
+  const listed = Bun.spawnSync({
+    cmd: ['git', 'ls-tree', '-r', '--name-only', baseRef],
+    cwd: repoRoot,
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+  if (listed.exitCode !== 0) {
+    return { error: baseWorkspaceReadError(baseRef), workspaces: [] };
+  }
+
+  const workspaces: WorkspaceInfo[] = [];
+  for (const relativePath of listed.stdout.toString().split(/\r?\n/u)) {
+    if (
+      !relativePath.endsWith('/package.json') &&
+      relativePath !== 'package.json'
+    ) {
+      continue;
+    }
+    const workspacePath =
+      relativePath === 'package.json'
+        ? '.'
+        : normalizePath(relativePath.replace(/\/package\.json$/u, ''));
+    const isWorkspace = workspacePatterns.some(
+      (pattern) =>
+        pattern === workspacePath ||
+        (pattern.endsWith('/*') &&
+          workspacePath.startsWith(pattern.slice(0, -1)) &&
+          !workspacePath.slice(pattern.length - 1).includes('/'))
+    );
+    if (!isWorkspace) {
+      continue;
+    }
+    const shown = Bun.spawnSync({
+      cmd: ['git', 'show', `${baseRef}:${relativePath}`],
+      cwd: repoRoot,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    if (shown.exitCode !== 0) {
+      return { error: baseWorkspaceReadError(baseRef), workspaces: [] };
+    }
+    const pkg = JSON.parse(shown.stdout.toString()) as PackageJson;
+    if (!pkg.name) {
+      continue;
+    }
+    workspaces.push({
+      isPrivate: pkg.private === true,
+      name: pkg.name,
+      relativePath: workspacePath,
+    });
+  }
+  return {
+    workspaces: workspaces.toSorted((left, right) =>
+      left.name.localeCompare(right.name)
+    ),
+  };
+};
+
+const resolveBaseWorkspaceInput = (
+  input: ReleaseCheckInput
+): BaseWorkspaceDiscovery => {
+  if (input.baseWorkspaces !== undefined) {
+    return {
+      ...(input.baseWorkspaceError === undefined
+        ? {}
+        : { error: input.baseWorkspaceError }),
+      workspaces: input.baseWorkspaces,
+    };
+  }
+
+  const discovered = discoverBaseWorkspaces(input.repoRoot, input.baseRef);
+  const error = input.baseWorkspaceError ?? discovered.error;
+
+  return {
+    ...(error === undefined ? {} : { error }),
+    workspaces: discovered.workspaces,
+  };
 };
 
 const isPublishableOnTrailsWorkspace = (workspace: WorkspaceInfo): boolean =>
@@ -380,9 +513,45 @@ const findMatchedRuleIds = (input: ReleaseCheckInput): readonly string[] => {
     .toSorted();
 };
 
+const findPackageRouteRuleErrors = ({
+  coveredPackages,
+  packageRoute,
+  requiresPackageRoute,
+}: {
+  readonly coveredPackages: readonly string[];
+  readonly packageRoute: ReturnType<typeof findPackageRouteReleaseFacts>;
+  readonly requiresPackageRoute: boolean;
+}): readonly string[] => {
+  if (!requiresPackageRoute) {
+    return [];
+  }
+
+  const errors = packageRoute.diagnostics.map(
+    (diagnostic) => diagnostic.message
+  );
+
+  const uncoveredIntents = packageRoute.intents.filter(
+    (intent) =>
+      !intent.eligiblePackages.some((packageName) =>
+        coveredPackages.includes(packageName)
+      )
+  );
+
+  if (uncoveredIntents.length > 0) {
+    errors.push(
+      `Public package route changesets must cover a surviving owner: ${uncoveredIntents
+        .map((intent) => intent.sourcePackage)
+        .join(', ')}`
+    );
+  }
+
+  return errors;
+};
+
 export const checkReleaseRules = (
   input: ReleaseCheckInput
 ): ReleaseCheckResult => {
+  const baseWorkspaceInput = resolveBaseWorkspaceInput(input);
   const noReleaseOverride =
     input.noReleaseOverride === true || input.releaseNone === true;
   const affectedPackages = findAffectedPackages(
@@ -399,6 +568,10 @@ export const checkReleaseRules = (
     ...new Set(changesets.flatMap((changeset) => changeset.packages)),
   ].toSorted();
   const contractFacts = findGateContractFacts(input);
+  const packageRoute = findPackageRouteReleaseFacts({
+    baseWorkspaces: baseWorkspaceInput.workspaces,
+    workspaces: input.workspaces,
+  });
   const versionRelease = isVersionReleaseChangeSet(
     input.changedFiles,
     input.workspaces,
@@ -411,7 +584,10 @@ export const checkReleaseRules = (
     (fact) => !isContractFactCovered(fact, coveredPackages)
   );
   const hasReleaseFacts =
-    affectedPackages.length > 0 || contractFacts.length > 0 || versionRelease;
+    affectedPackages.length > 0 ||
+    contractFacts.length > 0 ||
+    packageRoute.facts.length > 0 ||
+    versionRelease;
   const activePackageChangesetsWithoutReleaseFacts =
     activeChangedChangesets.length > 0 && !hasReleaseFacts
       ? activeChangedChangesets
@@ -422,7 +598,15 @@ export const checkReleaseRules = (
     input,
     'public-trail-contract'
   );
+  const requiresPackageRoute = ruleMatchesFactType(
+    input,
+    'public-package-route'
+  );
   const errors: string[] = [];
+
+  if (baseWorkspaceInput.error) {
+    errors.push(baseWorkspaceInput.error);
+  }
 
   if (noReleaseOverride && changedChangesets.length > 0) {
     errors.push(
@@ -447,6 +631,14 @@ export const checkReleaseRules = (
     );
   }
 
+  errors.push(
+    ...findPackageRouteRuleErrors({
+      coveredPackages,
+      packageRoute,
+      requiresPackageRoute,
+    })
+  );
+
   if (
     !noReleaseOverride &&
     !versionRelease &&
@@ -469,6 +661,7 @@ export const checkReleaseRules = (
     errors,
     matchedRuleIds,
     noReleaseOverride,
+    packageRouteFacts: packageRoute.facts,
     passed: errors.length === 0,
     releaseNone: noReleaseOverride,
     uncoveredContractFacts,
@@ -514,6 +707,17 @@ const readLocalChangedFiles = (
   }
 
   return parseChangedFilesOutput(result.stdout.toString());
+};
+
+const hasGitRef = (repoRoot: string, ref: string): boolean => {
+  const result = Bun.spawnSync({
+    cmd: ['git', 'rev-parse', '--verify', '--quiet', `${ref}^{commit}`],
+    cwd: repoRoot,
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+
+  return result.exitCode === 0;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -769,9 +973,16 @@ export const runReleaseCheck = async (
   options: RunReleaseCheckOptions
 ): Promise<ReleaseCheckReport> => {
   const workspaces = await discoverWorkspaces(options.repoRoot);
+  const changedFilesBaseError =
+    options.changedFilesPath !== undefined && options.baseRef === undefined
+      ? 'Release check requires --base-ref when --changed-files is used.'
+      : undefined;
   const baseRef =
     options.baseRef ??
-    (options.changedFilesPath === undefined ? 'origin/main' : undefined);
+    (options.changedFilesPath === undefined &&
+    (workspaces.length > 0 || hasGitRef(options.repoRoot, 'origin/main'))
+      ? 'origin/main'
+      : undefined);
   let changedFiles: readonly string[];
 
   if (options.changedFilesPath !== undefined) {
@@ -792,8 +1003,16 @@ export const runReleaseCheck = async (
     env: options.env,
     repoRoot: options.repoRoot,
   });
+  const baseWorkspaceDiscovery = discoverBaseWorkspaces(
+    options.repoRoot,
+    baseRef
+  );
+  const baseWorkspaceError =
+    changedFilesBaseError ?? baseWorkspaceDiscovery.error;
   const result = checkReleaseRules({
     ...(baseRef === undefined ? {} : { baseRef }),
+    ...(baseWorkspaceError === undefined ? {} : { baseWorkspaceError }),
+    baseWorkspaces: baseWorkspaceDiscovery.workspaces,
     changedFiles,
     ...(loadedConfig.config === undefined
       ? {}
