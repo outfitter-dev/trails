@@ -32,6 +32,7 @@ import {
   trailsMcpIncludedTrails,
   trailsMcpSurfaceOptions,
 } from '../mcp-options.js';
+import { planRegradeTrail } from '../trails/regrade.js';
 import { wayfindOutlineTrail } from '../trails/wayfind-outline.js';
 
 const unwrapTools = (...args: Parameters<typeof deriveMcpTools>) => {
@@ -292,6 +293,15 @@ describe('Trails MCP surface shaping', () => {
 
       expect(planResult.isError).toBeUndefined();
       expect(planResult.structuredContent).toMatchObject({
+        derivation: {
+          forms: expect.arrayContaining([
+            expect.objectContaining({
+              from: 'facet',
+              provenance: 'authored',
+              to: 'trailhead',
+            }),
+          ]),
+        },
         kind: 'regrade-plan',
         path: '.trails/regrade/facet-to-trailhead.json',
         plan: { from: 'facet', to: 'trailhead' },
@@ -327,7 +337,7 @@ describe('Trails MCP surface shaping', () => {
           report: {
             dispositions: {
               'code-context-out-of-engine': 1,
-              'historical-by-policy': 7,
+              'historical-by-policy': 14,
             },
             gate: {
               remaining: 1,
@@ -335,7 +345,7 @@ describe('Trails MCP surface shaping', () => {
             },
             modified: 1,
             open: 1,
-            scopeTiers: { 'in-scope': 1, 'policy-classified': 7 },
+            scopeTiers: { 'in-scope': 1, 'policy-classified': 14 },
           },
         },
         scan: {
@@ -358,7 +368,7 @@ describe('Trails MCP surface shaping', () => {
       expect(structured.selectedClassIds).toContain(
         'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId'
       );
-      expect(structured.run?.ledger?.occurrences).toHaveLength(7);
+      expect(structured.run?.ledger?.occurrences).toHaveLength(14);
       expect(structured.run?.ledger?.occurrences).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -370,6 +380,50 @@ describe('Trails MCP surface shaping', () => {
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facetId'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('seeds classified governed Regrade plans through MCP', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'Projection docs project facts.\n');
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const planRegrade = requireTool(tools, 'trails_plan_regrade');
+
+      const result = await planRegrade.handler(
+        { from: 'projection', rootDir: dir, to: 'render' },
+        {}
+      );
+
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toMatchObject({
+        derivation: {
+          forms: expect.arrayContaining([
+            expect.objectContaining({
+              from: 'projection',
+              kind: 'review',
+              source: 'plan-defer',
+            }),
+          ]),
+        },
+        path: '.trails/regrade/v1-projection-derive-render.json',
+        plan: {
+          deferForms: [
+            'projection',
+            'projections',
+            'project',
+            'projected',
+            'Projected',
+          ],
+          id: 'v1-projection-derive-render',
+          to: 'render',
+        },
+      });
+      expect(JSON.stringify(result.structuredContent)).not.toContain(
+        '"safe-rewrite"'
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -524,8 +578,8 @@ describe('Trails MCP surface shaping', () => {
         },
         run: {
           report: {
-            dispositions: { 'historical-by-policy': 10 },
-            scopeTiers: { 'in-scope': 0, 'policy-classified': 10 },
+            dispositions: { 'historical-by-policy': 16 },
+            scopeTiers: { 'in-scope': 0, 'policy-classified': 16 },
           },
         },
       });
@@ -994,16 +1048,24 @@ describe('Trails MCP surface shaping', () => {
       const planRegrade = requireTool(tools, 'trails_plan_regrade');
       const previewRegrade = requireTool(tools, 'trails_preview_regrade');
 
-      const planResult = await planRegrade.handler(
-        {
-          expand: true,
-          from: 'alpha',
-          rootDir: dir,
-          to: 'omega',
-        },
-        {}
-      );
+      const input = {
+        expand: true,
+        from: 'alpha',
+        rootDir: dir,
+        to: 'omega',
+      };
+      const direct = await planRegradeTrail.implementation(input, {
+        cwd: dir,
+        dryRun: true,
+        env: {},
+      } as never);
+      expect(direct.isOk()).toBe(true);
+      if (direct.isErr()) {
+        throw direct.error;
+      }
+      const planResult = await planRegrade.handler(input, {});
       expect(planResult.isError).toBeUndefined();
+      expect(planResult.structuredContent).toEqual(direct.value);
       const result = await previewRegrade.handler({ rootDir: dir }, {});
 
       expect(result.isError).toBeUndefined();
@@ -1042,6 +1104,7 @@ describe('Trails MCP surface shaping', () => {
           candidates: [
             expect.objectContaining({
               kind: 'form',
+              provenance: 'derived',
               status: 'pending',
               suggestedClassification: 'in-family-unresolved',
               value: 'alphaing',

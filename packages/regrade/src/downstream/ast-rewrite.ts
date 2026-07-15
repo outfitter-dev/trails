@@ -233,6 +233,8 @@ export interface AstIdentifierRenameClassOptions {
   readonly from: string;
   readonly id?: string;
   readonly match?: AstIdentifierRenameMatchMode;
+  /** Route every matching identifier to review instead of producing an edit. */
+  readonly reviewAllMatches?: boolean;
   readonly reviewDeclarationTypes?: ReadonlySet<string>;
   readonly reviewExistingTargetSegments?: readonly string[];
   readonly shouldPreserve?: (
@@ -578,6 +580,34 @@ export const createAstIdentifierRenameClass = (
           kind: 'review',
           note: caution,
           reason: 'ast-identifier-token-span-unverified',
+        };
+      }
+
+      if (options.reviewAllMatches === true) {
+        const location = offsetToLineColumn(context.source, span.start);
+        const caution = `Identifier "${match.from}" is a derived naming candidate; routed to review.`;
+        return {
+          detail: {
+            candidateReplacement: match.to,
+            expectedTarget: `Review identifier "${match.from}" before renaming it to "${match.to}".`,
+            judgment: 'unresolved',
+            matchedForm: match.from,
+            nodeKind: node.type,
+            preserveCautions: [caution],
+            reason: 'ast-identifier-plan-review',
+            signals: ['ast:identifier-rename'],
+            span: {
+              column: location.column,
+              end: span.end,
+              line: location.line,
+              start: span.start,
+            },
+            suggestedValidation: 'bun run typecheck',
+            symbol: match.from,
+          },
+          kind: 'review',
+          note: caution,
+          reason: 'ast-identifier-plan-review',
         };
       }
 

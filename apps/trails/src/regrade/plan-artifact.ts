@@ -10,6 +10,7 @@ import type {
   RegradeReportEntry,
   VocabularyRegradePlan,
 } from '@ontrails/regrade';
+import { getGovernedVocabularyTransition } from '@ontrails/warden';
 import { createHash } from 'node:crypto';
 import { join, normalize, relative } from 'node:path';
 import { z } from 'zod';
@@ -17,6 +18,108 @@ import { z } from 'zod';
 export const REGRADE_PLAN_SCHEMA_VERSION = 1;
 
 const regradePlanProvenanceValueSchema = z.enum(['authored', 'derived']);
+
+const regradePlanDerivationSchema = z
+  .object({
+    fileRenames: z.array(
+      z
+        .object({
+          evidence: z.array(z.string()),
+          from: z.string(),
+          provenance: z.literal('derived'),
+          status: z.literal('pending'),
+          to: z.string(),
+        })
+        .strict()
+    ),
+    forms: z.array(
+      z
+        .object({
+          from: z.string(),
+          kind: z.enum(['review', 'safe-rewrite']),
+          provenance: regradePlanProvenanceValueSchema,
+          reason: z.string(),
+          source: z.enum([
+            'default-morphology',
+            'plan-defer',
+            'plan-override',
+            'seed',
+          ]),
+          to: z.string().optional(),
+        })
+        .strict()
+    ),
+    namespaces: z.array(
+      z
+        .object({
+          inScope: z.number().int().nonnegative(),
+          namespace: z.string(),
+          policyClassified: z.number().int().nonnegative(),
+          provenance: z.literal('derived'),
+        })
+        .strict()
+    ),
+    preserves: z.array(
+      z
+        .object({
+          disposition: z.literal('preserve-current-live-api'),
+          evidence: z.array(z.string()),
+          pattern: z.string(),
+          provenance: z.literal('derived'),
+          reason: z.string().optional(),
+        })
+        .strict()
+    ),
+    referenceClosure: z
+      .object({
+        entries: z.array(
+          z
+            .object({
+              outcome: z.enum(['needs-review', 'rewrite']),
+              path: z.string(),
+              provenance: z.literal('derived'),
+              reason: z.string().optional(),
+            })
+            .strict()
+        ),
+        issue: z.string().optional(),
+        moves: z.array(
+          z
+            .object({
+              deferred: z.number().int().nonnegative(),
+              from: z.string(),
+              historical: z.number().int().nonnegative(),
+              preserved: z.number().int().nonnegative(),
+              provenance: z.literal('derived'),
+              rewritten: z.number().int().nonnegative(),
+              skipped: z.number().int().nonnegative(),
+              to: z.string(),
+            })
+            .strict()
+        ),
+      })
+      .strict(),
+    reviews: z.array(
+      z
+        .object({
+          evidence: z.array(
+            z
+              .object({
+                column: z.number().int().positive().optional(),
+                line: z.number().int().positive().optional(),
+                path: z.string(),
+              })
+              .strict()
+          ),
+          provenance: z.literal('derived'),
+          reason: z.string(),
+          status: z.literal('pending'),
+          value: z.string(),
+        })
+        .strict()
+    ),
+  })
+  .strict();
 
 const classRegradePlanScopeSchema = z
   .object({
@@ -86,6 +189,7 @@ const regradeExpansionCandidateSchema = z.union([
       )
       .default([]),
     kind: z.enum(['file-rename', 'form', 'namespace', 'preserve']),
+    provenance: regradePlanProvenanceValueSchema.default('derived'),
     reason: z.string().optional(),
     status: z.enum(['pending', 'rejected']).default('pending'),
     suggestedClassification: z.string(),
@@ -107,6 +211,7 @@ const regradeExpansionCandidateSchema = z.union([
         },
       ],
       kind: 'file-rename' as const,
+      provenance: 'derived' as const,
       ...(candidate.detail === undefined ? {} : { reason: candidate.detail }),
       status: candidate.status,
       suggestedClassification: 'legacy-path-candidate',
@@ -116,6 +221,7 @@ const regradeExpansionCandidateSchema = z.union([
 
 export const regradePlanArtifactSchema = z
   .object({
+    derivation: regradePlanDerivationSchema.optional(),
     expansion: z
       .object({
         candidates: z.array(regradeExpansionCandidateSchema).default([]),
@@ -148,6 +254,7 @@ export interface RegradePlanExpansion {
       readonly path: string;
     }[];
     readonly kind: 'file-rename' | 'form' | 'namespace' | 'preserve';
+    readonly provenance: 'authored' | 'derived';
     readonly reason?: string | undefined;
     readonly status: 'pending' | 'rejected';
     readonly suggestedClassification: string;
@@ -156,6 +263,7 @@ export interface RegradePlanExpansion {
 }
 
 export interface RegradePlanArtifact {
+  readonly derivation?: RegradePlanDerivation | undefined;
   readonly expansion?: RegradePlanExpansion | undefined;
   readonly kind: 'regrade-plan';
   readonly path: string;
@@ -167,6 +275,10 @@ export interface RegradePlanArtifact {
   readonly sourceHash: string;
   readonly transitionId?: string | undefined;
 }
+
+export type RegradePlanDerivation = z.output<
+  typeof regradePlanDerivationSchema
+>;
 
 /** A plan artifact narrowed to a vocabulary plan body. */
 export type VocabularyRegradePlanArtifact = RegradePlanArtifact & {
@@ -185,7 +297,15 @@ const regradePlanSlug = (plan: Pick<VocabularyRegradePlan, 'from' | 'to'>) =>
 export const regradePlanSlugForBody = (plan: RegradePlanBody): string =>
   plan.kind === 'class'
     ? regradeSlugText(plan.name ?? plan.classIds.join('-'))
-    : regradePlanSlug(plan);
+    : (() => {
+        const transition =
+          plan.id === undefined
+            ? undefined
+            : getGovernedVocabularyTransition(plan.id);
+        return transition?.target.kind === 'classified'
+          ? regradeSlugText(transition.id)
+          : regradePlanSlug(plan);
+      })();
 
 const normalizeRelativePath = (path: string): string =>
   normalize(path).replaceAll('\\', '/');

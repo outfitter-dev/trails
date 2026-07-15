@@ -755,8 +755,20 @@ export const governedVocabularyTransitions =
       intent:
         'Split projection vocabulary into derive/render by lifecycle stage for v1.',
       kind: 'vocabulary',
-      oldForms: ['projection', 'projections', 'project', 'projected'],
-      reviewForms: ['projection', 'projections', 'project', 'projected'],
+      oldForms: [
+        'projection',
+        'projections',
+        'project',
+        'projected',
+        'Projected',
+      ],
+      reviewForms: [
+        'projection',
+        'projections',
+        'project',
+        'projected',
+        'Projected',
+      ],
       safeRewriteForms: {},
       scope: {
         policyClassified: [

@@ -118,6 +118,32 @@ export interface VocabularyFileRenameEvidence extends VocabularyFileRename {
   readonly skipped: number;
 }
 
+/**
+ * One deterministic form proposal synthesized from a vocabulary seed.
+ *
+ * @example
+ * ```ts
+ * const proposal: VocabularyFormProposal = {
+ *   from: 'facets',
+ *   kind: 'safe-rewrite',
+ *   reason: 'default-morphology',
+ *   source: 'default-morphology',
+ *   to: 'trailheads',
+ * };
+ * ```
+ */
+export interface VocabularyFormProposal {
+  readonly from: string;
+  readonly kind: 'review' | 'safe-rewrite';
+  readonly reason: string;
+  readonly source:
+    | 'default-morphology'
+    | 'plan-defer'
+    | 'plan-override'
+    | 'seed';
+  readonly to?: string;
+}
+
 export interface VocabularyRegradePlan {
   readonly caseSensitive?: boolean;
   readonly deferForms?: readonly string[];
@@ -707,6 +733,97 @@ const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] => {
     ),
     ...(plan.deferForms ?? []),
   ]);
+};
+
+/**
+ * Synthesize the deterministic form proposal carried by a minimal plan seed.
+ *
+ * @example
+ * ```ts
+ * const forms = deriveVocabularyFormProposals({
+ *   from: 'facet',
+ *   kind: 'vocabulary',
+ *   to: 'trailhead',
+ * });
+ * ```
+ */
+export const deriveVocabularyFormProposals = (
+  plan: VocabularyRegradePlan
+): readonly VocabularyFormProposal[] => {
+  const overrideForms = new Set(Object.keys(plan.overrides ?? {}));
+  const explicitDefers = new Set(
+    (plan.deferForms ?? []).map((form) => formIdentityForPlan(plan, form))
+  );
+  const safeProposals = [...targetFormsForPlan(plan).entries()].flatMap(
+    ([from, to]): readonly VocabularyFormProposal[] => {
+      if (explicitDefers.has(formIdentityForPlan(plan, from))) {
+        return [];
+      }
+      if (from === plan.from) {
+        return [
+          {
+            from,
+            kind: 'safe-rewrite',
+            reason: 'minimal-seed',
+            source: 'seed',
+            to,
+          },
+        ];
+      }
+      if (overrideForms.has(from)) {
+        return [
+          {
+            from,
+            kind: 'safe-rewrite',
+            reason: 'authored-or-governed-override',
+            source: 'plan-override',
+            to,
+          },
+        ];
+      }
+      return [
+        {
+          from,
+          kind: 'safe-rewrite',
+          reason: 'default-morphology',
+          source: 'default-morphology',
+          to,
+        },
+      ];
+    }
+  );
+  const casingProposals: VocabularyFormProposal[] = [];
+  if (isSimpleVocabularyWord(plan.from) && isSimpleVocabularyWord(plan.to)) {
+    const from = `${plan.from.slice(0, 1).toUpperCase()}${plan.from.slice(1)}`;
+    const to = `${plan.to.slice(0, 1).toUpperCase()}${plan.to.slice(1)}`;
+    if (from !== plan.from && !explicitDefers.has(from)) {
+      casingProposals.push({
+        from,
+        kind: 'review',
+        reason: 'uncertain-casing-or-public-name',
+        source: 'default-morphology',
+        to,
+      });
+    }
+  }
+  return [
+    ...safeProposals,
+    ...casingProposals,
+    ...deferFormsForPlan(plan).map((from) => ({
+      from,
+      kind: 'review' as const,
+      reason: explicitDefers.has(from)
+        ? 'authored-or-governed-defer'
+        : 'uncertain-morphology',
+      source: explicitDefers.has(from)
+        ? ('plan-defer' as const)
+        : ('default-morphology' as const),
+    })),
+  ].toSorted((left, right) =>
+    left.from === right.from
+      ? left.kind.localeCompare(right.kind)
+      : left.from.localeCompare(right.from)
+  );
 };
 
 const validateVocabularyScope = (

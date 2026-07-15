@@ -13,8 +13,14 @@ export {
   selectRegradeClasses,
   wardenTermRewriteClasses,
 } from './downstream/report.js';
-export { runFileRenameRegrade } from './downstream/file-renames.js';
-export type { FileRenameRegradeRun } from './downstream/file-renames.js';
+export {
+  deriveFileRenameCandidates,
+  runFileRenameRegrade,
+} from './downstream/file-renames.js';
+export type {
+  FileRenameCandidate,
+  FileRenameRegradeRun,
+} from './downstream/file-renames.js';
 export {
   cliAliasesExportRestructureClass,
   createWardenExportRestructureClass,
@@ -25,6 +31,7 @@ export {
 export {
   VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION,
   buildVocabularyTransitionRecord,
+  deriveVocabularyFormProposals,
   readVocabularyTransitionRecord,
   runVocabularyRegrade,
   transitionRecordReportWithSummary,
@@ -38,6 +45,7 @@ export {
 export {
   listVocabularyRegradePlansFromRegistry,
   vocabularyRegradePlanFromTransition,
+  vocabularyRegradePlanForInput,
   vocabularyRegradeTransitionForInput,
 } from './downstream/vocabulary-registry.js';
 export type {
@@ -64,6 +72,7 @@ export type {
   VocabularyDisposition,
   VocabularyFileRename,
   VocabularyFileRenameEvidence,
+  VocabularyFormProposal,
   VocabularyOccurrence,
   VocabularyPreserveInventoryEntry,
   VocabularyPreserveRule,

@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
 
 import {
+  deriveVocabularyFormProposals,
   readVocabularyTransitionRecord,
   runVocabularyRegrade,
   transitionRecordReportWithSummary,
@@ -21,6 +22,7 @@ import {
 import {
   listVocabularyRegradePlansFromRegistry,
   vocabularyRegradePlanFromTransition,
+  vocabularyRegradePlanForInput,
 } from '../vocabulary-registry.js';
 
 const makeTempDir = (): string =>
@@ -33,6 +35,75 @@ const writeFile = (root: string, path: string, value: string): void => {
 };
 
 describe('runVocabularyRegrade', () => {
+  test('derives case-insensitive defers with runtime form identity', () => {
+    const proposals = deriveVocabularyFormProposals({
+      deferForms: ['Users'],
+      from: 'user',
+      kind: 'vocabulary',
+      to: 'account',
+    });
+
+    expect(
+      proposals.find((proposal) => proposal.from === 'users')
+    ).toBeUndefined();
+    expect(proposals.find((proposal) => proposal.from === 'Users')?.kind).toBe(
+      'review'
+    );
+  });
+
+  test('derives deterministic safe and review morphology from a minimal seed', () => {
+    expect(
+      deriveVocabularyFormProposals({
+        deferForms: ['facetized'],
+        from: 'facet',
+        kind: 'vocabulary',
+        overrides: { faceting: 'trailheading' },
+        to: 'trailhead',
+      })
+    ).toEqual([
+      {
+        from: 'facet',
+        kind: 'safe-rewrite',
+        reason: 'minimal-seed',
+        source: 'seed',
+        to: 'trailhead',
+      },
+      {
+        from: 'Facet',
+        kind: 'review',
+        reason: 'uncertain-casing-or-public-name',
+        source: 'default-morphology',
+        to: 'Trailhead',
+      },
+      {
+        from: 'faceted',
+        kind: 'review',
+        reason: 'uncertain-morphology',
+        source: 'default-morphology',
+      },
+      {
+        from: 'faceting',
+        kind: 'safe-rewrite',
+        reason: 'authored-or-governed-override',
+        source: 'plan-override',
+        to: 'trailheading',
+      },
+      {
+        from: 'facetized',
+        kind: 'review',
+        reason: 'authored-or-governed-defer',
+        source: 'plan-defer',
+      },
+      {
+        from: 'facets',
+        kind: 'safe-rewrite',
+        reason: 'default-morphology',
+        source: 'default-morphology',
+        to: 'trailheads',
+      },
+    ]);
+  });
+
   test('runs single-target governed vocabulary transitions from the registry', () => {
     const transition = getGovernedVocabularyTransition('v1-facet-trailhead');
     expect(transition).toBeDefined();
@@ -446,6 +517,58 @@ describe('runVocabularyRegrade', () => {
     }
 
     expect(vocabularyRegradePlanFromTransition(transition)).toBeNull();
+  });
+
+  test('seeds classified registry transitions as review-only plans', () => {
+    expect(vocabularyRegradePlanForInput('projection', 'derive')).toMatchObject(
+      {
+        deferForms: [
+          'projection',
+          'projections',
+          'project',
+          'projected',
+          'Projected',
+        ],
+        from: 'projection',
+        id: 'v1-projection-derive-render',
+        intent:
+          'Split projection vocabulary into derive/render by lifecycle stage for v1.',
+        kind: 'vocabulary',
+        scope: {
+          policyClassified: expect.arrayContaining([
+            expect.objectContaining({ paths: ['docs/adr/0*.md'] }),
+          ]),
+          teachingSurfaces: ['docs/**'],
+        },
+        to: 'derive',
+      }
+    );
+    expect(
+      vocabularyRegradePlanForInput('projection', 'derive')?.overrides
+    ).toBeUndefined();
+    expect(vocabularyRegradePlanForInput('projection', 'unknown')).toBeNull();
+
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/category.md', 'Projected facts are presented.\n');
+      const plan = vocabularyRegradePlanForInput('projection', 'derive');
+      if (plan === null) {
+        throw new Error('Expected classified projection plan.');
+      }
+      const report = runVocabularyRegrade({
+        plan: { ...plan, scope: { include: ['docs/**'] } },
+        root: dir,
+      });
+      expect(report.isOk()).toBe(true);
+      if (report.isErr()) {
+        throw report.error;
+      }
+      expect(report.value.run.ledger.occurrences).toContainEqual(
+        expect.objectContaining({ form: 'Projected', verdict: 'deferred' })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 
   test('does not turn review-only registry defaults into unsafe plans', () => {

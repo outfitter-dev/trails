@@ -29,7 +29,9 @@ bun apps/trails/bin/trails.ts regrade plan facet trailhead \
 PLAN_PATH="$(jq -r '.path' .tmp-regrade/facet-trailhead-plan.json)"
 ```
 
-Use the family names for the current transition. Planning writes an active plan artifact under `.trails/regrade/<slug>.json`; it does not apply source edits. Do not substitute raw `rg` for the Regrade report; raw search is only the census cross-check.
+Use the family names for the current transition. The `from`/`to` pair is the primary seed: planning derives morphology proposals, review-only filename candidates, namespace counts, and matching live-topo preserves into `derivation`, with provenance on every proposal. Review that synthesis before authoring overrides, deferrals, preserves, or `fileRenames`. Planning writes an active plan artifact under `.trails/regrade/<slug>.json`; it does not apply source edits. Do not substitute raw `rg` for the Regrade report; raw search is only the census cross-check.
+
+For a governed classified transition, choose one ratified target as the plan seed. Regrade keys the active plan and history spine by the governed transition identity, defers every governed source form, and derives no safe rewrite. The selected target records planning intent; it does not claim that every occurrence shares that successor. Use the structured review inventory for contextual follow-up edits, rerun `plan --fresh` to capture the reviewed source state, then check and apply the clean evidence. Per-form overrides cannot express two meanings of the same source word and are not the graduation path for a classified transition.
 
 Record:
 

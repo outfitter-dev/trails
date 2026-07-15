@@ -66,20 +66,47 @@ const defaultFormsAreRegistrySafe = (
   });
 };
 
+const classifiedTargetMatches = (
+  transition: GovernedVocabularyTransition,
+  to: string
+): boolean =>
+  transition.target.kind === 'classified' &&
+  transition.target.options.some((option) => option.to === to);
+
+const uniqueForms = (forms: readonly string[]): readonly string[] => [
+  ...new Set(forms),
+];
+
 export const vocabularyRegradePlanFromTransition = (
-  transition: GovernedVocabularyTransition
+  transition: GovernedVocabularyTransition,
+  classifiedTarget?: string
 ): VocabularyRegradePlan | null => {
+  const isClassifiedPlan =
+    classifiedTarget !== undefined &&
+    classifiedTargetMatches(transition, classifiedTarget);
+  if (transition.target.kind === 'classified' && !isClassifiedPlan) {
+    return null;
+  }
   if (
-    transition.target.kind !== 'single' ||
+    transition.target.kind === 'single' &&
     !defaultFormsAreRegistrySafe(transition)
   ) {
     return null;
   }
 
   const scope = scopeFromTransition(transition);
+  const to =
+    transition.target.kind === 'single'
+      ? transition.target.to
+      : classifiedTarget;
+  if (to === undefined) {
+    return null;
+  }
   return {
     caseSensitive: true,
-    deferForms: transition.reviewForms,
+    deferForms: isClassifiedPlan
+      ? uniqueForms([...transition.oldForms, ...transition.reviewForms])
+      : transition.reviewForms,
     ...(transition.fileRenames.length === 0
       ? {}
       : {
@@ -89,17 +116,33 @@ export const vocabularyRegradePlanFromTransition = (
     id: transition.id,
     intent: transition.intent,
     kind: 'vocabulary',
-    overrides: transition.safeRewriteForms,
+    ...(isClassifiedPlan ? {} : { overrides: transition.safeRewriteForms }),
     preserve: preserveRulesFromTransition(transition),
     ...(scope === undefined ? {} : { scope }),
-    to: transition.target.to,
+    to,
   };
+};
+
+export const vocabularyRegradePlanForInput = (
+  from: string,
+  to: string
+): VocabularyRegradePlan | null => {
+  const transition = listGovernedVocabularyTransitions().find(
+    (candidate) => candidate.from === from
+  );
+  if (transition === undefined) {
+    return null;
+  }
+  if (transition.target.kind === 'single' && transition.target.to !== to) {
+    return null;
+  }
+  return vocabularyRegradePlanFromTransition(transition, to);
 };
 
 export const listVocabularyRegradePlansFromRegistry =
   (): readonly VocabularyRegradePlan[] =>
     listGovernedVocabularyTransitions()
-      .map(vocabularyRegradePlanFromTransition)
+      .map((transition) => vocabularyRegradePlanFromTransition(transition))
       .filter((plan): plan is VocabularyRegradePlan => plan !== null);
 
 export const vocabularyRegradeTransitionForInput = (
@@ -109,6 +152,7 @@ export const vocabularyRegradeTransitionForInput = (
   listGovernedVocabularyTransitions().find(
     (transition) =>
       transition.from === from &&
-      transition.target.kind === 'single' &&
-      transition.target.to === to
+      (transition.target.kind === 'single'
+        ? transition.target.to === to
+        : transition.target.options.some((option) => option.to === to))
   );

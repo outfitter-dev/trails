@@ -29,13 +29,32 @@ import type {
 } from './report.js';
 import { buildRegradeScanSummary } from './scan-summary.js';
 import type { DownstreamSourceCollection } from './collect.js';
-import { vocabularyRewriteFormsForPlan } from './vocabulary.js';
+import {
+  deriveVocabularyFormProposals,
+  vocabularyRewriteFormsForPlan,
+} from './vocabulary.js';
 import type {
   VocabularyFileRename,
   VocabularyFileRenameEvidence,
   VocabularyRegradePlan,
   VocabularyRegradeScope,
 } from './vocabulary.js';
+
+/**
+ * A review-only file move proposed from a minimal vocabulary seed.
+ *
+ * @example
+ * ```ts
+ * const candidate: FileRenameCandidate = {
+ *   evidence: ['docs/surface-facets.md'],
+ *   from: 'docs/surface-facets.md',
+ *   to: 'docs/surface-trailheads.md',
+ * };
+ * ```
+ */
+export interface FileRenameCandidate extends VocabularyFileRename {
+  readonly evidence: readonly string[];
+}
 
 const fileRenameSourceExtensions = Object.freeze([
   '.cjs',
@@ -1284,6 +1303,67 @@ const withExactMovedTargets = (params: {
       left.path.localeCompare(right.path)
     ),
   };
+};
+
+/**
+ * Derive review-only filename candidates without mutating source.
+ *
+ * @example
+ * ```ts
+ * const candidates = deriveFileRenameCandidates({
+ *   plan: { from: 'facet', kind: 'vocabulary', to: 'trailhead' },
+ *   root: process.cwd(),
+ * });
+ * ```
+ */
+export const deriveFileRenameCandidates = (params: {
+  readonly plan: VocabularyRegradePlan;
+  readonly root: string;
+}): readonly FileRenameCandidate[] => {
+  const collected = collectDownstreamSources(params.root, {
+    extensions: params.plan.scope?.extensions ?? fileRenameSourceExtensions,
+    ...(params.plan.scope?.exclude === undefined
+      ? {}
+      : { exclude: params.plan.scope.exclude }),
+    ...(params.plan.scope?.include === undefined
+      ? {}
+      : { include: params.plan.scope.include }),
+  });
+  if (collected === null) {
+    return [];
+  }
+  const safeForms = deriveVocabularyFormProposals(params.plan)
+    .filter(
+      (proposal): proposal is typeof proposal & { readonly to: string } =>
+        proposal.kind === 'safe-rewrite' && proposal.to !== undefined
+    )
+    .toSorted((left, right) => right.from.length - left.from.length);
+  const candidates = new Map<string, FileRenameCandidate>();
+  for (const file of collected.files) {
+    if (policyForPath(file.path, params.plan.scope) !== undefined) {
+      continue;
+    }
+    let to = file.path;
+    for (const form of safeForms) {
+      to = to.replaceAll(
+        new RegExp(
+          `(?<![A-Za-z0-9_$])${escapeRegExp(form.from)}(?![A-Za-z0-9_$])`,
+          params.plan.caseSensitive === true ? 'gu' : 'giu'
+        ),
+        form.to
+      );
+    }
+    if (to !== file.path) {
+      candidates.set(file.path, {
+        evidence: [file.path],
+        from: file.path,
+        to,
+      });
+    }
+  }
+  return [...candidates.values()].toSorted((left, right) =>
+    left.from.localeCompare(right.from)
+  );
 };
 
 const changedFilesForRun = (params: {

@@ -15,7 +15,6 @@ import {
 import type { PathScope, Result as TrailsResult } from '@ontrails/core';
 import {
   createGovernedAstIdentifierRenameClasses,
-  listVocabularyRegradePlansFromRegistry,
   loadWardenRegradeClasses,
   readVocabularyTransitionRecord,
   regradeReportOutput,
@@ -26,6 +25,7 @@ import {
   vocabularyRegradeTransitionForInput,
   vocabularyDispositionValues,
   vocabularyRegradePlanSchema,
+  vocabularyRegradePlanForInput,
   writeVocabularyTransitionRecord,
 } from '@ontrails/regrade';
 import type {
@@ -39,6 +39,7 @@ import type {
   VocabularyRegradePlan,
   VocabularyPreserveInventoryEntry,
 } from '@ontrails/regrade';
+import { listGovernedVocabularyTransitions } from '@ontrails/warden';
 import { execFileSync } from 'node:child_process';
 import {
   existsSync,
@@ -63,12 +64,15 @@ import {
 } from '../regrade/history.js';
 import type { RegradeHistorySummary } from '../regrade/history.js';
 import { deriveLiveApiPreserveInventory } from '../regrade/live-api-preserve.js';
+import { deriveRegradePlanDerivation } from '../regrade/plan-derivation.js';
 import {
   regradeApplyErrorAfterRollback,
   snapshotRegradeSources,
 } from '../regrade/source-transaction.js';
 import {
   REGRADE_PLAN_SCHEMA_VERSION,
+  canonicalJsonStringify,
+  isGeneratedRegradeArtifactPath,
   regradePlanArtifactSchema,
   regradePlanPathForPlan,
   regradeSourceHash,
@@ -546,9 +550,9 @@ const vocabularyPreserveFromInput = (
 const vocabularyRegistryPlanForInput = (
   input: RegradeInput
 ): VocabularyRegradePlan | undefined =>
-  listVocabularyRegradePlansFromRegistry().find(
-    (plan) => plan.from === input.from && plan.to === input.to
-  );
+  input.from === undefined || input.to === undefined
+    ? undefined
+    : (vocabularyRegradePlanForInput(input.from, input.to) ?? undefined);
 
 const uniqueSorted = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].toSorted((left, right) => left.localeCompare(right));
@@ -1108,6 +1112,50 @@ const vocabularyIntentForInput = (
   return registryPlan?.intent;
 };
 
+const classifiedOverrideError = (
+  input: RegradeInput & { readonly from: string; readonly to: string }
+): ValidationError | undefined => {
+  const transition = vocabularyRegradeTransitionForInput(input.from, input.to);
+  return transition?.target.kind === 'classified' &&
+    input.overrides !== undefined
+    ? new ValidationError(
+        'Classified governed vocabulary transitions are review-only and cannot accept rewrite overrides.'
+      )
+    : undefined;
+};
+
+const governedTargetError = (
+  input: RegradeInput & { readonly from: string; readonly to: string }
+): ValidationError | undefined => {
+  const governedFormTransition = listGovernedVocabularyTransitions().find(
+    (candidate) =>
+      candidate.from !== input.from &&
+      (candidate.oldForms.includes(input.from) ||
+        candidate.reviewForms.includes(input.from))
+  );
+  if (governedFormTransition !== undefined) {
+    return new ValidationError(
+      `Governed vocabulary form "${input.from}" belongs to transition "${governedFormTransition.id}". Plan from its canonical source "${governedFormTransition.from}" instead.`
+    );
+  }
+  const transition = listGovernedVocabularyTransitions().find(
+    (candidate) => candidate.from === input.from
+  );
+  if (
+    transition === undefined ||
+    vocabularyRegradeTransitionForInput(input.from, input.to) !== undefined
+  ) {
+    return undefined;
+  }
+  const expectedTargets =
+    transition.target.kind === 'single'
+      ? [transition.target.to]
+      : transition.target.options.map((option) => option.to);
+  return new ValidationError(
+    `Governed vocabulary transition "${transition.id}" does not define target "${input.to}". Expected ${expectedTargets.map((target) => `"${target}"`).join(' or ')}`
+  );
+};
+
 const buildVocabularyPlan = (
   input: RegradeInput,
   configScope?: VocabularyRegradePlan['scope']
@@ -1126,7 +1174,23 @@ const buildVocabularyPlan = (
   }
 
   const preserve = vocabularyPreserveFromInput(input.preserve);
+  const targetError = governedTargetError({
+    ...input,
+    from: input.from,
+    to: input.to,
+  });
+  if (targetError !== undefined) {
+    return Result.err(targetError);
+  }
   const registryPlan = vocabularyRegistryPlanForInput(input);
+  const overrideError = classifiedOverrideError({
+    ...input,
+    from: input.from,
+    to: input.to,
+  });
+  if (overrideError !== undefined) {
+    return Result.err(overrideError);
+  }
   const intent = vocabularyIntentForInput(input, registryPlan);
   const overrides = mergeVocabularyOverrides(registryPlan, input);
   const preserveRules = mergeVocabularyPreserveRules(registryPlan, preserve);
@@ -1150,6 +1214,33 @@ const buildVocabularyPlan = (
     ...(scope === undefined ? {} : { scope }),
     to: input.to,
   });
+};
+
+const withDerivedTeachingSurfaceInventory = (params: {
+  readonly plan: VocabularyRegradePlan;
+  readonly report: RegradeReport;
+}): VocabularyRegradePlan => {
+  const expected = params.plan.scope?.teachingSurfaces;
+  if (expected === undefined) {
+    return params.plan;
+  }
+  const teachingSurfaces = uniqueSorted(
+    (params.report.run?.ledger.occurrences ?? [])
+      .filter(
+        (occurrence) =>
+          occurrence.scopeTier === 'in-scope' &&
+          !isGeneratedRegradeArtifactPath(occurrence.path) &&
+          matchesAnyPathGlob(occurrence.path, expected)
+      )
+      .map((occurrence) => occurrence.path)
+  );
+  const scope = { ...params.plan.scope };
+  if (teachingSurfaces.length === 0) {
+    delete scope.teachingSurfaces;
+  } else {
+    scope.teachingSurfaces = teachingSurfaces;
+  }
+  return { ...params.plan, scope };
 };
 
 const regradeRootNotFound = (rootDir: string) =>
@@ -1429,6 +1520,7 @@ const preserveAuthoredPlanProvenance = (
 };
 
 const buildRegradePlanArtifact = (params: {
+  readonly derivation?: RegradePlanArtifact['derivation'];
   readonly expansion?: RegradePlanArtifact['expansion'];
   readonly input: RegradePlanInput;
   readonly plan: VocabularyRegradePlan;
@@ -1438,6 +1530,9 @@ const buildRegradePlanArtifact = (params: {
 }): RegradePlanArtifact => {
   const absolutePath = regradePlanPathForPlan(params.rootDir, params.plan);
   return {
+    ...(params.derivation === undefined
+      ? {}
+      : { derivation: params.derivation }),
     ...(params.expansion === undefined ? {} : { expansion: params.expansion }),
     kind: 'regrade-plan',
     path: rootRelativePath(params.rootDir, absolutePath),
@@ -1652,9 +1747,27 @@ const resolveRegradePlanPath = (
 
 const planStatusForReport = (
   artifact: RegradePlanArtifact,
-  report: RegradeReport
-): 'active' | 'stale' =>
-  regradeSourceHashMatches(artifact.sourceHash, report) ? 'active' : 'stale';
+  report: RegradeReport,
+  rootDir: string
+): 'active' | 'stale' => {
+  if (!regradeSourceHashMatches(artifact.sourceHash, report)) {
+    return 'stale';
+  }
+  if (artifact.plan.kind === 'class' || artifact.derivation === undefined) {
+    return 'active';
+  }
+  const current = deriveRegradePlanDerivation({
+    plan: artifact.plan,
+    preserveInventory: report.run?.preserveInventory ?? [],
+    provenance: artifact.provenance,
+    report,
+    rootDir,
+  });
+  return canonicalJsonStringify(current) ===
+    canonicalJsonStringify(artifact.derivation)
+    ? 'active'
+    : 'stale';
+};
 
 const regradePlanGateContext = (
   report: RegradeReport
@@ -2093,12 +2206,18 @@ const runPlanArtifactDryRun = async (params: {
       rootDir: params.rootDir,
     });
   }
-  const preserveInventory = await deriveLiveApiPreserveInventory(planBody);
+  const preserveResult = await deriveLiveApiPreserveInventory(
+    planBody,
+    params.rootDir
+  );
+  if (preserveResult.isErr()) {
+    return preserveResult;
+  }
   return runResolvedVocabularyPlan({
     apply: false,
     includeEntries: params.includeEntries,
     plan: planBody,
-    preserveInventory,
+    preserveInventory: preserveResult.value,
     rootDir: params.rootDir,
   });
 };
@@ -2221,14 +2340,18 @@ const runVocabularyCommandRegrade = async (
     return regradeRootNotFound(rootDir);
   }
 
-  const preserveInventory = await deriveLiveApiPreserveInventory(
-    planResult.value
+  const preserveResult = await deriveLiveApiPreserveInventory(
+    planResult.value,
+    rootDir
   );
+  if (preserveResult.isErr()) {
+    return preserveResult;
+  }
   const report = runResolvedVocabularyPlan({
     apply: input.apply,
     includeEntries: input.includeEntries,
     plan: planResult.value,
-    preserveInventory,
+    preserveInventory: preserveResult.value,
     rootDir,
   });
   if (report.isErr() || !input.writeRecord) {
@@ -2331,6 +2454,7 @@ const expansionForReport = (
         },
       ],
       kind: 'form',
+      provenance: 'derived',
       status: 'pending',
       suggestedClassification: occurrence.disposition,
       value: occurrence.form,
@@ -2362,6 +2486,7 @@ const expansionForReport = (
           },
         ],
         kind: 'form',
+        provenance: 'derived',
         status: 'pending',
         suggestedClassification: entry.reason ?? detail.reason,
         value: detail.symbol,
@@ -2740,6 +2865,84 @@ const readCurrentVocabularyPlanArtifact = (
   return Result.ok({ ...candidate, plan: candidate.plan });
 };
 
+const finishVocabularyPlanArtifact = (params: {
+  readonly current?: VocabularyRegradePlanArtifact | undefined;
+  readonly currentPath: string;
+  readonly input: RegradePlanInput;
+  readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
+  readonly rootDir: string;
+  readonly shouldDryRun: boolean;
+}): TrailsResult<RegradePlanArtifact, Error> => {
+  const initialReport = runResolvedVocabularyPlan({
+    apply: false,
+    includeEntries: params.input.includeEntries,
+    plan: params.plan,
+    preserveInventory: params.preserveInventory,
+    rootDir: params.rootDir,
+  });
+  if (initialReport.isErr()) {
+    return initialReport;
+  }
+  const initialProvenance = regradePlanProvenanceForInput(
+    params.input,
+    params.plan
+  );
+  const scopeIsAuthored =
+    initialProvenance.fields['scope'] === 'authored' ||
+    params.current?.provenance.fields['scope'] === 'authored';
+  const plan = scopeIsAuthored
+    ? params.plan
+    : withDerivedTeachingSurfaceInventory({
+        plan: params.plan,
+        report: initialReport.value,
+      });
+  const report =
+    plan === params.plan
+      ? initialReport
+      : runResolvedVocabularyPlan({
+          apply: false,
+          includeEntries: params.input.includeEntries,
+          plan,
+          preserveInventory: params.preserveInventory,
+          rootDir: params.rootDir,
+        });
+  if (report.isErr()) {
+    return report;
+  }
+  const expansion = mergeRegradePlanExpansion(
+    params.current?.expansion,
+    params.input.expand ? expansionForReport(report.value) : undefined,
+    plan
+  );
+  const transitionId = priorTransitionId(params.currentPath, 'vocabulary');
+  const derivedProvenance = regradePlanProvenanceForInput(params.input, plan);
+  const provenance =
+    params.current === undefined
+      ? derivedProvenance
+      : preserveAuthoredPlanProvenance(params.current, derivedProvenance);
+  const artifact = buildRegradePlanArtifact({
+    derivation: deriveRegradePlanDerivation({
+      plan,
+      preserveInventory: params.preserveInventory,
+      provenance,
+      report: report.value,
+      rootDir: params.rootDir,
+    }),
+    ...(expansion === undefined ? {} : { expansion }),
+    input: params.input,
+    plan,
+    report: report.value,
+    rootDir: params.rootDir,
+    ...(transitionId === undefined ? {} : { transitionId }),
+  });
+  const mergedArtifact =
+    params.current === undefined ? artifact : { ...artifact, provenance };
+  return params.shouldDryRun
+    ? validateRegradePlanArtifact(mergedArtifact)
+    : writeRegradePlanArtifact(params.rootDir, mergedArtifact);
+};
+
 const runPlanRegrade = async (
   input: RegradePlanInput,
   rootDir: string,
@@ -2787,45 +2990,19 @@ const runPlanRegrade = async (
     current === undefined
       ? planResult.value
       : mergeAuthoredPlanFields(current, planResult.value);
-  const preserveInventory = await deriveLiveApiPreserveInventory(plan);
-  const report = runResolvedVocabularyPlan({
-    apply: false,
-    includeEntries: input.includeEntries,
-    plan,
-    preserveInventory,
-    rootDir,
-  });
-  if (report.isErr()) {
-    return report;
+  const preserveResult = await deriveLiveApiPreserveInventory(plan, rootDir);
+  if (preserveResult.isErr()) {
+    return preserveResult;
   }
-  const expansion = mergeRegradePlanExpansion(
-    current?.expansion,
-    input.expand ? expansionForReport(report.value) : undefined,
-    plan
-  );
-  const transitionId = priorTransitionId(currentPath, 'vocabulary');
-  const artifact = buildRegradePlanArtifact({
-    ...(expansion === undefined ? {} : { expansion }),
+  return finishVocabularyPlanArtifact({
+    current,
+    currentPath,
     input,
     plan,
-    report: report.value,
+    preserveInventory: preserveResult.value,
     rootDir,
-    ...(transitionId === undefined ? {} : { transitionId }),
+    shouldDryRun,
   });
-  const mergedArtifact =
-    current === undefined
-      ? artifact
-      : {
-          ...artifact,
-          provenance: preserveAuthoredPlanProvenance(
-            current,
-            artifact.provenance
-          ),
-        };
-  if (shouldDryRun) {
-    return validateRegradePlanArtifact(mergedArtifact);
-  }
-  return writeRegradePlanArtifact(rootDir, mergedArtifact);
 };
 
 const loadPlanForInput = async (
@@ -2918,7 +3095,11 @@ const runCheckRegradePlan = async (
   if (report.isErr()) {
     return report;
   }
-  const status = planStatusForReport(loaded.value.artifact, report.value);
+  const status = planStatusForReport(
+    loaded.value.artifact,
+    report.value,
+    rootDir
+  );
   const checked = reportWithPlanSummary(
     report.value,
     loaded.value.artifact,
@@ -2968,7 +3149,7 @@ const runPreviewRegradePlan = async (
     reportWithPlanSummary(
       report.value,
       loaded.value.artifact,
-      planStatusForReport(loaded.value.artifact, report.value)
+      planStatusForReport(loaded.value.artifact, report.value, rootDir)
     )
   );
 };
@@ -3069,7 +3250,11 @@ const runApplyRegradePlan = async (
   if (dryRunReport.isErr()) {
     return dryRunReport;
   }
-  const status = planStatusForReport(loaded.value.artifact, dryRunReport.value);
+  const status = planStatusForReport(
+    loaded.value.artifact,
+    dryRunReport.value,
+    rootDir
+  );
   if (status === 'stale') {
     return Result.err(
       new ValidationError(
@@ -3096,12 +3281,18 @@ const runApplyRegradePlan = async (
       rootDir,
     });
   } else {
-    const preserveInventory = await deriveLiveApiPreserveInventory(planBody);
+    const preserveResult = await deriveLiveApiPreserveInventory(
+      planBody,
+      rootDir
+    );
+    if (preserveResult.isErr()) {
+      return preserveResult;
+    }
     applied = runResolvedVocabularyPlan({
       apply: true,
       includeEntries: input.includeEntries,
       plan: planBody,
-      preserveInventory,
+      preserveInventory: preserveResult.value,
       rootDir,
     });
   }
@@ -3201,6 +3392,17 @@ const runAdjustRegrade = async (
   }
   const artifact: RegradePlanArtifact = {
     ...draft,
+    ...(draft.plan.kind === 'class'
+      ? {}
+      : {
+          derivation: deriveRegradePlanDerivation({
+            plan: draft.plan,
+            preserveInventory: report.value.run?.preserveInventory ?? [],
+            provenance: draft.provenance,
+            report: report.value,
+            rootDir,
+          }),
+        }),
     sourceHash: regradeSourceHash(report.value),
   };
   if (shouldDryRun) {
@@ -3235,7 +3437,7 @@ const listRegradePlans = async (
       kind: body.kind,
       path: artifact.value.path,
       schemaVersion: artifact.value.schemaVersion,
-      status: planStatusForReport(artifact.value, report.value),
+      status: planStatusForReport(artifact.value, report.value, rootDir),
     });
   }
   return Result.ok({ plans });

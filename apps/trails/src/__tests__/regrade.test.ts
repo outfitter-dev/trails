@@ -582,8 +582,28 @@ describe('trails regrade', () => {
       );
       expect(Object.keys(activeArtifact)).not.toContain('runs');
       expect(Object.keys(activeArtifact)).not.toContain('report');
+      expect(activeArtifact['derivation']).toBeDefined();
       // Adjust leaves the graduated history file untouched.
       expect(readFileSync(historyFile, 'utf8')).toBe(historyBytesBeforeAdjust);
+
+      writeFile(dir, 'docs/facet-extra.md', 'Current terminology only.\n');
+      const driftedPlans = runRawCli([
+        'regrade',
+        'plans',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(driftedPlans.exitCode).toBe(0);
+      expect(parseCliJson(driftedPlans)).toMatchObject({
+        plans: [
+          {
+            path: '.trails/regrade/facet-to-trailhead.json',
+            status: 'stale',
+          },
+        ],
+      });
+      rmSync(join(dir, 'docs/facet-extra.md'));
 
       // Edit the tree and the plan; the spine survives plan re-derivation.
       writeFile(dir, 'docs/more.md', 'facet again\n');
@@ -1634,6 +1654,7 @@ describe('trails regrade', () => {
             }),
           ],
           kind: 'form',
+          provenance: 'derived',
           status: 'pending',
           suggestedClassification: 'in-family-unresolved',
           value: 'alphaing',
@@ -2000,6 +2021,177 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI seeds classified governed transitions without safe rewrites', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/surface.md',
+        'Projection docs project derived facts for a surface.\n'
+      );
+
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(planned.exitCode).toBe(0);
+      expect(parseCliJson(planned)).toMatchObject({
+        path: '.trails/regrade/v1-projection-derive-render.json',
+        plan: {
+          deferForms: [
+            'projection',
+            'projections',
+            'project',
+            'projected',
+            'Projected',
+          ],
+          id: 'v1-projection-derive-render',
+          scope: {
+            teachingSurfaces: ['docs/surface.md'],
+          },
+          to: 'derive',
+        },
+      });
+      expect(JSON.stringify(parseCliJson(planned))).not.toContain(
+        '"safe-rewrite"'
+      );
+
+      writeFile(
+        dir,
+        'docs/surface.md',
+        'Derived facts render through a surface.\n'
+      );
+      writeFile(
+        dir,
+        'docs/adr/0001-history.md',
+        'Historical projection wording remains.\n'
+      );
+      const replanned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--fresh',
+        '--json',
+      ]);
+      expect(replanned.exitCode).toBe(0);
+      expect(parseCliJson(replanned)).not.toHaveProperty(
+        'plan.scope.teachingSurfaces'
+      );
+
+      const checked = runRawCli([
+        'regrade',
+        'check',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(checked.exitCode).toBe(0);
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applied.exitCode).toBe(0);
+      expect(parseCliJson(applied)).toMatchObject({
+        history: {
+          path: '.trails/regrade/history/v1-projection-derive-render.json',
+          status: 'applied',
+        },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects rewrite overrides for classified governed transitions', () => {
+    const dir = makeTempDir();
+    try {
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ overrides: { projecting: 'deriving' } }),
+        '--json',
+      ]);
+
+      expect(planned.exitCode).not.toBe(0);
+      expect(planned.stderr).toContain(
+        'review-only and cannot accept rewrite overrides'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects unknown targets for classified governed transitions', () => {
+    const dir = makeTempDir();
+    try {
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'unknown',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(planned.exitCode).not.toBe(0);
+      const parsed = JSON.parse(planned.stderr) as {
+        readonly error?: { readonly message?: string };
+      };
+      expect(parsed.error?.message).toContain(
+        'does not define target "unknown". Expected "derive" or "render"'
+      );
+      expect(existsSync(join(dir, '.trails/regrade'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects governed old forms as ad hoc plan sources', () => {
+    const dir = makeTempDir();
+    try {
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'project',
+        'derive',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(planned.exitCode).not.toBe(0);
+      const parsed = JSON.parse(planned.stderr) as {
+        readonly error?: { readonly message?: string };
+      };
+      expect(parsed.error?.message).toContain(
+        'belongs to transition "v1-projection-derive-render"'
+      );
+      expect(parsed.error?.message).toContain('canonical source "projection"');
+      expect(existsSync(join(dir, '.trails/regrade'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI plan, preview, and apply govern file moves and reference closure', () => {
     const dir = makeTempDir();
     try {
@@ -2356,6 +2548,12 @@ describe('trails regrade', () => {
       if (initialPlan.path === undefined) {
         throw new Error('Expected initial Regrade plan path.');
       }
+      const currentPath = join(dir, initialPlan.path);
+      const current = JSON.parse(readFileSync(currentPath, 'utf8')) as {
+        plan: { scope: { teachingSurfaces?: readonly string[] } };
+      };
+      current.plan.scope.teachingSurfaces = ['docs/surface.md'];
+      writeFileSync(currentPath, `${JSON.stringify(current, null, 2)}\n`);
 
       const regenerated = runRawCli([
         'regrade',
@@ -2375,6 +2573,7 @@ describe('trails regrade', () => {
             readonly exclude?: readonly string[];
             readonly extensions?: readonly string[];
             readonly include?: readonly string[];
+            readonly teachingSurfaces?: readonly string[];
           };
         };
         readonly provenance?: {
@@ -2386,6 +2585,7 @@ describe('trails regrade', () => {
         exclude: expect.arrayContaining(['.scratch/**']),
         extensions: ['.md'],
         include: ['docs/**'],
+        teachingSurfaces: ['docs/surface.md'],
       });
       expect(saved.provenance?.fields?.scope).toBe('authored');
     } finally {
@@ -4655,6 +4855,7 @@ describe('trails regrade', () => {
           id: 'v1-warden-ast-source',
           to: '@ontrails/source',
         });
+        expect(parsed).toEqual(directResult.value);
       }
     } finally {
       rmSync(dir, { force: true, recursive: true });

@@ -11,7 +11,10 @@ import {
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { runFileRenameRegrade } from '../file-renames.js';
+import {
+  deriveFileRenameCandidates,
+  runFileRenameRegrade,
+} from '../file-renames.js';
 
 const roots: string[] = [];
 
@@ -34,6 +37,38 @@ afterEach(() => {
 });
 
 describe('governed file renames', () => {
+  test('derives review-only filename candidates outside policy paths', () => {
+    const root = createRoot();
+    write(root, 'docs/surface-facets.md', '# Surface facets\n');
+    write(root, 'history/facets.md', '# Historical facets\n');
+
+    expect(
+      deriveFileRenameCandidates({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                paths: ['history/**'],
+                reason: 'Published history is immutable.',
+              },
+            ],
+          },
+          to: 'trailhead',
+        },
+        root,
+      })
+    ).toEqual([
+      {
+        evidence: ['docs/surface-facets.md'],
+        from: 'docs/surface-facets.md',
+        to: 'docs/surface-trailheads.md',
+      },
+    ]);
+  });
+
   test('previews and applies the facet tracer move with classified history', () => {
     const root = createRoot();
     write(root, 'docs/surfaces/surface-facets.md', '# Surface facets\n');
