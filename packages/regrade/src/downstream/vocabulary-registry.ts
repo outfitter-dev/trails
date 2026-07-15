@@ -80,6 +80,11 @@ export const vocabularyRegradePlanFromTransition = (
   return {
     caseSensitive: true,
     deferForms: transition.reviewForms,
+    ...(transition.fileRenames.length === 0
+      ? {}
+      : {
+          fileRenames: transition.fileRenames.map((rename) => ({ ...rename })),
+        }),
     from: transition.from,
     id: transition.id,
     intent: transition.intent,

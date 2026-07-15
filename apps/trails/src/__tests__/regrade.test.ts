@@ -130,6 +130,7 @@ const expectRegradeSchemaFields = (
   expect(input?.properties).toMatchObject({
     configPath: expect.any(Object),
     exclude: expect.any(Object),
+    fileRenames: expect.any(Object),
     from: expect.any(Object),
     policyClassified: expect.any(Object),
     teachingSurfaces: expect.any(Object),
@@ -673,6 +674,31 @@ describe('trails regrade', () => {
       ]);
       expect(secondAdjust.exitCode).not.toBe(0);
       expect(secondAdjust.stderr).toContain('already exists');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects governed file moves in class-mode plans', () => {
+    const dir = makeTempDir();
+    try {
+      const result = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify({
+          classIds: ['export-restructure:cli-aliases'],
+          fileRenames: [{ from: 'src/old.ts', to: 'src/new.ts' }],
+          rootDir: dir,
+          type: 'class',
+        }),
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain(
+        '`fileRenames` is not supported for class-mode plans'
+      );
+      expect(existsSync(join(dir, '.trails', 'regrade'))).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1969,6 +1995,336 @@ describe('trails regrade', () => {
         'Rename the public surface grouping vocabulary.'
       );
       expect(saved.provenance?.fields?.intent).toBe('authored');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI plan, preview, and apply govern file moves and reference closure', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/old-guide.md', '# Guide\n');
+      writeFile(
+        dir,
+        'docs/index.md',
+        '[Guide](docs/old-guide.md) [Guide again](docs/old-guide.md)\n'
+      );
+      writeFile(
+        dir,
+        'CHANGELOG.md',
+        'Published docs/old-guide.md in the prior release.\n'
+      );
+      const input = {
+        fileRenames: [{ from: 'docs/old-guide.md', to: 'docs/new-guide.md' }],
+        from: 'alpha',
+        policyClassified: [
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['CHANGELOG.md'],
+            reason: 'Published history is immutable.',
+          },
+        ],
+        rootDir: dir,
+        to: 'omega',
+      };
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify(input),
+      ]);
+      expect(planned.exitCode).toBe(0);
+      expect(parseCliJson(planned)).toMatchObject({
+        plan: { fileRenames: input.fileRenames },
+        provenance: { fields: { fileRenames: 'authored' } },
+      });
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+      expect(parseCliJson(preview)).toMatchObject({
+        run: {
+          report: {
+            fileRenames: [
+              expect.objectContaining({
+                from: 'docs/old-guide.md',
+                historical: 1,
+                rewritten: 2,
+                to: 'docs/new-guide.md',
+              }),
+            ],
+            scopeTiers: { 'in-scope': 2, 'policy-classified': 1 },
+          },
+        },
+      });
+      const previewReport = parseCliJson<{
+        readonly run?: {
+          readonly report?: {
+            readonly gate?: { readonly reasons?: readonly string[] };
+          };
+        };
+      }>(preview);
+      expect(previewReport.run?.report?.gate?.reasons).not.toContain(
+        'expected-policy-classified-evidence-missing'
+      );
+
+      const preApplyCheck = runRawCli([
+        'regrade',
+        'check',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preApplyCheck.exitCode).not.toBe(0);
+      expect(preApplyCheck.stderr).toContain('gate is open');
+
+      writeFile(dir, 'CHANGELOG.md', 'Published the prior guide.\n');
+      const missingPolicyPreview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(missingPolicyPreview.exitCode).toBe(0);
+      expect(parseCliJson(missingPolicyPreview)).toMatchObject({
+        run: {
+          report: {
+            gate: {
+              reasons: expect.arrayContaining([
+                'expected-policy-classified-evidence-missing',
+              ]),
+            },
+          },
+        },
+      });
+      writeFile(
+        dir,
+        'CHANGELOG.md',
+        'Published docs/old-guide.md in the prior release.\n'
+      );
+
+      writeFile(dir, 'docs/later.md', '[Guide](docs/old-guide.md)\n');
+      const stalePreview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(stalePreview.exitCode).toBe(0);
+      expect(parseCliJson(stalePreview)).toMatchObject({
+        plan: { status: 'stale' },
+      });
+      rmSync(join(dir, 'docs/later.md'));
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applied.exitCode).toBe(0);
+      expect(existsSync(join(dir, 'docs/old-guide.md'))).toBe(false);
+      expect(existsSync(join(dir, 'docs/new-guide.md'))).toBe(true);
+      expect(readFileSync(join(dir, 'docs/index.md'), 'utf8')).toContain(
+        'docs/new-guide.md'
+      );
+      expect(readFileSync(join(dir, 'CHANGELOG.md'), 'utf8')).toContain(
+        'docs/old-guide.md'
+      );
+      expect(parseCliJson(applied)).toMatchObject({
+        apply: { filesChanged: 2 },
+        history: { status: 'applied' },
+        run: {
+          report: {
+            fileRenames: [expect.any(Object)],
+            filesChanged: 2,
+          },
+        },
+      });
+
+      const historyCheck = runRawCli([
+        'regrade',
+        'check',
+        '--plan',
+        'alpha-to-omega',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(historyCheck.exitCode).toBe(0);
+      expect(parseCliJson(historyCheck)).toMatchObject({
+        check: { status: 'passed' },
+        history: {
+          path: '.trails/regrade/history/alpha-to-omega.json',
+          status: 'checked',
+        },
+        run: { report: { fileRenames: [expect.any(Object)] } },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI file rename closure owns references projected by prose apply', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/old.md', '# old\n');
+      writeFile(dir, 'README.md', 'See docs/old.md\n');
+      const input = {
+        fileRenames: [{ from: 'docs/old.md', to: './guides/new.md' }],
+        from: 'old',
+        rootDir: dir,
+        to: 'new',
+      };
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify(input),
+      ]);
+      expect(planned.exitCode).toBe(0);
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applied.exitCode).toBe(0);
+      expect(existsSync(join(dir, 'docs/old.md'))).toBe(false);
+      expect(existsSync(join(dir, 'guides/new.md'))).toBe(true);
+      expect(readFileSync(join(dir, 'README.md'), 'utf8')).toBe(
+        'See guides/new.md\n'
+      );
+      expect(parseCliJson(applied)).toMatchObject({
+        apply: { filesChanged: 2 },
+        run: { report: { filesChanged: 2 } },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI file-move plans ignore their generated artifacts in source hashes', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/old-guide.md', '# Guide\n');
+      const plan = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify({
+          fileRenames: [{ from: 'docs/old-guide.md', to: 'docs/new-guide.md' }],
+          from: 'alpha',
+          policyClassified: [
+            {
+              disposition: 'historical-by-policy',
+              paths: ['**/.trails/regrade/**'],
+              reason: 'Generated Regrade state is not source evidence.',
+            },
+          ],
+          rootDir: dir,
+          to: 'omega',
+        }),
+      ]);
+      expect(plan.exitCode).toBe(0);
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+      expect(parseCliJson(preview)).toMatchObject({
+        plan: { status: 'active' },
+        run: {
+          report: {
+            fileRenames: [
+              expect.objectContaining({ historical: 0, skipped: 0 }),
+            ],
+          },
+        },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI teaching surfaces require in-scope file-move evidence', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/old-guide.md', '# Guide\n');
+      writeFile(dir, 'docs/policy.md', 'See docs/old-guide.md.\n');
+      const plan = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify({
+          fileRenames: [{ from: 'docs/old-guide.md', to: 'docs/new-guide.md' }],
+          from: 'alpha',
+          policyClassified: [
+            {
+              disposition: 'historical-by-policy',
+              paths: ['docs/policy.md'],
+              reason: 'Published history is immutable.',
+            },
+          ],
+          rootDir: dir,
+          teachingSurfaces: ['docs/policy.md'],
+          to: 'omega',
+        }),
+      ]);
+      expect(plan.exitCode).toBe(0);
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+      expect(parseCliJson(preview)).toMatchObject({
+        run: {
+          report: {
+            gate: {
+              reasons: expect.arrayContaining([
+                'expected-teaching-surfaces-missing',
+              ]),
+              status: 'open',
+            },
+            teachingSurfaces: {
+              missing: ['docs/policy.md'],
+              touched: [],
+            },
+          },
+        },
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

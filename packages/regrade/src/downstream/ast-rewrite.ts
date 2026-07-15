@@ -258,6 +258,7 @@ export interface AstStringLiteralRenameClassOptions {
   readonly from: string;
   readonly id?: string;
   readonly match?: 'exact' | 'property-key' | 'review';
+  readonly moduleSpecifierOnly?: boolean;
   readonly shouldPreserve?: (
     occurrence: AstIdentifierRenameOccurrence
   ) => boolean;
@@ -753,6 +754,12 @@ export const createAstStringLiteralRenameClass = (
     visit: (node, context) => {
       const match = matchAstStringLiteral(node, options);
       if (match === null) {
+        return null;
+      }
+      if (
+        options.moduleSpecifierOnly === true &&
+        !isModuleSpecifierPosition(context)
+      ) {
         return null;
       }
       const { adjacentModuleRoute, value } = match;

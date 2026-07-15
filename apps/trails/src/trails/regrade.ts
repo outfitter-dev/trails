@@ -19,6 +19,7 @@ import {
   loadWardenRegradeClasses,
   readVocabularyTransitionRecord,
   regradeReportOutput,
+  runFileRenameRegrade,
   runRegrade,
   runVocabularyRegrade,
   transitionRecordReportWithSummary,
@@ -28,6 +29,7 @@ import {
   writeVocabularyTransitionRecord,
 } from '@ontrails/regrade';
 import type {
+  FileRenameRegradeRun,
   RegradeApplySummary,
   RegradeReport,
   RegradeReportEntry,
@@ -47,7 +49,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import type { Dirent } from 'node:fs';
-import { basename, dirname, extname, isAbsolute, join } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, posix } from 'node:path';
 import { z } from 'zod';
 
 import { loadRegradeConfig } from '../regrade/config.js';
@@ -61,6 +63,10 @@ import {
 } from '../regrade/history.js';
 import type { RegradeHistorySummary } from '../regrade/history.js';
 import { deriveLiveApiPreserveInventory } from '../regrade/live-api-preserve.js';
+import {
+  regradeApplyErrorAfterRollback,
+  snapshotRegradeSources,
+} from '../regrade/source-transaction.js';
 import {
   REGRADE_PLAN_SCHEMA_VERSION,
   regradePlanArtifactSchema,
@@ -127,6 +133,11 @@ const regradePreserveInputSchema = z.union([
   regradePreserveRuleInputSchema,
 ]);
 
+const regradeFileRenameInputSchema = z.object({
+  from: z.string().min(1).describe('Root-relative source file path'),
+  to: z.string().min(1).describe('Root-relative target file path'),
+});
+
 const regradeInputSchema = regradePathScopeInputSchema.extend({
   apply: z
     .boolean()
@@ -146,6 +157,10 @@ const regradeInputSchema = regradePathScopeInputSchema.extend({
     .string()
     .optional()
     .describe('Path to a Trails config file with regrade defaults'),
+  fileRenames: z
+    .array(regradeFileRenameInputSchema)
+    .optional()
+    .describe('Governed file moves with references derived from scope'),
   from: z
     .string()
     .min(1)
@@ -242,6 +257,10 @@ const regradePlanInputSchema = regradePathScopeInputSchema.extend({
     .boolean()
     .default(false)
     .describe('Stage wide-net review candidates in the saved plan'),
+  fileRenames: z
+    .array(regradeFileRenameInputSchema)
+    .optional()
+    .describe('Governed file moves with references derived from scope'),
   fresh: z
     .boolean()
     .default(false)
@@ -323,6 +342,7 @@ type RegradeApplyPlanInput = z.output<typeof regradeApplyPlanInputSchema>;
 type RegradeAdjustInput = z.output<typeof regradeAdjustInputSchema>;
 
 const hasVocabularyInput = (input: RegradeInput) =>
+  input.fileRenames !== undefined ||
   input.from !== undefined ||
   input.check ||
   input.include !== undefined ||
@@ -1111,6 +1131,7 @@ const buildVocabularyPlan = (
   const overrides = mergeVocabularyOverrides(registryPlan, input);
   const preserveRules = mergeVocabularyPreserveRules(registryPlan, preserve);
   const scope = mergeVocabularyScope(registryPlan?.scope, configScope, input);
+  const fileRenames = input.fileRenames ?? registryPlan?.fileRenames;
 
   return Result.ok({
     ...(registryPlan?.caseSensitive === undefined
@@ -1119,6 +1140,7 @@ const buildVocabularyPlan = (
     ...(registryPlan?.deferForms === undefined
       ? {}
       : { deferForms: registryPlan.deferForms }),
+    ...(fileRenames === undefined ? {} : { fileRenames }),
     from: input.from,
     id: registryPlan?.id ?? `vocabulary:${input.from}->${input.to}`,
     kind: 'vocabulary',
@@ -1312,6 +1334,7 @@ const reportWithHistorySummary = (
 const authoredPlanFieldKeys = [
   'caseSensitive',
   'deferForms',
+  'fileRenames',
   'id',
   'intent',
   'overrides',
@@ -1325,6 +1348,7 @@ const isAuthoredPlanField = (
 ): boolean => {
   switch (key) {
     case 'intent':
+    case 'fileRenames':
     case 'overrides':
     case 'preserve': {
       return input[key] !== undefined;
@@ -1357,6 +1381,7 @@ const regradePlanProvenanceForInput = (
   for (const key of [
     'caseSensitive',
     'deferForms',
+    'fileRenames',
     'id',
     'intent',
     'overrides',
@@ -1677,6 +1702,182 @@ const persistVocabularyRecord = (params: {
   );
 };
 
+const withFileRenameEvidence = (params: {
+  readonly plan: VocabularyRegradePlan;
+  readonly report: RegradeReport & {
+    readonly run: NonNullable<RegradeReport['run']>;
+  };
+  readonly run: FileRenameRegradeRun;
+}): RegradeReport => {
+  const vocabularyPaths = params.report.run.ledger.occurrences
+    .filter((occurrence) => occurrence.scopeTier === 'in-scope')
+    .map((occurrence) => occurrence.path);
+  const remainingPolicyPaths = new Map<string, number>();
+  for (const path of params.run.policyOccurrencePaths) {
+    remainingPolicyPaths.set(path, (remainingPolicyPaths.get(path) ?? 0) + 1);
+  }
+  const fileInScopePaths = params.run.occurrencePaths.filter((path) => {
+    const remaining = remainingPolicyPaths.get(path) ?? 0;
+    if (remaining === 0) {
+      return true;
+    }
+    remainingPolicyPaths.set(path, remaining - 1);
+    return false;
+  });
+  const evidencePaths = [...vocabularyPaths, ...fileInScopePaths];
+  const expected = uniqueSorted(params.plan.scope?.teachingSurfaces ?? []);
+  const touched = expected.filter((pattern) =>
+    evidencePaths.some((path) => matchesAnyPathGlob(path, [pattern]))
+  );
+  const missing = expected.filter((pattern) => !touched.includes(pattern));
+  const vocabularyPolicyPaths = params.report.run.ledger.occurrences
+    .filter((occurrence) => occurrence.scopeTier === 'policy-classified')
+    .map((occurrence) => occurrence.path);
+  const policyPaths = [
+    ...vocabularyPolicyPaths,
+    ...params.run.policyOccurrencePaths,
+  ];
+  const policyEvidenceMissing =
+    params.plan.scope?.policyClassified?.some(
+      (policy) =>
+        policy.expectMatches === true &&
+        !policyPaths.some((path) => matchesAnyPathGlob(path, policy.paths))
+    ) ?? false;
+  const evidenceReasons = [
+    ...(policyEvidenceMissing
+      ? ['expected-policy-classified-evidence-missing']
+      : []),
+    ...(missing.length === 0 ? [] : ['expected-teaching-surfaces-missing']),
+  ];
+  const reasons = uniqueSorted([
+    ...params.report.run.report.gate.reasons.filter(
+      (reason) =>
+        reason !== 'expected-policy-classified-evidence-missing' &&
+        reason !== 'expected-teaching-surfaces-missing'
+    ),
+    ...evidenceReasons,
+  ]);
+  const filePolicyCount = params.run.policyOccurrencePaths.length;
+  const fileInScopeCount = params.run.occurrencePaths.length - filePolicyCount;
+  const projectedFileInScopeCount =
+    params.run.report.rewritten + params.run.report.review;
+  return {
+    ...params.report,
+    run: {
+      ...params.report.run,
+      report: {
+        ...params.report.run.report,
+        fileRenames: params.run.evidence,
+        gate: {
+          ...params.report.run.report.gate,
+          reasons,
+          status: reasons.length === 0 ? 'green' : 'open',
+        },
+        scopeTiers: {
+          'in-scope':
+            params.report.run.report.scopeTiers['in-scope'] -
+            projectedFileInScopeCount +
+            fileInScopeCount,
+          'policy-classified':
+            params.report.run.report.scopeTiers['policy-classified'] +
+            filePolicyCount,
+        },
+        teachingSurfaces: { expected, missing, touched },
+      },
+    },
+  };
+};
+
+const combineVocabularyReports = (params: {
+  readonly fileRenameRun: FileRenameRegradeRun | null;
+  readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
+  readonly proseReport: RegradeReport | null;
+  readonly symbolReport: RegradeReport | null;
+}): TrailsResult<RegradeReport, Error> => {
+  const baseReport =
+    params.proseReport ?? params.symbolReport ?? params.fileRenameRun?.report;
+  if (baseReport === undefined) {
+    return regradeNoEngineForScope();
+  }
+  let combined = reportWithVocabularyTransitionRun({
+    plan: params.plan,
+    preserveInventory: params.preserveInventory,
+    report: baseReport,
+  });
+  if (params.proseReport !== null && params.symbolReport !== null) {
+    combined = mergeRegradeReports(combined, params.symbolReport);
+  }
+  if (
+    params.fileRenameRun !== null &&
+    baseReport !== params.fileRenameRun.report
+  ) {
+    combined = mergeRegradeReports(combined, params.fileRenameRun.report);
+  }
+  if (params.fileRenameRun !== null && combined.run !== undefined) {
+    combined = withFileRenameEvidence({
+      plan: params.plan,
+      report: { ...combined, run: combined.run },
+      run: params.fileRenameRun,
+    });
+  }
+  if (combined.apply !== undefined && params.fileRenameRun !== null) {
+    const movedPaths = new Map(
+      (params.plan.fileRenames ?? []).map((rename) => [
+        posix.normalize(rename.from.replaceAll('\\', '/')),
+        posix.normalize(rename.to.replaceAll('\\', '/')),
+      ])
+    );
+    const changedPaths = new Set(params.fileRenameRun.changedPaths);
+    for (const entry of combined.entries) {
+      if (entry.outcome !== 'rewrite') {
+        continue;
+      }
+      const normalizedEntryPath = posix.normalize(entry.path);
+      const movedPath = movedPaths.get(normalizedEntryPath);
+      changedPaths.add(
+        movedPath !== undefined && changedPaths.has(movedPath)
+          ? movedPath
+          : normalizedEntryPath
+      );
+    }
+    const filesChanged = changedPaths.size;
+    combined = {
+      ...combined,
+      apply: { ...combined.apply, filesChanged },
+      ...(combined.run === undefined
+        ? {}
+        : {
+            run: {
+              ...combined.run,
+              report: { ...combined.run.report, filesChanged },
+            },
+          }),
+    };
+  }
+  return validateRegradeReport(combined);
+};
+
+const runPlanFileRenames = (
+  plan: VocabularyRegradePlan,
+  params: {
+    readonly apply: boolean;
+    readonly includeEntries: RegradeInput['includeEntries'];
+    readonly rootDir: string;
+  }
+): TrailsResult<FileRenameRegradeRun | null, Error> =>
+  plan.fileRenames === undefined || plan.fileRenames.length === 0
+    ? Result.ok(null)
+    : runFileRenameRegrade({
+        apply: params.apply,
+        excludeGeneratedArtifacts: true,
+        includeEntries: params.includeEntries,
+        renames: plan.fileRenames,
+        root: params.rootDir,
+        ...(plan.scope === undefined ? {} : { scope: plan.scope }),
+        vocabularyPlan: plan,
+      });
+
 const runResolvedVocabularyPlan = (params: {
   readonly apply: boolean;
   readonly includeEntries: RegradeInput['includeEntries'];
@@ -1684,12 +1885,22 @@ const runResolvedVocabularyPlan = (params: {
   readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
   readonly rootDir: string;
 }): TrailsResult<RegradeReport, Error> => {
+  const fileRenamePreflight = runPlanFileRenames(params.plan, {
+    apply: false,
+    includeEntries: params.includeEntries,
+    rootDir: params.rootDir,
+  });
+  if (fileRenamePreflight.isErr()) {
+    return fileRenamePreflight;
+  }
   const evidencePlan = vocabularyEvidencePlan(params.plan);
-  const reportResult: TrailsResult<RegradeReport | null, Error> =
+  const runProse = (
+    apply: boolean
+  ): TrailsResult<RegradeReport | null, Error> =>
     evidencePlan === null
       ? Result.ok(null)
       : runVocabularyRegrade({
-          apply: params.apply,
+          apply,
           includeEntries: params.includeEntries,
           plan: evidencePlan,
           ...(params.preserveInventory.length === 0
@@ -1699,19 +1910,73 @@ const runResolvedVocabularyPlan = (params: {
           sourceFilter: (path) =>
             vocabularyEvidenceSource(path, evidencePlan.scope),
         });
-  if (reportResult.isErr()) {
-    return reportResult;
+  const runSymbols = (
+    apply: boolean
+  ): TrailsResult<RegradeReport | null, Error> =>
+    runGovernedSymbolRegrade({
+      apply,
+      includeEntries: params.includeEntries,
+      plan: params.plan,
+      preserveInventory: params.preserveInventory,
+      rootDir: params.rootDir,
+    });
+  const prosePreview = runProse(false);
+  if (prosePreview.isErr()) {
+    return prosePreview;
+  }
+  const prosePreviewReport = withoutVocabularySourceFilterSkips(
+    prosePreview.value
+  );
+  const symbolPreview = runSymbols(false);
+  if (symbolPreview.isErr()) {
+    return symbolPreview;
+  }
+  if (!params.apply) {
+    if (
+      prosePreviewReport?.scanned === 0 &&
+      symbolPreview.value === null &&
+      fileRenamePreflight.value === null &&
+      !vocabularyProseEngineApplies(params.plan.scope)
+    ) {
+      return regradeNoEngineForScope();
+    }
+    return combineVocabularyReports({
+      fileRenameRun: fileRenamePreflight.value,
+      plan: params.plan,
+      preserveInventory: params.preserveInventory,
+      proseReport: prosePreviewReport,
+      symbolReport: symbolPreview.value,
+    });
   }
 
-  const symbolReportResult = runGovernedSymbolRegrade({
-    apply: params.apply,
-    includeEntries: params.includeEntries,
-    plan: params.plan,
-    preserveInventory: params.preserveInventory,
+  const snapshots = snapshotRegradeSources({
+    reports: [prosePreviewReport, symbolPreview.value],
     rootDir: params.rootDir,
   });
+  if (snapshots.isErr()) {
+    return snapshots;
+  }
+  const reportResult = runProse(true);
+  if (reportResult.isErr()) {
+    return regradeApplyErrorAfterRollback(reportResult.error, snapshots.value);
+  }
+  const symbolReportResult = runSymbols(true);
   if (symbolReportResult.isErr()) {
-    return symbolReportResult;
+    return regradeApplyErrorAfterRollback(
+      symbolReportResult.error,
+      snapshots.value
+    );
+  }
+  const fileRenameResult = runPlanFileRenames(params.plan, {
+    apply: true,
+    includeEntries: params.includeEntries,
+    rootDir: params.rootDir,
+  });
+  if (fileRenameResult.isErr()) {
+    return regradeApplyErrorAfterRollback(
+      fileRenameResult.error,
+      snapshots.value
+    );
   }
 
   const report = withoutVocabularySourceFilterSkips(reportResult.value);
@@ -1719,44 +1984,18 @@ const runResolvedVocabularyPlan = (params: {
   if (
     report?.scanned === 0 &&
     symbolReport === null &&
+    fileRenameResult.value === null &&
     !vocabularyProseEngineApplies(params.plan.scope)
   ) {
     return regradeNoEngineForScope();
   }
-  if (report === null) {
-    if (symbolReport === null) {
-      return regradeNoEngineForScope();
-    }
-    return validateRegradeReport(
-      reportWithVocabularyTransitionRun({
-        plan: params.plan,
-        preserveInventory: params.preserveInventory,
-        report: symbolReport,
-      })
-    );
-  }
-
-  const validated = validateRegradeReport(
-    reportWithVocabularyTransitionRun({
-      plan: params.plan,
-      preserveInventory: params.preserveInventory,
-      report,
-    })
-  );
-  if (validated.isErr()) {
-    return validated;
-  }
-  if (symbolReport === null) {
-    return Result.ok(validated.value);
-  }
-
-  return validateRegradeReport(
-    reportWithVocabularyTransitionRun({
-      plan: params.plan,
-      preserveInventory: params.preserveInventory,
-      report: mergeRegradeReports(report, symbolReport),
-    })
-  );
+  return combineVocabularyReports({
+    fileRenameRun: fileRenameResult.value,
+    plan: params.plan,
+    preserveInventory: params.preserveInventory,
+    proseReport: report,
+    symbolReport,
+  });
 };
 
 interface ClassRegradeCoreParams {
@@ -2274,6 +2513,11 @@ const validateClassPlanInput = (
   if (input.type === 'vocabulary') {
     return new ValidationError(
       '`type: vocabulary` cannot be combined with `classIds`.'
+    );
+  }
+  if (input.fileRenames !== undefined && input.fileRenames.length > 0) {
+    return new ValidationError(
+      '`fileRenames` is not supported for class-mode plans; governed file moves require a vocabulary plan.'
     );
   }
   if (input.expand) {

@@ -39,6 +39,7 @@ export {
   formatGovernedVocabularyTransitionGuide,
   getGovernedVocabularyTransition,
   governedVocabularyLiteralRenameSchema,
+  governedVocabularyFileRenameSchema,
   governedVocabularyPreserveRuleSchema,
   governedVocabularyRegistrySchema,
   governedVocabularyScopeSchema,

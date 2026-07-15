@@ -195,6 +195,7 @@ describe('Trails MCP surface shaping', () => {
           items: expect.objectContaining({ type: 'string' }),
           type: 'array',
         }),
+        fileRenames: expect.objectContaining({ type: 'array' }),
         from: expect.objectContaining({ type: 'string' }),
         policyClassified: expect.objectContaining({ type: 'array' }),
         teachingSurfaces: expect.objectContaining({ type: 'array' }),
@@ -370,6 +371,90 @@ describe('Trails MCP surface shaping', () => {
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facetId'
       );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('executes governed file moves through MCP plan, preview, and apply', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/old.md', '# Old\n');
+      writeFile(dir, 'docs/index.md', '[Old](docs/old.md)\n');
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const planRegrade = requireTool(tools, 'trails_plan_regrade');
+      const checkRegrade = requireTool(tools, 'trails_check_regrade');
+      const previewRegrade = requireTool(tools, 'trails_preview_regrade');
+      const applyRegrade = requireTool(tools, 'trails_apply_regrade');
+
+      const plan = await planRegrade.handler(
+        {
+          fileRenames: [{ from: 'docs/old.md', to: 'docs/new.md' }],
+          from: 'alpha',
+          rootDir: dir,
+          to: 'omega',
+        },
+        {}
+      );
+      expect(plan.isError).toBeUndefined();
+      expect(plan.structuredContent).toMatchObject({
+        plan: {
+          fileRenames: [{ from: 'docs/old.md', to: 'docs/new.md' }],
+        },
+      });
+
+      const preview = await previewRegrade.handler({ rootDir: dir }, {});
+      expect(preview.isError).toBeUndefined();
+      expect(preview.structuredContent).toMatchObject({
+        run: {
+          report: {
+            fileRenames: [
+              expect.objectContaining({
+                from: 'docs/old.md',
+                rewritten: 1,
+                to: 'docs/new.md',
+              }),
+            ],
+          },
+        },
+      });
+
+      const preApplyCheck = await checkRegrade.handler({ rootDir: dir }, {});
+      expect(preApplyCheck.isError).toBe(true);
+
+      writeFile(dir, 'docs/later.md', '[Old](docs/old.md)\n');
+      const stalePreview = await previewRegrade.handler({ rootDir: dir }, {});
+      expect(stalePreview.isError).toBeUndefined();
+      expect(stalePreview.structuredContent).toMatchObject({
+        plan: { status: 'stale' },
+      });
+      rmSync(join(dir, 'docs/later.md'));
+
+      const applied = await applyRegrade.handler({ rootDir: dir }, {});
+      expect(applied.isError).toBeUndefined();
+      expect(existsSync(join(dir, 'docs/old.md'))).toBe(false);
+      expect(existsSync(join(dir, 'docs/new.md'))).toBe(true);
+      expect(readFileSync(join(dir, 'docs/index.md'), 'utf8')).toContain(
+        'docs/new.md'
+      );
+      expect(applied.structuredContent).toMatchObject({
+        history: { status: 'applied' },
+        run: { report: { fileRenames: [expect.any(Object)] } },
+      });
+
+      const historyCheck = await checkRegrade.handler(
+        { plan: 'alpha-to-omega', rootDir: dir },
+        {}
+      );
+      expect(historyCheck.isError).toBeUndefined();
+      expect(historyCheck.structuredContent).toMatchObject({
+        check: { status: 'passed' },
+        history: {
+          path: '.trails/regrade/history/alpha-to-omega.json',
+          status: 'checked',
+        },
+        run: { report: { fileRenames: [expect.any(Object)] } },
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

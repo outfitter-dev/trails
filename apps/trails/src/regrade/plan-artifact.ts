@@ -271,6 +271,17 @@ const sourceHashLedgerFacts = (report: RegradeReport): unknown => {
 
 const regradeSourceHashFacts = (report: RegradeReport): unknown => ({
   entries: sourceHashEntryFacts(report.entries),
+  fileRenames: report.run?.report.fileRenames?.map(
+    ({ deferred, from, historical, preserved, rewritten, skipped, to }) => ({
+      deferred,
+      from,
+      historical,
+      preserved,
+      rewritten,
+      skipped,
+      to,
+    })
+  ),
   ledger: sourceHashLedgerFacts(report),
   selectedClassIds: report.selectedClassIds,
 });

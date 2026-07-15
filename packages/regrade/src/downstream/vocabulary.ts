@@ -86,9 +86,42 @@ export interface VocabularyRegradeScope {
   readonly teachingSurfaces?: readonly string[];
 }
 
+/**
+ * One authored root-relative file move in a vocabulary plan.
+ *
+ * @example
+ * ```ts
+ * const rename: VocabularyFileRename = {
+ *   from: 'docs/old.md',
+ *   to: 'docs/new.md',
+ * };
+ * ```
+ */
+export interface VocabularyFileRename {
+  readonly from: string;
+  readonly to: string;
+}
+
+/**
+ * Derived reference-closure totals for one governed file move.
+ *
+ * @example
+ * ```ts
+ * console.log(evidence.rewritten, evidence.historical);
+ * ```
+ */
+export interface VocabularyFileRenameEvidence extends VocabularyFileRename {
+  readonly deferred: number;
+  readonly historical: number;
+  readonly preserved: number;
+  readonly rewritten: number;
+  readonly skipped: number;
+}
+
 export interface VocabularyRegradePlan {
   readonly caseSensitive?: boolean;
   readonly deferForms?: readonly string[];
+  readonly fileRenames?: readonly VocabularyFileRename[];
   readonly from: string;
   readonly id?: string;
   readonly intent?: string;
@@ -136,6 +169,7 @@ export interface VocabularyRunReport {
     Readonly<Record<VocabularyDisposition, number>>
   >;
   readonly filesChanged: number;
+  readonly fileRenames?: readonly VocabularyFileRenameEvidence[];
   readonly gate: VocabularyRunGate;
   readonly modified: number;
   readonly open: number;
@@ -656,6 +690,10 @@ const targetFormsForPlan = (
   }
   return forms;
 };
+
+export const vocabularyRewriteFormsForPlan = (
+  plan: VocabularyRegradePlan
+): readonly (readonly [string, string])[] => [...targetFormsForPlan(plan)];
 
 const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] => {
   const overrideForms = new Set(
@@ -1958,6 +1996,15 @@ export const vocabularyRegradePlanSchema = z.object({
     .array(z.string().min(1))
     .optional()
     .describe('Known forms that must be inventoried for review, not rewritten'),
+  fileRenames: z
+    .array(
+      z.object({
+        from: z.string().min(1).describe('Root-relative source file path'),
+        to: z.string().min(1).describe('Root-relative target file path'),
+      })
+    )
+    .optional()
+    .describe('Governed file moves whose references are derived from scope'),
   from: z.string().min(1).describe('Source vocabulary term or phrase'),
   id: z.string().optional().describe('Stable authored regrade plan id'),
   intent: z.string().optional().describe('Human-authored migration intent'),
@@ -2029,6 +2076,20 @@ export const vocabularyRegradeRunOutput = z.object({
       dispositions: z
         .object(vocabularyDispositionCountSchema.shape)
         .describe('Occurrence counts grouped by disposition'),
+      fileRenames: z
+        .array(
+          z.object({
+            deferred: z.number(),
+            from: z.string(),
+            historical: z.number(),
+            preserved: z.number(),
+            rewritten: z.number(),
+            skipped: z.number(),
+            to: z.string(),
+          })
+        )
+        .optional()
+        .describe('Governed file moves and derived reference outcomes'),
       filesChanged: z.number().describe('Distinct files changed on disk'),
       gate: z
         .object({

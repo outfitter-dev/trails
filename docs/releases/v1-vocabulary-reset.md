@@ -52,6 +52,8 @@ Every family run uses three scope tiers:
 
 Use `PathScope` include, exclude, and extension controls for collection boundaries rather than ad hoc ignore terminology. Use plan `policyClassified` rules for protected evidence that must remain visible, and `teachingSurfaces` for the census-expected docs coverage gate.
 
+When a vocabulary family moves files, author those moves in the same Regrade plan as `fileRenames`. Regrade derives references from the final rename map: preview is read-only, apply moves every file before one reference pass, and historical references stay counted without being rewritten. Do not hand-maintain a parallel reference list.
+
 ## Review Policy
 
 Each family declares two safety layers.

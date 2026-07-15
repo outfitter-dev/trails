@@ -190,6 +190,67 @@ describe('regradeSourceHash', () => {
       )
     ).toBe(true);
   });
+
+  test('changes when protected file-reference evidence changes', () => {
+    const sourceReport: RegradeReport = {
+      ...makeReport([]),
+      run: {
+        ledger: { cycle: 1, forms: {}, occurrences: [] },
+        plan: {
+          fileRenames: [{ from: 'docs/old.md', to: 'docs/new.md' }],
+          from: 'old',
+          kind: 'vocabulary',
+          to: 'new',
+        },
+        report: {
+          applied: 0,
+          deferred: 0,
+          dispositions: {},
+          fileRenames: [
+            {
+              deferred: 0,
+              from: 'docs/old.md',
+              historical: 1,
+              preserved: 0,
+              rewritten: 0,
+              skipped: 1,
+              to: 'docs/new.md',
+            },
+          ],
+          filesChanged: 0,
+          gate: {
+            reasons: [],
+            remaining: 0,
+            remainingByDisposition: {},
+            status: 'green',
+          },
+          modified: 0,
+          open: 0,
+          scopeTiers: { 'in-scope': 0, 'policy-classified': 1 },
+          skipped: 1,
+          teachingSurfaces: { expected: [], missing: [], touched: [] },
+        },
+      },
+    };
+    const changedReport: RegradeReport = {
+      ...sourceReport,
+      run: {
+        ...sourceReport.run,
+        report: {
+          ...sourceReport.run?.report,
+          fileRenames: sourceReport.run?.report.fileRenames?.map((rename) => ({
+            ...rename,
+            historical: rename.historical + 1,
+            skipped: rename.skipped + 1,
+          })),
+        },
+      },
+    };
+
+    expect(regradeSourceHash(changedReport)).not.toBe(
+      regradeSourceHash(sourceReport)
+    );
+  });
 });
 
 describe('appendRegradeHistoryRun', () => {

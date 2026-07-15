@@ -13,6 +13,8 @@ export {
   selectRegradeClasses,
   wardenTermRewriteClasses,
 } from './downstream/report.js';
+export { runFileRenameRegrade } from './downstream/file-renames.js';
+export type { FileRenameRegradeRun } from './downstream/file-renames.js';
 export {
   cliAliasesExportRestructureClass,
   createWardenExportRestructureClass,
@@ -60,6 +62,8 @@ export type {
 } from './downstream/scan-summary.js';
 export type {
   VocabularyDisposition,
+  VocabularyFileRename,
+  VocabularyFileRenameEvidence,
   VocabularyOccurrence,
   VocabularyPreserveInventoryEntry,
   VocabularyPreserveRule,

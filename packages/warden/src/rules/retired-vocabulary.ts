@@ -76,12 +76,18 @@ export const governedVocabularyLiteralRenameSchema = z.object({
   to: z.string().min(1),
 });
 
+export const governedVocabularyFileRenameSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+});
+
 export const governedVocabularyTransitionSchema = z.object({
   codeIdentifiers: z.array(z.string().min(1)).default([]),
   docs: z.object({
     guidance: z.array(z.string().min(1)).default([]),
     summary: z.string().min(1),
   }),
+  fileRenames: z.array(governedVocabularyFileRenameSchema).default([]),
   from: z.string().min(1),
   id: z.string().min(1),
   intent: z.string().min(1),

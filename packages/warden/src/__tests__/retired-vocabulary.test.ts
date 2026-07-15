@@ -6,6 +6,7 @@ import {
   getGovernedVocabularyTransition,
   governedVocabularyRegistrySchema,
   governedVocabularySymbolRenameSchema,
+  governedVocabularyTransitionSchema,
   governedVocabularyTransitions,
   listGovernedVocabularyTransitions,
 } from '../rules/retired-vocabulary.js';
@@ -132,6 +133,25 @@ describe('governed vocabulary registry', () => {
       reviewDeclarationTypes: ['FunctionParam'],
       to: 'targetTerm',
     });
+  });
+
+  test('keeps governed file renames as typed transition facts', () => {
+    const transition = governedVocabularyTransitionSchema.parse({
+      docs: { guidance: [], summary: 'Move the guide with the term.' },
+      fileRenames: [{ from: 'docs/old.md', to: 'docs/new.md' }],
+      from: 'old',
+      id: 'old-new',
+      intent: 'Move the governed vocabulary and its guide.',
+      kind: 'vocabulary',
+      oldForms: ['old'],
+      safeRewriteForms: { old: 'new', olds: 'news' },
+      status: 'planned',
+      target: { kind: 'single', to: 'new' },
+    });
+
+    expect(transition.fileRenames).toEqual([
+      { from: 'docs/old.md', to: 'docs/new.md' },
+    ]);
   });
 
   test('classifies the governed registry as protected evidence', () => {
