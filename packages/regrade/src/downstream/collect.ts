@@ -129,6 +129,10 @@ const toPosixRelative = (root: string, absolutePath: string): string => {
   return sep === posix.sep ? rel : rel.split(sep).join(posix.sep);
 };
 
+const isImmutableRegradeHistoryDirectory = (path: string): boolean =>
+  path === '.trails/regrade/history' ||
+  path.endsWith('/.trails/regrade/history');
+
 const direntKind = (dirent: {
   isDirectory(): boolean;
   isFile(): boolean;
@@ -198,6 +202,13 @@ export const collectDownstreamSources = (
       const path = toPosixRelative(absoluteRoot, absolutePath);
       if (matchesAnyPathGlob(path, options.exclude)) {
         skipped.push({ path, reason: 'ignored-glob' });
+        continue;
+      }
+      if (
+        entry.kind === 'directory' &&
+        isImmutableRegradeHistoryDirectory(path)
+      ) {
+        skipped.push({ path, reason: 'immutable-regrade-history' });
         continue;
       }
       const classification = classifyDownstreamEntry(

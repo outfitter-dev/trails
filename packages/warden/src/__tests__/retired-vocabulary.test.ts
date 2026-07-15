@@ -216,6 +216,20 @@ describe('governed vocabulary registry', () => {
     }
   });
 
+  test('keeps active plans visible without reopening immutable Regrade history', () => {
+    const transition = listGovernedVocabularyTransitions().find((entry) =>
+      entry.id.startsWith('v1-')
+    );
+    const historical = transition?.scope?.policyClassified?.find(
+      (policy) => policy.disposition === 'historical-by-policy'
+    );
+
+    expect(historical?.paths).toContain('.trails/regrade/*.json');
+    expect(historical?.paths).toContain('**/.trails/regrade/*.json');
+    expect(historical?.paths).not.toContain('.trails/regrade/**');
+    expect(historical?.paths).not.toContain('**/.trails/regrade/**');
+  });
+
   test('records the planned family teaching and historical census expectations', () => {
     const projection = getGovernedVocabularyTransition(
       'v1-projection-derive-render'

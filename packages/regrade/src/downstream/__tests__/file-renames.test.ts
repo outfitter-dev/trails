@@ -86,6 +86,11 @@ describe('governed file renames', () => {
     );
     write(
       root,
+      '.trails/regrade/history/prior.json',
+      '{"from":"docs/surfaces/surface-facets.md"}\n'
+    );
+    write(
+      root,
       '.trails/cache.json',
       '{"from":"docs/surfaces/surface-facets.md"}\n'
     );
@@ -147,6 +152,9 @@ describe('governed file renames', () => {
     expect(readFileSync(join(root, 'CHANGELOG.md'), 'utf8')).toContain(
       'docs/surfaces/surface-facets.md'
     );
+    expect(
+      readFileSync(join(root, '.trails/regrade/history/prior.json'), 'utf8')
+    ).toContain('docs/surfaces/surface-facets.md');
 
     const completion = runFileRenameRegrade(input);
     expect(completion.isOk()).toBe(true);

@@ -8,6 +8,7 @@ import {
   classifyDownstreamEntry,
   collectDownstreamSources,
   collectDownstreamSourcesTrail,
+  DEFAULT_IGNORED_DIRECTORIES,
 } from '../collect.js';
 
 describe('classifyDownstreamEntry', () => {
@@ -184,6 +185,41 @@ describe('collectDownstreamSources', () => {
       expect(skippedReasons.get('.agents/plans')).toBe('ignored-glob');
       expect(skippedReasons.get('.agents/goals')).toBe('ignored-glob');
       expect(skippedReasons.get('.scratch')).toBe('ignored-glob');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('prunes immutable Regrade history when the .trails namespace is open', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-collect-history-'));
+    try {
+      const history = join(root, '.trails', 'regrade', 'history');
+      mkdirSync(history, { recursive: true });
+      writeFileSync(
+        join(root, '.trails', 'regrade', 'active.json'),
+        '{"from":"projection"}\n'
+      );
+      writeFileSync(join(history, 'prior.json'), '{"source":"projection"}\n');
+
+      const collection = collectDownstreamSources(root, {
+        extensions: ['.json'],
+        ignoredDirectories: DEFAULT_IGNORED_DIRECTORIES.filter(
+          (directory) => directory !== '.trails'
+        ),
+      });
+      expect(collection).not.toBeNull();
+      const result = collection as NonNullable<typeof collection>;
+
+      expect(result.files.map((file) => file.path)).toEqual([
+        '.trails/regrade/active.json',
+      ]);
+      expect(result.skipped).toContainEqual({
+        path: '.trails/regrade/history',
+        reason: 'immutable-regrade-history',
+      });
+      expect(
+        result.skipped.some((entry) => entry.path.endsWith('prior.json'))
+      ).toBe(false);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

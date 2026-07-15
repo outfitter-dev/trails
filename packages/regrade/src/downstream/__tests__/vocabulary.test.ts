@@ -131,7 +131,7 @@ describe('runVocabularyRegrade', () => {
               '.agents/memory/**',
               '.agents/notes/**',
               '.changeset/**',
-              '.trails/regrade/**',
+              '.trails/regrade/*.json',
               '**/CHANGELOG.md',
               'docs/adr/0*.md',
               'packages/warden/src/rules/retired-vocabulary.ts',
@@ -1581,6 +1581,12 @@ describe('runVocabularyRegrade', () => {
     try {
       writeFile(dir, 'CHANGELOG.md', 'The facet API shipped in beta.\n');
       writeFile(dir, 'docs/current.md', 'Use the facet API.\n');
+      writeFile(dir, '.trails/regrade/active.json', '{"from":"facet"}\n');
+      writeFile(
+        dir,
+        '.trails/regrade/history/prior.json',
+        '{"from":"facet"}\n'
+      );
 
       const result = runVocabularyRegrade({
         apply: true,
@@ -1592,7 +1598,11 @@ describe('runVocabularyRegrade', () => {
               {
                 disposition: 'historical-by-policy',
                 expectMatches: true,
-                paths: ['**/CHANGELOG.md', 'CHANGELOG.md'],
+                paths: [
+                  '**/CHANGELOG.md',
+                  'CHANGELOG.md',
+                  '.trails/regrade/**',
+                ],
                 reason: 'Published changelog entries are immutable history.',
               },
             ],
@@ -1616,6 +1626,12 @@ describe('runVocabularyRegrade', () => {
       expect(result.value?.run?.ledger.occurrences).toEqual([
         expect.objectContaining({
           disposition: 'historical-by-policy',
+          path: '.trails/regrade/active.json',
+          scopeTier: 'policy-classified',
+          verdict: 'skipped',
+        }),
+        expect.objectContaining({
+          disposition: 'historical-by-policy',
           path: 'CHANGELOG.md',
           scopeTier: 'policy-classified',
           verdict: 'skipped',
@@ -1629,11 +1645,11 @@ describe('runVocabularyRegrade', () => {
       ]);
       expect(result.value?.run?.report).toMatchObject({
         dispositions: {
-          'historical-by-policy': 1,
+          'historical-by-policy': 2,
           'in-family-modified': 1,
         },
         gate: { status: 'green' },
-        scopeTiers: { 'in-scope': 1, 'policy-classified': 1 },
+        scopeTiers: { 'in-scope': 1, 'policy-classified': 2 },
         teachingSurfaces: {
           expected: ['docs/current.md'],
           missing: [],

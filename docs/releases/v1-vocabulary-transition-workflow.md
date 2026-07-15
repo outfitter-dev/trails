@@ -101,6 +101,8 @@ For a registry-governed transition, apply also stamps the history run and the CL
 
 Warden also keeps the latest committed run's unknown stem permutations visible as advisory findings. Each transition/form pair appears once. Add the form to an incremental plan and rerun Regrade, or classify it as out-of-family or preserved; that persisted classification suppresses the advisory on later runs. Earlier history runs remain evidence, but they do not resurrect forms that the latest run has classified or cleared.
 
+Committed `.trails/regrade/history/` artifacts are immutable provenance, not migration source inputs. Regrade prunes that namespace from later source and file-reference censuses while keeping active `.trails/regrade/*.json` plans policy-classified; Warden validates committed history through its dedicated provenance loader.
+
 Use `trails regrade check --root-dir . --plan "$PLAN_PATH"` when a family should prove the saved plan gate without writing. The check succeeds only when the plan is fresh and its completion gate is green. Use `trails regrade plans --root-dir .` when more than one active plan may exist, because commands without `--plan <path-or-name>` intentionally fail on ambiguity.
 
 Safe follow-up edits usually include:
