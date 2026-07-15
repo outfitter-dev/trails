@@ -1,6 +1,6 @@
 /* oxlint-disable eslint-plugin-jest/require-hook, max-statements, func-style -- release script with module-level flow */
 /**
- * Native Bun release binding for public `@ontrails/*` workspace publication.
+ * Built-in release flow for public `@ontrails/*` workspace publication.
  *
  * Auto-discovers workspaces from the root `package.json` `workspaces` field,
  * topo-sorts them by `workspace:` dependency edges, enforces manifest-range
@@ -13,6 +13,15 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
+
+import {
+  checkRegistryPosture,
+  classifyPackageRegistryState,
+  factsFromRegistryResult,
+  npmRegistryVersionView,
+  npmRegistryView,
+} from './native-bun-registry.js';
+import type { PackageRegistryState } from './native-bun-registry.js';
 
 const REPO_ROOT = resolve(process.cwd());
 
@@ -34,6 +43,7 @@ export interface NativeBunPublishOptions {
   readonly tag: string | undefined;
   readonly otp: string | undefined;
   readonly only: readonly string[] | undefined;
+  readonly trustedPublishing?: boolean;
 }
 
 /** Minimal shape of a workspace `package.json` we care about. */
@@ -45,6 +55,14 @@ export interface NativeBunPublishPackageJson {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  repository?:
+    | string
+    | {
+        directory?: string;
+        type?: string;
+        url?: string;
+      };
 }
 
 type DependencyField =
@@ -60,6 +78,8 @@ export interface NativeBunPublishWorkspace {
   readonly path: string;
   readonly isPrivate: boolean;
   readonly workspaceDeps: readonly string[];
+  readonly repository?: NativeBunPublishPackageJson['repository'];
+  readonly publishLifecycleScripts?: readonly string[];
 }
 
 const DEPENDENCY_FIELDS: readonly DependencyField[] = [
@@ -68,19 +88,32 @@ const DEPENDENCY_FIELDS: readonly DependencyField[] = [
   'peerDependencies',
   'optionalDependencies',
 ];
+const TRUSTED_REPOSITORY_URL =
+  'git+https://github.com/outfitter-dev/trails.git';
+const MINIMUM_TRUSTED_NODE = [22, 14, 0] as const;
+const MINIMUM_TRUSTED_NPM = [11, 5, 1] as const;
+const PUBLISH_ONLY_LIFECYCLE_SCRIPTS = [
+  'prepublishOnly',
+  'publish',
+  'postpublish',
+] as const;
 
 const USAGE = `Usage: bun scripts/publish.ts [options]
 
-Publish all public @ontrails/* workspaces in dep order using \`bun publish\`.
+Publish all public @ontrails/* workspaces in dependency order. Bun packs and
+validates each tarball; npm publishes the resolved tarball to the registry.
 
 Options:
   --check                Pre-publish verification only. Runs \`bun pm pack --dry-run\`
                          (required so \`catalog:\` resolves) and asserts the packed
-                         manifest has no \`workspace:\` or \`catalog:\` ranges. No publishing.
+                         manifest has no \`workspace:\` or \`catalog:\` ranges and
+                         validates trusted-publishing repository metadata. No publishing.
   --dry-run              Alias for --check.
   --tag <tag>            npm dist-tag. Defaults to .changeset/pre.json tag when in
                          prerelease mode, otherwise "latest".
   --otp <code>           Two-factor code. Also read from BUN_PUBLISH_OTP.
+  --trusted-publishing   Require GitHub Actions OIDC and npm trusted-publishing
+                         prerequisites before attempting the first package.
   --only <name[,name]>   Restrict to the named packages (repeatable). Useful for
                          partial reruns after a mid-matrix failure.
   -h, --help             Show this help and exit.
@@ -96,6 +129,7 @@ const parseArgs = (argv: readonly string[]): NativeBunPublishOptions => {
   let mode: NativeBunPublishOptions['mode'] = 'publish';
   let tag: string | undefined;
   let otp: string | undefined = process.env['BUN_PUBLISH_OTP'] || undefined;
+  let trustedPublishing = false;
   const only: string[] = [];
 
   const needsValue = (flag: string, value: string | undefined): string => {
@@ -118,6 +152,8 @@ const parseArgs = (argv: readonly string[]): NativeBunPublishOptions => {
     } else if (arg === '--otp') {
       i += 1;
       otp = needsValue('--otp', argv[i]);
+    } else if (arg === '--trusted-publishing') {
+      trustedPublishing = true;
     } else if (arg === '--only') {
       i += 1;
       const value = needsValue('--only', argv[i]);
@@ -143,6 +179,7 @@ const parseArgs = (argv: readonly string[]): NativeBunPublishOptions => {
     only: only.length > 0 ? only : undefined,
     otp,
     tag,
+    trustedPublishing,
   };
 };
 
@@ -334,6 +371,10 @@ const discoverWorkspaces = async (): Promise<NativeBunPublishWorkspace[]> => {
       isPrivate: pkg.private === true,
       name: pkg.name,
       path: dir,
+      publishLifecycleScripts: PUBLISH_ONLY_LIFECYCLE_SCRIPTS.filter(
+        (name) => pkg.scripts?.[name] !== undefined
+      ),
+      repository: pkg.repository,
       version: pkg.version ?? '0.0.0',
       workspaceDeps: collectWorkspaceDeps(pkg),
     });
@@ -433,23 +474,19 @@ const spawnCapture = async (
   return { exitCode, stdout };
 };
 
-/**
- * Pack a package to a temp dir and assert the resulting tarball's
- * `package/package.json` contains no `workspace:` or `catalog:` ranges.
- *
- * @throws When packing fails or forbidden ranges are found.
- */
-const assertManifestClean = async (
-  ws: NativeBunPublishWorkspace,
-  workspacesByName: ReadonlyMap<string, NativeBunPublishWorkspace>
-): Promise<void> => {
-  const tmp = await mkdtemp(join(tmpdir(), 'trails-publish-'));
+interface PackedWorkspaceTarball {
+  readonly directory: string;
+  readonly path: string;
+}
+
+/** Pack through Bun so workspace and catalog ranges resolve before npm sees the manifest. */
+const packWorkspaceTarball = async (
+  ws: NativeBunPublishWorkspace
+): Promise<PackedWorkspaceTarball> => {
+  const directory = await mkdtemp(join(tmpdir(), 'trails-publish-'));
   try {
-    // Use `bun pm pack` so the packed manifest reflects what `bun publish`
-    // will upload: workspace: and catalog: ranges are resolved the same way.
-    // npm pack does not resolve `catalog:` and would produce false positives.
     const pack = await spawnCapture(
-      ['bun', 'pm', 'pack', '--destination', tmp],
+      ['bun', 'pm', 'pack', '--destination', directory],
       ws.path
     );
     if (pack.exitCode !== 0) {
@@ -457,78 +494,133 @@ const assertManifestClean = async (
         `bun pm pack failed for ${ws.name} (exit ${pack.exitCode})`
       );
     }
-    const tarEntries = await readdir(tmp);
-    const tarName = tarEntries.find((n) =>
-      typeof n === 'string' ? n.endsWith('.tgz') : String(n).endsWith('.tgz')
+    const entries = await readdir(directory);
+    const tarName = entries.find((name) =>
+      typeof name === 'string'
+        ? name.endsWith('.tgz')
+        : String(name).endsWith('.tgz')
     );
     if (!tarName) {
       throw new Error(`bun pm pack produced no tarball for ${ws.name}`);
     }
-    const tarPath = join(tmp, String(tarName));
-
-    const extract = Bun.spawn(
-      ['tar', '-xOf', tarPath, 'package/package.json'],
-      { stderr: 'pipe', stdin: 'ignore', stdout: 'pipe' }
-    );
-    const [manifestText, tarStderr, extractExit] = await Promise.all([
-      new Response(extract.stdout).text(),
-      new Response(extract.stderr).text(),
-      extract.exited,
-    ]);
-    if (extractExit !== 0) {
-      const detail = tarStderr.trim() || '(no stderr output)';
-      throw new Error(
-        `tar extraction failed for ${ws.name} (exit ${extractExit}): ${detail}`
-      );
-    }
-
-    let packedPackage: NativeBunPublishPackageJson;
-    try {
-      packedPackage = JSON.parse(manifestText) as NativeBunPublishPackageJson;
-    } catch (error) {
-      throw new Error(
-        `Invalid packed package.json for ${ws.name}: ${(error as Error).message}`,
-        { cause: error }
-      );
-    }
-
-    const offenders: string[] = [];
-    for (const [lineNo, line] of manifestText.split('\n').entries()) {
-      if (line.includes('"workspace:') || line.includes('"catalog:')) {
-        offenders.push(`  line ${lineNo + 1}: ${line.trim()}`);
-      }
-    }
-    if (offenders.length > 0) {
-      const relPath = relative(REPO_ROOT, ws.path);
-      const hint =
-        '  Hint: `bun publish` rewrites these at pack time. Verify the package was packed via bun, not npm.';
-      throw new Error(
-        `Packed manifest for ${ws.name} (${relPath}) contains forbidden ranges:\n${offenders.join('\n')}\n${hint}`
-      );
-    }
-    const sourcePackage = await readJson<NativeBunPublishPackageJson>(
-      join(ws.path, 'package.json')
-    );
-    const mismatches = findPackedFirstPartyDependencyMismatches({
-      packageName: ws.name,
-      packagePath: ws.path,
-      packedPackage,
-      sourcePackage,
-      workspacesByName,
-    });
-    if (mismatches.length > 0) {
-      throw new Error(mismatches.join('\n'));
-    }
-  } finally {
-    await rm(tmp, { force: true, recursive: true });
+    return { directory, path: join(directory, String(tarName)) };
+  } catch (error) {
+    await rm(directory, { force: true, recursive: true });
+    throw error;
   }
 };
+
+/** Assert that a Bun-packed tarball contains publishable dependency ranges. */
+const assertPackedManifestClean = async (
+  ws: NativeBunPublishWorkspace,
+  workspacesByName: ReadonlyMap<string, NativeBunPublishWorkspace>,
+  tarPath: string
+): Promise<void> => {
+  const extract = Bun.spawn(['tar', '-xOf', tarPath, 'package/package.json'], {
+    stderr: 'pipe',
+    stdin: 'ignore',
+    stdout: 'pipe',
+  });
+  const [manifestText, tarStderr, extractExit] = await Promise.all([
+    new Response(extract.stdout).text(),
+    new Response(extract.stderr).text(),
+    extract.exited,
+  ]);
+  if (extractExit !== 0) {
+    const detail = tarStderr.trim() || '(no stderr output)';
+    throw new Error(
+      `tar extraction failed for ${ws.name} (exit ${extractExit}): ${detail}`
+    );
+  }
+
+  let packedPackage: NativeBunPublishPackageJson;
+  try {
+    packedPackage = JSON.parse(manifestText) as NativeBunPublishPackageJson;
+  } catch (error) {
+    throw new Error(
+      `Invalid packed package.json for ${ws.name}: ${(error as Error).message}`,
+      { cause: error }
+    );
+  }
+
+  const offenders: string[] = [];
+  for (const [lineNo, line] of manifestText.split('\n').entries()) {
+    if (line.includes('"workspace:') || line.includes('"catalog:')) {
+      offenders.push(`  line ${lineNo + 1}: ${line.trim()}`);
+    }
+  }
+  if (offenders.length > 0) {
+    const relPath = relative(REPO_ROOT, ws.path);
+    throw new Error(
+      `Packed manifest for ${ws.name} (${relPath}) contains forbidden ranges:\n${offenders.join('\n')}\n  Hint: publish the Bun-packed tarball instead of packing through npm.`
+    );
+  }
+  const sourcePackage = await readJson<NativeBunPublishPackageJson>(
+    join(ws.path, 'package.json')
+  );
+  const mismatches = findPackedFirstPartyDependencyMismatches({
+    packageName: ws.name,
+    packagePath: ws.path,
+    packedPackage,
+    sourcePackage,
+    workspacesByName,
+  });
+  if (mismatches.length > 0) {
+    throw new Error(mismatches.join('\n'));
+  }
+};
+
+export const unsupportedPublishLifecycleScripts = (
+  workspaces: readonly NativeBunPublishWorkspace[]
+): string[] =>
+  workspaces.flatMap((workspace) =>
+    workspace.isPrivate
+      ? []
+      : (workspace.publishLifecycleScripts ?? []).map(
+          (script) => `${workspace.name} defines unsupported ${script}`
+        )
+  );
+
+/** Validate repository metadata required by npm trusted publishing. */
+export const publishRepositoryMetadataErrors = (
+  workspaces: readonly NativeBunPublishWorkspace[]
+): string[] =>
+  workspaces.flatMap((workspace) => {
+    if (workspace.isPrivate) {
+      return [];
+    }
+    const { repository } = workspace;
+    const expectedDirectory = relative(REPO_ROOT, workspace.path);
+    if (
+      typeof repository !== 'string' &&
+      repository?.type === 'git' &&
+      repository.url === TRUSTED_REPOSITORY_URL &&
+      repository.directory === expectedDirectory
+    ) {
+      return [];
+    }
+    return [
+      `${workspace.name} must declare repository ${TRUSTED_REPOSITORY_URL} with directory ${expectedDirectory}`,
+    ];
+  });
 
 /** Run `--check` flow: pack dry-run plus manifest-range assertion per package. */
 const runCheck = async (
   workspaces: readonly NativeBunPublishWorkspace[],
   allWorkspaces: readonly NativeBunPublishWorkspace[]
 ): Promise<number> => {
+  const repositoryErrors = publishRepositoryMetadataErrors(workspaces);
+  if (repositoryErrors.length > 0) {
+    throw new Error(
+      `Package repository metadata check failed:\n${repositoryErrors.map((error) => `- ${error}`).join('\n')}`
+    );
+  }
+  const unsupportedLifecycle = unsupportedPublishLifecycleScripts(workspaces);
+  if (unsupportedLifecycle.length > 0) {
+    throw new Error(
+      `Tarball publication cannot honor publish-only lifecycle scripts:\n${unsupportedLifecycle.map((error) => `- ${error}`).join('\n')}`
+    );
+  }
   const workspacesByName = new Map(allWorkspaces.map((ws) => [ws.name, ws]));
   for (const ws of workspaces) {
     if (ws.isPrivate) {
@@ -545,7 +637,12 @@ const runCheck = async (
       return 1;
     }
     try {
-      await assertManifestClean(ws, workspacesByName);
+      const packed = await packWorkspaceTarball(ws);
+      try {
+        await assertPackedManifestClean(ws, workspacesByName, packed.path);
+      } finally {
+        await rm(packed.directory, { force: true, recursive: true });
+      }
     } catch (error) {
       fail((error as Error).message);
       return 1;
@@ -557,35 +654,245 @@ const runCheck = async (
   return 0;
 };
 
+const compareNumericVersion = (
+  version: string,
+  minimum: readonly [number, number, number]
+): number => {
+  const actual = version
+    .split('.')
+    .slice(0, 3)
+    .map((part) => Number.parseInt(part, 10));
+  if (actual.length !== 3 || actual.some((part) => Number.isNaN(part))) {
+    return -1;
+  }
+  for (let index = 0; index < minimum.length; index += 1) {
+    const delta = (actual[index] ?? 0) - (minimum[index] ?? 0);
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+  return 0;
+};
+
+export const trustedPublishingPreflightErrors = ({
+  env,
+  nodeVersion,
+  npmVersion,
+  workspaces,
+}: {
+  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly nodeVersion: string;
+  readonly npmVersion: string;
+  readonly workspaces: readonly NativeBunPublishWorkspace[];
+}): string[] => {
+  const errors: string[] = [];
+  if (env['GITHUB_ACTIONS'] !== 'true') {
+    errors.push('trusted publishing requires a GitHub Actions runner');
+  }
+  if (!env['ACTIONS_ID_TOKEN_REQUEST_URL']) {
+    errors.push('GitHub OIDC request URL is unavailable (id-token: write)');
+  }
+  if (!env['ACTIONS_ID_TOKEN_REQUEST_TOKEN']) {
+    errors.push('GitHub OIDC request token is unavailable (id-token: write)');
+  }
+  if (compareNumericVersion(nodeVersion, MINIMUM_TRUSTED_NODE) < 0) {
+    errors.push(
+      `trusted publishing requires Node >= ${MINIMUM_TRUSTED_NODE.join('.')}; found ${nodeVersion}`
+    );
+  }
+  if (compareNumericVersion(npmVersion, MINIMUM_TRUSTED_NPM) < 0) {
+    errors.push(
+      `trusted publishing requires npm >= ${MINIMUM_TRUSTED_NPM.join('.')}; found ${npmVersion}`
+    );
+  }
+  errors.push(...publishRepositoryMetadataErrors(workspaces));
+  return errors;
+};
+
+export const createNpmPublishCommand = ({
+  otp,
+  tag,
+  tarballPath,
+}: {
+  readonly otp: string | undefined;
+  readonly tag: string;
+  readonly tarballPath: string;
+}): string[] => {
+  const command = [
+    'npm',
+    'publish',
+    tarballPath,
+    '--access',
+    'public',
+    '--tag',
+    tag,
+  ];
+  if (otp) {
+    command.push('--otp', otp);
+  }
+  return command;
+};
+
+export const publicationActionForRegistryState = (
+  state: PackageRegistryState,
+  trustedPublishing = false
+): 'block' | 'publish' | 'skip' => {
+  if (state.kind === 'complete') {
+    return 'skip';
+  }
+  if (state.kind === 'first-time-package') {
+    return trustedPublishing ? 'block' : 'publish';
+  }
+  if (state.kind === 'needs-publish') {
+    return 'publish';
+  }
+  return 'block';
+};
+
+const registryPublicationBlocker = (
+  workspace: NativeBunPublishWorkspace,
+  state: PackageRegistryState,
+  trustedPublishing: boolean
+): string => {
+  if (state.kind === 'first-time-package' && trustedPublishing) {
+    return `${workspace.name} is not published yet; bootstrap it with credentialed local tooling, configure its npm trusted publisher, then retry`;
+  }
+  if (state.kind === 'needs-tag-repair') {
+    return `${workspace.name}@${workspace.version} is published but the requested dist-tag points at ${state.currentTagVersion ?? '(missing)'}; repair it with credentialed npm tooling before retrying`;
+  }
+  if (state.kind === 'tag-points-ahead') {
+    return `${workspace.name} dist-tag points ahead at ${state.currentTagVersion}; refusing to publish ${workspace.version}`;
+  }
+  if (state.kind === 'registry-inaccessible') {
+    return `Could not inspect ${workspace.name}: ${state.error}`;
+  }
+  return `Could not determine whether ${workspace.name}@${workspace.version} is ready`;
+};
+
+const assertTrustedPublishingReady = async (
+  workspaces: readonly NativeBunPublishWorkspace[]
+): Promise<void> => {
+  const npmVersionResult = await spawnCapture(['npm', '--version'], REPO_ROOT);
+  if (npmVersionResult.exitCode !== 0) {
+    throw new Error('Could not read npm version for trusted publishing');
+  }
+  const nodeVersionResult = await spawnCapture(
+    ['node', '--version'],
+    REPO_ROOT
+  );
+  if (nodeVersionResult.exitCode !== 0) {
+    throw new Error('Could not read Node version for trusted publishing');
+  }
+  const errors = trustedPublishingPreflightErrors({
+    env: process.env,
+    nodeVersion: nodeVersionResult.stdout.trim().replace(/^v/, ''),
+    npmVersion: npmVersionResult.stdout.trim(),
+    workspaces,
+  });
+  if (errors.length > 0) {
+    throw new Error(
+      `Trusted publishing preflight failed:\n${errors.map((error) => `- ${error}`).join('\n')}`
+    );
+  }
+  success('Trusted publishing prerequisites are available');
+};
+
 /** Run the actual publish flow sequentially. Aborts on first failure. */
 const runPublish = async (
   workspaces: readonly NativeBunPublishWorkspace[],
+  allWorkspaces: readonly NativeBunPublishWorkspace[],
   tag: string,
-  otp: string | undefined
+  otp: string | undefined,
+  trustedPublishing: boolean
 ): Promise<number> => {
+  if (trustedPublishing) {
+    await assertTrustedPublishingReady(workspaces);
+  }
+  const unsupportedLifecycle = unsupportedPublishLifecycleScripts(workspaces);
+  if (unsupportedLifecycle.length > 0) {
+    throw new Error(
+      `Tarball publication cannot honor publish-only lifecycle scripts:\n${unsupportedLifecycle.map((error) => `- ${error}`).join('\n')}`
+    );
+  }
+  const publicWorkspaces = workspaces.filter(
+    (workspace) => !workspace.isPrivate
+  );
+  const registryResults = await checkRegistryPosture(
+    publicWorkspaces,
+    npmRegistryView,
+    npmRegistryVersionView,
+    tag
+  );
+  const registryStates = new Map<string, PackageRegistryState>();
+  const registryBlockers: string[] = [];
+  for (const workspace of publicWorkspaces) {
+    const registryResult = registryResults.find(
+      (result) => result.name === workspace.name
+    );
+    if (!registryResult) {
+      registryBlockers.push(
+        `Could not read registry posture for ${workspace.name}`
+      );
+      continue;
+    }
+    const state = classifyPackageRegistryState(
+      factsFromRegistryResult(registryResult)
+    );
+    registryStates.set(workspace.name, state);
+    if (
+      publicationActionForRegistryState(state, trustedPublishing) === 'block'
+    ) {
+      registryBlockers.push(
+        registryPublicationBlocker(workspace, state, trustedPublishing)
+      );
+    }
+  }
+  if (registryBlockers.length > 0) {
+    throw new Error(
+      `Registry preflight blocked publication before any package was published:\n${registryBlockers.map((error) => `- ${error}`).join('\n')}`
+    );
+  }
+  const workspacesByName = new Map(allWorkspaces.map((ws) => [ws.name, ws]));
   for (const ws of workspaces) {
     if (ws.isPrivate) {
       info(`Skipping ${ws.name} (private)`);
       continue;
     }
-    info(`Publishing ${ws.name}@${ws.version}... (tag=${tag})`);
-    const cmd: string[] = [
-      'bun',
-      'publish',
-      '--access',
-      'public',
-      '--tag',
-      tag,
-    ];
-    if (otp) {
-      cmd.push('--otp', otp);
-    }
-    const code = await spawnInherit(cmd, ws.path);
-    if (code !== 0) {
-      fail(
-        `Failed to publish ${ws.name} (exit ${code}); aborting remaining publishes`
-      );
+    const registryState = registryStates.get(ws.name);
+    if (!registryState) {
+      fail(`Registry preflight did not produce a state for ${ws.name}`);
       return 1;
+    }
+    const publicationAction = publicationActionForRegistryState(
+      registryState,
+      trustedPublishing
+    );
+    if (publicationAction === 'skip') {
+      success(
+        `${ws.name}@${ws.version} already published with ${tag} at target; continuing`
+      );
+      continue;
+    }
+    if (publicationAction === 'block') {
+      fail(registryPublicationBlocker(ws, registryState, trustedPublishing));
+      return 1;
+    }
+    info(`Publishing ${ws.name}@${ws.version}... (tag=${tag})`);
+    const packed = await packWorkspaceTarball(ws);
+    try {
+      await assertPackedManifestClean(ws, workspacesByName, packed.path);
+      const code = await spawnInherit(
+        createNpmPublishCommand({ otp, tag, tarballPath: packed.path }),
+        ws.path
+      );
+      if (code !== 0) {
+        fail(
+          `Failed to publish ${ws.name} (exit ${code}); aborting remaining publishes`
+        );
+        return 1;
+      }
+    } finally {
+      await rm(packed.directory, { force: true, recursive: true });
     }
     success(`${ws.name}@${ws.version} published`);
   }
@@ -635,7 +942,13 @@ export const runNativeBunPublishCli = async (
       fail('Could not resolve a dist-tag. Pass --tag <tag> explicitly.');
       return 1;
     }
-    return await runPublish(selected, tag, opts.otp);
+    return await runPublish(
+      selected,
+      all,
+      tag,
+      opts.otp,
+      opts.trustedPublishing ?? false
+    );
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     fail(msg);

@@ -131,7 +131,9 @@ export const classifyPackageRegistryState = (
 };
 
 /** Map a registry probe result into the classifier's fact shape. */
-const factsFromResult = (result: RegistryResult): PackageRegistryFacts => {
+export const factsFromRegistryResult = (
+  result: RegistryResult
+): PackageRegistryFacts => {
   if (result.status === 'published') {
     return {
       expectedTagVersion: result.expectedTagVersion,
@@ -632,7 +634,7 @@ export const registryPostureErrors = (
   const phase = normalizeRegistryCheckPhase(phaseOrRequirePublished);
   const errors: string[] = [];
   for (const result of results) {
-    const state = classifyPackageRegistryState(factsFromResult(result));
+    const state = classifyPackageRegistryState(factsFromRegistryResult(result));
     if (state.kind === 'registry-inaccessible') {
       errors.push(`${result.name}: registry probe failed: ${state.error}`);
       continue;

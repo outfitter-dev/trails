@@ -27,13 +27,32 @@ export interface ReleaseBindingDescriptor {
   readonly runtime: string;
 }
 
-export const nativeBunReleaseBinding = {
+export const nativeBunPackBinding = {
   boundary: 'trails-owned',
-  capabilities: ['pack-check', 'publish', 'registry-preflight'],
+  capabilities: ['pack-check'],
   description:
-    'Built-in Bun release binding for Trails-owned package pack checks, npm registry preflight, and lockstep package publication.',
+    'Native Bun release binding for Trails-owned package packing and validation.',
   id: 'release.binding.native-bun',
   kind: 'native',
   placement: 'same-package',
   runtime: 'bun',
+} satisfies ReleaseBindingDescriptor;
+
+/**
+ * @deprecated Use `nativeBunPackBinding`. This alias preserves the exported
+ * name while correcting its descriptor to the Bun-owned pack boundary.
+ */
+export const nativeBunReleaseBinding = Object.freeze({
+  ...nativeBunPackBinding,
+});
+
+export const npmReleaseAdapterBinding = {
+  boundary: 'foreign',
+  capabilities: ['publish', 'registry-preflight'],
+  description:
+    'Same-package npm adapter binding for trusted publication, registry preflight, and lockstep recovery.',
+  id: 'release.binding.npm',
+  kind: 'adapter',
+  placement: 'same-package',
+  runtime: 'npm',
 } satisfies ReleaseBindingDescriptor;

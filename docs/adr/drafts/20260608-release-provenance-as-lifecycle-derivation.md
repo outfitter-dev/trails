@@ -12,7 +12,7 @@ depends_on: [47, 48]
 
 ## Context
 
-Trails already treats package releases as part of the framework contract. ADR-0047 decides that public `@ontrails/*` packages stay lockstep for the 1.x line, Changesets computes version and changelog output, Bun publishes, and a release PR carries evidence. The repo also has a branch-local Changeset check: if a PR changes publishable package contents, the PR must include a matching changeset unless the branch explicitly explains why no user-visible package output exists.
+Trails already treats package releases as part of the framework contract. ADR-0047 decides that public `@ontrails/*` packages stay lockstep for the 1.x line, Changesets computes version and changelog output, Bun packs and validates, npm publishes the resulting tarballs, and a release PR carries evidence. The repo also has a branch-local Changeset check: if a PR changes publishable package contents, the PR must include a matching changeset unless the branch explicitly explains why no user-visible package output exists.
 
 That check is useful, but it still sees package files more readily than Trails contracts. A branch can change the public input or output schema of an exposed trail, or expose a trail on a new surface, while leaving the release story to reviewer memory. That fights the premise. The trail is the product, so public trail contract movement must be evaluated by release rules before a branch leaves draft.
 
@@ -120,7 +120,7 @@ Stacked branches make release provenance easy to smear. A top cleanup branch can
 ## References
 
 - [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)
-  - release line, Changesets, Bun publish, and stable preflight doctrine.
+  - release line, Changesets, Bun packing, npm publication, and stable preflight doctrine.
 - [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md) - trail contract versions are separate from package semver.
 - [Stable Cutover Runbook](../../releases/stable-cutover.md) - operator sequence for version PRs and publication.
 - [Beta Channel Policy](../../releases/beta-channel-policy.md) - branch-local changesets, `release:none`, and beta publication posture.

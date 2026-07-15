@@ -54,7 +54,8 @@ Keep three axes distinct: native vs adapter is the *kind*; subpath/built-in vs e
 | release check (`release.check`) | durable | derives, serves users | public surface |
 | scaffold version pins (TRL-942) | durable | derives, serves users | public `create` surface |
 | public-API example coverage (TRL-943) | durable | derives, serves building Trails | repo-local Warden rule |
-| release publish via Bun (TRL-938) | durable | fills seam, ambient runtime | native Bun release binding |
+| release pack via Bun (TRL-938) | durable | fills seam, ambient runtime | native Bun release binding |
+| release registry preflight and publish via npm | durable | fills seam, foreign tool and registry | npm adapter binding |
 | packed artifact and Wayfinder dogfood (TRL-939) | durable | consumes, proves release confidence | public `release.smoke` surface |
 | changesets-CLI or foreign registry (TRL-938) | durable | fills seam, foreign boundary | adapter binding, extracted |
 | `.changeset/*.md` as release intent | durable | consumes authored input | neither — an intent source |
@@ -66,7 +67,7 @@ Keep three axes distinct: native vs adapter is the *kind*; subpath/built-in vs e
 
 `release.check` is the derives-and-graduates example: release rules are durable Trails-contract facts, so the script-era checker graduated into the `trails release check` surface, and package scripts became thin callers. A one-off vocab cleanup prototype is the derives-but-may-stay-tooling example: real derivation over a transient truth. A stable framework contract migration is different; it must become Warden/Regrade work so detection, repair facts, validation, and review routing stay inside Trails.
 
-The native Bun release binding is the fills-a-declared-seam example: `@ontrails/trails/release` owns the binding descriptor plus Bun pack, publish, and registry preflight implementation. Root `publish:*` scripts are compatibility wrappers around that binding. They remain useful named exits, but they do not own the release behavior.
+The built-in release flow is the fills-a-declared-seam example: `@ontrails/trails/release` owns a native Bun binding for packing and validation plus a same-package npm adapter binding for registry preflight and publication. Root `publish:*` scripts are compatibility wrappers around that flow. They remain useful named exits, but they do not own the release behavior.
 
 ## After graduation
 

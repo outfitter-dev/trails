@@ -2,7 +2,7 @@
 
 This runbook is the operator checklist for leaving the beta prerelease line and publishing the first stable 1.x Trails release.
 
-It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). The short version: public `@ontrails/*` packages stay lockstep for 1.x, Changesets computes versions and changelogs, Bun publishes packages, generated apps must install from the public registry, and partial publishes are handled as release incidents.
+It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). The short version: public `@ontrails/*` packages stay lockstep for 1.x, Changesets computes versions and changelogs, Bun packs and validates package tarballs, npm publishes them through the repo-owned flow, generated apps must install from the public registry, and partial publishes are handled as release incidents.
 
 Do not run this from an in-progress feature stack. The versioning PR and the publish step are separate operations.
 
@@ -15,7 +15,7 @@ There are two distinct phases:
 | Version PR | Exit prerelease mode, compute stable versions/changelogs, review the diff, and merge. | A normal Graphite branch and PR |
 | Publish | Publish already-merged package contents and verify registry/dist-tag state. | Clean `main` after the version PR merges |
 
-Never publish from an unmerged version PR. Never use `changeset publish`, `npm publish`, or ad hoc package publication for the normal stable cutover.
+Never publish from an unmerged version PR. Never use `changeset publish`, a direct `npm publish`, or ad hoc package publication for the normal stable cutover.
 
 Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets should carry `stack:boundary` before the stable version PR is expected to reach `publish:auto`. Missing source evidence or missing `stack:boundary` routes publication to the protected manual environment; unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
 
@@ -287,7 +287,9 @@ Keep the PR draft until CI is green and review is complete. The PR body should i
 
 Only publish after the version PR has merged.
 
-Start from clean, synced `main`:
+The normal publication path is the GitHub release workflow after the generated version PR merges. `publish:auto` uses the `npm-auto` environment when release evidence is complete. `publish:manual` pauses on the protected `npm` environment for approval. Both jobs publish through npm trusted publishing and produce the repository deployment record.
+
+Use clean, synced `main` for final read-only verification:
 
 ```bash
 gt sync
@@ -306,15 +308,25 @@ bun run publish:registry-check
 
 `publish:registry-check` is the readiness check before mutation. It should make registry drift visible, but it does not require the target version to be published yet. The strict equality check is the post-publish gate below.
 
-Publish with the repo script:
+The publish script discovers non-private workspaces, topo-sorts by workspace dependency edges, packs and validates each workspace with Bun, publishes the tarball with npm, and uses `latest` outside Changesets prerelease mode. GitHub Actions passes `--trusted-publishing`, which requires an OIDC-capable npm CLI and the package's configured trusted publisher.
+
+Use `bun run publish:packages` locally only for explicit bootstrap or incident recovery. Do not replace it with a direct `npm publish`. Do not run `changeset publish`.
+
+### First-Time Package Bootstrap
+
+npm requires the package to exist before its trusted publisher can be configured. Bootstrap only the new package with authenticated local tooling, then enroll and verify its trusted publisher before retrying the GitHub release:
 
 ```bash
-bun run publish:packages
+bun run publish:packages -- --only @ontrails/<package> --tag latest
+npx npm@11.18.0 trust github @ontrails/<package> \
+  --file release.yml \
+  --repo outfitter-dev/trails \
+  --allow-publish \
+  --yes
+npx npm@11.18.0 trust list @ontrails/<package>
 ```
 
-The publish script discovers non-private workspaces, topo-sorts by workspace dependency edges, runs `bun publish --access public --tag <tag>`, and uses `latest` outside Changesets prerelease mode.
-
-Do not replace this with `npm publish`. Do not run `changeset publish`.
+The trusted-publisher record deliberately omits a GitHub environment because npm permits only one trusted publisher per package while Trails supports both the protected `npm` job and the evidence-gated `npm-auto` job. Both GitHub environments are independently restricted to `main`.
 
 ## Post-Publish Verification
 
@@ -363,7 +375,7 @@ Record:
 
 ## Partial-Publish Recovery
 
-If `bun run publish:packages` fails after publishing one or more packages, stop immediately.
+If `bun run publish:packages` fails after publishing one or more packages, stop immediately. A retry is safe after investigating the failure: the command queries each exact package version and skips versions already present in npm.
 
 Create a release incident note with:
 
@@ -383,7 +395,7 @@ bun run publish:registry-check:published
 
 If that check fails because the release is incomplete, use targeted read-only registry probes for the packages already reported as published. Do not mutate dist-tags to hide an incomplete release.
 
-Resume only with an explicit package set after confirming which packages are already present:
+Resume with an explicit package set when narrowing the incident is useful:
 
 ```bash
 bun run publish:packages -- --only @ontrails/package-a,@ontrails/package-b

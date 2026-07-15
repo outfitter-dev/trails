@@ -44,7 +44,7 @@ For fully reproducible docs, replace `@beta` with the exact beta version named b
 
 `.changeset/pre.json` is the channel source while it has `mode: "pre"`. The current prerelease tag is `beta`.
 
-The native Bun release binding follows that source. The package scripts below are compatibility wrappers around the binding:
+The built-in release flow follows that source. The package scripts below are compatibility wrappers around its native Bun packing binding and npm registry adapter binding:
 
 - `bun run publish:check` is local and read-only.
 - `bun run publish:registry-check` defaults to `.changeset/pre.json`'s tag in
@@ -52,19 +52,21 @@ The native Bun release binding follows that source. The package scripts below ar
   readiness check: it proves the registry is reachable and the expected tag is
   not ahead of the repo target. It may pass while the tag still points at the
   previous published beta.
-- `bun run publish:packages` publishes with Bun and uses the same prerelease tag
-  by default.
+- `bun run publish:packages` packs and validates with Bun, publishes the packed
+  tarballs with npm, and uses the same prerelease tag by default. In GitHub
+  Actions, `--trusted-publishing` requires npm's OIDC credentials instead of a
+  long-lived registry token.
 - `bun run publish:registry-check:published` verifies the expected dist-tag
   after publication and requires every public package to exist at the repo
   target version.
 
 During the beta line, `latest` may intentionally lag behind `beta`. Operators should not advance `latest` after every beta publication. Move `latest` only when leaving prerelease mode for the stable 1.x line, or after a separate explicit release decision that says a beta should become the unqualified default.
 
-Do not use `npm publish`, `changeset publish`, or ad hoc dist-tag mutation for normal Trails package releases.
+Do not invoke `npm publish`, `changeset publish`, or ad hoc dist-tag mutation directly for normal Trails package releases. The repo publish command owns the npm invocation and its Bun-produced tarballs.
 
-## Native Bun Release Binding
+## Built-In Release Bindings
 
-`@ontrails/trails/release` declares the built-in native Bun release binding. It owns package discovery, workspace dependency ordering, `bun pm pack` verification, `bun publish` invocation, and read-only npm registry preflight. The binding is native because it is Trails-owned, same-package, and uses the ambient Bun runtime. Future integrations that cross into a foreign release tool or registry contract belong in adapter bindings instead.
+`@ontrails/trails/release` declares two bindings coordinated by the built-in release flow. The native Bun binding owns package discovery, workspace dependency ordering, packing, and tarball validation. The same-package npm adapter binding crosses the foreign npm tool and registry contract for read-only preflight and the controlled `npm publish <tarball>` handoff. Future integrations that cross into a different release tool or registry contract belong in their own adapter bindings.
 
 ## Read-Only Registry Checks
 
@@ -144,10 +146,28 @@ After substantial stacks merge to `main`:
    `publish:manual` uses the protected `npm` environment for incomplete or
    ambiguous low-risk proof. `publish:block` and unknown/conflicting managed
    labels stop the workflow.
-9. Use local publish commands only for diagnostics or explicit recovery:
+9. Use local publish commands only for diagnostics or explicit recovery.
+   Local recovery uses the operator's ambient npm authentication; it does not
+   create or repair a GitHub deployment record:
    `bun run publish:check`, `bun run publish:registry-check`,
    `bun run publish:packages`, then
    `bun run publish:registry-check:published`.
+
+### First-Time Package Bootstrap
+
+npm trusted publishing cannot create a package. When a release introduces a new public package, bootstrap only that package with authenticated local tooling, configure its trusted publisher, verify the record, then retry the GitHub release workflow:
+
+```bash
+bun run publish:packages -- --only @ontrails/<package> --tag beta
+npx npm@11.18.0 trust github @ontrails/<package> \
+  --file release.yml \
+  --repo outfitter-dev/trails \
+  --allow-publish \
+  --yes
+npx npm@11.18.0 trust list @ontrails/<package>
+```
+
+Do not set the trusted publisher's optional GitHub environment restriction. npm permits one trusted publisher per package, while Trails intentionally has two `main`-restricted GitHub environments: protected `npm` for manual approval and `npm-auto` for evidence-gated publication. The repository workflow and environment policies hold that distinction.
 
 Feature branches and release-readiness stacks may run read-only checks, but they must not publish.
 

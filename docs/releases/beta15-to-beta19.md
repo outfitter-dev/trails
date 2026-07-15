@@ -54,7 +54,7 @@ done
 
 The output makes `latest` lag visible alongside the current `beta` tag without touching the registry.
 
-Do not use `npm publish` or `changeset publish` for Trails packages. Trails uses Bun-based publish scripts because they correctly resolve `workspace:` and `catalog:` ranges.
+Do not invoke `npm publish` or `changeset publish` directly for Trails packages. The repo publish command uses Bun to resolve workspace ranges and validate the tarball before handing that tarball to npm for the registry mutation.
 
 ## Beta 18 to Beta 19
 
@@ -301,7 +301,7 @@ If `bun run validate` flags drift, regenerate locally with `bun run compile`, re
 ## References
 
 - [Beta 15](./beta15.md) — the prior beta line, including the surface API cutover, the lexicon cutover, and the retired `@ontrails/tracker` / `@ontrails/logging` package names.
-- [Beta Channel Policy](./beta-channel-policy.md) — install pins, `@beta` versus exact, `latest` lag, version-bump cadence, no `npm publish` / `changeset publish`.
+- [Beta Channel Policy](./beta-channel-policy.md) — install pins, `@beta` versus exact, `latest` lag, version-bump cadence, and no direct `npm publish` / `changeset publish`.
 - [Trailhead to Surface](../migration/trailhead-to-surface.md) — the surface-vocabulary cutover and trace/OTel/dev-store updates.
 - [Connector to Adapter](../migration/connector-to-adapter.md) — adapter package taxonomy and the `@ontrails/commander` cutover.
 - [Observability](#observability) — the historical beta.19 package graph, sink imports, and OTel export.
