@@ -1,5 +1,19 @@
 # @ontrails/oxlint-plugin
 
+## 1.0.0-beta.43
+
+### Patch Changes
+
+- [`9f0842e`](https://github.com/outfitter-dev/trails/commit/9f0842ee9d7c7155d86a4fd023760ac0a5636f5d): Retire the temporary root vocabulary-cutover toolchain now that Regrade owns
+  structured migration plans, safe rewrites, classification, census, CLI/MCP
+  reports, and immutable history. Remove the obsolete source exemptions so
+  Oxlint and Warden enforce the durable transition contract directly, and add a
+  history-driven Regrade audit surface for current-tree regression checks.
+- [`113aed6`](https://github.com/outfitter-dev/trails/commit/113aed62d20041e35b0cf9d6c1b1a18df4b88f57): Rename the dependency-light observability owner from `@ontrails/observe` to
+  `@ontrails/observability` as a pre-v1 hard cut. Update dependent packages,
+  documentation, package discovery, and the governed Regrade route; no
+  compatibility package or old import route is retained.
+
 ## 1.0.0-beta.42
 
 ## 1.0.0-beta.41

@@ -1,5 +1,60 @@
 # trails
 
+## 1.0.0-beta.43
+
+### Minor Changes
+
+- [`4fb20a6`](https://github.com/outfitter-dev/trails/commit/4fb20a68e1ed98972d99fed8b2df96bfa6804bd3): Derive deterministic, provenance-bearing vocabulary plan proposals from a minimal `from`/`to` seed, including morphology, public and compound identifier review, filename and reference-closure candidates, namespace census, and validated live-topo API preserves. Classified governed transitions retain their registry identity while routing every governed form to review instead of inventing a single safe successor.
+- [`d3215b0`](https://github.com/outfitter-dev/trails/commit/d3215b0966f13af2a72ece9adbcc2c68c70f81b6): Add governed file renames to vocabulary Regrade plans, with move-first derived reference closure and persisted policy-aware evidence across CLI and MCP.
+- [`5a7d22a`](https://github.com/outfitter-dev/trails/commit/5a7d22ab9d674f86b28758f23c3e94a17efb5be1): Add three-tier vocabulary migration scope. Protected historical paths remain
+  scanned and counted as `historical-by-policy` without being rewritten, while
+  reports expose scope-tier totals and census-expected teaching-surface coverage
+  through equivalent CLI and MCP plan schemas. Applied vocabulary occurrences
+  remain auditable in history with an `applied` verdict, while policy-only
+  evidence does not make an active plan stale merely by being recorded.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+- [`9f0842e`](https://github.com/outfitter-dev/trails/commit/9f0842ee9d7c7155d86a4fd023760ac0a5636f5d): Retire the temporary root vocabulary-cutover toolchain now that Regrade owns
+  structured migration plans, safe rewrites, classification, census, CLI/MCP
+  reports, and immutable history. Remove the obsolete source exemptions so
+  Oxlint and Warden enforce the durable transition contract directly, and add a
+  history-driven Regrade audit surface for current-tree regression checks.
+- [`bd1bd96`](https://github.com/outfitter-dev/trails/commit/bd1bd96b90cd8b55f73061e4078a14cd75bed745): Require committed Regrade provenance for governed vocabulary transitions.
+
+  Applied governed plans now expose deterministic transition, plan, source,
+  safe-apply, and review-follow-up evidence through history results. Warden loads
+  committed history into project context, cites it for reintroduced symbols, and
+  rejects invalid or missing provenance for transitions that require Regrade in
+  the workspace that owns the governed registry, without making downstream apps
+  prove the framework's own migrations.
+  Portable validation accepts the authoritative numeric file-rename counters
+  persisted by Regrade history.
+
+### Patch Changes
+
+- [`742387e`](https://github.com/outfitter-dev/trails/commit/742387ea27e1f9fb9490147b871ae8c5a59903ae): Allow release checks to recognize changeset edits that only remove release rows
+  for packages absent from the live workspace while rejecting any additional
+  changes hidden beside that cleanup.
+- [`18a14e2`](https://github.com/outfitter-dev/trails/commit/18a14e220728be7108f3fe2864455c52305aef9f): Finish the v1 vocabulary reset cleanup by retaining the facet guard, adding a
+  durable TopoGraph artifact-family guard, teaching the live lexicon directly in
+  agent guidance, and replacing completed reset-family placeholders in public
+  Regrade examples and CLI schema help.
+- [`113aed6`](https://github.com/outfitter-dev/trails/commit/113aed62d20041e35b0cf9d6c1b1a18df4b88f57): Rename the dependency-light observability owner from `@ontrails/observe` to
+  `@ontrails/observability` as a pre-v1 hard cut. Update dependent packages,
+  documentation, package discovery, and the governed Regrade route; no
+  compatibility package or old import route is retained.
+- [`0938e7b`](https://github.com/outfitter-dev/trails/commit/0938e7badc0c5470d194139d642b673658d099e0): Fold the removed `@ontrails/tracing` package into the truthful existing
+  owners: intrinsic trace contracts remain in core, developer-state tooling now
+  lives at `@ontrails/observability/dev`, and the dependency-light OTel adapter
+  lives at `@ontrails/observability/otel`. There is intentionally no root-package
+  compatibility redirect because the former root had more than one owner.
+- [`504881d`](https://github.com/outfitter-dev/trails/commit/504881df0d15ac92c3234be068c9e1930e1ffddf): Require release checks to prove an exact governed Regrade route, or an explicit
+  classified multi-owner fold, whenever a public `@ontrails/*` package disappears
+  from the publishable workspace inventory.
+
 ## 1.0.0-beta.42
 
 ## 1.0.0-beta.41

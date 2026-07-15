@@ -1,5 +1,27 @@
 # @ontrails/core
 
+## 1.0.0-beta.43
+
+### Minor Changes
+
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+
+### Patch Changes
+
+- [`113aed6`](https://github.com/outfitter-dev/trails/commit/113aed62d20041e35b0cf9d6c1b1a18df4b88f57): Rename the dependency-light observability owner from `@ontrails/observe` to
+  `@ontrails/observability` as a pre-v1 hard cut. Update dependent packages,
+  documentation, package discovery, and the governed Regrade route; no
+  compatibility package or old import route is retained.
+- [`0938e7b`](https://github.com/outfitter-dev/trails/commit/0938e7badc0c5470d194139d642b673658d099e0): Fold the removed `@ontrails/tracing` package into the truthful existing
+  owners: intrinsic trace contracts remain in core, developer-state tooling now
+  lives at `@ontrails/observability/dev`, and the dependency-light OTel adapter
+  lives at `@ontrails/observability/otel`. There is intentionally no root-package
+  compatibility redirect because the former root had more than one owner.
+
 ## 1.0.0-beta.42
 
 ## 1.0.0-beta.41

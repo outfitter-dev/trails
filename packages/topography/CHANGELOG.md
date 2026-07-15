@@ -1,5 +1,23 @@
 # @ontrails/topography
 
+## 1.0.0-beta.43
+
+### Minor Changes
+
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+
+### Patch Changes
+
+- [`9f0842e`](https://github.com/outfitter-dev/trails/commit/9f0842ee9d7c7155d86a4fd023760ac0a5636f5d): Retire the temporary root vocabulary-cutover toolchain now that Regrade owns
+  structured migration plans, safe rewrites, classification, census, CLI/MCP
+  reports, and immutable history. Remove the obsolete source exemptions so
+  Oxlint and Warden enforce the durable transition contract directly, and add a
+  history-driven Regrade audit surface for current-tree regression checks.
+
 ## 1.0.0-beta.42
 
 ## 1.0.0-beta.41

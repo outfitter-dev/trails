@@ -1,5 +1,15 @@
 # @ontrails/cli
 
+## 1.0.0-beta.43
+
+### Minor Changes
+
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+
 ## 1.0.0-beta.42
 
 ### Patch Changes
