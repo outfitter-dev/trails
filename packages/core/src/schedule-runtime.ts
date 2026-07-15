@@ -1,5 +1,5 @@
 import type { ActivationEntry } from './activation-source.js';
-import { activationSourceKey } from './activation-source-projection.js';
+import { activationSourceKey } from './activation-source-derivation.js';
 import {
   buildActivationProvenanceTraceAttrs,
   withActivationProvenance,

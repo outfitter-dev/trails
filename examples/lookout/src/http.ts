@@ -2,7 +2,7 @@
  * HTTP surface — the public status page plus the permit-gated admin API.
  *
  * Routes derive from trail ids: `GET /status` (via the status.summary cli/http
- * projection `/status/summary`), `GET /status/badge?checkId=...`,
+ * rendering `/status/summary`), `GET /status/badge?checkId=...`,
  * `GET /incident/list`, `GET /probe/history?checkId=...`. Public reads need
  * no auth; check management and acknowledge require the
  * `LOOKOUT_ADMIN_TOKEN` bearer token.

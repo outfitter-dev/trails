@@ -14,7 +14,7 @@ const unwrapOk = <T>(result: Result<T, Error>): T =>
   });
 
 describe('deriveHttpRoutes', () => {
-  test('aliases the HTTP projection API', () => {
+  test('aliases the HTTP derivation API', () => {
     const graph = topo('testapp', {
       echo: trail('echo', {
         implementation: (input: { message: string }) =>

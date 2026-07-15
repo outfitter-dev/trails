@@ -40,7 +40,7 @@ export interface StructuredSignalExample {
 // `Date`, `RegExp`, `Map`, and `Set` are objects (`typeof === 'object'`),
 // so they would pass the structural walk and reach `JSON.stringify`, which
 // silently coerces them: a `Date` becomes its ISO string, a `RegExp` and
-// any `Map`/`Set` become `{}`. Either way the projected shape diverges
+// any `Map`/`Set` become `{}`. Either way the derived shape diverges
 // from the example author's declared input. Treat them as non-serializable
 // leaves so the example is dropped rather than misrepresented to MCP
 // clients.
@@ -107,7 +107,7 @@ const signalIdFromAssertion = (
     : undefined;
 };
 
-const projectSignalAssertion = (
+const deriveSignalAssertion = (
   assertion: TrailExampleSignalAssertion
 ): StructuredTrailExampleSignalAssertion | undefined => {
   const signalId = signalIdFromAssertion(assertion);
@@ -115,43 +115,43 @@ const projectSignalAssertion = (
     return undefined;
   }
 
-  const projected: Record<string, unknown> = { signalId };
+  const derived: Record<string, unknown> = { signalId };
   if (assertion.payload !== undefined) {
     const payload = toJsonSerializable(assertion.payload);
     if (payload === undefined) {
       return undefined;
     }
-    projected['payload'] = payload;
+    derived['payload'] = payload;
   }
   if (assertion.payloadMatch !== undefined) {
     const payloadMatch = toJsonSerializable(assertion.payloadMatch);
     if (payloadMatch === undefined) {
       return undefined;
     }
-    projected['payloadMatch'] = payloadMatch;
+    derived['payloadMatch'] = payloadMatch;
   }
   if (assertion.times !== undefined) {
-    projected['times'] = assertion.times;
+    derived['times'] = assertion.times;
   }
   return Object.freeze(
-    projected
+    derived
   ) as unknown as StructuredTrailExampleSignalAssertion;
 };
 
-const projectSignalAssertions = (
+const deriveSignalAssertions = (
   assertions: readonly TrailExampleSignalAssertion[] | undefined
 ): readonly StructuredTrailExampleSignalAssertion[] | undefined => {
   if (assertions === undefined) {
     return undefined;
   }
-  const projected = assertions.map(projectSignalAssertion);
-  if (projected.some((assertion) => assertion === undefined)) {
+  const derived = assertions.map(deriveSignalAssertion);
+  if (derived.some((assertion) => assertion === undefined)) {
     return undefined;
   }
-  return Object.freeze(projected as StructuredTrailExampleSignalAssertion[]);
+  return Object.freeze(derived as StructuredTrailExampleSignalAssertion[]);
 };
 
-const projectExample = (
+const deriveExample = (
   example: TrailExample<unknown, unknown>,
   provenance: StructuredTrailExampleProvenance
 ): StructuredTrailExample | undefined => {
@@ -160,7 +160,7 @@ const projectExample = (
     return undefined;
   }
 
-  const projected: Record<string, unknown> = {
+  const derived: Record<string, unknown> = {
     input,
     kind: example.error === undefined ? 'success' : 'error',
     name: example.name,
@@ -168,37 +168,37 @@ const projectExample = (
   };
 
   if (example.description !== undefined) {
-    projected['description'] = example.description;
+    derived['description'] = example.description;
   }
   if (example.expected !== undefined) {
     const expected = toJsonSerializable(example.expected);
     if (expected === undefined) {
       return undefined;
     }
-    projected['expected'] = expected;
+    derived['expected'] = expected;
   }
   if (example.expectedMatch !== undefined) {
     const expectedMatch = toJsonSerializable(example.expectedMatch);
     if (expectedMatch === undefined) {
       return undefined;
     }
-    projected['expectedMatch'] = expectedMatch;
+    derived['expectedMatch'] = expectedMatch;
   }
   if (example.error !== undefined) {
-    projected['error'] = example.error;
+    derived['error'] = example.error;
   }
   if (example.signals !== undefined) {
-    const signals = projectSignalAssertions(example.signals);
+    const signals = deriveSignalAssertions(example.signals);
     if (signals === undefined) {
       return undefined;
     }
-    projected['signals'] = signals;
+    derived['signals'] = signals;
   }
 
-  return Object.freeze(projected) as unknown as StructuredTrailExample;
+  return Object.freeze(derived) as unknown as StructuredTrailExample;
 };
 
-const projectSignalExample = (
+const deriveSignalExample = (
   payload: unknown
 ): StructuredSignalExample | undefined => {
   const serializablePayload = toJsonSerializable(payload);
@@ -222,13 +222,13 @@ export const deriveStructuredTrailExamples = (
   }
 
   const provenance = options?.provenance ?? { source: 'trail.examples' };
-  const projected = examples
-    .map((example) => projectExample(example, provenance))
+  const derived = examples
+    .map((example) => deriveExample(example, provenance))
     .filter(
       (example): example is StructuredTrailExample => example !== undefined
     );
 
-  return projected.length > 0 ? Object.freeze(projected) : undefined;
+  return derived.length > 0 ? Object.freeze(derived) : undefined;
 };
 
 export const deriveStructuredSignalExamples = (
@@ -238,11 +238,11 @@ export const deriveStructuredSignalExamples = (
     return undefined;
   }
 
-  const projected = examples
-    .map(projectSignalExample)
+  const derived = examples
+    .map(deriveSignalExample)
     .filter(
       (example): example is StructuredSignalExample => example !== undefined
     );
 
-  return projected.length > 0 ? Object.freeze(projected) : undefined;
+  return derived.length > 0 ? Object.freeze(derived) : undefined;
 };

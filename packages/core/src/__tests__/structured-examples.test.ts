@@ -16,85 +16,85 @@ const okExample = (
 });
 
 describe('deriveStructuredTrailExamples', () => {
-  test('projects plain JSON-serializable inputs', () => {
-    const projected = deriveStructuredTrailExamples([
+  test('derives plain JSON-serializable inputs', () => {
+    const derived = deriveStructuredTrailExamples([
       okExample({ expected: { ok: true } }),
     ]);
-    expect(projected).toBeDefined();
-    expect(projected?.[0]?.input).toEqual({ name: 'ada' });
-    expect(projected?.[0]?.expected).toEqual({ ok: true });
-    expect(projected?.[0]?.kind).toBe('success');
+    expect(derived).toBeDefined();
+    expect(derived?.[0]?.input).toEqual({ name: 'ada' });
+    expect(derived?.[0]?.expected).toEqual({ ok: true });
+    expect(derived?.[0]?.kind).toBe('success');
   });
 
   test('drops examples whose input contains a function leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { fn: () => 'nope' } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose input contains a nested symbol leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { meta: { token: Symbol('secret') } } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose expected contains a function leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ expected: [() => 'nope'] }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose input contains a BigInt leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { count: 1n } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose input contains a Date leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { createdAt: new Date('2024-01-01') } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose input contains a RegExp leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { pattern: /^x$/ } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose input contains a Map leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { lookup: new Map([['k', 'v']]) } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('drops examples whose input contains a Set leaf', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { tags: new Set(['a', 'b']) } }),
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 
   test('preserves examples with undefined optional fields', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({ input: { name: 'ada', nickname: undefined } }),
     ]);
-    expect(projected).toBeDefined();
-    expect(projected?.[0]?.input).toEqual({ name: 'ada' });
+    expect(derived).toBeDefined();
+    expect(derived?.[0]?.input).toEqual({ name: 'ada' });
   });
 
-  test('projects signal assertions using stable signal ids', () => {
+  test('derives signal assertions using stable signal ids', () => {
     const profileUpdated = signal('profile.updated', {
       payload: z.object({ id: z.string(), revision: z.number() }),
     });
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({
         signals: [
           {
@@ -110,7 +110,7 @@ describe('deriveStructuredTrailExamples', () => {
       }),
     ]);
 
-    expect(projected?.[0]?.signals).toEqual([
+    expect(derived?.[0]?.signals).toEqual([
       {
         payloadMatch: { id: 'u1' },
         signalId: 'profile.updated',
@@ -124,7 +124,7 @@ describe('deriveStructuredTrailExamples', () => {
   });
 
   test('drops examples whose signal assertions are not JSON serializable', () => {
-    const projected = deriveStructuredTrailExamples([
+    const derived = deriveStructuredTrailExamples([
       okExample({
         signals: [
           {
@@ -135,21 +135,21 @@ describe('deriveStructuredTrailExamples', () => {
       }),
     ]);
 
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 });
 
 describe('deriveStructuredSignalExamples', () => {
-  test('projects valid payloads', () => {
-    const projected = deriveStructuredSignalExamples([{ event: 'sent' }]);
-    expect(projected?.[0]?.payload).toEqual({ event: 'sent' });
-    expect(projected?.[0]?.kind).toBe('payload');
+  test('derives valid payloads', () => {
+    const derived = deriveStructuredSignalExamples([{ event: 'sent' }]);
+    expect(derived?.[0]?.payload).toEqual({ event: 'sent' });
+    expect(derived?.[0]?.kind).toBe('payload');
   });
 
   test('drops payloads with non-serializable leaves', () => {
-    const projected = deriveStructuredSignalExamples([
+    const derived = deriveStructuredSignalExamples([
       { cb: () => {}, event: 'sent' },
     ]);
-    expect(projected).toBeUndefined();
+    expect(derived).toBeUndefined();
   });
 });

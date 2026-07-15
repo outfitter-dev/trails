@@ -64,7 +64,7 @@ const buildHappyExampleInput = (): {
   id: 'survey.brief',
 });
 
-const projectActual = (result: Result<unknown, Error>): ActualOutcome => {
+const deriveActualOutcome = (result: Result<unknown, Error>): ActualOutcome => {
   if (result.isOk()) {
     return { outcome: 'ok', value: result.value };
   }
@@ -361,7 +361,7 @@ const buildComparisonEnvelope = async (
   const executed = await run(app, trailId, example.input, {
     ctx: permit === undefined ? {} : { permit },
   });
-  const actual = projectActual(executed);
+  const actual = deriveActualOutcome(executed);
 
   if (mode === 'error') {
     const expectedName = example.error ?? '';

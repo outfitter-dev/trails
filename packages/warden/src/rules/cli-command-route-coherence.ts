@@ -1,4 +1,4 @@
-import { deriveTrailCliCommandProjection } from '@ontrails/core';
+import { deriveTrailCliCommandRendering } from '@ontrails/core';
 import type { CliCommandRoute, Topo } from '@ontrails/core';
 import type { TopoGraph } from '@ontrails/topography';
 
@@ -21,13 +21,13 @@ const renderPath = (path: readonly string[]): string => path.join(' ');
 const claimLabel = (claim: RouteClaim): string =>
   `${claim.kind} route for trail "${claim.trailId}" (${claim.source})`;
 
-const buildProjectionDiagnostic = (
+const buildDerivationDiagnostic = (
   trailId: string,
   error: unknown
 ): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
-  message: `CLI command route projection for trail "${trailId}" is invalid: ${
+  message: `CLI command route rendering for trail "${trailId}" is invalid: ${
     error instanceof Error ? error.message : String(error)
   }`,
   rule: RULE_NAME,
@@ -75,8 +75,8 @@ const collectTopoClaims = (
 
   for (const trail of topo.list()) {
     try {
-      const projection = deriveTrailCliCommandProjection(trail);
-      for (const route of projection.routes) {
+      const rendering = deriveTrailCliCommandRendering(trail);
+      for (const route of rendering.routes) {
         claims.push({
           kind: route.kind,
           path: route.path,
@@ -85,7 +85,7 @@ const collectTopoClaims = (
         });
       }
     } catch (error: unknown) {
-      diagnostics.push(buildProjectionDiagnostic(trail.id, error));
+      diagnostics.push(buildDerivationDiagnostic(trail.id, error));
     }
   }
 

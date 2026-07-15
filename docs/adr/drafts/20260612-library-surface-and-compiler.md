@@ -19,7 +19,7 @@ depends_on: [0, 6, 8, 9, 26, 46]
 
 Trails has surfaces for CLI, MCP, and HTTP. Each takes the trail contract and renders it for a consumption context: CLI into argv and exit codes, MCP into JSON-RPC tools, HTTP into routes and status codes. One consumption context has no surface yet: **plain TypeScript**.
 
-Today, the only way to consume a set of trails from another TypeScript project is through a transport — spin up an MCP client, make HTTP requests, or shell out to the CLI. A project can't just `import { checkThing } from '@acme/thing'` and call a function. That friction discourages reuse and draws an artificial line between "Trails projects" and "everything else."
+Today, the only way to consume a set of trails from another TypeScript render is through a transport — spin up an MCP client, make HTTP requests, or shell out to the CLI. A render can't just `import { checkThing } from '@acme/thing'` and call a function. That friction discourages reuse and draws an artificial line between "Trails renders" and "everything else."
 
 The motivating consumer is Skillset, which wants a plain `@skillset/core` library boundary — but Skillset is a *future* consumer, not the design center. The design center is the framework's own promise: if the information exists in the contract, don't ask the developer to restate it. Everything a well-built TypeScript library needs — typed schemas, validation, examples, error taxonomy, intent, docs — already lives in the topo. The framework just doesn't emit it in library shape yet. A hand-maintained wrapper around a topo is a drift machine: names, schemas, and error behavior diverge from the contract with nothing catching it.
 
@@ -38,26 +38,26 @@ The library surface sits alongside CLI, MCP, and HTTP with the same derivation p
 ```typescript
 import { compile, deriveLibraryApi, surface } from '@ontrails/library';
 
-// Pure projection — what would this topo look like as a library?
-const projection = deriveLibraryApi(graph, options); // LibraryProjection
+// Pure derivation — how would this topo render as a library?
+const renderingPlan = deriveLibraryApi(graph, options); // LibraryRenderingPlan
 
 // In-memory materialization — a callable client, executed through the shared pipeline
 const client = await surface(graph, options);
 
-// Emitter - a package-shaped TypeScript source tree from the same projection
+// Emitter - a package-shaped TypeScript source tree from the same rendering plan
 const result = compile(graph, {
   appImportPath: '@acme/app',
   packageName: '@acme/core',
 });
 ```
 
-Three responsibilities, one resolved projection feeding all of them:
+Three responsibilities, one resolved rendering plan feeding all of them:
 
-- **`deriveLibraryApi(graph, options)`** — pure projection (no fs/network/db reads), returns the `LibraryProjection` domain noun. The single semantic authority for trail selection, export naming, and collision resolution. The surface and the emitter both consume it; neither reinvents it.
+- **`deriveLibraryApi(graph, options)`** — pure derivation (no fs/network/db reads), returns the `LibraryRenderingPlan` domain noun. The single semantic authority for trail selection, export naming, and collision resolution. The surface and the emitter both consume it; neither reinvents it.
 - **`surface(graph, options)`** — materializes the callable library in-process, executing through the shared pipeline (`executeTrail`, per ADR-0006). Peer grammar with `@ontrails/commander`/`mcp`/`hono`.
-- **`compile(graph, options)`** — returns a package-shaped TypeScript file plan from the resolved projection. Writing files is a thin apply step outside the compiler.
+- **`compile(graph, options)`** — returns a package-shaped TypeScript file plan from the resolved rendering plan. Writing files is a thin apply step outside the compiler.
 
-Public `createLibrary` is **not** part of this ladder. The `createX()` factory (e.g. `createAcmeCore()`) survives only as a *generated consumer-library idiom* — a projected export name recorded in the projection and governed like every other export, never a Trails package helper.
+Public `createLibrary` is **not** part of this ladder. The `createX()` factory (e.g. `createAcmeCore()`) survives only as a *generated consumer-library idiom* — a rendered export name recorded in the rendering plan and governed like every other export, never a Trails package helper.
 
 **Library is the first surface whose `surface()` returns a held client** rather than opening a long-running endpoint (a server, a CLI parse). This is not a doctrine exception: same contract, same pipeline, different rendering. The consumption context is "typed function calls in a TypeScript project," and a held client is what that context renders to.
 
@@ -99,20 +99,20 @@ Harvested from the prior draft and still correct:
 | Error classes (as standard `Error` subclasses) | `TrailContext` (dissolved into the client / constructor) |
 | JSDoc (from descriptions, meta, examples, intent) | `composes` declarations (internal wiring) |
 | `dispose()` when the topo owns disposable resources | Warden rules (compile-time only) |
-| Schemas (opt-in, `./schemas`) | Layers (internal pipeline concern; their *inputs* still project — see below) |
+| Schemas (opt-in, `./schemas`) | Layers (internal pipeline concern; their *inputs* still render — see below) |
 
 The principle: **the framework disappears, the contract survives.** An ordinary consumer never imports `TrailsError`, sees `Result`, or learns a Trails concept. They get typed functions, typed errors, and (when needed) a typed client with a disposal hook.
 
-### Projected input includes layer inputs
+### Rendered input includes layer inputs
 
-`deriveLibraryApi` projects each trail's input schema into the generated method signature — and that input is not only the trail's own schema. Typed layers can declare input schemas (ADR-0043), and surfaces already project them (the `layer-field-name-drift` Warden rule exists for this). The library surface must project layer-declared input fields alongside trail input, or generated methods will ask for trail fields while silently dropping layer fields. One resolved input, trail and layers together.
+`deriveLibraryApi` renders each trail's input schema into the generated method signature — and that input is not only the trail's own schema. Typed layers can declare input schemas (ADR-0043), and surfaces already render them (the `layer-field-name-drift` Warden rule exists for this). The library surface must render layer-declared input fields alongside trail input, or generated methods will ask for trail fields while silently dropping layer fields. One resolved input, trail and layers together.
 
 ### Default inclusion
 
-`deriveLibraryApi` projects, by default:
+`deriveLibraryApi` renders, by default:
 
 - established public trails only; `internal` visibility excluded; `_draft.` IDs excluded;
-- current-version projection for versioned trails;
+- current-version rendering for versioned trails;
 - public surface contract rules apply (output schema required where the trail is exposed).
 
 An explicit `include` list narrows; it never widens internal or draft trails into the surface. Selection reuses the established trail-filter grammar (`filterSurfaceTrails`, `matchesTrailPattern`): exact IDs, explicit lists, `*` (one segment), `**` (multi-segment). The library does not invent a second selector grammar.
@@ -141,7 +141,7 @@ This extends the surface's stability invariant to a third axis — the public AP
 
 **Scope of the standalone claim.** "No `@ontrails/*` runtime dependency" is the realistic target. Zod remains a peer dependency (already true for the `/schemas` path; it is the validation engine). "Zero runtime dependencies including Zod" is a further reach requiring precompiled validator functions — a named stretch goal, gated and deferred. This ADR supersedes the prior draft's "inline/generate everything, no runtime dependency" headline with the staged kernel path: the prior draft had the right destination and an over-eager v0.
 
-### Schemas and JSON Schema as opt-in projections
+### Schemas and JSON Schema as opt-in renderings
 
 The root API is function-first and requires no schema-library knowledge. For consumers who want more:
 
@@ -152,7 +152,7 @@ schemas.checkThing.input.parse({ ... });
 // @acme/core/schema.json                            // opt-in: zero-runtime JSON Schema
 ```
 
-The schemas come from the authored trail contract, never regenerated approximations. The current emitter writes named Zod schema exports in `./schemas` and a `schemas` object keyed by generated export name. JSON Schema is a *projection* from the authored Zod, designed up front even if implementation slips a slice. It serves editor tooling, CI, config validation, and non-TypeScript consumers, and Trails itself benefits from cheap publishable contract artifacts. JSON Schema is never a competing source of truth; the Zod schema (via `./schemas`) is authoritative. Packaging shape (single `schema.json` vs per-trail vs both) is a deferred detail.
+The schemas come from the authored trail contract, never regenerated approximations. The current emitter writes named Zod schema exports in `./schemas` and a `schemas` object keyed by generated export name. JSON Schema is a *rendering* from the authored Zod, designed up front even if implementation slips a slice. It serves editor tooling, CI, config validation, and non-TypeScript consumers, and Trails itself benefits from cheap publishable contract artifacts. JSON Schema is never a competing source of truth; the Zod schema (via `./schemas`) is authoritative. Packaging shape (single `schema.json` vs per-trail vs both) is a deferred detail.
 
 ### v0 package shape: subpaths
 
@@ -173,18 +173,18 @@ The generated package is one package with subpath exports — no sibling package
 
 `.` is the consumer-fluent root (named exports / emitted `createX()` factories). `./result` is the no-throw envelope. `./schemas` is the opt-in Zod. `./trails` is the full-fidelity Trails-native entrypoint for composition, contract tests, and graph inspection. Sibling-package separation and a standalone CLI companion (both in the prior draft) are real futures, deferred past v0.
 
-### The resolved projection lives in the artifact family
+### The resolved derived facts live in the artifact family
 
-The resolved `LibraryProjection` — every export name, its source (derived / trail-owned hint / package config), its target trail ID, and every collision decision — is graph content, governed like the rest of the resolved topo artifact family (ADR-0046): manifest-verified, CI-diffable, queryable by Topography, Wayfinder, and Warden. The emitter consumes it; it does not privately invent it.
+The resolved `LibraryRenderingPlan` — every export name, its source (derived / trail-owned hint / package config), its target trail ID, and every collision decision — is graph content, governed like the rest of the resolved topo artifact family (ADR-0046): manifest-verified, CI-diffable, queryable by Topography, Wayfinder, and Warden. The emitter consumes it; it does not privately invent it.
 
-The projection embeds in `topo.lock` as part of `TopoGraph`. That follows the existing precedent for resolved surface projections rather than introducing a separate hashed artifact role for one surface. Topography serializes the durable facts (exports, exclusions, collisions, schemas, resources, version, and source metadata); `@ontrails/library` keeps the richer runtime Zod references for in-memory calls and package emission.
+The library-derived facts embed in `topo.lock` as part of `TopoGraph`. That follows the existing precedent for resolved surface facts rather than introducing a separate hashed artifact role for one surface. Topography serializes the durable facts (exports, exclusions, collisions, schemas, resources, version, and source metadata); `@ontrails/library` keeps the richer runtime Zod references for in-memory calls and package emission.
 
 ### Current governance and dogfood proof
 
 The first implementation slices intentionally prove the surface through both artifact governance and a real generated-package consumer:
 
 - Topography embeds durable `TopoGraph.library` facts.
-- Warden's `library-projection-coherence` rule checks that serialized library exports still target known trails and that export-name collisions stay visible.
+- Warden's `library-render-coherence` rule checks that serialized library exports still target known trails and that export-name collisions stay visible.
 - `bun run library:smoke` typechecks and dry-run packs a generated fixture package.
 - `bun run library:dogfood:warden` compiles the Warden topo into a generated package, typechecks it, runs root/result/schemas/trails subpath consumer assertions, and dry-run packs it.
 
@@ -198,7 +198,7 @@ Generated libraries must never require a globally installed runner. Trails provi
 
 - Standalone dependency-free runtime output (the kernel makes it reachable; v0 does not ship it).
 - Pack/depot semantics as the library boundary (topo-first; packs remain future doctrine).
-- Signal subscription projection.
+- Signal subscription rendering.
 - Compiled-library semver / breaking-change governance.
 - Non-TypeScript targets (Python, Go).
 - Docs-site generation; source-TSDoc harvesting (the compiler reads the resolved contract).
@@ -212,13 +212,13 @@ Generated libraries must never require a globally installed runner. Trails provi
 - One authored contract feeds the library the same way it feeds CLI/MCP/HTTP: define once, surface everywhere, now including plain TypeScript.
 - `testExamples(app)` already validates every trail against every example; the library surface is tested by the same examples through a parity suite — generated exports must produce results identical to `run()`.
 - The kernel makes "runtime-backed now, standalone later" a promise the framework can actually keep, instead of a deferral that becomes a rewrite.
-- A hand-maintained wrapper's drift is replaced by a derived, CI-diffable projection.
+- A hand-maintained wrapper's drift is replaced by derived, CI-diffable rendering facts.
 
 ### Tradeoffs
 
 - Zod as a peer dependency for the `/schemas` path (and, in v0, for root validation). The primary path stays Zod-free for the consumer; the schema path is explicitly opt-in.
-- JSON Schema fidelity: refinements, transforms, and complex unions may convert lossily. The Zod schema remains the source of truth; JSON Schema is a convenience projection.
-- Resource→constructor projection is genuinely hard to make idiomatic across the range of resource shapes (injected instance vs config-created). v0 may implement the simple cases but must not bake in a no-resource assumption.
+- JSON Schema fidelity: refinements, transforms, and complex unions may convert lossily. The Zod schema remains the source of truth; JSON Schema is a convenience rendering.
+- Resource→constructor rendering is genuinely hard to make idiomatic across the range of resource shapes (injected instance vs config-created). v0 may implement the simple cases but must not bake in a no-resource assumption.
 - Compiler complexity: declaration flattening for clean `.d.ts` without leaking `@ontrails/*` types, and extracting just enough execution runtime, are the hardest engineering parts — concentrated, deliberately, in the kernel.
 
 ### What this does not decide
@@ -236,10 +236,10 @@ Generated libraries must never require a globally installed runner. Trails provi
 - [ADR-0006: Shared Execution Pipeline][adr-0006] — `executeTrail`; the library surface delegates to the same pipeline, and the kernel is its minimal extract.
 - ADR-0008: Deterministic Surface Derivation — the derivation properties
   (pure, deterministic, overridable) `deriveLibraryApi` follows.
-- [ADR-0009: First-Class Resources][adr-0009] — lifecycle/dispose/mock the library projects into the client.
+- [ADR-0009: First-Class Resources][adr-0009] — lifecycle/dispose/mock the library renders into the client.
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract][adr-0026] — the library error mapping is one more transport reading the same contract.
-- [ADR-0043: Layer Evolution][adr-0043] — layer input schemas; the library projects them alongside trail input.
-- [ADR-0046: Lock v3 Artifact Family][adr-0046] — where the resolved library projection is governed.
+- [ADR-0043: Layer Evolution][adr-0043] — layer input schemas; the library renders them alongside trail input.
+- [ADR-0046: Lock v3 Artifact Family][adr-0046] — where the resolved library-derived facts are governed.
 - Replaces the retired compiled-pack draft. Its reusable substance was
   harvested here; the old draft file is deleted by this change.
 

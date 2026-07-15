@@ -156,7 +156,7 @@ export { checkDrift } from './drift.js';
 export type { ProjectWardenRules } from './project-rules.js';
 export { loadProjectWardenRules } from './project-rules.js';
 
-// Guide projection
+// Guide rendering
 export type {
   WardenGuideFormat,
   WardenGuideManifest,
@@ -227,7 +227,7 @@ export {
   incompleteCrudTrail,
   intentPropagationTrail,
   layerFieldNameDriftTrail,
-  libraryProjectionCoherenceTrail,
+  libraryRenderCoherenceTrail,
   markerSchemaUnsupportedTrail,
   missingVisibilityTrail,
   missingReconcileTrail,
@@ -245,7 +245,7 @@ export {
   noTopLevelSurfaceTrail,
   onReferencesExistTrail,
   orphanedSignalTrail,
-  ownerProjectionParityTrail,
+  ownerRenderParityTrail,
   pendingForceTrail,
   permitGovernanceTrail,
   preferSchemaInferenceTrail,

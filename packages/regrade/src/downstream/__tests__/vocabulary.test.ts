@@ -526,6 +526,10 @@ describe('runVocabularyRegrade', () => {
           'projection',
           'projections',
           'project',
+          'projects',
+          'Projects',
+          'projecting',
+          'Projecting',
           'projected',
           'Projected',
         ],
@@ -550,7 +554,17 @@ describe('runVocabularyRegrade', () => {
 
     const dir = makeTempDir();
     try {
-      writeFile(dir, 'docs/category.md', 'Projected facts are presented.\n');
+      writeFile(
+        dir,
+        'docs/category.md',
+        [
+          'Projected facts are presented.',
+          'Use the project root consistently.',
+          'The tooling runs within the project.',
+          'The project metadata remains authored.',
+          'How do completions project when a group is editorial?',
+        ].join('\n')
+      );
       const plan = vocabularyRegradePlanForInput('projection', 'derive');
       if (plan === null) {
         throw new Error('Expected classified projection plan.');
@@ -566,6 +580,19 @@ describe('runVocabularyRegrade', () => {
       expect(report.value.run.ledger.occurrences).toContainEqual(
         expect.objectContaining({ form: 'Projected', verdict: 'deferred' })
       );
+      expect(
+        report.value.run.ledger.occurrences
+          .filter((occurrence) => occurrence.form === 'project')
+          .map((occurrence) => ({
+            disposition: occurrence.disposition,
+            verdict: occurrence.verdict,
+          }))
+      ).toEqual([
+        { disposition: 'explicit-preserve', verdict: 'skipped' },
+        { disposition: 'explicit-preserve', verdict: 'skipped' },
+        { disposition: 'explicit-preserve', verdict: 'skipped' },
+        { disposition: 'in-family-unresolved', verdict: 'deferred' },
+      ]);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -582,6 +609,40 @@ describe('runVocabularyRegrade', () => {
     expect(
       listVocabularyRegradePlansFromRegistry().map((plan) => plan.id)
     ).not.toContain('cross-compose');
+  });
+
+  test('keeps active migration guide vocabulary inside the completion gate', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/migration/layer-evolution.md',
+        'Layer input schemas project automatically onto every surface.\n'
+      );
+      const plan = vocabularyRegradePlanForInput('projection', 'derive');
+      if (plan === null) {
+        throw new Error('Expected classified projection plan.');
+      }
+
+      const report = runVocabularyRegrade({ plan, root: dir });
+      expect(report.isOk()).toBe(true);
+      if (report.isErr()) {
+        throw report.error;
+      }
+
+      expect(report.value.run.ledger.occurrences).toContainEqual(
+        expect.objectContaining({
+          disposition: 'in-family-unresolved',
+          form: 'project',
+          path: 'docs/migration/layer-evolution.md',
+          scopeTier: 'in-scope',
+          verdict: 'deferred',
+        })
+      );
+      expect(report.value.run.report.gate.status).toBe('open');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 
   test('registry-generated plans preserve review forms as deferred inventory', () => {

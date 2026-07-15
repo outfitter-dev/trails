@@ -28,7 +28,7 @@ Core defines ports. Everything on the edges is an adapter.
 
 **Core principles:**
 
-- The trail is the product, not the surface. Surfaces are projections.
+- The trail is the product, not the surface. Surfaces are renderings.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
 - Surfaces are peers. CLI, MCP, HTTP, and library are shipped adapters. Adding a surface is a `surface()` call.
 - Implementations are surface-agnostic authored implementations: input in, `Result` out.
@@ -48,9 +48,9 @@ Every piece of information has a clear ownership model.
 | The `implementation` | Authored behavior that establishes how the trail runs |
 | Trail ID (`entity.show`) | Your domain hierarchy |
 
-### Projected — mechanically derived, guaranteed correct
+### Rendered — mechanically derived, guaranteed correct
 
-| Authored | Projected to |
+| Authored | Rendered to |
 |----------|-------------|
 | Zod input schema | CLI flags, MCP `inputSchema` (JSON Schema), library input schemas |
 | Trail ID | CLI command path (`entity show`), MCP tool name (`app_entity_show`), library export name (`entityShow`) |
@@ -80,7 +80,7 @@ Every piece of information has a clear ownership model.
 
 Warden uses inference to verify declarations match actual code. Topography captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
-Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind --overview --root-dir . --json`, then use target selectors, population filters, contract, dependency, impact, map, outline, or diff views before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topography does not project.
+Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind --overview --root-dir . --json`, then use target selectors, population filters, contract, dependency, impact, map, outline, or diff views before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topography does not derive.
 
 ## Package Layout
 
@@ -97,7 +97,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
-| `@ontrails/library` | Plain TypeScript library projection, runtime-backed package emitter, `surface()` | None beyond core |
+| `@ontrails/library` | Plain TypeScript library rendering, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite dev server adapter | None (node:stream only) |
 
 ### Infrastructure Adapters (right side)

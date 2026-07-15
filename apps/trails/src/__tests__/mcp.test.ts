@@ -23,7 +23,10 @@ import {
   buildMcpResources,
   deriveMcpTools,
 } from '@ontrails/mcp';
-import { trailheadOverrideDivergenceTrail } from '@ontrails/warden';
+import {
+  getGovernedVocabularyTransition,
+  trailheadOverrideDivergenceTrail,
+} from '@ontrails/warden';
 
 import { trailsOverlays } from '../app.js';
 import { trailsMcpApp } from '../mcp-app.js';
@@ -72,7 +75,7 @@ const requireTool = (
 };
 
 describe('Trails MCP surface shaping', () => {
-  test('projects selected high-signal operator and Wayfinder tools directly', () => {
+  test('renders selected high-signal operator and Wayfinder tools directly', () => {
     const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
 
     expect(tools.map((tool) => tool.name).toSorted()).toEqual([
@@ -244,7 +247,7 @@ describe('Trails MCP surface shaping', () => {
     });
   });
 
-  test('projects only the selected trail IDs without shell or generic Wayfinder tools', () => {
+  test('renders only the selected trail IDs without shell or generic Wayfinder tools', () => {
     const shapedTools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
     const shapedTrailIds = shapedTools
       .flatMap((tool) =>
@@ -390,6 +393,13 @@ describe('Trails MCP surface shaping', () => {
     const dir = makeTempDir();
     try {
       writeFile(dir, 'docs/surface.md', 'Projection docs project facts.\n');
+      const transition = getGovernedVocabularyTransition(
+        'v1-projection-derive-render'
+      );
+      expect(transition).toBeDefined();
+      for (const rename of transition?.fileRenames ?? []) {
+        writeFile(dir, rename.from, '');
+      }
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const planRegrade = requireTool(tools, 'trails_plan_regrade');
 
@@ -415,6 +425,10 @@ describe('Trails MCP surface shaping', () => {
             'projection',
             'projections',
             'project',
+            'projects',
+            'Projects',
+            'projecting',
+            'Projecting',
             'projected',
             'Projected',
           ],

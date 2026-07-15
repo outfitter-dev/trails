@@ -62,8 +62,8 @@ RateLimitError, NetworkError, InternalError, DerivationError,
 RecoverableCompletionError, CancelledError, AmbiguousError, AssertionError,
 RetryExhaustedError
 ErrorCategory, isTrailsError(value?), isRetryable(error)
-mapSurfaceError(surface, error), projectSurfaceError(surface, error)
-projectErrorClassSurface(surface, errorName)
+mapSurfaceError(surface, error), renderSurfaceError(surface, error)
+renderErrorClassSurface(surface, errorName)
 DiagnosticBase, DiagnosticSeverity, RuleDiagnosticBase
 
 // Implementation & context
@@ -106,7 +106,7 @@ normalizePathScopePath(path)
 GlobConfig, TrailIdGlob, PathGlob, PathScope
 
 // Surface derivation
-validateSurfaceTopo(topo, options?) // shared established-topo guard for surface projections
+validateSurfaceTopo(topo, options?) // shared established-topo guard for surface renderings
 withSurfaceMarker(surface, ctx?)    // merge a surface marker into execution context extensions
 BaseSurfaceOptions, SurfaceSelectionOptions, SurfaceValidationOptions, SurfaceConfigValues
 
@@ -167,7 +167,7 @@ DeriveTrailSpec<TEntity, TOp, TGenerated>
 Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. A WebSocket surface is planned but has no public package or API yet.
 
 ```typescript
-deriveCliCommands(graph, options?)     // projection: Result-returning command definitions
+deriveCliCommands(graph, options?)     // derivation: Result-returning command definitions
 validateCliCommands(commands)          // validate command tree shape and collisions
 deriveFlags(schema, overrides?)        // Zod → CLI flags
 normalizeCliArgv(commands, argv)        // normalize framework-owned argv grammar
@@ -196,7 +196,7 @@ CreateProgramOptions, SurfaceCliResult, ToCommanderOptions
 ```typescript
 surface(graph, options?)               // one-liner: create server, connect stdio, return close handle
 createServer(graph, options?)          // create an MCP server without connecting
-deriveMcpTools(graph, options?)        // projection: Result-returning tool definitions
+deriveMcpTools(graph, options?)        // derivation: Result-returning tool definitions
 connectStdio(server)                   // connect a created server to stdio transport
 deriveToolName(appName, trailId)       // tool name derivation
 deriveAnnotations(trail)               // MCP annotations from intent, idempotency, and description
@@ -210,7 +210,7 @@ McpToolResult, McpContent, McpExtra, McpAnnotations
 ## `@ontrails/http`
 
 ```typescript
-deriveHttpRoutes(graph, options?)      // projection: route definitions without server; returns Result<HttpRouteDefinition[], Error>
+deriveHttpRoutes(graph, options?)      // derivation: route definitions without server; returns Result<HttpRouteDefinition[], Error>
 deriveOpenApiSpec(graph, options?)     // OpenAPI 3.1 spec for the HTTP surface
 deriveHttpMethod(intent)               // intent → HTTP method
 deriveHttpOperationMethod(intent)      // intent → OpenAPI operation method
@@ -230,7 +230,7 @@ createFetchHandler(graph, options?)    // materialize a full topo Web Fetch disp
 CreateRouteHandlerOptions, CreateFetchHandlerOptions
 ```
 
-The fetch kernel owns query/body parsing, content-length checks, public HTTP error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP bindings.
+The fetch kernel owns query/body parsing, content-length checks, public HTTP error rendering, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP bindings.
 
 ## `@ontrails/http/bun`
 
@@ -279,7 +279,7 @@ ActivationOverviewReport, ActivationSourceReport, ActivationChainReport, Activat
 WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
 TopoStoreActivationContextRecord, TopoStoreExportRecord, TopoStoreResourceRecord
-TopoStoreSurfaceProjectionRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
+TopoStoreSurfaceDerivedRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
 TopoStoreEntityRecord,
 CreateTopoSnapshotInput, ListTopoSnapshotsOptions
 

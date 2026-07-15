@@ -5,7 +5,7 @@ import {
 } from './trail.js';
 import { deriveTrailVersionMarkers } from './version-marker.js';
 
-export interface SurfaceTrailVersionProjection {
+export interface SurfaceTrailVersionRendering {
   readonly current: boolean;
   readonly deprecated: boolean;
   readonly marker?: string | undefined;
@@ -13,9 +13,9 @@ export interface SurfaceTrailVersionProjection {
   readonly version: number;
 }
 
-export const deriveSurfaceTrailVersionProjections = (
+export const deriveSurfaceTrailVersionRenderings = (
   trail: AnyTrail
-): readonly SurfaceTrailVersionProjection[] | undefined => {
+): readonly SurfaceTrailVersionRendering[] | undefined => {
   if (trail.version === undefined) {
     return undefined;
   }

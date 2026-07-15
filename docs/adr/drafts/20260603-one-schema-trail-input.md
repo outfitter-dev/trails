@@ -6,7 +6,7 @@ created: 2026-06-03
 updated: 2026-06-03
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 6, 20, 24, 48]
-description: "Records proposed doctrine for deriving caller-side and implementation-side TypeScript input projections from one authored trail input schema without adding public callInput/implementationInput fields."
+description: "Records proposed doctrine for deriving caller-side and implementation-side TypeScript input views from one authored trail input schema without adding public callInput/implementationInput fields."
 references:
   - docs/adr/0000-core-premise.md
   - docs/adr/0006-shared-execution-pipeline.md
@@ -40,14 +40,14 @@ The framework should absorb that distinction internally. The author writes one s
 
 > A trail has one authored input schema. The framework reads it two ways — what a caller may send, and what the implementation receives — but only the first is ever public. We do not author the split; we derive it. Contract schemas validate and default; they never transform.
 
-Internally, the framework may use `z.input<S>` and `z.output<S>` to derive the caller-side and implementation-side TypeScript projections from the authored schema. Those are implementation projections, not public ontology. Guide, survey, and resolved graph output continue to expose one input contract.
+Internally, the framework may use `z.input<S>` and `z.output<S>` to derive the caller-side and implementation-side TypeScript views from the authored schema. Those are implementation-derived views, not public ontology. Guide, survey, and resolved graph output continue to expose one input contract.
 
 ### Validation matrix
 
 | Schema feature | Proposed treatment |
 | --- | --- |
 | Optionality and defaults | Allowed. Defaults are the sanctioned source of visible caller/implementation divergence: callers may omit defaulted fields; implementations receive materialized values. |
-| Standard type-preserving refinements | Allowed and queryable where Zod and Trails projection support them. Examples include common string, number, array, and enum constraints. |
+| Standard type-preserving refinements | Allowed and queryable where Zod and Trails derivation support them. Examples include common string, number, array, and enum constraints. |
 | Type-preserving custom `.refine()` | Allowed but opaque. Prefer standard refinements when the contract should be queryable. |
 | Type-changing `.transform()` | Deferred to a future adapter/codec ADR. Contract schemas validate/default only in v1. |
 | `.pipe()` to a new type | Deferred to the same adapter/codec story as transforms. |
@@ -83,7 +83,7 @@ If tooling needs to explain defaults, it should say that fields with defaults ma
 - Do not create the future adapter/codec API here.
 - Do not ban defaults.
 - Do not make examples post-default/materialized input.
-- Do not expose internal projection names as published graph vocabulary.
+- Do not expose internal derivation names as published graph vocabulary.
 
 ### Ratification bar
 
@@ -96,7 +96,7 @@ This draft becomes acceptable only if TRL-884 proves that schema-owned typing ca
 - Trail authors keep one public input schema and do not author a `callInput`/`implementationInput` split.
 - Defaults become an explicit, sanctioned way for caller-side and implementation-side TypeScript shapes to differ without creating contract drift.
 - Examples stay caller-facing and continue to serve documentation, testing, and agent guidance.
-- Surface and graph projections stay aligned with the Tenets: one input contract, many reads.
+- Surface renderings and graph-derived views stay aligned with the Tenets: one input contract, many reads.
 
 ### Tradeoffs
 

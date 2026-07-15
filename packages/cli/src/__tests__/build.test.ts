@@ -139,7 +139,7 @@ describe('buildCommands path derivation', () => {
     ]);
   });
 
-  test('projects trail-owned aliases and surface overlay cli bindings as routes', () => {
+  test('renders trail-owned aliases and surface overlay cli bindings as routes', () => {
     const search = trail('wayfind.search', {
       cli: {
         aliases: ['find'],
@@ -887,7 +887,7 @@ describe('buildCommands execution', () => {
     expect(result.error.message).toContain('unexpected kaboom');
   });
 
-  test('projects live versions and executes selected version flag', async () => {
+  test('renders live versions and executes selected version flag', async () => {
     const versioned = trail('versioned.greet', {
       implementation: (input: { name: string }) =>
         Result.ok({ message: `Hello, ${input.name}!` }),

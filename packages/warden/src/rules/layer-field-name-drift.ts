@@ -60,7 +60,7 @@ const buildDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line: offsetToLine(sourceCode, node.start),
-  message: `layer-field-name-drift: surface-local reserved name set "${name}" can make layer input fields project differently across surfaces. Import LAYER_FIELD_RESERVED_NAMES from @ontrails/core instead.`,
+  message: `layer-field-name-drift: surface-local reserved name set "${name}" can make layer input fields render differently across surfaces. Import LAYER_FIELD_RESERVED_NAMES from @ontrails/core instead.`,
   rule: RULE_NAME,
   severity: 'error',
 });
@@ -96,7 +96,7 @@ export const layerFieldNameDrift: WardenRule = {
     return diagnostics;
   },
   description:
-    'Prevent surface-local reserved-name sets from drifting layer input field projection across surfaces.',
+    'Prevent surface-local reserved-name sets from drifting layer input field rendering across surfaces.',
   name: RULE_NAME,
   severity: 'error',
 };

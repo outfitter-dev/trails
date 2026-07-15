@@ -1,7 +1,7 @@
 /**
  * Post-execution trace tree renderer.
  *
- * Pure projection of a flat `TraceRecord[]` into a multi-line string suitable
+ * Pure rendering of a flat `TraceRecord[]` into a multi-line string suitable
  * for stderr. The renderer is intentionally side-effect free: callers (such as
  * the CLI's `--trace` flag) own the actual write to stderr. Live streaming is
  * deferred per ADR-0028; this renderer assumes the records are complete.

@@ -267,11 +267,11 @@
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md",
-      "slug": "release-provenance-as-lifecycle-projection",
+      "path": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md",
+      "slug": "release-provenance-as-lifecycle-derivation",
       "status": "draft",
       "superseded_by": null,
-      "title": "Release Provenance as Lifecycle Projection",
+      "title": "Release Provenance as Lifecycle Derivation",
       "updated": "2026-06-09"
     },
     {

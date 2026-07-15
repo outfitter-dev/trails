@@ -13,7 +13,7 @@ import type {
   HttpRouteDefinition,
 } from '@ontrails/http';
 import type { Topo, TrailContext, TrailContextInit } from '@ontrails/core';
-import { NotFoundError, projectPublicSurfaceError } from '@ontrails/core';
+import { NotFoundError, renderPublicSurfaceError } from '@ontrails/core';
 
 import { mergeTestContext } from './context.js';
 
@@ -40,7 +40,7 @@ export interface HttpHarnessRequestOptions extends Omit<
   readonly query?: Record<string, unknown> | undefined;
 }
 
-/** A test harness for HTTP route projections. */
+/** A test harness for HTTP route renderings. */
 export interface HttpHarness {
   /** Execute a raw HTTP-style harness request. */
   request(request: HttpHarnessRequest): Promise<HttpHarnessResult>;
@@ -126,19 +126,19 @@ const findRoute = (
   routes.find((route) => route.method === method && route.path === path);
 
 const mapError = (error: Error): HttpHarnessResult => {
-  const projection = projectPublicSurfaceError('http', error);
+  const rendering = renderPublicSurfaceError('http', error);
   const body = {
     error: {
-      category: projection.category,
-      code: projection.name,
-      message: projection.message,
+      category: rendering.category,
+      code: rendering.name,
+      message: rendering.message,
     },
   };
   return {
     body,
     error: body.error,
     ok: false,
-    status: projection.code,
+    status: rendering.code,
   };
 };
 

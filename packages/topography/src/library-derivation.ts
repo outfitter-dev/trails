@@ -10,7 +10,7 @@ import type {
   TopoGraphLibraryCollision,
   TopoGraphLibraryExclusion,
   TopoGraphLibraryExport,
-  TopoGraphLibraryProjection,
+  TopoGraphLibraryDerived,
 } from './types.js';
 
 const sortKeys = <T extends Record<string, unknown>>(obj: T): T => {
@@ -75,9 +75,7 @@ const collectLibraryExclusions = (
   return excluded.toSorted((a, b) => a.trailId.localeCompare(b.trailId));
 };
 
-export const collectLibraryProjection = (
-  topo: Topo
-): TopoGraphLibraryProjection => {
+export const deriveTopoGraphLibrary = (topo: Topo): TopoGraphLibraryDerived => {
   const selected = filterSurfaceTrails([...topo.trails.values()]).filter(
     (trail) => !isDraftId(trail.id)
   );
@@ -129,5 +127,5 @@ export const collectLibraryProjection = (
     collisions,
     excluded: collectLibraryExclusions(topo, selectedIds),
     exports,
-  }) as unknown as TopoGraphLibraryProjection;
+  }) as unknown as TopoGraphLibraryDerived;
 };

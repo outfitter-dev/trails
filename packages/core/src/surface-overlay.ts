@@ -33,7 +33,7 @@ export const SURFACES_OVERLAY_NAMESPACE = 'surfaces' as const;
 /**
  * Who authored an overlay envelope.
  *
- * `'adapter-derived'` marks facts an adapter projects from the topo;
+ * `'adapter-derived'` marks facts an adapter renders from the topo;
  * `'app-authored'` marks bindings the app wrote by hand. Surfaces obey
  * app-authored overlays only — adapters contribute facts, never bindings.
  *
@@ -242,7 +242,7 @@ export interface SurfaceOverlay {
   /** The bindings schema, enforced again on the compile path. */
   readonly schema: z.ZodType;
   /**
-   * Project the overlay facts. Ignores the topo — bindings are authored —
+   * Derive the overlay facts. Ignores the topo — bindings are authored —
    * so the parameter is optional; the signature stays structurally
    * assignable to the adapter-kit `Overlay` contract's `(topo) => unknown`.
    */
@@ -313,7 +313,7 @@ export interface OverlayEnvelopeLike {
   readonly provenance?: OverlayProvenance | undefined;
   /** The envelope's fact schema. */
   readonly schema: z.ZodType;
-  /** Project the envelope's facts. */
+  /** Derive the envelope's facts. */
   derive(topo?: Topo): unknown;
   /**
    * Static surface bindings, when the envelope carries them directly.
@@ -575,11 +575,11 @@ const assertMcpSynonymBindingName = (name: string): void => {
 
 /**
  * Derive the deterministic default description for an MCP grouped entry
- * projected from the `surfaces` overlay.
+ * rendered from the `surfaces` overlay.
  *
  * Both the MCP surface (the runtime tool description) and Topography (the
  * lock's trailhead entry description) read this helper, so the authored
- * binding projects one description everywhere.
+ * binding renders one description everywhere.
  *
  * @example
  * ```ts

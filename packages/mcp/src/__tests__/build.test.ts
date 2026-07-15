@@ -185,7 +185,7 @@ describe('deriveMcpTools', () => {
       expect(props['message']).toEqual({ type: 'string' });
     });
 
-    test('output schema is projected when declared', () => {
+    test('output schema is rendered when declared', () => {
       const app = topo('myapp', { echoTrail });
       const schema = requireOnlyTool(buildTools(app)).outputSchema;
 
@@ -235,7 +235,7 @@ describe('deriveMcpTools', () => {
     });
 
     test('mixed-shape unions wrap structured content even when value is an object', async () => {
-      // `z.union([z.object(...), z.string()])` projects to a wrapped
+      // `z.union([z.object(...), z.string()])` renders to a wrapped
       // outputSchema (`{ data: ... }`) because the schema is not
       // homogeneously object-shaped. The runtime structuredContent must
       // therefore also wrap, even when the value happens to be the object
@@ -387,7 +387,7 @@ describe('deriveMcpTools', () => {
       expect(result?.structuredContent).toEqual({ reply: 'hello' });
     });
 
-    test('projects live versions and executes selected tool version', async () => {
+    test('renders live versions and executes selected tool version', async () => {
       const versioned = trail('versioned.greet', {
         implementation: (input: { name: string }) =>
           Result.ok({ message: `Hello, ${input.name}!` }),
@@ -506,7 +506,7 @@ describe('deriveMcpTools', () => {
       expect(result?.content[0]?.text).toBe('Internal server error');
     });
 
-    test('handler projects TrailsError metadata onto MCP tool-result errors', async () => {
+    test('handler renders TrailsError metadata onto MCP tool-result errors', async () => {
       const app = topo('myapp', { notFoundTrail });
       const tool = requireOnlyTool(buildTools(app));
 
@@ -1078,7 +1078,7 @@ describe('deriveMcpTools', () => {
       expect(capturedSignal).toBe(controller.signal);
     });
 
-    test('examples are projected as structured MCP metadata', () => {
+    test('examples are rendered as structured MCP metadata', () => {
       const app = topo('myapp', { exampleTrail });
       const tool = requireOnlyTool(buildTools(app));
 

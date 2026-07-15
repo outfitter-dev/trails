@@ -3,12 +3,12 @@ import { describe, expect, test } from 'bun:test';
 import { InternalError, PermissionError } from '../errors.js';
 import {
   INTERNAL_ERROR_PUBLIC_MESSAGE,
-  projectErrorDiagnostics,
+  renderErrorDiagnostics,
   redactErrorString,
-} from '../error-projection.js';
-import { projectPublicSurfaceError } from '../transport-error-map.js';
+} from '../error-rendering.js';
+import { renderPublicSurfaceError } from '../transport-error-map.js';
 
-describe('error projection redaction', () => {
+describe('error rendering redaction', () => {
   test('redacts key-value secrets embedded in strings', () => {
     expect(redactErrorString('database password=secret')).toBe(
       'database [REDACTED]'
@@ -19,12 +19,12 @@ describe('error projection redaction', () => {
     ).toBe('Malformed Authorization header; expected Bearer token');
   });
 
-  test('projects TrailsError messages safely for public surfaces', () => {
+  test('renders TrailsError messages safely for public surfaces', () => {
     const error = new PermissionError('Denied Bearer abcdefghijklmnop', {
       context: { authorization: 'Bearer abcdefghijklmnop' },
     });
 
-    expect(projectPublicSurfaceError('http', error)).toEqual({
+    expect(renderPublicSurfaceError('http', error)).toEqual({
       category: 'permission',
       code: 403,
       message: 'Denied [REDACTED]',
@@ -34,22 +34,20 @@ describe('error projection redaction', () => {
     });
   });
 
-  test('uses a generic public projection for unknown errors', () => {
-    expect(projectPublicSurfaceError('mcp', new Error('token=secret'))).toEqual(
-      {
-        category: 'internal',
-        code: -32_603,
-        message: INTERNAL_ERROR_PUBLIC_MESSAGE,
-        name: 'InternalError',
-        retryable: false,
-        surface: 'mcp',
-      }
-    );
+  test('uses a generic public rendering for unknown errors', () => {
+    expect(renderPublicSurfaceError('mcp', new Error('token=secret'))).toEqual({
+      category: 'internal',
+      code: -32_603,
+      message: INTERNAL_ERROR_PUBLIC_MESSAGE,
+      name: 'InternalError',
+      retryable: false,
+      surface: 'mcp',
+    });
   });
 
   test('uses a generic public message for internal TrailsError instances', () => {
     expect(
-      projectPublicSurfaceError('http', new InternalError('panic'))
+      renderPublicSurfaceError('http', new InternalError('panic'))
     ).toEqual({
       category: 'internal',
       code: 500,
@@ -69,7 +67,7 @@ describe('error projection redaction', () => {
     });
     error.stack = 'PermissionError: Denied Bearer abcdefghijklmnop';
 
-    expect(projectErrorDiagnostics(error)).toEqual({
+    expect(renderErrorDiagnostics(error)).toEqual({
       category: 'permission',
       context: {
         authorization: '[REDACTED]',

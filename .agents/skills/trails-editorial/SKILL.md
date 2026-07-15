@@ -15,7 +15,7 @@ metadata:
 
 # Trails Editorial
 
-> **Vocabulary is mid-cutover toward the v1 reset.** Describe current code with current-live terms; see `docs/lexicon-pending.md` for terms ratified to change, and do not adopt the targets early.
+The v1 vocabulary families are live. Use `derive` for contract-owned fact production and `render` for surface presentation.
 
 Run a complete editorial review for Trails documentation and prose-heavy changes. This is a workflow skill. It should work in Claude, Codex, or any agent harness that can read skills, inspect files, and run commands.
 
@@ -91,7 +91,8 @@ Check against `trails-writing-style`:
 - Are ratified future terms distinguished from live code when needed?
 - Are paragraphs focused?
 - Are examples concrete?
-- Is in-flight vocabulary handled per `docs/lexicon-pending.md` (current-live terms, not prematurely swapped to targets)?
+- Does the prose use the live v1 vocabulary and confine retired terms to
+  explicit historical evidence?
 - Are old synonyms or retired terms creeping in?
 
 ### 5. Structure Review

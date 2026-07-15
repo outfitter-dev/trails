@@ -317,7 +317,7 @@ export const createHttpAdapterConformanceCases =
     },
     {
       check: publicErrorCase,
-      name: 'projects generic errors as redacted public 500 responses',
+      name: 'renders generic errors as redacted public 500 responses',
     },
     {
       check: requestContextCase,

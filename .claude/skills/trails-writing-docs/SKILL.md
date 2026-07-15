@@ -9,7 +9,7 @@ metadata:
 
 # Trails Writing Docs
 
-> **Vocabulary is mid-cutover toward the v1 reset.** Describe current code with current-live terms; see `docs/lexicon-pending.md` for terms ratified to change, and do not adopt the targets early.
+The v1 vocabulary families are live. Use `derive` for contract-owned fact production and `render` for surface presentation.
 
 This skill covers what a Trails document should include and where it should live. It reflects the current repository shape. The v1 ADR Canon Reset may revise the final docs taxonomy, so do not treat this as the permanent information architecture.
 

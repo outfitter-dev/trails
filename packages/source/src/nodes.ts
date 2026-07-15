@@ -250,7 +250,7 @@ export interface AstParseResult {
   readonly diagnostics: readonly AstParseDiagnostic[];
 }
 
-export interface AstFieldProjection {
+export interface AstFieldView {
   readonly alternate?: AstNode;
   readonly argument?: AstNode;
   readonly arguments?: readonly AstNode[];
@@ -470,17 +470,17 @@ export const isReturnStatement = (
 ): node is ReturnStatementNode =>
   isNodeType<ReturnStatementNode>(node, ['ReturnStatement']);
 
-const projectAstFields = (
+const deriveAstFieldView = (
   node: AstNode | null | undefined
-): AstFieldProjection | null => (node ? (node as AstFieldProjection) : null);
+): AstFieldView | null => (node ? (node as AstFieldView) : null);
 
 export const getNodeAlternate = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.alternate;
+): AstNode | undefined => deriveAstFieldView(node)?.alternate;
 
 export const getNodeArgument = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.argument;
+): AstNode | undefined => deriveAstFieldView(node)?.argument;
 
 export const getNodeArguments = (
   node: AstNode | null | undefined
@@ -488,7 +488,7 @@ export const getNodeArguments = (
 
 export const getNodeBody = (
   node: AstNode | null | undefined
-): AstNode | readonly AstNode[] | undefined => projectAstFields(node)?.body;
+): AstNode | readonly AstNode[] | undefined => deriveAstFieldView(node)?.body;
 
 export const getNodeBodyNode = (
   node: AstNode | null | undefined
@@ -510,19 +510,19 @@ export const getNodeCallee = (
 
 export const getNodeCases = (
   node: AstNode | null | undefined
-): readonly AstNode[] => projectAstFields(node)?.cases ?? [];
+): readonly AstNode[] => deriveAstFieldView(node)?.cases ?? [];
 
 export const getNodeComputed = (
   node: AstNode | null | undefined
-): boolean | undefined => projectAstFields(node)?.computed;
+): boolean | undefined => deriveAstFieldView(node)?.computed;
 
 export const getNodeConsequent = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.consequent;
+): AstNode | undefined => deriveAstFieldView(node)?.consequent;
 
 export const getNodeDeclaration = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.declaration;
+): AstNode | undefined => deriveAstFieldView(node)?.declaration;
 
 export const getNodeDeclarations = (
   node: AstNode | null | undefined
@@ -531,59 +531,59 @@ export const getNodeDeclarations = (
 
 export const getNodeDiscriminant = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.discriminant;
+): AstNode | undefined => deriveAstFieldView(node)?.discriminant;
 
 export const getNodeElements = (
   node: AstNode | null | undefined
-): readonly (AstNode | null)[] => projectAstFields(node)?.elements ?? [];
+): readonly (AstNode | null)[] => deriveAstFieldView(node)?.elements ?? [];
 
 export const getNodeExported = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.exported;
+): AstNode | undefined => deriveAstFieldView(node)?.exported;
 
 export const getNodeExportKind = (
   node: AstNode | null | undefined
-): string | undefined => projectAstFields(node)?.exportKind;
+): string | undefined => deriveAstFieldView(node)?.exportKind;
 
 export const getNodeExpression = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.expression;
+): AstNode | undefined => deriveAstFieldView(node)?.expression;
 
 export const getNodeId = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.id;
+): AstNode | undefined => deriveAstFieldView(node)?.id;
 
 export const getNodeImported = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.imported;
+): AstNode | undefined => deriveAstFieldView(node)?.imported;
 
 export const getNodeImportKind = (
   node: AstNode | null | undefined
-): string | undefined => projectAstFields(node)?.importKind;
+): string | undefined => deriveAstFieldView(node)?.importKind;
 
 export const getNodeInit = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.init;
+): AstNode | undefined => deriveAstFieldView(node)?.init;
 
 export const getNodeKey = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.key;
+): AstNode | undefined => deriveAstFieldView(node)?.key;
 
 export const getNodeKind = (
   node: AstNode | null | undefined
-): string | undefined => projectAstFields(node)?.kind;
+): string | undefined => deriveAstFieldView(node)?.kind;
 
 export const getNodeLeft = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.left;
+): AstNode | undefined => deriveAstFieldView(node)?.left;
 
 export const getNodeLocal = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.local;
+): AstNode | undefined => deriveAstFieldView(node)?.local;
 
 export const getNodeName = (
   node: AstNode | null | undefined
-): string | undefined => projectAstFields(node)?.name;
+): string | undefined => deriveAstFieldView(node)?.name;
 
 export const getNodeObject = (
   node: AstNode | null | undefined
@@ -591,11 +591,11 @@ export const getNodeObject = (
 
 export const getNodeOperator = (
   node: AstNode | null | undefined
-): string | undefined => projectAstFields(node)?.operator;
+): string | undefined => deriveAstFieldView(node)?.operator;
 
 export const getNodeParam = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.param;
+): AstNode | undefined => deriveAstFieldView(node)?.param;
 
 export const getNodeParams = (
   node: AstNode | null | undefined
@@ -613,34 +613,34 @@ export const getNodeProperty = (
 
 export const getNodeReturnType = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.returnType;
+): AstNode | undefined => deriveAstFieldView(node)?.returnType;
 
 export const getNodeRight = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.right;
+): AstNode | undefined => deriveAstFieldView(node)?.right;
 
 export const getNodeSource = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.source;
+): AstNode | undefined => deriveAstFieldView(node)?.source;
 
 export const getNodeSpecifiers = (
   node: AstNode | null | undefined
-): readonly AstNode[] => projectAstFields(node)?.specifiers ?? [];
+): readonly AstNode[] => deriveAstFieldView(node)?.specifiers ?? [];
 
 export const getNodeSuperClass = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.superClass;
+): AstNode | undefined => deriveAstFieldView(node)?.superClass;
 
 export const getNodeTest = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.test;
+): AstNode | undefined => deriveAstFieldView(node)?.test;
 
 export const getNodeTypeAnnotation = (
   node: AstNode | null | undefined
-): AstNode | undefined => projectAstFields(node)?.typeAnnotation;
+): AstNode | undefined => deriveAstFieldView(node)?.typeAnnotation;
 
 export const getNodeValue = (node: AstNode | null | undefined): unknown =>
-  projectAstFields(node)?.value;
+  deriveAstFieldView(node)?.value;
 
 export const getNodeValueNode = (
   node: AstNode | null | undefined

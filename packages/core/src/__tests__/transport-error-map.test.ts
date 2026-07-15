@@ -17,8 +17,8 @@ import {
 import {
   createSurfaceErrorMapper,
   mapSurfaceError,
-  projectErrorClassSurface,
-  projectSurfaceError,
+  renderErrorClassSurface,
+  renderSurfaceError,
   surfaceErrorMap,
   surfaceErrorRegistry,
   surfaceNames,
@@ -114,14 +114,14 @@ describe('mapSurfaceError', () => {
   );
 });
 
-describe('projectSurfaceError', () => {
+describe('renderSurfaceError', () => {
   test('returns surface metadata for a runtime error', () => {
     const error = new RetryExhaustedError(new NotFoundError('missing'), {
       attempts: 5,
       detour: 'recoverMissing',
     });
 
-    expect(projectSurfaceError('http', error)).toEqual({
+    expect(renderSurfaceError('http', error)).toEqual({
       category: 'not_found',
       code: 404,
       message: 'Recovery exhausted after 5 attempts: missing',
@@ -132,10 +132,10 @@ describe('projectSurfaceError', () => {
   });
 });
 
-describe('projectErrorClassSurface', () => {
-  test('projects every fixed error class name without constructing errors', () => {
+describe('renderErrorClassSurface', () => {
+  test('renders every fixed error class name without constructing errors', () => {
     for (const entry of fixedErrorEntries) {
-      expect(projectErrorClassSurface('http', entry.name)).toEqual({
+      expect(renderErrorClassSurface('http', entry.name)).toEqual({
         category: entry.category,
         code: codesByCategory[entry.category].http,
         name: entry.name,
@@ -145,16 +145,16 @@ describe('projectErrorClassSurface', () => {
     }
   });
 
-  test('does not invent fixed projections for dynamic or unknown class names', () => {
+  test('does not invent fixed renderings for dynamic or unknown class names', () => {
     expect(
-      projectErrorClassSurface('http', 'RetryExhaustedError')
+      renderErrorClassSurface('http', 'RetryExhaustedError')
     ).toBeUndefined();
-    expect(projectErrorClassSurface('http', 'CustomError')).toBeUndefined();
+    expect(renderErrorClassSurface('http', 'CustomError')).toBeUndefined();
   });
 });
 
 describe('createSurfaceErrorMapper', () => {
-  test('uses the error category to project into surface-specific values', () => {
+  test('uses the error category to render as surface-specific values', () => {
     const mapper = createSurfaceErrorMapper({
       auth: 'auth',
       cancelled: 'cancelled',

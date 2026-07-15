@@ -25,7 +25,7 @@ const findTrailFacts = (
 };
 
 describe('deriveTrailErrorFacts', () => {
-  test('projects documented error examples and handled detours with taxonomy', () => {
+  test('derives documented error examples and handled detours with taxonomy', () => {
     const audited = trail('audit.save', {
       detours: [
         {

@@ -84,9 +84,9 @@ const getSchemaJsonSchemaOverride = (
 };
 
 /**
- * Whether a schema has a deterministic JSON-schema override projection (for
+ * Whether a schema has a deterministic JSON-schema override derivation (for
  * example `blobRefSchema`, a `z.custom(...)` carrying the descriptor metadata).
- * Such schemas project to a canonical descriptor regardless of their underlying
+ * Such schemas derive to a canonical descriptor regardless of their underlying
  * Zod internals, so marker derivation can treat them as supported.
  */
 export const schemaHasJsonSchemaOverride = (schema: z.ZodType): boolean =>

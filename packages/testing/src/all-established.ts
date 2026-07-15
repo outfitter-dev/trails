@@ -1,5 +1,5 @@
 /**
- * testAllEstablished - contract suite plus shipped surface projection checks.
+ * testAllEstablished - contract suite plus shipped surface rendering checks.
  *
  * This helper intentionally lives behind a surface subpath so root
  * `@ontrails/testing` imports do not pull CLI, MCP, or HTTP peers into
@@ -125,21 +125,21 @@ const registerEstablishedSurfaceSuite = (
     | undefined
 ): void => {
   describe('surfaces', () => {
-    test('CLI projection validates established topo', () => {
+    test('CLI rendering validates established topo', () => {
       const options = normalizeEstablishedOptions(resolveInput());
       expect(() =>
         createCliHarness(toCliHarnessOptions(topo, options))
       ).not.toThrow();
     });
 
-    test('MCP projection validates established topo', () => {
+    test('MCP rendering validates established topo', () => {
       const options = normalizeEstablishedOptions(resolveInput());
       expect(() =>
         createMcpHarness(toMcpHarnessOptions(topo, options))
       ).not.toThrow();
     });
 
-    test('HTTP projection validates established topo', () => {
+    test('HTTP rendering validates established topo', () => {
       const options = normalizeEstablishedOptions(resolveInput());
       expect(() =>
         createHttpHarness(toHttpHarnessOptions(topo, options))

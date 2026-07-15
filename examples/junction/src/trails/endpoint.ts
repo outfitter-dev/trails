@@ -2,7 +2,7 @@
  * Inbound endpoint management trails.
  *
  * Endpoints carry the HMAC secret senders sign with. The secret is shown
- * exactly once — on create and on rotate — and every other read projects a
+ * exactly once — on create and on rotate — and every other read derives a
  * redacted summary, so the secret never leaks through list/get outputs or
  * error payloads.
  */
@@ -15,7 +15,7 @@ import type { Endpoint } from '../store.js';
 import { endpointSchema } from '../store.js';
 import { endpointSourceSchema } from '../verify.js';
 
-/** Endpoint projection with the secret redacted. */
+/** Endpoint rendering with the secret redacted. */
 export const endpointSummarySchema = endpointSchema.omit({ secret: true });
 
 const toSummary = (endpoint: Endpoint) => ({

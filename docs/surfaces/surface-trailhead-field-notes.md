@@ -8,7 +8,7 @@ TRL-890 originally called for two sprints between the ad-hoc Trails operator MCP
 
 ## Trails Operator Surface
 
-The first shaped surface was `apps/trails/src/mcp-options.ts`. It projected the Trails operator app into seven deferred MCP trailhead tools:
+The first shaped surface was `apps/trails/src/mcp-options.ts`. It rendered the Trails operator app into seven deferred MCP trailhead tools:
 
 - `artifacts`
 - `authoring`
@@ -42,7 +42,7 @@ TRL-908 revised the dogfood surface around permission boundaries. The Trails ope
 
 - A generic `facet()` primitive is not justified.
 - `overlapsWith` is not justified; it would make drift too easy to silence.
-- CLI and HTTP parity are deferred. CLI should be evaluated as command-group consolidation, and HTTP as route-group projection or a rejected non-fit.
+- CLI and HTTP parity are deferred. CLI should be evaluated as command-group consolidation, and HTTP as route-group rendering or a rejected non-fit.
 - `mcp.search` and code-mode execution stay out of this slice.
 
 ## Follow-Up Notes Template
@@ -50,7 +50,7 @@ TRL-908 revised the dogfood surface around permission boundaries. The Trails ope
 When adding future notes, include:
 
 - app or topo under test;
-- number of raw trails and projected trailhead tools;
+- number of raw trails and rendered trailhead tools;
 - client used;
 - whether agents found the right tool without source inspection;
 - confusing invocation or output cases;

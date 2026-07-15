@@ -32,18 +32,18 @@ await surface(graph, { port: 3000 });
 
 `@ontrails/http/bun` uses Bun's native `Bun.serve({ routes })` fast path and keeps the shared Web Fetch handler as the fallback. It requires Bun `>=1.2.3` and does not add a third-party runtime dependency.
 
-## Projection and runtime binding
+## Rendering and runtime binding
 
 The HTTP package follows the surface API naming split:
 
-- `derive*` exports are pure projections from the topo. Use `deriveHttpRoutes()` for route definitions and `deriveOpenApiSpec()` for the OpenAPI contract.
+- `derive*` exports are pure renderings from the topo. Use `deriveHttpRoutes()` for route definitions and `deriveOpenApiSpec()` for the OpenAPI contract.
 - `create*` exports build runtime objects without opening a network boundary.
   `@ontrails/http/fetch` exports `createRouteHandler()` for one route and
   `createFetchHandler()` for a full topo dispatcher.
 - `surface()` opens the runtime boundary. `@ontrails/hono` opens an adapter
   binding to Hono; `@ontrails/http/bun` opens the native Bun HTTP binding.
 
-The shared `@ontrails/http/fetch` kernel owns query/body parsing, content-length validation, public error projection, diagnostics, request IDs, headers, abort propagation, and webhook verification/parsing behavior. Hono and Bun both consume that kernel so route semantics stay aligned.
+The shared `@ontrails/http/fetch` kernel owns query/body parsing, content-length validation, public error rendering, diagnostics, request IDs, headers, abort propagation, and webhook verification/parsing behavior. Hono and Bun both consume that kernel so route semantics stay aligned.
 
 For more control, build the routes yourself:
 
@@ -59,7 +59,7 @@ for (const route of result.value) {
 
 `deriveHttpRoutes` returns `Result<HttpRouteDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same `(method, path)` pair.
 
-OpenAPI is the HTTP surface's persisted client contract projection:
+OpenAPI is the HTTP surface's persisted client contract rendering:
 
 ```typescript
 import { deriveOpenApiSpec } from '@ontrails/http';
@@ -93,7 +93,7 @@ import { myHttpAdapter } from './adapter.js';
 runConformance(myHttpAdapter, createHttpAdapterConformanceCases());
 ```
 
-The adapter under test provides a `name` and `createApp(graph, options)` method that returns an object with a Web Fetch-compatible `fetch(request)` handler. The conformance cases cover query and body input projection, validation envelopes, public error redaction, request context, abort propagation, and webhook verification/parsing behavior.
+The adapter under test provides a `name` and `createApp(graph, options)` method that returns an object with a Web Fetch-compatible `fetch(request)` handler. The conformance cases cover query and body input rendering, validation envelopes, public error redaction, request context, abort propagation, and webhook verification/parsing behavior.
 
 ## Route derivation
 

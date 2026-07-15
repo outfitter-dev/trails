@@ -251,7 +251,7 @@ export const normalizeObserve = (
   if (observe === undefined) {
     // ADR 0041 promises a non-null `ctx.logger` with zero configuration.
     // Returning the default config here lets the existing topo → adapter
-    // path project this log sink into `ctx.logger` without a second
+    // path renders this log sink into `ctx.logger` without a second
     // resolution point or a reverse dependency on `@ontrails/observability`.
     return DEFAULT_OBSERVE_CONFIG;
   }

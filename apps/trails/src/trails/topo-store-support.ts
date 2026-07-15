@@ -140,12 +140,10 @@ export const deriveCurrentTopoExport = (
   const db = new Database(':memory:');
 
   try {
-    const projected = persistAndReadStoredExport(app, db, rootDir, {
+    const derived = persistAndReadStoredExport(app, db, rootDir, {
       overlays: options?.overlays,
     });
-    return projected.isErr()
-      ? projected
-      : Result.ok(projected.value.storedExport);
+    return derived.isErr() ? derived : Result.ok(derived.value.storedExport);
   } finally {
     db.close();
   }

@@ -8,7 +8,7 @@ This is the app for "I don't want a server, I want a package." One authored trai
 
 | Capability | Where it appears |
 | --- | --- |
-| Library surface + projection artifacts | [quickstart.ts](quickstart.ts) consumes the topo through `@ontrails/library`; the committed [trails.lock](trails.lock) embeds the collision-free projection, and [governance.test.ts](src/__tests__/governance.test.ts) keeps `library-projection-coherence` clean |
+| Library surface + rendering artifacts | [quickstart.ts](quickstart.ts) consumes the topo through `@ontrails/library`; the committed [trails.lock](trails.lock) embeds the collision-free rendering, and [governance.test.ts](src/__tests__/governance.test.ts) keeps `library-rendering-coherence` clean |
 | Pure, deterministic implementations | [engine.ts](src/engine.ts) is a pure function of (flag definition, evaluation context) — no clock, no randomness; [engine.test.ts](src/__tests__/engine.test.ts) pins fixed hash vectors forever |
 | Explainability | every `flag.evaluate` result carries a rule-by-rule `EvalTrace`; the CLI renders it with `--explain` ([evaluate.ts](src/trails/evaluate.ts)) |
 | Percentage rollouts | seeded FNV-1a hashing buckets each flag+subject stably ([engine.ts](src/engine.ts)) |
@@ -63,7 +63,7 @@ bun bin/switchback.ts flag evaluate checkout-v2 '{"context":{"subjectId":"user-1
 { "name": "switchback_flag_evaluate", "arguments": { "key": "checkout-v2", "context": { "subjectId": "user-1" } } }
 ```
 
-No divergence is possible: the CLI flags, the tool schema, and the library method are all projected from the one authored input schema.
+No divergence is possible: the CLI flags, the tool schema, and the library method are all rendered from the one authored input schema.
 
 ## Every answer explains itself
 
@@ -120,10 +120,10 @@ Flag definitions live in [switchback.flags.json](switchback.flags.json), reloade
 If you are building a library-first Trails package, this example is the template:
 
 - **Author trails, export the topo.** [src/index.ts](src/index.ts) is the package entry: the `app` topo plus the domain schemas and the pure engine.
-- **The library projection is governed.** `deriveLibraryApi(app)` derives one camelCase export per trail (`flag.evaluate` → `flagEvaluate`); the Warden rule `library-projection-coherence` fails the build if two trails ever collide on an export name, and the resolved projection is committed inside [trails.lock](trails.lock). When you want fully typed per-trail exports instead of the in-memory client, `compile(app, …)` from `@ontrails/library` emits a TypeScript package from the same projection.
+- **The library rendering is governed.** `deriveLibraryApi(app)` derives one camelCase export per trail (`flag.evaluate` → `flagEvaluate`); the Warden rule `library-rendering-coherence` fails the build if two trails ever collide on an export name, and the resolved rendering is committed inside [trails.lock](trails.lock). When you want fully typed per-trail exports instead of the in-memory client, `compile(app, …)` from `@ontrails/library` emits a TypeScript package from the same rendering.
 - **Packing is checked.** `bun pm pack --dry-run` packs source, bin, and demo data with no test files — the same shape a real published package needs. This example stays `private: true`; delete that field, name your package, and publish checks apply as-is.
-- **Surfaces come free.** [bin/switchback.ts](bin/switchback.ts) and [src/mcp.ts](src/mcp.ts) are three lines each; CLI commands and MCP tools are projections of the contract you already wrote.
+- **Surfaces come free.** [bin/switchback.ts](bin/switchback.ts) and [src/mcp.ts](src/mcp.ts) are three lines each; CLI commands and MCP tools are renderings of the contract you already wrote.
 
 ## Governance
 
-The committed [trails.lock](trails.lock) is the resolved story of the app: 13 trails, 2 resources, 28 examples, and the library projection, all inspectable with Wayfinder (`bun ../../apps/trails/bin/trails.ts wayfind --overview --root-dir . --json`). [governance.test.ts](src/__tests__/governance.test.ts) runs Warden in CI: zero errors and no lock drift, or the suite fails.
+The committed [trails.lock](trails.lock) is the resolved story of the app: 13 trails, 2 resources, 28 examples, and the library rendering, all inspectable with Wayfinder (`bun ../../apps/trails/bin/trails.ts wayfind --overview --root-dir . --json`). [governance.test.ts](src/__tests__/governance.test.ts) runs Warden in CI: zero errors and no lock drift, or the suite fails.

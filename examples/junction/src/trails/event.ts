@@ -3,7 +3,7 @@
  *
  * `event.list` carries the pagination layer: the trail's own input filters
  * by endpoint, status, and receipt time, while `limit`/`offset` come from
- * the layer's projected input on every surface. `event.replay` re-fires
+ * the layer's rendered input on every surface. `event.replay` re-fires
  * `event.received` for one stored event so the relay pipeline runs again.
  */
 

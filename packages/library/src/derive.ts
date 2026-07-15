@@ -1,29 +1,29 @@
 /**
- * `deriveLibraryApi` — the pure projection from a topo to a `LibraryProjection`.
+ * `deriveLibraryApi` — the pure rendering from a topo to a `LibraryRenderingPlan`.
  *
  * This is the single semantic authority for the library surface: trail
  * selection, export naming, collision resolution, and the per-export contract
  * data the emitter renders all live here. The in-memory surface and the package
- * emitter both consume the projection; neither re-reads the topo nor reinvents
+ * emitter both consume the rendering; neither re-reads the topo nor reinvents
  * selection. Pure — no fs/network/db reads (derive* purity contract).
  */
 import { filterSurfaceTrails, isDraftId } from '@ontrails/core';
 import type { Layer, Topo, Trail } from '@ontrails/core';
 import type { ZodType } from 'zod';
 
-import { projectLibraryInput } from './layer-input.js';
-import type { LibraryLayerInputProjection } from './layer-input.js';
+import { renderLibraryInput } from './layer-input.js';
+import type { LibraryLayerInputRendering } from './layer-input.js';
 
 type AnyTrail = Trail<unknown, unknown, unknown>;
 
-/** Where a projected export name came from. */
+/** Where a rendered export name came from. */
 export type LibraryExportSource = 'derived' | 'trail-hint' | 'package-config';
 
-/** A single projected export: one trail rendered as a library entrypoint. */
+/** A single rendered export: one trail rendered as a library entrypoint. */
 export interface LibraryExport {
   /** Consumer-native export name (camelCased trail id by default). */
   readonly exportName: string;
-  /** The trail id this export projects (the source of truth). */
+  /** The trail id this export renders (the source of truth). */
   readonly trailId: string;
   /** How `exportName` was chosen. v0 derives; hints/config override later. */
   readonly nameSource: LibraryExportSource;
@@ -39,27 +39,27 @@ export interface LibraryExport {
   /**
    * Input schema reference: the emitter's method-signature and `/schemas`
    * source. An in-memory Zod reference here; it serializes to JSON Schema when
-   * the projection is persisted to the artifact family.
+   * the rendering is persisted to the artifact family.
    */
   readonly input: ZodType;
-  /** Layer input routing projected onto this export's public library input. */
-  readonly layerInputs: readonly LibraryLayerInputProjection[];
+  /** Layer input routing rendered onto this export's public library input. */
+  readonly layerInputs: readonly LibraryLayerInputRendering[];
   /** Output schema reference, when the trail declares one. */
   readonly output: ZodType | undefined;
   /**
    * Resource ids this export depends on. Empty means a stateless function
-   * export; non-empty means the emitter projects the export behind a
+   * export; non-empty means the emitter renders the export behind a
    * `createX()` factory/client, grouped by shared resources. Carrying ids (not
    * just a boolean) keeps the factory-grouping decision in this authority.
    */
   readonly resources: readonly string[];
 }
 
-/** Why a trail did not project into the library (doctrinally-meaningful only). */
+/** Why a trail did not render into the library (doctrinally-meaningful only). */
 export type LibraryExclusionReason = 'internal' | 'draft' | 'activation';
 
 /**
- * A trail deliberately excluded from the projection, recorded for legibility.
+ * A trail deliberately excluded from the rendering, recorded for legibility.
  * `reason` is the primary (first-matched) reason in precedence order
  * draft > activation > internal; a trail may technically satisfy more than one.
  */
@@ -74,11 +74,11 @@ export interface LibraryCollision {
   readonly trailIds: readonly string[];
 }
 
-/** The resolved library projection — the story of a topo as a TypeScript library. */
-export interface LibraryProjection {
+/** The resolved library rendering — the story of a topo as a TypeScript library. */
+export interface LibraryRenderingPlan {
   /** The topo name. */
   readonly app: string;
-  /** Projected exports, in stable (trail-id-sorted) order. */
+  /** Rendered exports, in stable (trail-id-sorted) order. */
   readonly exports: readonly LibraryExport[];
   /** Trails excluded by visibility, draft state, or activation. */
   readonly excluded: readonly LibraryExclusion[];
@@ -87,7 +87,7 @@ export interface LibraryProjection {
 }
 
 /**
- * Options for narrowing the projection. Selectors reuse the trail-filter
+ * Options for narrowing the rendering. Selectors reuse the trail-filter
  * grammar (exact ids, `*`, `**`). v0 exposes include/exclude only; intent-based
  * filtering is deferred (the packet promises the filter grammar, not intent
  * narrowing, for the library surface).
@@ -97,7 +97,7 @@ export interface DeriveLibraryApiOptions {
   readonly include?: readonly string[];
   /** Exclude patterns. */
   readonly exclude?: readonly string[];
-  /** Surface-scope layers to project alongside each trail's own input. */
+  /** Surface-scope layers to render alongside each trail's own input. */
   readonly layers?: readonly Layer[] | undefined;
 }
 
@@ -126,21 +126,21 @@ const isInternal = (trail: AnyTrail): boolean =>
   trail.visibility === 'internal' || trail.meta?.['internal'] === true;
 
 /**
- * Project a topo into a `LibraryProjection`. Selection composes
+ * Derive a topo into a `LibraryRenderingPlan`. Selection composes
  * `filterSurfaceTrails` (visibility, activation, intent, include/exclude) and
  * adds draft exclusion. Established public, current-version trails become
  * exports; drafts, internal, and activation-driven trails are excluded.
  *
  * @example
- * const projection = deriveLibraryApi(app);
- * for (const entry of projection.exports) {
+ * const rendering = deriveLibraryApi(app);
+ * for (const entry of rendering.exports) {
  *   console.log(entry.exportName, '->', entry.trailId);
  * }
  */
 export const deriveLibraryApi = (
   graph: Topo,
   options: DeriveLibraryApiOptions = {}
-): LibraryProjection => {
+): LibraryRenderingPlan => {
   const all = graph.list();
 
   const selected = filterSurfaceTrails(all, {
@@ -183,13 +183,13 @@ export const deriveLibraryApi = (
       continue;
     }
     namesToTrailIds.set(exportName, [trail.id]);
-    const inputProjection = projectLibraryInput(graph, trail, options.layers);
+    const inputRendering = renderLibraryInput(graph, trail, options.layers);
     exports.push({
       description: trail.description,
       exportName,
-      input: inputProjection.input,
+      input: inputRendering.input,
       intent: trail.intent,
-      layerInputs: inputProjection.layers,
+      layerInputs: inputRendering.layers,
       nameSource: 'derived',
       output: trail.output,
       resources: trail.resources.map((resource) => resource.id),

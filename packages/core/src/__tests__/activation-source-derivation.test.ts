@@ -4,12 +4,12 @@ import { z } from 'zod';
 
 import {
   activationSourceDeclarationSignature,
-  projectActivationSourceDeclaration,
-} from '../activation-source-projection.js';
+  deriveActivationSourceFacts,
+} from '../activation-source-derivation.js';
 import { Result } from '../result.js';
 
-describe('activation source projection', () => {
-  test('projects queue names as durable source facts', () => {
+describe('activation source derivation', () => {
+  test('derives queue names as durable source facts', () => {
     const source = {
       id: 'queue.email.outbox',
       kind: 'queue' as const,
@@ -17,7 +17,7 @@ describe('activation source projection', () => {
       queue: ' email-outbox ',
     };
 
-    expect(projectActivationSourceDeclaration(source)).toMatchObject({
+    expect(deriveActivationSourceFacts(source)).toMatchObject({
       key: 'queue:queue.email.outbox',
       queue: 'email-outbox',
     });
@@ -35,7 +35,7 @@ describe('activation source projection', () => {
       path: ' /webhooks/payment ',
     };
 
-    expect(projectActivationSourceDeclaration(source)).toMatchObject({
+    expect(deriveActivationSourceFacts(source)).toMatchObject({
       method: 'POST',
       path: '/webhooks/payment',
     });
@@ -87,34 +87,34 @@ describe('activation source projection', () => {
       );
     });
 
-    test('the persisted projection does not include verifier identity', () => {
+    test('the persisted derivation does not include verifier identity', () => {
       const verify = () => Result.ok();
       const source = { ...baseSpec(), verify };
 
-      const projection = projectActivationSourceDeclaration(source);
-      const serialized = JSON.stringify(projection);
+      const derivation = deriveActivationSourceFacts(source);
+      const serialized = JSON.stringify(derivation);
 
-      // The projection records verify as a stable boolean marker, not as a
+      // The derivation records verify as a stable boolean marker, not as a
       // function reference or per-process identity token.
-      expect(projection).toMatchObject({ hasVerify: true });
+      expect(derivation).toMatchObject({ hasVerify: true });
       expect(serialized).not.toContain('verify#');
       expect(serialized).not.toContain('[Function');
-      // No reference identity leaks: a fresh projection of an equivalent
+      // No reference identity leaks: a fresh derivation of an equivalent
       // source must serialize identically.
       const equivalent = { ...baseSpec(), verify };
-      expect(
-        JSON.stringify(projectActivationSourceDeclaration(equivalent))
-      ).toBe(serialized);
+      expect(JSON.stringify(deriveActivationSourceFacts(equivalent))).toBe(
+        serialized
+      );
     });
 
-    test('the persisted projection is stable across distinct verifier functions', () => {
+    test('the persisted derivation is stable across distinct verifier functions', () => {
       const left = { ...baseSpec(), verify: () => Result.ok() };
       const right = { ...baseSpec(), verify: () => Result.ok() };
 
-      // Even though the verifier identities differ, the persisted projection
+      // Even though the verifier identities differ, the persisted derivation
       // must be byte-identical so topo-store output remains deterministic.
-      expect(JSON.stringify(projectActivationSourceDeclaration(left))).toBe(
-        JSON.stringify(projectActivationSourceDeclaration(right))
+      expect(JSON.stringify(deriveActivationSourceFacts(left))).toBe(
+        JSON.stringify(deriveActivationSourceFacts(right))
       );
     });
   });

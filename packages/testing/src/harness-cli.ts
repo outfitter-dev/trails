@@ -8,7 +8,7 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import type { CliCommand, DeriveCliCommandsOptions } from '@ontrails/cli';
 import type { Topo, TrailContext } from '@ontrails/core';
-import { projectPublicSurfaceError } from '@ontrails/core';
+import { renderPublicSurfaceError } from '@ontrails/core';
 
 import { mergeTestContext } from './context.js';
 
@@ -235,15 +235,15 @@ const buildErrorResult = (
 ): CliHarnessResult => {
   streams.restore();
   const actualError = error instanceof Error ? error : new Error(String(error));
-  const projection = projectPublicSurfaceError('cli', actualError);
+  const rendering = renderPublicSurfaceError('cli', actualError);
   return {
     error: {
-      category: projection.category,
-      code: projection.name,
-      message: projection.message,
+      category: rendering.category,
+      code: rendering.name,
+      message: rendering.message,
     },
     exitCode: 1,
-    stderr: streams.getStderr() || projection.message,
+    stderr: streams.getStderr() || rendering.message,
     stdout: streams.getStdout(),
   };
 };
@@ -260,15 +260,15 @@ const executeCommand = async (
   streams.restore();
 
   if (result.isErr()) {
-    const projection = projectPublicSurfaceError('cli', result.error);
+    const rendering = renderPublicSurfaceError('cli', result.error);
     return {
       error: {
-        category: projection.category,
-        code: projection.name,
-        message: projection.message,
+        category: rendering.category,
+        code: rendering.name,
+        message: rendering.message,
       },
       exitCode: 1,
-      stderr: streams.getStderr() || projection.message,
+      stderr: streams.getStderr() || rendering.message,
       stdout: streams.getStdout(),
     };
   }

@@ -33,7 +33,7 @@ Use the narrowest effective authority layer. Trails should make mistakes impossi
 | Syntax tripwires and codemods | `ast-grep` | Useful for audits and high-confidence syntax shapes. New durable Trails rules should graduate into Warden instead of living here. |
 | Trails semantic correctness | Warden | The durable public correctness surface for trail/resource/signal/composition/permit/topo invariants. |
 | Topology and resolved-graph drift | Warden + Topography | Lock manifest drift, TopoGraph drift, and topo-aware checks. |
-| Contract/runtime behavior | `testAll` and focused tests | Examples, output contracts, detours, and surface projection validation. |
+| Contract/runtime behavior | `testAll` and focused tests | Examples, output contracts, detours, and surface rendering validation. |
 | Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.compose()`, `resource.from(ctx)`, and other compile-time contracts. |
 | Human and agent orientation | `AGENTS.md` | A map over the executable system, not the only enforcement point. |
 
@@ -137,7 +137,7 @@ When a rule needs one of these values:
 1. Import from the natural owner.
 2. If the data is not exported, add a typed owner export.
 3. Use rule-owned configuration only when the list itself is policy, not a
-   projection of framework data.
+   rendering of framework data.
 
 Curated rule data is valid when it is policy. For example, `context-no-surface-types` can own its denylist until another independent consumer appears or drift proves the list belongs elsewhere.
 
@@ -150,7 +150,7 @@ Use recurring shapes to avoid writing the third sibling rule.
 | Shape | Form | Examples |
 | --- | --- | --- |
 | Declarations-match-usage | Static declaration matches runtime call | `composes` and `ctx.compose`; `fires` and `ctx.fire`; `resources` and `db.from(ctx)` |
-| Owner-projection-parity | Derived data keeps reading its owner | Error-code maps, CRUD operations, intent literals |
+| Owner-rendering-parity | Derived data keeps reading its owner | Error-code maps, CRUD operations, intent literals |
 | Orphan-X | Primitive declared but never referenced | Orphan resource, signal, layer, entity |
 | Cycle-in-X-graph | Directed graph must not cycle | Composition graph, activation graph, layer dependency graph |
 | Collision-detection | Two declarations claim the same slot | HTTP route, webhook path, MCP tool name |
@@ -175,7 +175,7 @@ The repo-local `no-retired-lexicon-terms` Oxlint rule is the source-file guard f
 
 ## Ast-Grep Structural Rules
 
-The `.ast-grep/` ruleset is repo-local structural lint, paired with Warden rather than replacing it. Use it for high-confidence syntax shapes where the invariant is already owned and named by Warden, such as direct `.implementation()` calls or `Result.err(new Error(...))`. Keep topo-aware, project-static, owner-projection, and scope-sensitive checks in Warden.
+The `.ast-grep/` ruleset is repo-local structural lint, paired with Warden rather than replacing it. Use it for high-confidence syntax shapes where the invariant is already owned and named by Warden, such as direct `.implementation()` calls or `Result.err(new Error(...))`. Keep topo-aware, project-static, owner-rendering, and scope-sensitive checks in Warden.
 
 Experimental ast-grep queries may live outside `.ast-grep/rules/` so they are available for audits without blocking CI. Promote one into the blocking rule directory only after it is clean on the current tree and its false-positive profile is understood.
 

@@ -43,7 +43,7 @@ import { z } from 'zod';
 
 import {
   deriveBriefReport,
-  deriveShippedSurfaceProjectionInventory,
+  deriveShippedSurfaceInventory,
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
@@ -63,7 +63,7 @@ import {
 } from '../trails/topo-read-support.js';
 import {
   shippedSurfaceInventoryOutput,
-  surfaceProjectionOutput,
+  surfaceDerivedOutput,
   trailDetailOutput,
 } from '../trails/topo-output-schemas.js';
 import { compileTrail } from '../trails/compile.js';
@@ -523,7 +523,7 @@ describe('trails survey brief', () => {
     }
   });
 
-  test('survey.surfaces returns the shipped projection inventory directly', async () => {
+  test('survey.surfaces returns the shipped derived fact inventory directly', async () => {
     const dir = repoTempDir();
 
     try {
@@ -539,7 +539,7 @@ describe('trails survey brief', () => {
         count: 1,
         shippedSurfaces: ['cli', 'mcp', 'http'],
       });
-      expect(report.projections).toHaveLength(3);
+      expect(report.derivedSurfaces).toHaveLength(3);
       expect(shippedSurfaceInventoryOutput.safeParse(report).success).toBe(
         true
       );
@@ -841,6 +841,7 @@ describe('trails survey detail', () => {
         },
       ],
       cli: { path: ['entity', 'process'] },
+      derivedSurfaces: [],
       entities: ['entity'],
       fieldOverrides: [
         {
@@ -860,7 +861,6 @@ describe('trails survey detail', () => {
           scope: 'trail',
         },
       ],
-      surfaceProjections: [],
       surfaces: [],
     });
     expect(detail.entityDetails).toEqual([
@@ -925,7 +925,7 @@ describe('trails survey detail', () => {
     ]);
   });
 
-  test('trail detail reports complete shipped projections with authored provenance', () => {
+  test('trail detail reports complete shipped derived facts with authored provenance', () => {
     const httpVisible = trail('entity.http', {
       implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
@@ -941,7 +941,7 @@ describe('trails survey detail', () => {
     ) as TrailDetailReport;
 
     expect(detail.surfaces).toEqual(['http']);
-    expect(detail.surfaceProjections).toEqual([
+    expect(detail.derivedSurfaces).toEqual([
       {
         commandPath: ['entity', 'http'],
         derivedName: 'entity http',
@@ -969,9 +969,9 @@ describe('trails survey detail', () => {
     ]);
   });
 
-  test('surface projection output enforces surface-specific fields', () => {
+  test('surface derived fact output enforces surface-specific fields', () => {
     expect(
-      surfaceProjectionOutput.safeParse({
+      surfaceDerivedOutput.safeParse({
         commandPath: ['entity', 'show'],
         derivedName: 'entity show',
         method: null,
@@ -981,7 +981,7 @@ describe('trails survey detail', () => {
       }).success
     ).toBe(true);
     expect(
-      surfaceProjectionOutput.safeParse({
+      surfaceDerivedOutput.safeParse({
         derivedName: '/entity/show',
         method: 'GET',
         source: 'default-derived',
@@ -1018,7 +1018,7 @@ describe('trails survey detail', () => {
     });
     const inventoryApp = topo('inventory-app', { activated, internal, show });
 
-    const report = deriveShippedSurfaceProjectionInventory(inventoryApp);
+    const report = deriveShippedSurfaceInventory(inventoryApp);
 
     expect(report.shippedSurfaces).toEqual(['cli', 'mcp', 'http']);
     expect(report.excludedSurfaces).toEqual([
@@ -1028,7 +1028,7 @@ describe('trails survey detail', () => {
       }),
     ]);
     expect(report.trails.map((row) => row.trailId)).toEqual(['entity.show']);
-    expect(report.projections).toEqual([
+    expect(report.derivedSurfaces).toEqual([
       {
         commandPath: ['entity', 'show'],
         derivedName: 'entity show',
@@ -1966,7 +1966,7 @@ describe('trails compile', () => {
 });
 
 describe('trails survey diff', () => {
-  test('top-level diff projects as a root CLI alias with target arg', () => {
+  test('top-level diff renders as a root CLI alias with target arg', () => {
     const commands = expectOk(
       deriveCliCommands(topo('diff-cli', { surveyDiffTrail }), {
         overlays: [surfaceOverlay({ cli: { diff: 'survey.diff' } })],
@@ -2512,9 +2512,8 @@ describe('trails survey output schema', () => {
       surveyBriefTrail.output.safeParse(deriveBriefReport(app)).success
     ).toBe(true);
     expect(
-      surveySurfacesTrail.output.safeParse(
-        deriveShippedSurfaceProjectionInventory(app)
-      ).success
+      surveySurfacesTrail.output.safeParse(deriveShippedSurfaceInventory(app))
+        .success
     ).toBe(true);
     expect(
       surveyDiffTrail.output.safeParse({

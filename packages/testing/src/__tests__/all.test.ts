@@ -401,18 +401,14 @@ describe('testAllEstablished draft hygiene', () => {
     expect(result.output).toContain('_draft.entity.prepare');
   });
 
-  test('includes CLI, MCP, and HTTP surface projection checks', () => {
+  test('includes CLI, MCP, and HTTP surface rendering checks', () => {
     const result = runGeneratedEstablishedSuite();
 
     expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('CLI rendering validates established topo');
+    expect(result.output).toContain('MCP rendering validates established topo');
     expect(result.output).toContain(
-      'CLI projection validates established topo'
-    );
-    expect(result.output).toContain(
-      'MCP projection validates established topo'
-    );
-    expect(result.output).toContain(
-      'HTTP projection validates established topo'
+      'HTTP rendering validates established topo'
     );
   });
 });

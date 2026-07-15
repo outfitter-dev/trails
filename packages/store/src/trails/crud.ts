@@ -43,8 +43,8 @@ type GeneratedFieldsOf<TTable extends AnyStoreTable> =
     : readonly [];
 
 /**
- * Input type `deriveTrail` projects for a given CRUD operation against a
- * store table. Uses `TableEntity<TTable>` so the projected input
+ * Input type `deriveTrail` derives for a given CRUD operation against a
+ * store table. Uses `TableEntity<TTable>` so the derived input
  * structurally matches the entity-backed derivation path in
  * `@ontrails/core`'s `deriveTrail`.
  */
@@ -58,7 +58,7 @@ type DerivedInput<
 >;
 
 /**
- * Output type `deriveTrail` projects for a given CRUD operation against a
+ * Output type `deriveTrail` derives for a given CRUD operation against a
  * store table.
  */
 type DerivedOutput<

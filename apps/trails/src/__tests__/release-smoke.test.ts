@@ -13,7 +13,7 @@ const unwrapCommands = () => {
 };
 
 describe('release.smoke surface', () => {
-  test('projects release smoke as a CLI command with check values', () => {
+  test('renders release smoke as a CLI command with check values', () => {
     const commands = unwrapCommands();
     const command = commands.find(
       (candidate) => candidate.trail.id === 'release.smoke'

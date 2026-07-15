@@ -4,7 +4,7 @@ export {
   type DeriveHttpRoutesOptions,
   type HttpExecutionContext,
   type HttpHeaderSource,
-  type HttpLayerInputProjection,
+  type HttpLayerInputRendering,
   type HttpRouteDefinition,
   type ResolveHttpPermit,
   type ResolveHttpPermitInput,

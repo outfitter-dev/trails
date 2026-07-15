@@ -5,11 +5,11 @@
  * The overlay is the authored, lockable default; a call-site trailhead map
  * is a supported override-in-context that wins at runtime. Divergence between
  * the two is legal but must be visible: an agent reading the committed lock
- * would otherwise trust grouped entries the running surface does not project.
+ * would otherwise trust grouped entries the running surface does not render.
  *
  * Rule-kind note: no Warden rule kind currently sees both the serialized
  * graph overlays and source ASTs directly. This rule is the closest honest
- * shape — a project-aware source rule whose `ProjectContext` carries
+ * shape — a render-aware source rule whose `ProjectContext` carries
  * per-app authored `mcp` binding sets resolved from the run's topo targets
  * (graph overlays when available, else app-module overlay registrations).
  * A call-site map is attributed to an app only when one of its literal
@@ -256,7 +256,7 @@ const diagnoseTrailheadMap = (
           sourceCode,
           filePath,
           trailheadMap,
-          `App "${set.appName}"'s surfaceOverlay mcp binding "${name}" is not carried by this call-site trailhead map, so it will not be projected at runtime while the committed lock still advertises it. Add "${name}" to the call-site map or remove it from the authored overlay.`
+          `App "${set.appName}"'s surfaceOverlay mcp binding "${name}" is not carried by this call-site trailhead map, so it will not be rendered at runtime while the committed lock still advertises it. Add "${name}" to the call-site map or remove it from the authored overlay.`
         )
       );
     }
@@ -271,7 +271,7 @@ const diagnoseTrailheadMap = (
  */
 export const trailheadOverrideDivergence: ProjectAwareWardenRule = {
   check(): readonly WardenDiagnostic[] {
-    // Without project context there are no authored bindings to compare
+    // Without render context there are no authored bindings to compare
     // against; stay silent instead of guessing.
     return [];
   },

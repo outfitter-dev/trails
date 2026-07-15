@@ -2,7 +2,7 @@ import {
   InternalError,
   NotFoundError,
   Result,
-  projectPublicSurfaceError,
+  renderPublicSurfaceError,
   trail,
 } from '@ontrails/core';
 import type {
@@ -61,16 +61,16 @@ const json = (body: Record<string, unknown>, status: number): Response =>
   Response.json(body, { status });
 
 const mapErrorResponse = (error: Error): Response => {
-  const projection = projectPublicSurfaceError('http', error);
+  const rendering = renderPublicSurfaceError('http', error);
   return json(
     {
       error: {
-        category: projection.category,
-        code: projection.name,
-        message: projection.message,
+        category: rendering.category,
+        code: rendering.name,
+        message: rendering.message,
       },
     },
-    projection.code
+    rendering.code
   );
 };
 

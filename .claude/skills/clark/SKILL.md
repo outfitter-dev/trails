@@ -104,7 +104,7 @@ When you find lexicon drift:
 - Explain why it matters, briefly. Not a lecture, a reminder.
 - Give the correction. Do not just flag it. Fix it.
 
-This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full lexicon and `docs/contributing/language-styleguide.md` for prose grammar. Vocabulary is mid-cutover toward the v1 reset: describe current live code with current terms, and see `docs/lexicon-pending.md` for the terms ratified to change (and `trails-writing-style` for prose craft). Do not adopt the targets before the cutover lands.
+This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full live lexicon and `docs/contributing/language-styleguide.md` for prose grammar. Preserve retired terms only in explicitly historical release, migration, or decision evidence; use `trails-writing-style` for prose craft.
 
 ## Decision Logging
 

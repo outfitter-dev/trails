@@ -14,7 +14,7 @@
  * Surface and Compiler ADR.
  *
  * The kernel grows only as materialization demands: today it wraps execution;
- * error projection and the context/compose shim join it as the surface and
+ * error rendering and the context/compose shim join it as the surface and
  * emitter lanes land. Keep it minimal and dependency-light on purpose.
  */
 import { run } from '@ontrails/core';

@@ -67,7 +67,7 @@ Trail `examples` are included in MCP tool metadata. Agents use these to understa
 
 ## Trailheads
 
-Use trailheads only when a dense MCP surface needs grouped affordances. A trailhead is an MCP projection over existing trails, not a new trail, graph node, package category, or core `Facet` primitive. It groups and selects without merging.
+Use trailheads only when a dense MCP surface needs grouped affordances. A trailhead is an MCP rendering over existing trails, not a new trail, graph node, package category, or core `Facet` primitive. It groups and selects without merging.
 
 ```typescript
 import type { McpSurfaceTrailheadMap } from '@ontrails/mcp';
@@ -124,7 +124,7 @@ MCP resources are protocol resources for cold context. They are not Trails `reso
 
 By default, `surface(graph)` and `createServer(graph)` expose:
 
-- `trails://surface-map` for the resolved MCP projection, including `trailheadId` values, member trail IDs, schemas, examples metadata, versions, and deferred hints.
+- `trails://surface-map` for the resolved MCP rendering, including `trailheadId` values, member trail IDs, schemas, examples metadata, versions, and deferred hints.
 - `trails://examples/<trailId>` for structured examples on exposed trails.
 
 Use `mcpResources: false` only when the host intentionally wants no MCP resource capability. Use `mcpResources: { examples: false, surfaceMap: true }` to keep a narrower resource set.

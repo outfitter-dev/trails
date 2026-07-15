@@ -282,7 +282,7 @@ export type ErrorClassRegistryEntry =
 /**
  * Authored registry of concrete TrailsError classes.
  *
- * JavaScript cannot enumerate subclasses at runtime, so rule and projection
+ * JavaScript cannot enumerate subclasses at runtime, so rule and derivation
  * tooling should walk this owner-held list instead of hardcoding parallel
  * class-name tables. `RetryExhaustedError` is marked dynamic because it
  * inherits its runtime category from the wrapped error rather than always

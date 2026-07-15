@@ -80,7 +80,7 @@ Six categories describe how information flows through the system. Understanding 
 
 **Authored.** New information only the developer knows. Schemas, intent, meta, examples, the `implementation` that establishes how the trail runs, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
 
-**Projected.** Mechanically derived from authored information, guaranteed correct. MCP tool names from trail IDs. CLI flags from schema fields. Exit codes from error classes. HTTP verbs from intent. If the authored input exists, the projection is unambiguous. "Derive" is the verb for what the framework does. "Projected" is the category for the deterministic output.
+**Derived.** Mechanically produced from authored information, guaranteed correct. MCP tool names from trail IDs. CLI flags from schema fields. Exit codes from error classes. HTTP verbs from intent. If the authored input exists, the derived fact is unambiguous. `derive` produces those facts; `render` presents them through a surface or format.
 
 **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the implementation can access. The compiler rejects non-compliance.
 
@@ -88,7 +88,7 @@ Six categories describe how information flows through the system. Understanding 
 
 **Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 
-**Overridden.** When derivation doesn't fit. Any projected value can be explicitly set. Overrides are escape hatches, visible in the resolved graph. If you're overriding everything, the derivation rules are wrong.
+**Overridden.** When derivation doesn't fit. Any derived value can be explicitly set. Overrides are escape hatches, visible in the resolved graph. If you're overriding everything, the derivation rules are wrong.
 
 ### The drift guard
 
@@ -111,7 +111,7 @@ These are guarantees that developers and agents can count on. They follow from t
 
 The framework derives everything it can from the trail contract. Author what's new. Derive what's known. Override what's wrong.
 
-Explicit declaration is an optional upgrade that tightens the projected contract. The developer goes from "the framework figured it out" to "I'm being precise about this." Both are valid. Neither is broken.
+Explicit declaration is an optional upgrade that tightens the derived contract. The developer goes from "the framework figured it out" to "I'm being precise about this." Both are valid. Neither is broken.
 
 When derivation doesn't fit, override it. Overrides are visible in the resolved graph. They're escape hatches, not workarounds.
 
@@ -148,7 +148,7 @@ The resolved topo lock is the compiled, resolved, deduplicated story of a Trails
 
 ## Primitives
 
-The framework has a small set of core primitives. Everything else is either a specialization of those primitives or a projection from them.
+The framework has a small set of core primitives. Everything else is either a specialization of those primitives or derived from them.
 
 ### The set
 
@@ -159,7 +159,7 @@ The framework has a small set of core primitives. Everything else is either a sp
 - **`Result`** is the universal return type. Ok or Err, never throw.
 - **`ctx.compose()` / `composes`** is the first-class compositional mechanism. `composes` declares which trails a trail may compose, and `ctx.compose()` performs that composition at runtime. The warden verifies that declarations match actual usage.
 
-Typed layers exist in v1 as execution wrappers rather than standalone graph nodes. They can attach at trail, surface, topo, or execution-call scope. When a layer declares an input schema, surfaces can project it and governance can see it. Pipeline-owned concerns such as permit enforcement and tracing stay intrinsic rather than becoming authored layers.
+Typed layers exist in v1 as execution wrappers rather than standalone graph nodes. They can attach at trail, surface, topo, or execution-call scope. When a layer declares an input schema, surfaces can render it and governance can see it. Pipeline-owned concerns such as permit enforcement and tracing stay intrinsic rather than becoming authored layers.
 
 ### The bar for new primitives
 

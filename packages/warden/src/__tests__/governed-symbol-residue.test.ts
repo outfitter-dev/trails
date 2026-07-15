@@ -70,6 +70,31 @@ describe('governed-symbol-residue', () => {
     ]);
   });
 
+  test('requires missing migration proof only in the registry-owning workspace', () => {
+    const downstream = governedSymbolResidue.checkProject?.(
+      projectContext({
+        governedVocabularyHistoryByTransitionId: new Map(),
+        governedVocabularyHistoryRequired: false,
+      })
+    );
+    const owner = governedSymbolResidue.checkProject?.(
+      projectContext({
+        governedVocabularyHistoryByTransitionId: new Map(),
+        governedVocabularyHistoryRequired: true,
+      })
+    );
+
+    expect(downstream).toEqual([]);
+    expect(owner).toEqual([
+      expect.objectContaining({
+        filePath: '<governed-vocabulary-history>',
+        message: expect.stringContaining('v1-projection-derive-render'),
+        rule: 'governed-symbol-residue',
+        severity: 'error',
+      }),
+    ]);
+  });
+
   test('does not duplicate cross-compose fixes owned by the beta.19 rule', () => {
     const diagnostics = check(
       [

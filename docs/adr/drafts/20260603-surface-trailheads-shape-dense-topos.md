@@ -14,9 +14,9 @@ linear:
 
 ## Context
 
-Small Trails apps can project one trail to one surface affordance and remain clear. Dense topos eventually cross a threshold where that projection stops being ergonomic. MCP reaches the threshold first because tool schemas live in the agent's working context and are re-read repeatedly. CLI and HTTP have different economics, but the underlying pressure is the same: some surfaces need a grouped projection over a set of trails without changing the trail definitions themselves.
+Small Trails apps can render one trail to one surface affordance and remain clear. Dense topos eventually cross a threshold where that rendering stops being ergonomic. MCP reaches the threshold first because tool schemas live in the agent's working context and are re-read repeatedly. CLI and HTTP have different economics, but the underlying pressure is the same: some surfaces need a grouped rendering over a set of trails without changing the trail definitions themselves.
 
-The current one-trail-one-tool MCP projection is faithful but flat. An app like the Trails CLI has many related trails: survey, guide, warden, topo inspection, draft promotion, dev utilities, and release helpers. Projecting every trail as an independent MCP tool creates tool overload and makes cold-start inspection harder for agents.
+The current one-trail-one-tool MCP rendering is faithful but flat. An app like the Trails CLI has many related trails: survey, guide, warden, topo inspection, draft promotion, dev utilities, and release helpers. Rendering every trail as an independent MCP tool creates tool overload and makes cold-start inspection harder for agents.
 
 At the same time, Trails cannot solve this by adding a new authored primitive casually. The tenets still apply:
 
@@ -26,15 +26,15 @@ At the same time, Trails cannot solve this by adding a new authored primitive ca
 - the resolved topo artifact family is the inspectable story;
 - new concepts must reduce real ceremony without fragmenting the framework.
 
-The useful shape is a **surface trailhead**: a surface-side projection slice over existing trails. It groups related trails into one surface affordance while preserving the underlying trail identity, schemas, output contracts, examples, errors, visibility, composition, and governance.
+The useful shape is a **surface trailhead**: a surface-side rendering slice over existing trails. It groups related trails into one surface affordance while preserving the underlying trail identity, schemas, output contracts, examples, errors, visibility, composition, and governance.
 
 This ADR decides the surface-trailhead pattern and the first MCP implementation. It does not create a generic grouped-entry primitive.
 
 ## Decision
 
-### Surface trailheads are a projection pattern, not graph nodes
+### Surface trailheads are a rendering pattern, not graph nodes
 
-A surface trailhead is authored as surface projection configuration over existing trails. It is not a trail, entity, resource, signal, layer, or new graph entry kind.
+A surface trailhead is authored as surface rendering configuration over existing trails. It is not a trail, entity, resource, signal, layer, or new graph entry kind.
 
 ```ts
 await surface(graph, {
@@ -53,7 +53,7 @@ await surface(graph, {
 });
 ```
 
-The authored information is intentionally small: a trailhead ID, a selector, a description, and optional surface-specific projection hints. Everything else derives from the constituent trails.
+The authored information is intentionally small: a trailhead ID, a selector, a description, and optional surface-specific rendering hints. Everything else derives from the constituent trails.
 
 The former `facet` name is retired for this pattern. `trailhead` is the concrete grouped surface entry name in this ADR. `schema facet` remains available as descriptive schema-slice prose, but it is not decided here as an API.
 
@@ -68,11 +68,11 @@ Trailhead membership reuses the trail ID selector grammar already established fo
 - exact IDs keep their exact meaning;
 - overlap is resolved by narrowing selectors, not by declaring permission to overlap.
 
-The rejected shape is `overlapsWith`. A declaration that says "this overlap is allowed" lets authors silence drift without fixing the projection. The right fix is to make membership unambiguous or to keep the overlap visible as a Warden finding until the pattern proves it should be allowed.
+The rejected shape is `overlapsWith`. A declaration that says "this overlap is allowed" lets authors silence drift without fixing the rendering. The right fix is to make membership unambiguous or to keep the overlap visible as a Warden finding until the pattern proves it should be allowed.
 
-### MCP trailheads project as discriminated tools
+### MCP trailheads render as discriminated tools
 
-In `@ontrails/mcp`, a trailhead projects as one MCP tool. The input discriminator is `trail`, carrying the full constituent trail ID. The input payload is nested under `input` so the trail contract remains visible rather than being flattened into a surface-specific action bag.
+In `@ontrails/mcp`, a trailhead renders as one MCP tool. The input discriminator is `trail`, carrying the full constituent trail ID. The input payload is nested under `input` so the trail contract remains visible rather than being flattened into a surface-specific action bag.
 
 ```ts
 {
@@ -108,7 +108,7 @@ A trailhead should not be used to launder a new operation into one surface affor
 
 Trail visibility remains authoritative. A trailhead may narrow exposure, but it cannot make a more restrictive member visible on a wider surface.
 
-Runtime projection applies the more restrictive boundary. If an internal trail appears in a public trailhead selector, that trail is absent from the public projection. Author-time governance should flag the mismatch so the author can narrow the selector, narrow the trailhead, or acknowledge that the mixed-visibility grouping is intentional.
+Runtime rendering applies the more restrictive boundary. If an internal trail appears in a public trailhead selector, that trail is absent from the public rendering. Author-time governance should flag the mismatch so the author can narrow the selector, narrow the trailhead, or acknowledge that the mixed-visibility grouping is intentional.
 
 The acknowledgement field is explicit:
 
@@ -122,7 +122,7 @@ This does not change runtime behavior. It only records that the author understan
 
 A trailhead description is authored prose. Its truth depends on resolved membership. Routine namespace growth should not force needless copy changes, but major membership drift should be visible.
 
-The resolved topo artifact family records trailhead metadata as a top-level projection, not as graph entries:
+The resolved topo artifact family records trailhead metadata as top-level derived facts, not as graph entries:
 
 ```ts
 interface TopoGraphTrailheadEntry {
@@ -137,7 +137,7 @@ interface TopoGraphTrailheadEntry {
 }
 ```
 
-The top-level field is `trailheads?: readonly TopoGraphTrailheadEntry[]`. This follows the existing `workspace` precedent in the topo graph: trailhead membership is a projection over the graph, not an ordinary `entries[]` node.
+The top-level field is `trailheads?: readonly TopoGraphTrailheadEntry[]`. This follows the existing `workspace` precedent in the topo graph: trailhead membership is derived from the graph, not an ordinary `entries[]` node.
 
 `memberIds` are resolved and sorted. `memberSetHash` is a stable hash of the sorted member ID list. The hash lets semantic diff and Warden distinguish a harmless regeneration from a real membership change.
 
@@ -151,23 +151,23 @@ When this value matches the new member-set hash, governance can treat the existi
 
 ### Durable trailhead metadata requires compile-time access
 
-Trailhead projection can run at surface runtime, but lockfile drift protection requires compile-time visibility. A trailhead declared only inside an effectful `surface()` call cannot appear in `.trails/topo.lock` unless the compile pipeline receives the same declaration.
+Trailhead rendering can run at surface runtime, but lockfile drift protection requires compile-time visibility. A trailhead declared only inside an effectful `surface()` call cannot appear in `.trails/topo.lock` unless the compile pipeline receives the same declaration.
 
 Therefore implementations must provide a compile-time-readable path for trailhead declarations. The exact host may be project config, explicit topography options, or a future surface config artifact. The requirement is the important part: durable trailhead metadata is derived from the graph plus compile-time trailhead declarations, not from executing a live surface.
 
-If a caller uses runtime-only trailheads, the MCP projection may still work, but the resolved topo artifact family cannot promise drift protection for that trailhead. That limitation must stay visible in docs and diagnostics.
+If a caller uses runtime-only trailheads, the MCP rendering may still work, but the resolved topo artifact family cannot promise drift protection for that trailhead. That limitation must stay visible in docs and diagnostics.
 
 ### MCP resources are cold context
 
-`@ontrails/mcp` should project cold context as MCP resources, not tools. The phrase is always **MCP resources** to avoid collision with the Trails `resource()` primitive.
+`@ontrails/mcp` should render cold context as MCP resources, not tools. The phrase is always **MCP resources** to avoid collision with the Trails `resource()` primitive.
 
 The first resource set is:
 
-- `trails://surface-map` for the resolved MCP surface projection, including ordinary tools and trailhead tools;
+- `trails://surface-map` for the resolved MCP surface rendering, including ordinary tools and trailhead tools;
 - per-trail example resources where the app exposes examples to MCP clients;
 - trailhead metadata as part of the surface map, not a separate required resource in v0.
 
-MCP resources are surface-side projection. They do not change the trail contract and do not create new Trails resources.
+MCP resources are surface-side rendering. They do not change the trail contract and do not create new Trails resources.
 
 ### Deferred loading is a compatibility hint
 
@@ -181,7 +181,7 @@ The MCP protocol and SDK still require broad compatibility with clients that exp
 
 ### Adapter-kit consumes evidence, not trailhead definitions
 
-Runtime adapter packages may need to understand surface projection metadata later. That does not mean `@ontrails/adapter-kit` should author or define trailheads.
+Runtime adapter packages may need to understand surface rendering metadata later. That does not mean `@ontrails/adapter-kit` should author or define trailheads.
 
 The dependency direction is:
 
@@ -192,15 +192,15 @@ The dependency direction is:
 The seam is intentionally asymmetric:
 
 - **contract-content conformance** remains adapter-kit's job. It answers whether an adapter package is placed correctly, declares its owner target, exports the expected entrypoints, and carries target conformance tests.
-- **surface-projection conformance** belongs to the surface or governance layer that already has the resolved projection. It may ask whether a grouped affordance is backed by resolved data such as trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation.
+- **surface-rendering conformance** belongs to the surface or governance layer that already has the resolved rendering. It may ask whether a grouped affordance is backed by resolved data such as trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation.
 
-No adapter target is required to support grouping. A future adapter can claim grouped affordances explicitly, but the validator for that claim should consume resolved surface projection evidence instead of adding trailhead authoring configuration to adapter-kit. The current adapter-kit seam is the existing raw subject evidence (`adapterType`, owner package, placement, target, conformance paths); it is sufficient for this stack because MCP trailhead projection is owned by `@ontrails/mcp` and Topography, not by adapter authoring.
+No adapter target is required to support grouping. A future adapter can claim grouped affordances explicitly, but the validator for that claim should consume resolved surface rendering evidence instead of adding trailhead authoring configuration to adapter-kit. The current adapter-kit seam is the existing raw subject evidence (`adapterType`, owner package, placement, target, conformance paths); it is sufficient for this stack because MCP trailhead rendering is owned by `@ontrails/mcp` and Topography, not by adapter authoring.
 
-### Wayfinder reads trailheads directly, not through a projections bucket
+### Wayfinder reads trailheads directly, not through a derived-facts bucket
 
-Wayfinder treats resolved surface trailheads as first-class graph-read facts. Agents should be able to ask `wayfind.surfaces` and `wayfind.trailheads` directly instead of routing through a generic `wayfind.projections` endpoint.
+Wayfinder treats resolved surface trailheads as first-class graph-read facts. Agents should be able to ask `wayfind.surfaces` and `wayfind.trailheads` directly instead of routing through a generic `wayfind.derived-facts` endpoint.
 
-The projection doctrine still matters: one authored trail contract mechanically renders into many surface affordances. Wayfinder carries that doctrine through per-fact provenance (`derivedFrom`) and through specific queries over resolved surface facts. A generic projections endpoint remains deferred until field evidence shows a reverse-index need that `describe`, `contract`, `surfaces`, `trailheads`, `nearby`, `impact`, and `derivedFrom` do not satisfy.
+The rendering doctrine still matters: one authored trail contract mechanically renders into many surface affordances. Wayfinder carries that doctrine through per-fact provenance (`derivedFrom`) and through specific queries over resolved surface facts. A generic derived-facts endpoint remains deferred until field evidence shows a reverse-index need that `describe`, `contract`, `surfaces`, `trailheads`, `nearby`, `impact`, and `derivedFrom` do not satisfy.
 
 ### Non-decisions
 
@@ -210,7 +210,7 @@ This ADR does not decide:
 - CLI or HTTP trailhead APIs beyond preserving the conceptual room for them;
 - code-mode MCP execution such as `execute({ code })`;
 - an `mcp.search` trail, which remains wayfinder territory;
-- a generic `wayfind.projections` endpoint;
+- a generic `wayfind.derived-facts` endpoint;
 - MCP prompts;
 - auto-generated trailhead descriptions.
 
@@ -226,7 +226,7 @@ This ADR does not decide:
 
 ### Tradeoffs
 
-- Surface authors must learn one new projection shape.
+- Surface authors must learn one new rendering shape.
 - Lockfile drift protection only works for trailhead declarations available to compile-time tooling.
 - MCP trailhead input nesting adds one level of structure around the constituent trail input.
 - Warden rules for overlap, visibility widening, and description drift need careful false-positive control before they become hard errors.
@@ -234,7 +234,7 @@ This ADR does not decide:
 ### Risks
 
 - If the first implementation treats trailheads as runtime-only, the resolved topo artifact family will be incomplete and agents will get a weaker story than the ADR promises.
-- If docs over-teach trailheads as a new primitive, developers may start looking for a generic grouped-entry API instead of understanding projection from existing trails.
+- If docs over-teach trailheads as a new primitive, developers may start looking for a generic grouped-entry API instead of understanding rendering from existing trails.
 - If output correlation is optional, heterogeneous trailhead tools will become agent-hostile quickly.
 
 ### Distribution follow-through
@@ -246,14 +246,14 @@ This decision is not distribution-ready until the implementation stack updates:
 - Warden guidance for overlap, visibility, and description drift;
 - Trails skill and plugin guidance for agents;
 - changesets and release notes for package-impacting work;
-- migration notes for apps that want to replace raw one-trail-one-tool MCP projection with trailhead projection.
+- migration notes for apps that want to replace raw one-trail-one-tool MCP rendering with trailhead rendering.
 
 ## References
 
 - [ADR-0000: Core Premise](../0000-core-premise.md) - the trail remains the product and surfaces render the contract
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) - resolved graph inspection and drift protection
 - [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) - selector grammar and visibility semantics
-- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder
+- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` rendering ladder
 - [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) - durable graph artifacts belong to topography
 - [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact
 - [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test

@@ -138,7 +138,7 @@ The v1 guarantee is therefore narrower: `HEAD` movement, staging, persistent tra
 
 No automatic retry. Silent retry would mask the coordination bug the error exists to surface. A `warden guard --retry-on-shift` affordance can be considered later if real usage shows stable-ground waits are common and short.
 
-### Projection to adopters
+### Rendering to adopters
 
 One write, many reads:
 

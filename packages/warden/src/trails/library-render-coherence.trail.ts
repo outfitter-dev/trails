@@ -1,7 +1,7 @@
 import { Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { libraryProjectionCoherence } from '../rules/library-projection-coherence.js';
+import { libraryRenderCoherence } from '../rules/library-render-coherence.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 const output = z.object({ ok: z.boolean() });
@@ -18,7 +18,7 @@ const kebab = trail('widget-ping', {
   output,
 });
 
-export const libraryProjectionCoherenceTrail = wrapTopoRule({
+export const libraryRenderCoherenceTrail = wrapTopoRule({
   examples: [
     {
       expected: {
@@ -27,17 +27,17 @@ export const libraryProjectionCoherenceTrail = wrapTopoRule({
             filePath: '<topo>',
             line: 1,
             message:
-              'Library projection export collision on "widgetPing": trails "widget-ping", "widget.ping" derive the same package export. Rename one trail or add a library export override before materializing the generated package.',
-            rule: 'library-projection-coherence',
+              'Library rendering export collision on "widgetPing": trails "widget-ping", "widget.ping" derive the same package export. Rename one trail or add a library export override before materializing the generated package.',
+            rule: 'library-render-coherence',
             severity: 'error',
           },
         ],
       },
       input: {
-        topo: topo('library-projection-coherence', { dotted, kebab }),
+        topo: topo('library-render-coherence', { dotted, kebab }),
       },
       name: 'Library export collision',
     },
   ],
-  rule: libraryProjectionCoherence,
+  rule: libraryRenderCoherence,
 });

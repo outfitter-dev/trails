@@ -1,8 +1,8 @@
 /**
- * Deliberate fixture topo for the library projection + materialization lanes
+ * Deliberate fixture topo for the library rendering + materialization lanes
  * (TRL-970). Small enough to read; rich enough that v0 cannot bake in
  * resource-free or happy-path-only assumptions. Each trail exercises one
- * projection path the foundation must prove.
+ * rendering path the foundation must prove.
  */
 import {
   LAYER_INPUTS_KEY,
@@ -55,10 +55,10 @@ export const widgetStore = resource('widget.store', {
 
 const widgetSchema = z.object({ id: z.string(), name: z.string() });
 
-// --- stateless trail -> projects to a root named export ---
+// --- stateless trail -> renders to a root named export ---
 
 export const ping = trail('widget.ping', {
-  description: 'Stateless echo; projects to a root named export.',
+  description: 'Stateless echo; renders to a root named export.',
   examples: [
     { expected: { echo: 'hi' }, input: { message: 'hi' }, name: 'echo' },
   ],
@@ -158,11 +158,11 @@ export const add = trail('widget.add', {
   resources: [widgetStore],
 });
 
-// --- versioned trail: library projects the CURRENT version only ---
+// --- versioned trail: library renders the CURRENT version only ---
 
 export const greet = trail('widget.greet', {
   description:
-    'Versioned greeting; the library projects the current version only.',
+    'Versioned greeting; the library renders the current version only.',
   examples: [
     {
       expected: { message: 'Hello, Ada!' },
@@ -194,11 +194,11 @@ export const auditLayer: Layer = {
     await implementation(input, ctx),
 };
 
-// --- typed layer input: library projects and routes layer fields ---
+// --- typed layer input: library renders and routes layer fields ---
 
 export const audited = trail('widget.audited', {
   description:
-    'Audited widget call; proves library projection includes typed layer inputs.',
+    'Audited widget call; proves library rendering includes typed layer inputs.',
   examples: [
     {
       expected: {
@@ -230,11 +230,10 @@ export const audited = trail('widget.audited', {
   }),
 });
 
-// --- internal visibility: MUST be excluded from the projection ---
+// --- internal visibility: MUST be excluded from the rendering ---
 
 export const diagnose = trail('widget.diagnose', {
-  description:
-    'Internal-only diagnostic; excluded from the library projection.',
+  description: 'Internal-only diagnostic; excluded from the library rendering.',
   implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'read',
@@ -242,10 +241,10 @@ export const diagnose = trail('widget.diagnose', {
   visibility: 'internal',
 });
 
-// --- draft id: MUST be excluded from the projection ---
+// --- draft id: MUST be excluded from the rendering ---
 
 export const experiment = trail('_draft.widget.experiment', {
-  description: 'Draft-authored trail; excluded from the library projection.',
+  description: 'Draft-authored trail; excluded from the library rendering.',
   implementation: () => Result.ok({ todo: true }),
   input: z.object({}),
   intent: 'read',
@@ -274,7 +273,7 @@ export const secret = trail('_draft.widget.secret', {
 
 export const onCreated = trail('widget.onCreated', {
   description:
-    'Reacts to widget.added; excluded from the projection (activation-driven).',
+    'Reacts to widget.added; excluded from the rendering (activation-driven).',
   implementation: () => Result.ok({ handled: true }),
   input: z.object({ id: z.string() }),
   intent: 'read',

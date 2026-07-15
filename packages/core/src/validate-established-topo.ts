@@ -5,7 +5,7 @@ import { validateDraftFreeTopo } from './draft.js';
 import type { TopoDiagnostic } from './validate-topo.js';
 import { validateTopo } from './validate-topo.js';
 
-const PROJECTION_BLOCKING_RULES = new Set([
+const DERIVATION_BLOCKING_RULES = new Set([
   'compose-cycle',
   'compose-exists',
   'no-self-compose',
@@ -20,12 +20,12 @@ const PROJECTION_BLOCKING_RULES = new Set([
   'signal-origin-exists',
 ]);
 
-const isProjectionBlockingIssue = (issue: TopoDiagnostic): boolean =>
-  PROJECTION_BLOCKING_RULES.has(issue.rule) ||
+const isDerivationBlockingIssue = (issue: TopoDiagnostic): boolean =>
+  DERIVATION_BLOCKING_RULES.has(issue.rule) ||
   (issue.rule === 'activation-source-input-compatible' &&
     issue.sourceKind === 'queue');
 
-const keepProjectionBlockingIssues = (
+const keepDerivationBlockingIssues = (
   result: ReturnType<typeof validateTopo>
 ) => {
   if (result.isOk()) {
@@ -35,7 +35,7 @@ const keepProjectionBlockingIssues = (
   const issues = (
     result.error.context as { issues?: readonly TopoDiagnostic[] } | undefined
   )?.issues;
-  const remainingIssues = issues?.filter(isProjectionBlockingIssue);
+  const remainingIssues = issues?.filter(isDerivationBlockingIssue);
 
   if (remainingIssues === undefined || remainingIssues.length === 0) {
     return Result.ok();
@@ -59,7 +59,7 @@ const keepProjectionBlockingIssues = (
  * valid, and they must also reject any remaining draft state.
  */
 export const validateEstablishedTopo = (topo: Topo) => {
-  const structural = keepProjectionBlockingIssues(validateTopo(topo));
+  const structural = keepDerivationBlockingIssues(validateTopo(topo));
   if (structural.isErr()) {
     return structural;
   }

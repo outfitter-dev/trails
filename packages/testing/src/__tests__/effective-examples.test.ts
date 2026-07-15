@@ -101,7 +101,7 @@ describe('deriveTrailExamples', () => {
     expect(examples[0]).toEqual(
       expect.objectContaining({
         expected: firstUserExample,
-        // Input is projected down to the keys `trail.input` declares, so
+        // Input is derived down to the keys `trail.input` declares, so
         // only `email` and `name` (from `.pick`) survive.
         input: {
           email: firstRecord.email,
@@ -161,7 +161,7 @@ describe('deriveTrailExamples', () => {
     ]);
   });
 
-  test('derives fixtures for strict input schemas by projecting to known keys', () => {
+  test('derives fixtures for strict input schemas by deriving to known keys', () => {
     const firstUserExample = requireEntityExample(userEntity, 0);
 
     const trailDef = trail('user.strict-create', {

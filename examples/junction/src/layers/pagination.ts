@@ -1,7 +1,7 @@
 /**
  * Pagination layer for list trails.
  *
- * The layer owns the `limit`/`offset` input fields: surfaces project them
+ * The layer owns the `limit`/`offset` input fields: surfaces render them
  * alongside the trail's own input (HTTP query params, CLI flags, MCP tool
  * params), and the layer applies them to the trail's full result set. List
  * implementations stay pagination-free — they return every matching item and this
@@ -47,7 +47,7 @@ export const paginatedOutput = <T>(itemSchema: z.ZodType<T>) =>
 
 export const paginationLayer: Layer = {
   description:
-    'Windows list results with limit/offset input projected by every surface.',
+    'Windows list results with limit/offset input rendered by every surface.',
   input: paginationInputSchema,
   name: 'pagination',
   wrap(_trail, implementation) {

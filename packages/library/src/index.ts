@@ -3,11 +3,11 @@
  *
  * The library surface is a peer of CLI, MCP, and HTTP. Its public ladder:
  *
- * - `deriveLibraryApi(graph, options)` — pure projection → `LibraryProjection`
+ * - `deriveLibraryApi(graph, options)` — pure rendering → `LibraryRenderingPlan`
  * - `surface(graph, options)` — in-memory callable client
  * - `compile(graph, options)` — TypeScript package emitter
  *
- * Those land across the projection, surface, and emitter lanes (Linear project
+ * Those land across the rendering, surface, and emitter lanes (Linear project
  * "Library surface & compiler"). This scaffold establishes the package and the
  * runtime-kernel seam; see `./kernel` and the Library Surface and Compiler ADR.
  */
@@ -21,7 +21,7 @@ export type {
   LibraryExclusionReason,
   LibraryExport,
   LibraryExportSource,
-  LibraryProjection,
+  LibraryRenderingPlan,
 } from './derive.js';
 export {
   LibraryAuthError,

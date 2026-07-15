@@ -2,7 +2,7 @@
  * Schema-derived entity store for the trails-demo app.
  *
  * The demo still uses an in-memory SQLite database for easy local runs, but
- * the storage contract itself is now authored once and projected through
+ * the storage contract itself is now authored once and derived through
  * `@ontrails/drizzle`.
  */
 

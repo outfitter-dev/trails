@@ -41,11 +41,11 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `example-valid` (error, source/source-static, external): Trail examples remain valid against their authored schema. Guidance: Keep trail examples synchronized with their authored schemas.
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
-- `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface projections.
+- `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface renderings.
 - `no-legacy-cli-alias-export` (error, source/source-static, external): Legacy app-module CLI alias exports (cliAliases, trailsCliAliases) removed in the TRL-1207 surfaces-overlay cutover do not reappear in committed source.
 - `no-legacy-layer-imports` (error, source/source-static, external): Legacy layer exports removed across TRL-475/TRL-476 (authLayer, autoIterateLayer, dateShortcutsLayer) do not reappear in committed source.
 - `no-top-level-surface` (warn, source/source-static, external): Topo export modules do not open surfaces at module top level. Guidance: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
-- `owner-projection-parity` (error, source/source-static, internal): Framework projections stay aligned with owner exports.
+- `owner-render-parity` (error, source/source-static, internal): Framework renderings stay aligned with owner exports.
 - `prefer-schema-inference` (warn, all/source-static, advisory): Trail schemas should be inferred unless overrides add meaning. Guidance: Let schemas remain the owner for field metadata unless an override adds new information.
 - `public-export-example-coverage` (error, source/source-static, repo-local): Public API barrel exports carry leading @example TSDoc coverage.
 - `public-internal-deep-imports` (error, project/project-static, internal): Cross-package imports stay on package-owned public exports.
@@ -64,7 +64,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
 - `governed-symbol-residue` (error, source/source-static, external): Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers. Guidance: Require committed Regrade evidence before completing a governed vocabulary migration.
 - `governed-vocabulary-permutation-watch` (warn, all/project-static, advisory): Committed Regrade history keeps unknown governed-stem permutations visible until they are classified. Guidance: Classify unknown governed-stem permutations recorded by committed Regrade history.
-- `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
+- `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker derivation subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.
 - `unmaterialized-activation-source` (warn, topo/topo-aware, external): Activation sources have an available runtime materializer before runtime delivery is assumed.
@@ -75,9 +75,9 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract. Guidance: Keep every CLI command route and alias normalized into one trail contract.
 - `duplicate-public-contract` (warn, topo/topo-aware, external): Public surface trails should not expose duplicate normalized contract facts. Guidance: Keep duplicate public contract facts from drifting into separate capabilities.
-- `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails. Guidance: Keep resolved library projection exports collision-free and attached to one trail contract.
+- `library-render-coherence` (error, topo/topo-aware, external): Resolved derived library exports are collision-free and target existing trails. Guidance: Keep resolved derived library exports collision-free and attached to one trail contract.
 - `surface-overlay-coherence` (warn, topo/topo-aware, external): Surface overlay bindings resolve to real trails without group overlap or canonical-entry shadowing. Guidance: Keep surface overlay bindings pointed at real trails without shadowing canonical surface entries.
-- `surface-trailhead-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep trailhead maps reviewable before they reach MCP projection.
+- `surface-trailhead-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep trailhead maps reviewable before they reach MCP rendering.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs. Guidance: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 - `trailhead-override-divergence` (warn, project/project-static, external): Call-site MCP trailhead maps stay aligned with authored surfaces overlay mcp bindings. Guidance: Keep call-site MCP trailhead overrides aligned with the authored overlay default.
 
@@ -104,7 +104,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `no-sync-result-assumption` (error, source/source-static, external): Result accessors are not used before async results are awaited.
 - `no-throw-in-detour-recover` (error, source/source-static, external): Detour recovery returns Result instead of throwing.
 - `no-throw-in-implementation` (error, source/source-static, external): Implementations return Result.err() instead of throwing. Guidance: Convert thrown failures in implementations into explicit Result.err() outcomes.
-- `public-output-schema` (error, topo/topo-aware, external): Public MCP/HTTP surface trails declare output schemas. Guidance: Make public surface result contracts explicit before MCP/HTTP projection.
+- `public-output-schema` (error, topo/topo-aware, external): Public MCP/HTTP surface trails declare output schemas. Guidance: Make public surface result contracts explicit before MCP/HTTP rendering.
 - `valid-detour-contract` (error, topo/topo-aware, external): Runtime detour contracts use error constructors and recover functions.
 
 ### Signals

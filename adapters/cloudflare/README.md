@@ -14,7 +14,7 @@ Adapter composition doctrine applies throughout: subpaths take primitive-authore
 
 ## `/workers` — the Worker materializer
 
-`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error projection, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer.
+`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error rendering, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer.
 
 ```ts
 // src/worker.ts
@@ -182,7 +182,7 @@ binding = "ASSETS"
 bucket_name = "my-assets"
 ```
 
-The resource surface follows the R2 Worker binding structurally. A real R2 bucket binding passes through unchanged, including Cloudflare's conditional operation behavior where `get()` can return metadata without a body and `put()` can return `null` when a precondition fails. `r2ObjectToBlobRef(object)` is the small bridge from a fetched R2 object body to core's `BlobRef` binary-output contract; the HTTP and MCP surfaces already know how to project `blobRefSchema`.
+The resource surface follows the R2 Worker binding structurally. A real R2 bucket binding passes through unchanged, including Cloudflare's conditional operation behavior where `get()` can return metadata without a body and `put()` can return `null` when a precondition fails. `r2ObjectToBlobRef(object)` is the small bridge from a fetched R2 object body to core's `BlobRef` binary-output contract; the HTTP and MCP surfaces already know how to render `blobRefSchema`.
 
 Capability boundaries are explicit:
 

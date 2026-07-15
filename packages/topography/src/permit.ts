@@ -1,12 +1,12 @@
 import type { AnyTrail, PermitRequirement } from '@ontrails/core';
 
-export type ProjectedPermitRequirement =
+export type DerivedPermitRequirement =
   | 'public'
   | { readonly scopes: readonly string[] };
 
-export const projectPermitRequirement = (
+export const derivePermitRequirement = (
   permit: PermitRequirement
-): ProjectedPermitRequirement =>
+): DerivedPermitRequirement =>
   permit === 'public' ? 'public' : { scopes: [...permit.scopes].toSorted() };
 
 export const addPermitRequirement = (
@@ -14,6 +14,6 @@ export const addPermitRequirement = (
   trail: AnyTrail
 ): void => {
   if (trail.permit !== undefined) {
-    entry['permit'] = projectPermitRequirement(trail.permit);
+    entry['permit'] = derivePermitRequirement(trail.permit);
   }
 };

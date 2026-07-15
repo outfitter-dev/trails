@@ -1,7 +1,7 @@
 /**
  * The one-liner for shipped surfaces: validates the established topo, tests
  * every example, checks contracts, verifies detours, and ensures CLI/MCP
- * projections still build.
+ * derived facts still build.
  */
 
 import { testAllEstablished } from '@ontrails/testing/established';

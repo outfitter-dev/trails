@@ -10,7 +10,7 @@ const diagnosticForTrail = (trail: AnyTrail): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
   message:
-    `Trail "${trail.id}" is visible to public MCP/HTTP surface projection but does not declare an output schema. ` +
+    `Trail "${trail.id}" is visible to public MCP/HTTP surface rendering but does not declare an output schema. ` +
     'Add an explicit output schema, or mark the trail visibility as internal if it is composition-only.',
   rule: RULE_NAME,
   severity: 'error',

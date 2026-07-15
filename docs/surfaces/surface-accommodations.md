@@ -1,10 +1,10 @@
 # Surface Accommodations
 
-Surface accommodations are projection-level fit adjustments. They let each surface feel natural without changing what a trail means.
+Surface accommodations are rendering-level fit adjustments. They let each surface feel natural without changing what a trail means.
 
 The core rule is simple:
 
-> Land the capability in the trail. Accommodate the surface in projection.
+> Land the capability in the trail. Accommodate the surface in rendering.
 
 A surface accommodation is valid only while the same authored trail contract remains true. If the surface shape would change intent, permits, errors, outputs, lifecycle, side effects, or which trail is actually running, the model has found a trail fork.
 
@@ -12,7 +12,7 @@ The accepted doctrine lives in [ADR-0050: Surface Accommodations Preserve Trail 
 
 ## Vocabulary
 
-Use these terms when deciding whether a surface concern belongs on a trail, in a surface projection, or as a new trail.
+Use these terms when deciding whether a surface concern belongs on a trail, in a surface rendering, or as a new trail.
 
 | Term | Meaning |
 | --- | --- |
@@ -94,4 +94,4 @@ Surface-local words stay local:
 - HTTP has routes and route groups.
 - Library surfaces have export names.
 
-Do not use one surface's local word as the cross-surface umbrella. `route` is the right word for HTTP and an accepted phrase for CLI command-route projection, but it is not the generic family term. The generic family is surface accommodation.
+Do not use one surface's local word as the cross-surface umbrella. `route` is the right word for HTTP and an accepted phrase for CLI command-route rendering, but it is not the generic family term. The generic family is surface accommodation.

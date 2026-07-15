@@ -131,7 +131,7 @@ const wrappedMarkerSchemaTypes = new Set([
   'readonly',
 ]);
 
-// Schemas with a deterministic JSON-schema override (e.g. blobRefSchema) project
+// Schemas with a deterministic JSON-schema override (e.g. blobRefSchema) derive
 // to a canonical descriptor, so the preflight accepts them without inspecting
 // the underlying custom Zod internals once runtime-only checks have been ruled
 // out.
@@ -176,7 +176,7 @@ const assertMarkerLiteralSupported = (
   def: Readonly<Record<string, unknown>>,
   path: readonly string[]
 ): void => {
-  // The JSON-schema projection only emits the first literal value, so a
+  // The JSON-schema derivation only emits the first literal value, so a
   // multi-value literal (z.literal(['a', 'b'])) would hash identically to a
   // single-value literal and silently collide.
   const { values } = def;
@@ -345,7 +345,7 @@ const assertMarkerContentSupported = (
   const keys = Object.keys(record);
   if (keys.length === 0 && path.at(-1) !== 'properties') {
     throw new ValidationError(
-      `Trail version marker content at ${markerValuePath(path)} contains an unsupported empty schema projection`
+      `Trail version marker content at ${markerValuePath(path)} contains an unsupported empty schema derivation`
     );
   }
 
@@ -428,14 +428,14 @@ export const deriveTrailVersionMarker = (content: unknown): string => {
   return hasher.digest('hex').slice(0, TRAIL_VERSION_MARKER_LENGTH);
 };
 
-const projectSchema = (schema: unknown, path: readonly string[]): unknown => {
+const deriveSchema = (schema: unknown, path: readonly string[]): unknown => {
   assertMarkerSchemaSupported(schema, path);
   return canonicalizeTrailVersionMarkerContent(
     zodToJsonSchema(schema as never)
   );
 };
 
-const projectVersionDetours = (
+const deriveVersionDetours = (
   entry: unknown
 ): readonly Record<string, unknown>[] | undefined => {
   const raw = entry as unknown as Record<string, unknown>;
@@ -459,7 +459,7 @@ const projectVersionDetours = (
   });
 };
 
-const projectVersionRuntimeRefs = (
+const deriveVersionRuntimeRefs = (
   entry: unknown,
   field: 'composes' | 'resources'
 ): readonly string[] | undefined => {
@@ -494,16 +494,16 @@ export const deriveCurrentTrailVersionMarkerContent = (
   >
 ): Readonly<Record<string, unknown>> => {
   const content: Record<string, unknown> = {
-    input: projectSchema(trail.input, ['input']),
+    input: deriveSchema(trail.input, ['input']),
     kind: 'current',
     ...(trail.output === undefined
       ? {}
-      : { output: projectSchema(trail.output, ['output']) }),
+      : { output: deriveSchema(trail.output, ['output']) }),
   };
 
-  const composes = projectVersionRuntimeRefs(trail, 'composes');
-  const resources = projectVersionRuntimeRefs(trail, 'resources');
-  const detours = projectVersionDetours(trail);
+  const composes = deriveVersionRuntimeRefs(trail, 'composes');
+  const resources = deriveVersionRuntimeRefs(trail, 'resources');
+  const detours = deriveVersionDetours(trail);
   if (composes !== undefined) {
     content['composes'] = composes;
   }
@@ -522,9 +522,9 @@ export const deriveTrailVersionEntryMarkerContent = (
 ): Readonly<Record<string, unknown>> => {
   const kind = getTrailVersionEntryKind(entry);
   const content: Record<string, unknown> = {
-    input: projectSchema(entry.input, ['input']),
+    input: deriveSchema(entry.input, ['input']),
     kind,
-    output: projectSchema(entry.output, ['output']),
+    output: deriveSchema(entry.output, ['output']),
   };
 
   if (kind === 'revision' && entry.transpose !== undefined) {
@@ -532,9 +532,9 @@ export const deriveTrailVersionEntryMarkerContent = (
   }
 
   if (kind === 'fork') {
-    const composes = projectVersionRuntimeRefs(entry, 'composes');
-    const resources = projectVersionRuntimeRefs(entry, 'resources');
-    const detours = projectVersionDetours(entry);
+    const composes = deriveVersionRuntimeRefs(entry, 'composes');
+    const resources = deriveVersionRuntimeRefs(entry, 'resources');
+    const detours = deriveVersionDetours(entry);
     if (composes !== undefined) {
       content['composes'] = composes;
     }
@@ -599,7 +599,7 @@ export const assertUniqueTrailVersionMarkers = (
   for (const [marker, versions] of byMarker) {
     if (versions.length > 1) {
       throw new ValidationError(
-        `Trail "${trailId}" versions ${versions.join(', ')} project the same marker ${marker}`
+        `Trail "${trailId}" versions ${versions.join(', ')} derive the same marker ${marker}`
       );
     }
   }

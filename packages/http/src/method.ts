@@ -7,7 +7,7 @@ export type HttpOperationMethod = Lowercase<HttpMethod>;
 export type InputSource = 'query' | 'body' | 'webhook';
 
 /**
- * Owner table for projecting trail intent onto HTTP methods.
+ * Owner table for rendering trail intent onto HTTP methods.
  *
  * @example
  * ```ts

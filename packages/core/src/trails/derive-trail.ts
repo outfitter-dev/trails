@@ -760,7 +760,7 @@ const synthesizeDefaultImplementation = <
 };
 
 /**
- * Mechanically project one CRUD-shaped trail from a entity declaration.
+ * Mechanically derive one CRUD-shaped trail from a entity declaration.
  *
  * When `spec.implementation` is omitted and the call declares a single resource, the
  * helper derives a default implementation that dispatches to the resource accessor

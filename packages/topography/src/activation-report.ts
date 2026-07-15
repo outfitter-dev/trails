@@ -1,13 +1,13 @@
 import type {
   ActivationEntry,
   ActivationSource,
-  ActivationSourceProjection,
+  ActivationSourceFacts,
   AnyTrail,
   Topo,
 } from '@ontrails/core';
 import {
   activationSourceKey,
-  projectActivationSourceDeclaration,
+  deriveActivationSourceFacts,
 } from '@ontrails/core';
 
 export interface ActivationChainReport {
@@ -18,7 +18,7 @@ export interface ActivationChainReport {
 
 type JsonSchemaReport = Readonly<Record<string, unknown>>;
 
-export interface ActivationSourceReport extends ActivationSourceProjection {
+export interface ActivationSourceReport extends ActivationSourceFacts {
   readonly cron?: string | undefined;
   readonly hasParse?: true | undefined;
   readonly hasPayloadSchema?: true | undefined;
@@ -153,12 +153,12 @@ const compareChains = (
 const sortedUnique = (values: Iterable<string>): readonly string[] =>
   [...new Set(values)].toSorted();
 
-const projectActivationSource = (
+const deriveActivationSource = (
   source: ActivationSource
 ): ActivationSourceReport =>
-  projectActivationSourceDeclaration(source) as ActivationSourceReport;
+  deriveActivationSourceFacts(source) as ActivationSourceReport;
 
-const projectActivationEdge = (
+const deriveActivationEdge = (
   trailId: string,
   activation: ActivationEntry
 ): ActivationEdgeReport => {
@@ -187,8 +187,8 @@ const collectActivationSourceCatalog = (
   const sources = new Map<string, ActivationSourceReport>();
   for (const trail of trails) {
     for (const activation of trail.activationSources) {
-      const projected = projectActivationSource(activation.source);
-      sources.set(projected.key, projected);
+      const derived = deriveActivationSource(activation.source);
+      sources.set(derived.key, derived);
     }
   }
   return [...sources.values()].toSorted((a, b) => a.key.localeCompare(b.key));
@@ -200,7 +200,7 @@ const collectActivationEdges = (
   const edges = new Map<string, ActivationEdgeReport>();
   for (const trail of trails) {
     for (const activation of trail.activationSources) {
-      const edge = projectActivationEdge(trail.id, activation);
+      const edge = deriveActivationEdge(trail.id, activation);
       const key = `${edge.sourceKey}\0${edge.trailId}`;
       const previous = edges.get(key);
       edges.set(

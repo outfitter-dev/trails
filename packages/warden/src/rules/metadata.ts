@@ -87,7 +87,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'governed-vocabulary-permutation-watch': 'lifecycle',
   'implementation-returns-result': 'results',
   'intent-propagation': 'composition',
-  'library-projection-coherence': 'meta',
+  'library-render-coherence': 'meta',
   'marker-schema-unsupported': 'lifecycle',
   'missing-reconcile': 'resources',
   'missing-visibility': 'composition',
@@ -380,10 +380,10 @@ const builtinWardenRuleMetadataInput = {
   'layer-field-name-drift': {
     ...durableExternal,
     invariant:
-      'Layer input field reserved names are shared across surface projections.',
+      'Layer input field reserved names are shared across surface renderings.',
     tier: 'source-static',
   },
-  'library-projection-coherence': {
+  'library-render-coherence': {
     ...durableExternal,
     guidance: {
       docs: [
@@ -398,20 +398,20 @@ const builtinWardenRuleMetadataInput = {
       ],
       steps: [
         'Rename one source trail or add an explicit library export override before generating a package.',
-        'Keep serialized library projection exports attached to existing trail IDs.',
-        'Run the generated-package smoke after repairing projection drift.',
+        'Keep serialized derived library exports attached to existing trail IDs.',
+        'Run the generated-package smoke after repairing rendering drift.',
       ],
       summary:
-        'Keep resolved library projection exports collision-free and attached to one trail contract.',
+        'Keep resolved derived library exports collision-free and attached to one trail contract.',
     },
     invariant:
-      'Resolved library projection exports are collision-free and target existing trails.',
+      'Resolved derived library exports are collision-free and target existing trails.',
     tier: 'topo-aware',
   },
   'marker-schema-unsupported': {
     ...durableExternal,
     invariant:
-      'Versioned schemas stay inside the supported marker projection subset.',
+      'Versioned schemas stay inside the supported marker derivation subset.',
     tier: 'source-static',
   },
   'missing-reconcile': {
@@ -540,8 +540,8 @@ const builtinWardenRuleMetadataInput = {
       'Derived store signals are consumed by matching trail on: consumers.',
     tier: 'project-static',
   },
-  'owner-projection-parity': {
-    invariant: 'Framework projections stay aligned with owner exports.',
+  'owner-render-parity': {
+    invariant: 'Framework renderings stay aligned with owner exports.',
     lifecycle: { state: 'durable' },
     scope: 'internal',
     tier: 'source-static',
@@ -602,11 +602,11 @@ const builtinWardenRuleMetadataInput = {
       docs: [trailContractDocs, wardenDocs],
       relatedRules: ['public-union-output-discriminants'],
       steps: [
-        'Add an explicit output schema to public trails that can be projected onto MCP or HTTP surfaces.',
+        'Add an explicit output schema to public trails that can be rendered onto MCP or HTTP surfaces.',
         'If the trail is composition-only, mark it visibility: "internal" instead of exposing it by default.',
       ],
       summary:
-        'Make public surface result contracts explicit before MCP/HTTP projection.',
+        'Make public surface result contracts explicit before MCP/HTTP rendering.',
     },
     invariant: 'Public MCP/HTTP surface trails declare output schemas.',
     tier: 'topo-aware',
@@ -746,7 +746,7 @@ const builtinWardenRuleMetadataInput = {
         'Record explicit visibility-widening acceptance and stable-description metadata when a trailhead intentionally widens visibility.',
       ],
       summary:
-        'Keep trailhead maps reviewable before they reach MCP projection.',
+        'Keep trailhead maps reviewable before they reach MCP rendering.',
     },
     invariant:
       'Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',

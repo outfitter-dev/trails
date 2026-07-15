@@ -289,7 +289,7 @@ describe('trail version execution', () => {
     expect(result.unwrap()).toEqual({ seen: 'fork:fork' });
   });
 
-  test('resolves marker-prefix references with the same projected markers', async () => {
+  test('resolves marker-prefix references with the same derived markers', async () => {
     const marker = deriveTrailVersionMarkers(versionedTrail).find(
       (candidate) => candidate.version === 1
     )?.marker;

@@ -4,12 +4,12 @@
 
 import {
   isTrailsError,
-  projectPublicSurfaceError,
+  renderPublicSurfaceError,
   redactErrorContext,
   redactErrorString,
   ValidationError,
 } from '@ontrails/core';
-import type { SurfaceErrorProjection } from '@ontrails/core';
+import type { SurfaceErrorRendering } from '@ontrails/core';
 import type { CliCommand, CliFlag } from '@ontrails/cli';
 import {
   applyCliFlagValueAliases,
@@ -511,7 +511,7 @@ const collectPermitScopeLines = (
 /**
  * Collect operator-facing detail lines for an execution error.
  *
- * The public surface projection intentionally drops structured context, but
+ * The public surface rendering intentionally drops structured context, but
  * the CLI is an operator surface: validation issues and permit scope
  * requirements are what the operator needs to act, so they are re-rendered
  * here (through the shared redactor) for non-internal Trails errors.
@@ -542,7 +542,7 @@ const collectErrorContext = (
 interface CliErrorEnvelope {
   readonly ok: false;
   readonly context?: Record<string, unknown> | undefined;
-  readonly error: SurfaceErrorProjection;
+  readonly error: SurfaceErrorRendering;
   readonly details?: readonly string[] | undefined;
 }
 
@@ -580,12 +580,12 @@ const handleError = (
   userSuppliedFlagKeys: ReadonlySet<string>
 ): void => {
   const err = error instanceof Error ? error : new Error(String(error));
-  const projection = projectPublicSurfaceError('cli', err);
+  const rendering = renderPublicSurfaceError('cli', err);
   const context = collectErrorContext(err);
   const details = collectErrorDetailLines(err);
   const mode = structuredErrorMode(flags, topoName, userSuppliedFlagKeys);
   if (mode === undefined) {
-    process.stderr.write(`Error: ${projection.message}\n`);
+    process.stderr.write(`Error: ${rendering.message}\n`);
     for (const line of details) {
       process.stderr.write(`  ${line}\n`);
     }
@@ -593,14 +593,14 @@ const handleError = (
     writeStructuredError(
       {
         ...(context === undefined ? {} : { context }),
-        error: projection,
+        error: rendering,
         ...(details.length === 0 ? {} : { details }),
         ok: false,
       },
       mode
     );
   }
-  process.exit(projection.code);
+  process.exit(rendering.code);
 };
 
 const collectDisallowedAncestorOptions = (

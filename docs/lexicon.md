@@ -299,7 +299,7 @@ When in doubt, ask whether the word is occupying the Trails concept's canonical 
 
 ### `layer`
 
-A typed cross-cutting wrapper around one trail execution. A layer can declare an `input` schema for surface-visible behavior, or omit `input` to stay invisible to surfaces. Layers can attach at trail, surface, topo, or execution-call scope. They are not standalone graph nodes; they are execution wrappers whose declared inputs can still be projected and governed.
+A typed cross-cutting wrapper around one trail execution. A layer can declare an `input` schema for surface-visible behavior, or omit `input` to stay invisible to surfaces. Layers can attach at trail, surface, topo, or execution-call scope. They are not standalone graph nodes; they are execution wrappers whose declared inputs can still be rendered and governed.
 
 ```typescript
 await surface(graph, {
@@ -413,7 +413,7 @@ The current contract stays top-level. Historical entries must declare `input` an
 
 ### `revision` / `fork`
 
-Kinds of trail version entries, projected by the resolved graph rather than authored as a source `kind:` field.
+Kinds of trail version entries, derived by the resolved graph rather than authored as a source `kind:` field.
 
 A **revision** has `transpose:` and uses pure data transforms into and out of current. The current implementation still runs.
 
@@ -433,7 +433,7 @@ Deprecated entries remain live. Archived entries remain inspectable but do not r
 
 ### `marker`
 
-A framework-projected, content-addressed contract identifier. Authors do not write `marker:` in source. The resolved graph stores a 16-character SHA-256 prefix and surfaces display the shortest unambiguous prefix with a minimum of four characters.
+A framework-derived, content-addressed contract identifier. Authors do not write `marker:` in source. The resolved graph stores a 16-character SHA-256 prefix and surfaces display the shortest unambiguous prefix with a minimum of four characters.
 
 ### `@N` / `(trail, version)`
 
@@ -488,9 +488,11 @@ The plain word for the persistence shape a binding realizes a store through. Cur
 
 The store declaration stays kind-agnostic. The binding (native or adapter) chooses the kind and interprets the store schema accordingly.
 
-### `projection`
+### `derive` and `render`
 
-A mechanically derived output from authored information. The topo store is a relational projection of the resolved graph — the same data, restructured for queries. CLI flags are projections of input schemas. HTTP verbs are projections of intent. `deriveCliCommands(graph)` and `deriveHttpRoutes(graph)` are surface projections. The framework derives projections; developers author the source.
+`derive` produces canonical facts or an intermediate representation from authored truth. The topo store derives relational facts from the resolved graph, and `deriveCliCommands(graph)` derives command definitions from trail contracts.
+
+`render` presents derived facts through a surface or format. CLI flags render schema fields, HTTP routes render intent and input contracts, and public error renderings redact diagnostics for callers. The framework derives facts and renders them for consumers; developers author the source.
 
 ### Other plain terms
 
@@ -503,7 +505,7 @@ A mechanically derived output from authored information. The topo store is a rel
 | `error` | Error types |
 | `diagnostic` | Analyzer-reported problem or guidance item emitted by Warden, config checks, validation, or similar tooling. Do not use `issue`, `finding`, or `violation` as the framework noun for this shape. |
 | `adapter` | Canonical public category for a package or subpath that connects Trails to a named external library, framework, tool, platform, format, or ecosystem |
-| `surface accommodation` | Projection-level fit adjustment that lets a surface feel native without changing the trail contract |
+| `surface accommodation` | Render-level fit adjustment that lets a surface feel native without changing the trail contract |
 | `surface entry` | Invocable affordance exposed by a surface: CLI command, MCP tool, HTTP route, or library export |
 | `approach` | Surface-specific way for a caller to reach a surface entry |
 | `path` | Surface-local realization of an approach: command path, tool name, HTTP path, or export name |
@@ -517,7 +519,7 @@ A mechanically derived output from authored information. The topo store is a rel
 | `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
 | `health` | Health checks |
-| `derive*` | Mechanically project surface definitions from a graph |
+| `derive*` | Mechanically produce canonical facts or intermediate representations from authored truth |
 | `create*` | Materialize runtime objects without opening the boundary |
 | `to*` / `connect*` | Narrow translation or transport helpers where the boundary package needs them |
 
@@ -585,7 +587,7 @@ When introducing Trails, use this order.
 2. `tracing` / `ctx.trace()` — record what happened
 3. `permit` — auth and scopes
 4. `pin` — named graph snapshot for diffing and verification
-5. `projection` — mechanically derived output from authored data
+5. `derive` / `render` — produce canonical facts, then present them through a surface or format
 6. `profile` — deployment and environment config sets
 7. `pattern` — declared operational shape on a trail
 8. `warden` — governance and drift detection

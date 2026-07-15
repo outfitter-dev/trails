@@ -107,7 +107,6 @@ const reviewedSurfaceMentionPaths = [
   'docs/api-reference.md',
   'docs/index.md',
   'docs/lexicon.md',
-  'docs/lexicon-pending.md',
   'packages/http/README.md',
   'packages/oxlint-plugin/src/__tests__/rules.test.ts',
   'packages/store/.agents',
@@ -204,19 +203,19 @@ const topographArtifactFamilyRetiredMatches = [
     path: 'packages/topography/src/internal/topo-snapshots.ts',
   },
   {
+    line: 1525,
+    path: 'packages/topography/src/__tests__/topo-store.test.ts',
+  },
+  {
     line: 1527,
     path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1529,
+    line: 1541,
     path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
   {
     line: 1543,
-    path: 'packages/topography/src/__tests__/topo-store.test.ts',
-  },
-  {
-    line: 1545,
     path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
 ] as const;

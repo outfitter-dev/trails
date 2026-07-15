@@ -1,5 +1,5 @@
 /**
- * `compile` — the package emitter. Consumes the `LibraryProjection` (never the
+ * `compile` — the package emitter. Consumes the `LibraryRenderingPlan` (never the
  * topo directly) and produces the source files of a generated TypeScript
  * package: consumer-fluent root, `/result`, `/schemas`, `/trails` subpaths.
  *
@@ -9,13 +9,13 @@
  * change consumer code — see the runtime-kernel section of the ADR.
  *
  * This slice returns the file plan (path + content); writing it to disk is a
- * thin apply step. Pure: derives the projection and builds strings, no I/O.
+ * thin apply step. Pure: derives the rendering and builds strings, no I/O.
  */
 import { deriveLibraryApi } from './derive.js';
 import type {
   DeriveLibraryApiOptions,
   LibraryExport,
-  LibraryProjection,
+  LibraryRenderingPlan,
 } from './derive.js';
 import type { Topo } from './kernel.js';
 
@@ -39,7 +39,7 @@ export interface CompileOptions extends DeriveLibraryApiOptions {
    */
   readonly typeImportPath?: string;
   /**
-   * Optional mapping from projected trail id to the source module export that
+   * Optional mapping from rendered trail id to the source module export that
    * owns that trail's TypeScript type. Unmapped trails intentionally keep
    * `unknown` public signatures instead of pretending topo artifacts preserve
    * erased source types.
@@ -56,8 +56,8 @@ export interface CompiledFile {
 /** The result of compiling a topo into a generated library package. */
 export interface CompileResult {
   readonly packageName: string;
-  /** The resolved projection the files were emitted from. */
-  readonly projection: LibraryProjection;
+  /** The resolved rendering the files were emitted from. */
+  readonly rendering: LibraryRenderingPlan;
   /** The emitted files, in stable path order. */
   readonly files: readonly CompiledFile[];
 }
@@ -73,16 +73,16 @@ const isStateless = (entry: LibraryExport): boolean =>
   entry.resources.length === 0;
 
 const statelessExports = (
-  projection: LibraryProjection
-): readonly LibraryExport[] => projection.exports.filter(isStateless);
+  rendering: LibraryRenderingPlan
+): readonly LibraryExport[] => rendering.exports.filter(isStateless);
 
 const resourceExports = (
-  projection: LibraryProjection
+  rendering: LibraryRenderingPlan
 ): readonly LibraryExport[] =>
-  projection.exports.filter((entry) => !isStateless(entry));
+  rendering.exports.filter((entry) => !isStateless(entry));
 
-const factoryName = (projection: LibraryProjection): string =>
-  `create${pascalCase(projection.app)}`;
+const factoryName = (rendering: LibraryRenderingPlan): string =>
+  `create${pascalCase(rendering.app)}`;
 
 const DEFAULT_LIBRARY_DEPENDENCY = '^1.0.0';
 const DEFAULT_ZOD_DEPENDENCY = '^4.3.5';
@@ -121,12 +121,12 @@ const typeNamesFor = (
 };
 
 const resolveTypeBindings = (
-  projection: LibraryProjection,
+  rendering: LibraryRenderingPlan,
   options: CompileOptions
 ): TypeBindings => {
   const configured = options.trailTypeExports ?? {};
   const bindings = new Map<string, ExportTypeBinding>();
-  for (const entry of projection.exports) {
+  for (const entry of rendering.exports) {
     const sourceExport = configured[entry.trailId];
     if (!sourceExport) {
       continue;
@@ -155,10 +155,10 @@ const outputTypeFor = (entry: LibraryExport, bindings: TypeBindings): string =>
   bindings.get(entry.trailId)?.output ?? 'unknown';
 
 const schemaTypeImport = (
-  projection: LibraryProjection,
+  rendering: LibraryRenderingPlan,
   bindings: TypeBindings
 ): string | undefined => {
-  const names = projection.exports.flatMap((entry) => {
+  const names = rendering.exports.flatMap((entry) => {
     const binding = bindings.get(entry.trailId);
     return binding ? [binding.input, binding.output] : [];
   });
@@ -196,7 +196,7 @@ const statelessFunction = (
   [
     jsDoc([
       exportDescription(entry),
-      `Projects trail \`${entry.trailId}\` as a stateless library function.`,
+      `Renders trail \`${entry.trailId}\` as a stateless library function.`,
     ]),
     `export const ${entry.exportName} = (`,
     `  input: ${inputTypeFor(entry, bindings)}`,
@@ -210,7 +210,7 @@ const factoryMethod = (entry: LibraryExport, bindings: TypeBindings): string =>
     jsDoc(
       [
         exportDescription(entry),
-        `Projects trail \`${entry.trailId}\` behind the resource client.`,
+        `Renders trail \`${entry.trailId}\` behind the resource client.`,
       ],
       '    '
     ),
@@ -222,12 +222,12 @@ const factoryMethod = (entry: LibraryExport, bindings: TypeBindings): string =>
   ].join('\n');
 
 const generateIndex = (
-  projection: LibraryProjection,
+  rendering: LibraryRenderingPlan,
   bindings: TypeBindings
 ): string => {
-  const stateless = statelessExports(projection);
-  const resourceful = resourceExports(projection);
-  const typedSchemas = schemaTypeImport(projection, bindings);
+  const stateless = statelessExports(rendering);
+  const resourceful = resourceExports(rendering);
+  const typedSchemas = schemaTypeImport(rendering, bindings);
 
   const parts: string[] = [
     "import type { SurfaceLibraryOptions } from '@ontrails/library';",
@@ -243,7 +243,7 @@ const generateIndex = (
   if (resourceful.length > 0) {
     parts.push(
       '',
-      `export const ${factoryName(projection)} = async (`,
+      `export const ${factoryName(rendering)} = async (`,
       '  options: SurfaceLibraryOptions = {}',
       ') => {',
       '  const client = await createClient(options);',
@@ -271,12 +271,12 @@ const generateClient = (): string =>
   ].join('\n');
 
 const generateSchemas = (
-  projection: LibraryProjection,
+  rendering: LibraryRenderingPlan,
   options: CompileOptions,
   bindings: TypeBindings
 ): string => {
   const appExport = 'app';
-  const typedEntries = projection.exports.filter((entry) =>
+  const typedEntries = rendering.exports.filter((entry) =>
     bindings.has(entry.trailId)
   );
   const sourceTypeExports = [
@@ -300,22 +300,22 @@ const generateSchemas = (
         ]
       : []),
     '',
-    '// Authored Zod schemas, keyed by export name, projected from the topo.',
-    'const projection = deriveLibraryApi(app);',
+    '// Authored Zod schemas, keyed by export name, rendered from the topo.',
+    'const rendering = deriveLibraryApi(app);',
     'const byName = new Map(',
-    '  projection.exports.map((entry) => [entry.exportName, entry])',
+    '  rendering.exports.map((entry) => [entry.exportName, entry])',
     ');',
     '',
     'const requireExport = (name: string) => {',
     '  const entry = byName.get(name);',
     '  if (!entry) {',
-    "    throw new Error('missing projected library export: ' + name);",
+    "    throw new Error('missing rendered library export: ' + name);",
     '  }',
     '  return entry;',
     '};',
     '',
   ];
-  for (const entry of projection.exports) {
+  for (const entry of rendering.exports) {
     const binding = bindings.get(entry.trailId);
     if (binding) {
       lines.push(
@@ -338,7 +338,7 @@ const generateSchemas = (
     );
   }
   lines.push('', 'export const schemas = {');
-  for (const entry of projection.exports) {
+  for (const entry of rendering.exports) {
     lines.push(
       `  ${entry.exportName}: {`,
       `    input: ${entry.exportName}InputSchema,`,
@@ -396,12 +396,12 @@ const resultFactoryMethod = (
   ].join('\n');
 
 const generateResult = (
-  projection: LibraryProjection,
+  rendering: LibraryRenderingPlan,
   bindings: TypeBindings
 ): string => {
-  const stateless = statelessExports(projection);
-  const resourceful = resourceExports(projection);
-  const typedSchemas = schemaTypeImport(projection, bindings);
+  const stateless = statelessExports(rendering);
+  const resourceful = resourceExports(rendering);
+  const typedSchemas = schemaTypeImport(rendering, bindings);
   const parts = [
     '// No-throw API: returns the Result envelope instead of unwrapping.',
     "import { runLibraryResult } from '@ontrails/library';",
@@ -421,7 +421,7 @@ const generateResult = (
   if (resourceful.length > 0) {
     parts.push(
       '',
-      `export const ${factoryName(projection)} = async (`,
+      `export const ${factoryName(rendering)} = async (`,
       '  options: SurfaceLibraryOptions = {}',
       ') => {',
       '  const client = await createClient(options);',
@@ -464,7 +464,7 @@ const generateTsconfig = (): string =>
 
 /**
  * Compile a topo into a generated library package. Returns the emitted file
- * plan; the resolved projection is included for inspection and governance.
+ * plan; the resolved rendering is included for inspection and governance.
  *
  * @example
  * const result = compile(app, {
@@ -479,8 +479,8 @@ export const compile = (
   graph: Topo,
   options: CompileOptions
 ): CompileResult => {
-  const projection = deriveLibraryApi(graph, options);
-  const typeBindings = resolveTypeBindings(projection, options);
+  const rendering = deriveLibraryApi(graph, options);
+  const typeBindings = resolveTypeBindings(rendering, options);
   const files: CompiledFile[] = [
     { content: generatePackageJson(options), path: 'package.json' },
     { content: generateTsconfig(), path: 'tsconfig.json' },
@@ -489,18 +489,18 @@ export const compile = (
       path: 'src/client.ts',
     },
     {
-      content: generateIndex(projection, typeBindings),
+      content: generateIndex(rendering, typeBindings),
       path: 'src/index.ts',
     },
     {
-      content: generateResult(projection, typeBindings),
+      content: generateResult(rendering, typeBindings),
       path: 'src/result.ts',
     },
     {
-      content: generateSchemas(projection, options, typeBindings),
+      content: generateSchemas(rendering, options, typeBindings),
       path: 'src/schemas.ts',
     },
     { content: generateTrails(options), path: 'src/trails.ts' },
   ];
-  return { files, packageName: options.packageName, projection };
+  return { files, packageName: options.packageName, rendering };
 };

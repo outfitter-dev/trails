@@ -181,7 +181,7 @@ describe('topo', () => {
     test('applies the default console log sink when no observe is provided', () => {
       // ADR 0041 promises a non-null `ctx.logger` with zero configuration.
       // The default observe config carries an in-core console log sink so
-      // the existing adapter path projects it onto `ctx.logger`.
+      // the existing adapter path derives it onto `ctx.logger`.
       const t = topo('app', { myTrail: mockTrail('observe.default') });
 
       expect(t.observe).toBeDefined();

@@ -1,7 +1,7 @@
 /**
  * Schema-derived store for stash.
  *
- * One Zod schema per entity, projected into SQLite tables through
+ * One Zod schema per entity, derived into SQLite tables through
  * `@ontrails/store` + `@ontrails/drizzle`. Domain revisions are modeled as
  * their own table: `snippet.update` inserts a new `revisions` row and never
  * mutates an existing one, so revision history is immutable by construction.

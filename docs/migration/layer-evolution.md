@@ -8,7 +8,7 @@ Three things changed:
 
 1. **Framework concerns moved into the pipeline.** Auth enforcement and execution recording are intrinsic stages in `executeTrail`, derived from `trail.permit` and tracing config.
 2. **CLI-specific layers moved into surface derivation.** Pagination (`--all`, auto-iteration) and date shortcuts (`since=last-week`) derive from schema shape on the CLI surface, not authored layers.
-3. **`Layer` is now a typed primitive with optional `input`.** Layers can declare an `input` Zod schema that projects onto CLI flags, MCP parameters, and HTTP query/body fields. Layers without `input` remain surface-invisible wrappers for runtime-only concerns such as tenant guards, rate limiting, circuit breaking, and custom audit logging.
+3. **`Layer` is now a typed primitive with optional `input`.** Layers can declare an `input` Zod schema that renders onto CLI flags, MCP parameters, and HTTP query/body fields. Layers without `input` remain surface-invisible wrappers for runtime-only concerns such as tenant guards, rate limiting, circuit breaking, and custom audit logging.
 
 There is no rename away from `executeTrail({ layers })`. That option is canonical and undeprecated.
 
@@ -124,11 +124,11 @@ await executeTrail(trail, input, { layers: [tenantGuard] });
 
 This keeps one cross-cutting primitive in the framework: a named, inspectable `Layer`. If a bare function wrapper becomes necessary later, ADR-0043 defines the conditions for reintroducing it.
 
-## Surface Projection
+## Surface Rendering
 
-Layer `input` schemas project automatically onto every surface a trail is exposed on:
+Layer `input` schemas render automatically onto every surface a trail is exposed on:
 
-| Surface | Projection | Reference |
+| Surface | Rendering | Reference |
 | --- | --- | --- |
 | CLI | One flag per field, such as `--dry-run`, `--page`, `--limit` | [TRL-473] |
 | MCP | Fields merged into the tool's `inputSchema` | [TRL-474] |

@@ -269,7 +269,7 @@ Synthesized from ADR-000 (Core Premise) and ADR-001 (Naming Conventions).
 
 ### Vocabulary
 
-Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), implementation (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). Write current ADRs in current terms, preserve retired terms only in explicitly historical release, migration, or decision evidence, and see `docs/lexicon-pending.md` for remaining changes (and `trails-writing-style` for prose craft).
+Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), implementation (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). Write current ADRs in current terms, preserve retired terms only in explicitly historical release, migration, or decision evidence, and use `trails-writing-style` for prose craft.
 
 Read `docs/tenets.md` before writing. Every ADR must be consistent with the tenets.
 

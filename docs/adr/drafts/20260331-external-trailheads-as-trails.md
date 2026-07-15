@@ -19,7 +19,7 @@ impl_status: planned
 
 ### Trails goes one direction
 
-Trails defines a contract (the trail) and projects it onto trailheads (CLI, MCP, HTTP). The flow is always inside-out: author a trail, derive the trailhead. This is the core of the framework and it works.
+Trails defines a contract (the trail) and renders it through surfaces (CLI, MCP, HTTP). The flow is always inside-out: author a trail, derive its facts, render the surface. This is the core of the framework and it works.
 
 But the world is full of existing trailheads that developers want to compose with: CLI tools (`git`, `docker`, `kubectl`, `ffmpeg`, `gh`), MCP servers (GitHub, Slack, Linear), and HTTP APIs (REST endpoints, third-party services). These trailheads already exist. They have capabilities. They have implicit or explicit contracts. But they're not trails, so they can't participate in the Trails ecosystem: no typed composition via `ctx.compose()`, no cross-trailhead derivation, no `testExamples`, no warden governance, no survey introspection.
 
@@ -27,7 +27,7 @@ Developers bridge this gap today by writing ad-hoc wrappers: shell out to `git` 
 
 ### The inverse of derivation
 
-Trails' core flow: **trail → trailhead.** Define a contract, derive the projection.
+Trails' core flow: **trail → trailhead.** Define a contract, derive the rendering.
 
 The inverse: **trailhead → trail.** Observe an existing trailhead, capture it as a contract.
 

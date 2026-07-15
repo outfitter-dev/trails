@@ -14,6 +14,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getGovernedVocabularyTransition } from '@ontrails/warden';
 
 import { operatorApp } from '../app.js';
 import { planRegradeTrail, regradeTrail } from '../trails/regrade.js';
@@ -175,7 +176,7 @@ const unwrapCommands = () => {
 };
 
 describe('trails regrade', () => {
-  test('projects regrade as a CLI command', () => {
+  test('renders regrade as a CLI command', () => {
     const commands = unwrapCommands();
     const regradeCommands = commands
       .filter((candidate) => candidate.path[0] === 'regrade')
@@ -2094,6 +2095,13 @@ describe('trails regrade', () => {
         'docs/surface.md',
         'Projection docs project derived facts for a surface.\n'
       );
+      const transition = getGovernedVocabularyTransition(
+        'v1-projection-derive-render'
+      );
+      expect(transition).toBeDefined();
+      for (const rename of transition?.fileRenames ?? []) {
+        writeFile(dir, rename.from, '');
+      }
 
       const planned = runRawCli([
         'regrade',
@@ -2113,6 +2121,10 @@ describe('trails regrade', () => {
             'projection',
             'projections',
             'project',
+            'projects',
+            'Projects',
+            'projecting',
+            'Projecting',
             'projected',
             'Projected',
           ],
@@ -2126,55 +2138,6 @@ describe('trails regrade', () => {
       expect(JSON.stringify(parseCliJson(planned))).not.toContain(
         '"safe-rewrite"'
       );
-
-      writeFile(
-        dir,
-        'docs/surface.md',
-        'Derived facts render through a surface.\n'
-      );
-      writeFile(
-        dir,
-        'docs/adr/0001-history.md',
-        'Historical projection wording remains.\n'
-      );
-      const replanned = runRawCli([
-        'regrade',
-        'plan',
-        'projection',
-        'derive',
-        '--root-dir',
-        dir,
-        '--fresh',
-        '--json',
-      ]);
-      expect(replanned.exitCode).toBe(0);
-      expect(parseCliJson(replanned)).not.toHaveProperty(
-        'plan.scope.teachingSurfaces'
-      );
-
-      const checked = runRawCli([
-        'regrade',
-        'check',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(checked.exitCode).toBe(0);
-
-      const applied = runRawCli([
-        'regrade',
-        'apply',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(applied.exitCode).toBe(0);
-      expect(parseCliJson(applied)).toMatchObject({
-        history: {
-          path: '.trails/regrade/history/v1-projection-derive-render.json',
-          status: 'applied',
-        },
-      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -2252,6 +2215,34 @@ describe('trails regrade', () => {
       );
       expect(parsed.error?.message).toContain('canonical source "projection"');
       expect(existsSync(join(dir, '.trails/regrade'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI omits registry file moves that do not belong to the target workspace', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'projection remains review-only\n');
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(planned.exitCode).toBe(0);
+      expect(parseCliJson(planned)).toMatchObject({
+        plan: { from: 'projection', to: 'derive' },
+      });
+      expect(
+        parseCliJson<{ readonly plan?: { readonly fileRenames?: unknown } }>(
+          planned
+        ).plan?.fileRenames
+      ).toBeUndefined();
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

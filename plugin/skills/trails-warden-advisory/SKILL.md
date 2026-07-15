@@ -10,7 +10,7 @@ Use this skill before filing or implementing static guardrails from a Trails aud
 ## Workflow
 
 1. Name the invariant in framework terms, not as a one-off bug.
-2. Identify the Trails concept being protected: trail, implementation, Result, detour, resource, topo, surface, projection, or package boundary.
+2. Identify the Trails concept being protected: trail, implementation, Result, detour, resource, topo, surface, derivation, rendering, or package boundary.
 3. Find the owner source for the data the rule would need. Prefer owner exports over copied strings.
 4. Choose the narrowest home that can answer the question:
    - Warden source-static for one-file public Trails semantics.
@@ -50,7 +50,7 @@ Use this skill before filing or implementing static guardrails from a Trails aud
 Return a recommendation with:
 
 - Rule home and Warden tier, if any.
-- Owner source and projection target.
+- Owner source and derived or rendered target.
 - Lifecycle and retirement trigger.
 - Diagnostic shape.
 - Accepted and rejected examples.

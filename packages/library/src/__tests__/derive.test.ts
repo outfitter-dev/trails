@@ -5,11 +5,11 @@ import { collisionApp } from './fixtures/collision.js';
 import { fixtureApp } from './fixtures/app.js';
 
 describe('deriveLibraryApi', () => {
-  test('projects established public current-version trails as exports', () => {
-    const projection = deriveLibraryApi(fixtureApp);
+  test('renders established public current-version trails as exports', () => {
+    const rendering = deriveLibraryApi(fixtureApp);
 
-    expect(projection.app).toBe('library-fixture');
-    expect(projection.exports.map((entry) => entry.exportName)).toEqual([
+    expect(rendering.app).toBe('library-fixture');
+    expect(rendering.exports.map((entry) => entry.exportName)).toEqual([
       'widgetAdd',
       'widgetAudited',
       'widgetCheck',
@@ -17,14 +17,14 @@ describe('deriveLibraryApi', () => {
       'widgetGreet',
       'widgetPing',
     ]);
-    expect(projection.collisions).toEqual([]);
+    expect(rendering.collisions).toEqual([]);
   });
 
   test('excludes draft, internal, and activation trails, with the reason', () => {
-    const projection = deriveLibraryApi(fixtureApp);
+    const rendering = deriveLibraryApi(fixtureApp);
 
     const byTrail = new Map(
-      projection.excluded.map((entry) => [entry.trailId, entry.reason])
+      rendering.excluded.map((entry) => [entry.trailId, entry.reason])
     );
     expect(byTrail.get('_draft.widget.experiment')).toBe('draft');
     expect(byTrail.get('widget.diagnose')).toBe('internal');
@@ -33,7 +33,7 @@ describe('deriveLibraryApi', () => {
     expect(byTrail.get('_draft.widget.secret')).toBe('draft');
 
     const exportedIds = new Set(
-      projection.exports.map((entry) => entry.trailId)
+      rendering.exports.map((entry) => entry.trailId)
     );
     expect(exportedIds.has('_draft.widget.experiment')).toBe(false);
     expect(exportedIds.has('widget.diagnose')).toBe(false);
@@ -41,9 +41,9 @@ describe('deriveLibraryApi', () => {
   });
 
   test('carries contract facts the emitter needs onto each export', () => {
-    const projection = deriveLibraryApi(fixtureApp);
+    const rendering = deriveLibraryApi(fixtureApp);
     const byName = new Map(
-      projection.exports.map((entry) => [entry.exportName, entry])
+      rendering.exports.map((entry) => [entry.exportName, entry])
     );
 
     // Resource ids drive factory grouping; stateless trails carry none.
@@ -73,7 +73,7 @@ describe('deriveLibraryApi', () => {
     expect(byName.get('widgetPing')?.version).toBeUndefined();
 
     // Schema references and description are carried for signatures/JSDoc.
-    for (const entry of projection.exports) {
+    for (const entry of rendering.exports) {
       expect(entry.input).toBeDefined();
       expect(entry.output).toBeDefined();
       expect(typeof entry.description).toBe('string');
@@ -82,30 +82,30 @@ describe('deriveLibraryApi', () => {
   });
 
   test('narrows with an include selector without widening drafts or internal', () => {
-    const projection = deriveLibraryApi(fixtureApp, {
+    const rendering = deriveLibraryApi(fixtureApp, {
       include: ['widget.get', 'widget.ping'],
     });
-    expect(projection.exports.map((entry) => entry.exportName)).toEqual([
+    expect(rendering.exports.map((entry) => entry.exportName)).toEqual([
       'widgetGet',
       'widgetPing',
     ]);
   });
 
   test('drops trails matching an exclude selector', () => {
-    const projection = deriveLibraryApi(fixtureApp, {
+    const rendering = deriveLibraryApi(fixtureApp, {
       exclude: ['widget.add'],
     });
-    const names = projection.exports.map((entry) => entry.exportName);
+    const names = rendering.exports.map((entry) => entry.exportName);
     expect(names).not.toContain('widgetAdd');
     expect(names).toContain('widgetGet');
   });
 
   test('applies include and exclude together', () => {
-    const projection = deriveLibraryApi(fixtureApp, {
+    const rendering = deriveLibraryApi(fixtureApp, {
       exclude: ['widget.add'],
       include: ['widget.*'],
     });
-    expect(projection.exports.map((entry) => entry.exportName)).toEqual([
+    expect(rendering.exports.map((entry) => entry.exportName)).toEqual([
       'widgetAudited',
       'widgetCheck',
       'widgetGet',
@@ -114,23 +114,23 @@ describe('deriveLibraryApi', () => {
     ]);
   });
 
-  test('yields an empty projection when nothing matches', () => {
-    const projection = deriveLibraryApi(fixtureApp, {
+  test('yields an empty rendering when nothing matches', () => {
+    const rendering = deriveLibraryApi(fixtureApp, {
       include: ['nonexistent.*'],
     });
-    expect(projection.exports).toEqual([]);
+    expect(rendering.exports).toEqual([]);
   });
 
   test('detects export-name collisions: first-by-id wins, both recorded', () => {
-    const projection = deriveLibraryApi(collisionApp);
+    const rendering = deriveLibraryApi(collisionApp);
 
-    const colliding = projection.exports.filter(
+    const colliding = rendering.exports.filter(
       (entry) => entry.exportName === 'widgetGetThing'
     );
     expect(colliding).toHaveLength(1);
 
-    expect(projection.collisions).toHaveLength(1);
-    const [collision] = projection.collisions;
+    expect(rendering.collisions).toHaveLength(1);
+    const [collision] = rendering.collisions;
     expect(collision?.exportName).toBe('widgetGetThing');
     expect(collision?.trailIds.toSorted()).toEqual([
       'widget.get-thing',

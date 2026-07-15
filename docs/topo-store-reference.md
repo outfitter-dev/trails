@@ -165,7 +165,7 @@ CREATE TABLE topo_examples (
 
 Which surfaces expose which trails.
 
-This table is an operational query projection, not the canonical complete surface graph. In the current v1 posture it records CLI-derived rows only: `surface = 'cli'`, the CLI command name in `derived_name`, and `method = NULL`. Schema-rich contract detail lives in the saved `TopoGraph` (`topo_exports.topo_graph`) and the typed `store.topoGraph` / `store.entries` accessors. The TopoGraph's durable surface-related facts are the authored `surfaces` list and CLI path metadata. Complete shipped-surface projection inventory is derived at survey/report time from the loaded topo; use `trails survey surfaces` or trail detail `surfaceProjections` for the CLI, MCP, and HTTP projection matrix. WebSocket remains planned and excluded until a public package/API exists.
+This table is an operational query derived view, not the canonical complete surface graph. In the current v1 posture it records CLI-derived rows only: `surface = 'cli'`, the CLI command name in `derived_name`, and `method = NULL`. Schema-rich contract detail lives in the saved `TopoGraph` (`topo_exports.topo_graph`) and the typed `store.topoGraph` / `store.entries` accessors. The TopoGraph's durable surface-related facts are the authored `surfaces` list and CLI path metadata. Complete shipped-surface derived view inventory is derived at survey/report time from the loaded topo; use `trails survey surfaces` or trail detail `derivedSurfaces` for the CLI, MCP, and HTTP derived view matrix. WebSocket remains planned and excluded until a public package/API exists.
 
 ```sql
 CREATE TABLE topo_surfaces (
@@ -350,7 +350,7 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `composes`, `detours`, `resources`, and `examples` arrays. It also carries resolved `TopoGraph` contract facts for blind agents: `input`, `output`, `cli`, `surfaces`, `surfaceProjections`, `entities`, `entityDetails`, `activationContext`, `activationEdges`, `activationSources`, `fieldOverrides`, `layers`, and `governance`. `surfaceProjections` are the operational rows from `topo_surfaces`; `surfaces` and the schema-rich contract fields come from the saved `TopoGraph`. For the complete shipped CLI/MCP/HTTP surface inventory, use the app-level survey projection instead of treating the operational rows as canonical.
+Extends trail record with `composes`, `detours`, `resources`, and `examples` arrays. It also carries resolved `TopoGraph` contract facts for blind agents: `input`, `output`, `cli`, `surfaces`, `derivedSurfaces`, `entities`, `entityDetails`, `activationContext`, `activationEdges`, `activationSources`, `fieldOverrides`, `layers`, and `governance`. `derivedSurfaces` are the operational rows from `topo_surfaces`; `surfaces` and the schema-rich contract fields come from the saved `TopoGraph`. For the complete shipped CLI/MCP/HTTP surface inventory, use the app-level survey derived view instead of treating the operational rows as canonical.
 
 Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error class name and effective attempt count. Neither examples nor detours are exhaustive per-trail error inference; see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 

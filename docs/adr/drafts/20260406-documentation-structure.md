@@ -179,7 +179,7 @@ Deep, pattern-oriented documentation for developers actively building. Each firs
 
 The distinction from `basecamp/`: a `basecamp/` document helps the developer *understand* how Trails thinks about testing. `guides/testing.md` helps the developer *write better tests* once they already get it.
 
-`guides/trailheads.md` covers all surfaces (CLI, MCP, HTTP, WebSocket, library) under headings within a single file. This is intentional — surfaces are thin projections of the trail contract, and a single document makes the "define once, surface anywhere" promise tangible. When a new surface ships, it's a new heading, not a new file. Composition patterns (CLI + MCP from the same topo) are shown naturally alongside the per-surface sections.
+`guides/trailheads.md` covers all surfaces (CLI, MCP, HTTP, WebSocket, library) under headings within a single file. This is intentional — surfaces are thin renderings of the trail contract, and a single document makes the "define once, surface anywhere" promise tangible. When a new surface ships, it's a new heading, not a new file. Composition patterns (CLI + MCP from the same topo) are shown naturally alongside the per-surface sections.
 
 #### `workflow/` — Development environment and process
 

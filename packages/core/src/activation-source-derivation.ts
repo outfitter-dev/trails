@@ -3,7 +3,7 @@ import { zodToJsonSchema } from './validation.js';
 
 type ZodSchemaInput = Parameters<typeof zodToJsonSchema>[0];
 
-export type ActivationSourceProjection = Readonly<Record<string, unknown>> & {
+export type ActivationSourceFacts = Readonly<Record<string, unknown>> & {
   readonly id: string;
   readonly key: string;
   readonly kind: string;
@@ -113,9 +113,9 @@ const normalizeWebhookMethod = (method: string | undefined): string =>
 
 const normalizeWebhookPath = (path: string): string => path.trim();
 
-export const projectActivationSourceDeclaration = (
+export const deriveActivationSourceFacts = (
   source: ActivationSource
-): ActivationSourceProjection => {
+): ActivationSourceFacts => {
   const record: Record<string, unknown> = {
     id: source.id,
     key: activationSourceKey(source),
@@ -172,7 +172,7 @@ export const projectActivationSourceDeclaration = (
     record['hasVerify'] = true;
   }
 
-  return sortKeys(record) as ActivationSourceProjection;
+  return sortKeys(record) as ActivationSourceFacts;
 };
 
 /**
@@ -182,8 +182,8 @@ export const projectActivationSourceDeclaration = (
  * returned token captures the function's reference identity so it changes when
  * the verifier function changes.
  *
- * The token is intentionally kept out of {@link projectActivationSourceDeclaration}
- * so that the persisted topo-store projection remains stable and free of
+ * The token is intentionally kept out of {@link deriveActivationSourceFacts}
+ * so that the persisted topo-store facts remains stable and free of
  * nondeterministic function identity. Use this only for in-memory comparisons
  * (validation, conflict detection).
  */
@@ -218,10 +218,10 @@ const verifierIdentityToken = (
 export const activationSourceDeclarationSignature = (
   source: ActivationSource
 ): string => {
-  const projection = projectActivationSourceDeclaration(source);
+  const facts = deriveActivationSourceFacts(source);
   const verifyToken = verifierIdentityToken(source);
   if (verifyToken === undefined) {
-    return JSON.stringify(projection);
+    return JSON.stringify(facts);
   }
-  return JSON.stringify({ projection, verify: verifyToken });
+  return JSON.stringify({ facts, verify: verifyToken });
 };

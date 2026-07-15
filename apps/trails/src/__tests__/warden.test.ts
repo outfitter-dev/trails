@@ -185,7 +185,7 @@ describe('trails warden', () => {
     expect(wardenTrail.permit).toBe('public');
   });
 
-  test('projects final Warden flags into the shared command surface', () => {
+  test('renders final Warden flags into the shared command surface', () => {
     const args = buildWardenCommandArgs({
       adapterCheck: true,
       apps: ['trails', 'demo'],
@@ -286,7 +286,7 @@ describe('trails warden', () => {
     }
   });
 
-  test('warden guide projects markdown from the Warden manifest', async () => {
+  test('warden guide renders markdown from the Warden manifest', async () => {
     const result = await wardenGuideTrail.implementation(
       { guideFormat: 'markdown' },
       {

@@ -64,7 +64,7 @@ Produces the JSON Schema:
 
 ## Output Schema and Examples
 
-When a trail declares `output`, the MCP tool definition includes an `outputSchema` derived from that Zod schema. Schemas whose JSON representation has a top-level `type: "object"` project directly into `structuredContent`. All other schemas -- arrays, scalars, discriminated unions (`anyOf`), intersections (`allOf`), and `z.any()` -- are wrapped in `{ data: ... }` because MCP requires the root of `outputSchema` to be `type: "object"`.
+When a trail declares `output`, the MCP tool definition includes an `outputSchema` derived from that Zod schema. Schemas whose JSON representation has a top-level `type: "object"` render directly into `structuredContent`. All other schemas -- arrays, scalars, discriminated unions (`anyOf`), intersections (`allOf`), and `z.any()` -- are wrapped in `{ data: ... }` because MCP requires the root of `outputSchema` to be `type: "object"`.
 
 Trail examples are exposed as structured tool metadata under `_meta["ontrails/examples"]`. Each example keeps the authored input, expected output or error, a success/error kind, and provenance pointing back to `trail.examples`; clients do not need to scrape example JSON from prose descriptions.
 
@@ -72,7 +72,7 @@ Trail examples are exposed as structured tool metadata under `_meta["ontrails/ex
 
 Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Trailheads are surface accommodations on the entry axis: they group and select without merging. The full guide is [Trailheads](surface-trailheads.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
 
-- author the grouped entry as an `mcp` list binding in the app's `surfaceOverlay({ mcp })` — this is the authored, lockable default, embedded in `trails.lock` and projected into the graph's trailhead facts;
+- author the grouped entry as an `mcp` list binding in the app's `surfaceOverlay({ mcp })` — this is the authored, lockable default, embedded in `trails.lock` and rendered into the graph's trailhead facts;
 - optionally pass a call-site trailhead map in MCP surface options when the running surface needs richer metadata (description, deferred loading) — the call-site map is an override-in-context and wins at runtime;
 - each trailhead becomes one MCP tool;
 - call the trailhead with `{ trail, input }`;
@@ -110,9 +110,9 @@ Cold context belongs in **MCP resources**, not in extra tools and not in Trails 
 
 | Resource URI | Contents |
 | --- | --- |
-| `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, `trailheadId` values, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
+| `trails://surface-map` | Resolved MCP surface rendering: tool names, trail IDs, `trailheadId` values, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
 | `trails://examples/<trailId>` | Structured examples for an exposed trail, when the trail defines examples |
-| `trails://trail/<trailId>` | MCP-visible graph facts for an exposed trail: identity, intent, visibility, composition, resource and signal references, and projected MCP tool metadata |
+| `trails://trail/<trailId>` | MCP-visible graph facts for an exposed trail: identity, intent, visibility, composition, resource and signal references, and rendered MCP tool metadata |
 
 Use `mcpResources: false` to disable MCP resource registration:
 
@@ -204,11 +204,11 @@ Result.err(new NotFoundError('Entity not found'));
 // }
 ```
 
-Trail failures are MCP tool-result errors, not JSON-RPC protocol errors. The model-visible payload stays text-only on error, while `_meta["ontrails/error"]` contains the same JSON-RPC-family code projection used by `mapSurfaceError('mcp', error)`. Both fields use the shared public error projection: `TrailsError` messages are redacted, and unknown native errors return the generic `Internal server error` text without framework error metadata. Internal-category `TrailsError` instances also use the generic public message while keeping their taxonomy metadata. Protocol errors remain reserved for invalid MCP requests such as malformed methods or unknown tools.
+Trail failures are MCP tool-result errors, not JSON-RPC protocol errors. The model-visible payload stays text-only on error, while `_meta["ontrails/error"]` contains the same JSON-RPC-family code rendering used by `mapSurfaceError('mcp', error)`. Both fields use the shared public error rendering: `TrailsError` messages are redacted, and unknown native errors return the generic `Internal server error` text without framework error metadata. Internal-category `TrailsError` instances also use the generic public message while keeping their taxonomy metadata. Protocol errors remain reserved for invalid MCP requests such as malformed methods or unknown tools.
 
 **Binary data:**
 
-If the result contains a `BlobRef` declared with `blobRefSchema`, MCP projects the core descriptor into `structuredContent` and materializes bytes through MCP content entries. Image MIME types become image content:
+If the result contains a `BlobRef` declared with `blobRefSchema`, MCP renders the core descriptor into `structuredContent` and materializes bytes through MCP content entries. Image MIME types become image content:
 
 ```typescript
 // -> { content: [{ type: "image", data: "<base64>", mimeType: "image/png" }] }
@@ -328,4 +328,4 @@ for (const tool of result.value) {
 
 Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `surface()`.
 
-For versioned trails, the tool input schema includes a surface-owned `trailVersion` parameter. MCP handlers strip it before trail input validation and forward the selected live version or marker prefix to the shared execution pipeline. The `versions` field on each tool lists the live projected versions; archived historical entries remain inspectable through topo artifacts but are not runtime tool targets.
+For versioned trails, the tool input schema includes a surface-owned `trailVersion` parameter. MCP handlers strip it before trail input validation and forward the selected live version or marker prefix to the shared execution pipeline. The `versions` field on each tool lists the live rendered versions; archived historical entries remain inspectable through topo artifacts but are not runtime tool targets.

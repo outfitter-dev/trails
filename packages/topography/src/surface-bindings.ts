@@ -4,7 +4,7 @@
  * Both derivation pipelines — `deriveTopoGraph` and the store-side
  * `buildTopoGraph` — resolve the app-authored `surfaces` overlay's `cli`
  * bindings into per-trail CLI alias inputs and its `mcp` list bindings into
- * projected trailhead entries through this single helper module, so compiled
+ * derived trailhead entries through this single helper module, so compiled
  * locks and fresh derivations cannot diverge from the runtime surfaces'
  * reading of the same bindings.
  */
@@ -55,15 +55,15 @@ export const resolveCliAliasInputsFromOverlays = (
 };
 
 /**
- * Resolve projected trailhead entries from overlay registrations.
+ * Resolve derived trailhead entries from overlay registrations.
  *
  * Finds the app-authored `surfaces` overlay among the registrations and
- * projects each `mcp` list binding into one `TopoGraphTrailheadEntry`: the
+ * derives each `mcp` list binding into one `TopoGraphTrailheadEntry`: the
  * binding name becomes the trailhead id, the sorted expanded member trail
  * ids become `memberIds`, the surfaces list is `['mcp']`, and the
  * description is the deterministic derived default shared with the MCP
  * surface. Scalar `mcp` bindings are tool synonyms, not grouped entries, so
- * they project no trailhead. Throws a `ValidationError` for group bindings
+ * they render no trailhead. Throws a `ValidationError` for group bindings
  * whose member union is empty or synonym bindings that violate the shared
  * expansion rules. Returns `undefined` when no `mcp` list bindings exist.
  *

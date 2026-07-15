@@ -1175,7 +1175,7 @@ describe('wayfinder graph-read query trails', () => {
       {
         direction: 'incoming',
         ids: ['cli', 'mcp'],
-        relation: 'surface-projects',
+        relation: 'surface-renders',
       },
       {
         direction: 'incoming',
@@ -1208,7 +1208,7 @@ describe('wayfinder graph-read query trails', () => {
       {
         direction: 'outgoing',
         ids: ['user.create', 'user.show'],
-        relation: 'surface-projects',
+        relation: 'surface-renders',
       },
     ]);
   });
@@ -1307,7 +1307,7 @@ describe('wayfinder graph-read query trails', () => {
         : []
     ).toEqual([
       ['incoming', 'fired-by', ['user.created']],
-      ['incoming', 'surface-projects', ['cli', 'mcp']],
+      ['incoming', 'surface-renders', ['cli', 'mcp']],
       ['incoming', 'trailhead-groups', ['users']],
       ['incoming', 'used-by', ['db.main']],
     ]);
@@ -1356,8 +1356,8 @@ describe('wayfinder graph-read query trails', () => {
     expect(both.nodes.map((node) => [node.id, node.depth, node.via])).toEqual([
       ['db.main', 1, 'used-by'],
       ['user.created', 1, 'fired-by'],
-      ['cli', 1, 'surface-projects'],
-      ['mcp', 1, 'surface-projects'],
+      ['cli', 1, 'surface-renders'],
+      ['mcp', 1, 'surface-renders'],
       ['users', 1, 'trailhead-groups'],
     ]);
   });

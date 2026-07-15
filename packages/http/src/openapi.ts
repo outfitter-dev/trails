@@ -8,7 +8,7 @@
 import {
   ValidationError,
   filterSurfaceTrails,
-  projectErrorClassSurface,
+  renderErrorClassSurface,
   validateSurfaceTopo,
   zodToJsonSchema,
 } from '@ontrails/core';
@@ -104,12 +104,12 @@ const errorExampleToEntry = (
   errorName: string,
   seen: Set<number>
 ): [string, { description: string }] | undefined => {
-  const projection = projectErrorClassSurface('http', errorName);
-  if (projection === undefined) {
+  const rendering = renderErrorClassSurface('http', errorName);
+  if (rendering === undefined) {
     return undefined;
   }
 
-  const { code } = projection;
+  const { code } = rendering;
   if (seen.has(code)) {
     return undefined;
   }

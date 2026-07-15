@@ -164,7 +164,7 @@ const exampleApp = () => {
     resources: [dbMain],
   });
 
-  return topo('projection-app', {
+  return topo('derivation-app', {
     dbMain,
     entityAdd,
     entityAdded,
@@ -802,13 +802,7 @@ describe('read-only topo store', () => {
           },
         ],
       },
-      entities: ['entity'],
-      fieldOverrides: processEntry?.fieldOverrides,
-      governance: null,
-      input: processEntry?.input,
-      layers: processEntry?.layers,
-      output: { type: 'object' },
-      surfaceProjections: [
+      derivedSurfaces: [
         {
           derivedName: 'entity process',
           method: null,
@@ -816,6 +810,12 @@ describe('read-only topo store', () => {
           trailId: 'entity.process',
         },
       ],
+      entities: ['entity'],
+      fieldOverrides: processEntry?.fieldOverrides,
+      governance: null,
+      input: processEntry?.input,
+      layers: processEntry?.layers,
+      output: { type: 'object' },
       surfaces: [],
     });
     expect(processDetail?.entityDetails).toEqual([

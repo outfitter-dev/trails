@@ -39,7 +39,7 @@ export const publicOutputSchemaTrail = wrapTopoRule({
             filePath: '<topo>',
             line: 1,
             message:
-              'Trail "report.missing" is visible to public MCP/HTTP surface projection but does not declare an output schema. Add an explicit output schema, or mark the trail visibility as internal if it is composition-only.',
+              'Trail "report.missing" is visible to public MCP/HTTP surface rendering but does not declare an output schema. Add an explicit output schema, or mark the trail visibility as internal if it is composition-only.',
             rule: 'public-output-schema',
             severity: 'error',
           },

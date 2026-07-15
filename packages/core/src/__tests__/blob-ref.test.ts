@@ -109,7 +109,7 @@ describe('BlobRef', () => {
     });
   });
 
-  describe('schema projection', () => {
+  describe('schema derivation', () => {
     test('blobRefSchema validates BlobRef values', () => {
       const ref = createBlobRef({
         data: sampleData,
@@ -124,7 +124,7 @@ describe('BlobRef', () => {
       );
     });
 
-    test('toBlobRefDescriptor projects the canonical descriptor shape', () => {
+    test('toBlobRefDescriptor derives the canonical descriptor shape', () => {
       const ref = createBlobRef({
         data: sampleData,
         mimeType: 'image/png',
@@ -145,7 +145,7 @@ describe('BlobRef', () => {
       expect(Object.isFrozen(descriptor)).toBe(true);
     });
 
-    test('zodToJsonSchema projects blobRefSchema as the descriptor contract', () => {
+    test('zodToJsonSchema derives blobRefSchema as the descriptor contract', () => {
       expect(zodToJsonSchema(blobRefSchema)).toEqual({
         properties: {
           kind: { const: 'blob' },

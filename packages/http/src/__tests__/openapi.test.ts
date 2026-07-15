@@ -345,7 +345,7 @@ const registerResponseTests = () => {
           {
             error: 'DerivationError',
             input: { name: 'Ada' },
-            name: 'projection failed',
+            name: 'derivation failed',
           },
         ],
         implementation: noop,
@@ -362,7 +362,7 @@ const registerResponseTests = () => {
       expect(responses['500']).toEqual({ description: 'DerivationError' });
     });
 
-    test('dynamic-category error examples are not projected to a fixed response code', () => {
+    test('dynamic-category error examples are not rendered to a fixed response code', () => {
       const t = trail('entity.create', {
         examples: [
           {

@@ -10,7 +10,7 @@
  *
  * `GET /api/openapi.json` serves the management-API spec — the same
  * derivation that is committed at `openapi.json`. Errors on every route
- * project through the shared taxonomy policy.
+ * render through the shared taxonomy policy.
  */
 
 import type { ResourceOverrideMap } from '@ontrails/core';

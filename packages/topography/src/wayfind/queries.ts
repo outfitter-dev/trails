@@ -198,7 +198,7 @@ const cliRouteSchema = z.object({
   target: z.string(),
 });
 
-const cliProjectionSchema = z
+const cliDerivedSchema = z
   .object({
     path: z.array(z.string()).readonly(),
     routes: z.array(cliRouteSchema).readonly().optional(),
@@ -206,7 +206,7 @@ const cliProjectionSchema = z
   .nullable();
 
 const trailSummarySchema = entrySummarySchema.extend({
-  cli: cliProjectionSchema,
+  cli: cliDerivedSchema,
   composes: z.array(z.string()).readonly(),
   intent: z.enum(['destroy', 'read', 'write']),
   kind: z.literal('trail'),
@@ -280,7 +280,7 @@ const errorFactsCompletenessSchema = z.discriminatedUnion('status', [
   }),
 ]);
 
-const errorSurfaceProjectionSchema = z.object({
+const errorSurfaceDerivedSchema = z.object({
   category: z.enum(errorCategories),
   code: z.number(),
   name: z.string(),
@@ -288,7 +288,7 @@ const errorSurfaceProjectionSchema = z.object({
   surface: z.enum(surfaceNames),
 });
 
-const errorTaxonomyProjectionSchema = z.object({
+const errorTaxonomyDerivedSchema = z.object({
   category: z.enum(errorCategories).optional(),
   dynamicCategory: z
     .object({
@@ -298,7 +298,7 @@ const errorTaxonomyProjectionSchema = z.object({
   known: z.boolean(),
   name: z.string(),
   retryable: z.boolean().optional(),
-  surfaces: z.array(errorSurfaceProjectionSchema).readonly(),
+  surfaces: z.array(errorSurfaceDerivedSchema).readonly(),
 });
 
 const errorFactProvenanceSchema = z.object({
@@ -321,7 +321,7 @@ const errorFactSchema = z.object({
   completeness: errorFactsCompletenessSchema,
   kind: z.enum(['documented', 'handled', 'inferred', 'observed']),
   provenance: errorFactProvenanceSchema,
-  taxonomy: errorTaxonomyProjectionSchema,
+  taxonomy: errorTaxonomyDerivedSchema,
 });
 
 const trailErrorFactsSchema = z.object({
@@ -1097,13 +1097,13 @@ const contractFor = (
 const withGraph = async <TValue>(
   input: SourceInput,
   cwd: string | undefined,
-  project: (loaded: LoadedWayfinderGraph) => TValue
+  derive: (loaded: LoadedWayfinderGraph) => TValue
 ): Promise<Result<TValue, TrailsError>> => {
   const loaded = await loadGraph(input, cwd);
   if (loaded.isErr()) {
     return loaded;
   }
-  return Result.ok(project(loaded.value));
+  return Result.ok(derive(loaded.value));
 };
 
 const notFound = (kind: string, id: string): NotFoundError =>

@@ -16,7 +16,7 @@ import {
 import {
   INTERNAL_ERROR_PUBLIC_MESSAGE,
   redactErrorString,
-} from './error-projection.js';
+} from './error-rendering.js';
 
 export const surfaceNames = ['cli', 'http', 'jsonRpc', 'mcp'] as const;
 
@@ -48,7 +48,7 @@ export type SurfaceErrorMappings<T> = Record<ErrorCategory, T>;
 export type SurfaceErrorCode =
   (typeof codesByCategory)[ErrorCategory][(typeof surfaceCodeKeys)[SurfaceName]];
 
-export interface SurfaceErrorProjection {
+export interface SurfaceErrorRendering {
   readonly category: ErrorCategory;
   readonly code: SurfaceErrorCode;
   readonly message: string;
@@ -57,7 +57,7 @@ export interface SurfaceErrorProjection {
   readonly surface: SurfaceName;
 }
 
-export interface ErrorClassSurfaceProjection {
+export interface ErrorClassSurfaceRendering {
   readonly category: ErrorCategory;
   readonly code: SurfaceErrorCode;
   readonly name: string;
@@ -102,10 +102,10 @@ export const mapSurfaceError = (
 ): SurfaceErrorCode =>
   codesByCategory[error.category][surfaceCodeKeys[surface]];
 
-export const projectSurfaceError = (
+export const renderSurfaceError = (
   surface: SurfaceName,
   error: TrailsError
-): SurfaceErrorProjection => ({
+): SurfaceErrorRendering => ({
   category: error.category,
   code: mapSurfaceError(surface, error),
   message: error.message,
@@ -114,18 +114,18 @@ export const projectSurfaceError = (
   surface,
 });
 
-export const projectPublicSurfaceError = (
+export const renderPublicSurfaceError = (
   surface: SurfaceName,
   error: Error
-): SurfaceErrorProjection => {
+): SurfaceErrorRendering => {
   if (isTrailsError(error)) {
-    const projection = projectSurfaceError(surface, error);
+    const rendering = renderSurfaceError(surface, error);
     return {
-      ...projection,
+      ...rendering,
       message:
-        projection.category === 'internal'
+        rendering.category === 'internal'
           ? INTERNAL_ERROR_PUBLIC_MESSAGE
-          : redactErrorString(projection.message),
+          : redactErrorString(rendering.message),
     };
   }
 
@@ -151,15 +151,15 @@ const fixedErrorClassByName: ReadonlyMap<string, FixedErrorClassRegistryEntry> =
   );
 
 /**
- * Project a known error class name onto a surface without constructing it.
+ * Render a known error class name onto a surface without constructing it.
  *
  * Dynamic-category errors such as `RetryExhaustedError` return `undefined`
  * because their surface code depends on the wrapped runtime error.
  */
-export const projectErrorClassSurface = (
+export const renderErrorClassSurface = (
   surface: SurfaceName,
   errorName: string
-): ErrorClassSurfaceProjection | undefined => {
+): ErrorClassSurfaceRendering | undefined => {
   const entry = fixedErrorClassByName.get(errorName);
   if (entry === undefined) {
     return undefined;

@@ -86,7 +86,7 @@ await surface(app, { overlays: trailsOverlays });
 
 A scalar binding must resolve (by exact id or dotted trail-id glob) to exactly one trail; a group's expanded member union must be non-empty. Violations fail fast with a `ValidationError` naming the binding.
 
-Because `trails compile` reads the same `trailsOverlays` export, the committed `trails.lock` embeds the bindings under `overlays.surfaces` and projects the same alias routes onto each trail entry. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
+Because `trails compile` reads the same `trailsOverlays` export, the committed `trails.lock` embeds the bindings under `overlays.surfaces` and renders the same alias routes onto each trail entry. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
 
 If an alternate CLI shape needs to reshape input before it reaches the trail, that is richer than an alias. Treat it as an input mapping only if it normalizes honestly into the same authored trail input contract. If it changes behavior, permits, intent, errors, outputs, lifecycle, side effects, or hides which trail is running, it is a trail fork: author a new trail or a composing trail instead of hiding the split in CLI wiring.
 
@@ -272,7 +272,7 @@ When a trail returns `Result.err()`, the Commander adapter maps the error catego
 
 The error message is written to stderr. Non-`TrailsError` errors default to exit code 8 (internal).
 
-When the caller requested JSON or JSONL output with `--json`, `--jsonl`, `--output`, or the topo-derived environment variables, failures are also projected through the structured channel on stderr. Stdout stays reserved for successful command output, so agents can read stderr on non-zero exits without parsing text-mode messages.
+When the caller requested JSON or JSONL output with `--json`, `--jsonl`, `--output`, or the topo-derived environment variables, failures are also rendered through the structured channel on stderr. Stdout stays reserved for successful command output, so agents can read stderr on non-zero exits without parsing text-mode messages.
 
 ```json
 {
@@ -340,7 +340,7 @@ For trails with `since`/`until` date fields, the CLI surface expands shortcut st
 
 ## The Two-Level Architecture
 
-`@ontrails/cli` is framework-agnostic. It produces a `Result<CliCommand[], Error>` projection that any CLI framework can consume. The `@ontrails/commander` adapter connects that model to Commander specifically.
+`@ontrails/cli` is framework-agnostic. It produces a `Result<CliCommand[], Error>` rendering that any CLI framework can consume. The `@ontrails/commander` adapter connects that model to Commander specifically.
 
 ```typescript
 // Framework-agnostic: build the model

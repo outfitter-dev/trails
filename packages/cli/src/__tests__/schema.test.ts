@@ -30,7 +30,7 @@ const buildSchema = () => {
 };
 
 describe('deriveCliSchema', () => {
-  test('projects command routes and contracts into a schema index', () => {
+  test('renders command routes and contracts into a schema index', () => {
     const schema = buildSchema();
     const [command] = schema.commands;
 

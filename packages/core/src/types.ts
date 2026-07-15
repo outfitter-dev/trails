@@ -215,13 +215,13 @@ export const SURFACE_LAYER_NAMES_KEY = '__trails_surface_layer_names' as const;
 /**
  * Context extension key carrying per-layer runtime input.
  *
- * Surfaces (CLI, MCP, HTTP) project each typed layer's `input` schema onto
+ * Surfaces (CLI, MCP, HTTP) render each typed layer's `input` schema onto
  * their native idioms (flags, tool params, query strings). At execute time
  * the parsed values are partitioned per layer and stored under this key as
  * `Record<layerName, unknown>`. Layers that need runtime input read their
  * own slot via `ctx.extensions?.[LAYER_INPUTS_KEY]?.[layer.name]`.
  *
- * @see TRL-473 for the CLI projection contract.
+ * @see TRL-473 for the CLI derivation contract.
  */
 export const LAYER_INPUTS_KEY = '__trails_layer_inputs' as const;
 

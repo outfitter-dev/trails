@@ -2,7 +2,7 @@
  * Schema-derived store for the packlist app.
  *
  * Three versioned tables — `gear`, `pack`, `trip` — authored once and
- * projected everywhere: CRUD factory trails, reconcile trails, store-derived
+ * derived everywhere: CRUD factory trails, reconcile trails, store-derived
  * change signals, and mock fixtures for `testAll(app)`.
  *
  * The tables are `versioned: true`, so the framework manages an optimistic

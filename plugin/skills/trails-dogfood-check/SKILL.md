@@ -43,5 +43,5 @@ Report:
 - Boundary classification.
 - Runtime Result or host exception decision.
 - Any ambient cwd/config/resource drift.
-- Expected error class and projection behavior.
+- Expected error class and rendering behavior.
 - Tests or follow-ups needed before accepting the change.

@@ -247,7 +247,7 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
   through exact IDs while the unified command grammar lands. This is not
   wildcard namespace exposure and does not promote deferred queries.
 
-This means an app that imports the reusable Wayfind catalog does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator projects selected internal trails. ADR-0027 already provides the levers; wayfinding leans on them.
+This means an app that imports the reusable Wayfind catalog does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator renders selected internal trails. ADR-0027 already provides the levers; wayfinding leans on them.
 
 ### Stale-graph policy
 
@@ -334,7 +334,7 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   adapter evidence beyond the bounded adapter-kit package/conformance facts,
   semantic search, exhaustive per-trail errors, and live runtime views) move
   with their substrates, not the wayfinder. v0 ships honest about the gaps.
-- **Visibility defaults add a one-time projection step.** Apps that want
+- **Visibility defaults add a one-time rendering step.** Apps that want
   wayfinding on MCP or HTTP must opt in. The default is correct (internal),
   but the consuming app must select which trails to render.
 - **The substrate package grows.** `@ontrails/topography` now owns the
@@ -372,8 +372,8 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   endpoint waits until typed filter/list queries prove the shared predicate
   grammar. v1 supports AND-ed predicates over indexed facts, not a general
   expression language.
-- **Projection endpoint.** v0 has no projection endpoint and no projection
-  section. Derive/render doctrine is represented through `derivedFrom` on
+- **Generic derived-facts endpoint.** v0 has no generic derived-facts endpoint
+  or section. Derive/render doctrine is represented through `derivedFrom` on
   derived facts plus first-class surface facts.
 - **`wayfind.implications`.** A future rule-join query may explain likely next
   actions, but only by citing Warden rule IDs or named checklist items.

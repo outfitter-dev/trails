@@ -21,7 +21,7 @@ trails wayfind --trails --root-dir . --json
 trails wayfind <trail-id> --contract --root-dir . --json
 ```
 
-Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder reports missing or stale artifacts, when you need implementation source that Topography does not project, or when the current authority does not allow refreshing artifacts.
+Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder reports missing or stale artifacts, when you need implementation source that Topography does not derive, or when the current authority does not allow refreshing artifacts.
 
 ### 2. Design Contract First
 

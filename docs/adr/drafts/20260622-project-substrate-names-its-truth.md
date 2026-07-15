@@ -83,7 +83,7 @@ Absence of these stores must be tolerable. Cache absence means a cold rebuild. O
 
 The existing database split follows the information architecture:
 
-- topo snapshots are projected, rederivable facts and belong in the cache tier;
+- topo snapshots are derived, rederivable facts and belong in the cache tier;
 - tracing is observed runtime telemetry and belongs in the state tier.
 
 Content-addressed cache keys make worktrees and agents safe to share the same global cache. A hit happens only for byte-identical inputs, and cache entries are immutable by key. Git diff can decide what to inspect; the content hash decides what to trust.

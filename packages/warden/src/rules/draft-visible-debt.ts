@@ -63,7 +63,7 @@ const collectDraftVisibleDebtDiagnostics = (
  *
  * Severity is intentionally `warn`, not `error`. The hard rejection layer for
  * draft state leaking into established outputs is `validateEstablishedTopo` at
- * runtime — it blocks topo compile, surface projection, and lockfile writes.
+ * runtime — it blocks topo compile, surface rendering, and lockfile writes.
  * This rule surfaces the debt for human reviewers without duplicating that layer.
  */
 export const draftVisibleDebt: WardenRule = {

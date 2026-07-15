@@ -13,7 +13,7 @@ Use these artifacts together:
 | Artifact | Role |
 | --- | --- |
 | `docs/lexicon.md` | Current live vocabulary until the cutover lands. |
-| `docs/lexicon-pending.md` | Temporary heads-up for ratified v1 reset targets. |
+| `docs/lexicon.md` | Canonical live vocabulary after each completed family lands. |
 | `packages/warden/src/rules/retired-vocabulary.ts` | Typed governed vocabulary registry: family ids, forms, symbol renames, review forms, and target shape. |
 | `packages/regrade/src/downstream/vocabulary-registry.ts` | Registry-to-Regrade bridge for single-target vocabulary plans. |
 | Regrade run output | Observed ledger and report for an execution attempt. |
@@ -174,6 +174,10 @@ This is classification-first. `derive` means producing contract-owned facts from
 
 No broad rewrite is allowed for this family. The registry intentionally has a classified target and no safe rewrite forms.
 
+The TRL-1019 execution used Regrade for the 333 safe edits across 41 files and 16 governed path moves, followed by classified manual review. After the final guidance and scope fixes, the branch regenerated consolidated immutable completion evidence at `.trails/regrade/history/v1-projection-derive-render.json`: zero remaining occurrences, with explicit preserves and historical-by-policy occurrences counted, current files kept in scope, policy-classified evidence retained, and the `docs/**` teaching-surface gate green. Ordinary uses of `project` and `projects` as repository/domain nouns remain explicit preserves. A current-live verb must still classify to `derive` or `render`; for example, surface output and completion presentation render rather than project.
+
+The follow-up also exposed a cleanup constraint: repeated development runs had produced a 48 MB history artifact because immutable history participated recursively in each classified census. The blocking repair now prunes `.trails/regrade/history/` from later source scans while Warden validates it through the dedicated provenance loader. Regenerating the pre-commit evidence as a consolidated history reduced the retained artifact substantially. TRL-1020 owns any further stored-evidence cleanup without weakening committed-history provenance.
+
 ### Cleanup
 
 Execution issue: [TRL-1020](https://linear.app/outfitter/issue/TRL-1020/).
@@ -182,8 +186,8 @@ Cleanup is not another reset family. It proves the completed executions left the
 
 Cleanup must:
 
-- absorb completed rows from `docs/lexicon-pending.md` into `docs/lexicon.md`;
-- delete `docs/lexicon-pending.md` when no rows remain;
+- keep completed vocabulary in `docs/lexicon.md` (the temporary pending lexicon
+  was removed when its final row landed);
 - remove temporary Regrade/Warden scaffolding or generalize it into durable tooling;
 - regenerate Warden guide output and agent guidance;
 - confirm docs, skills, plugin guidance, release notes, and changesets match the final vocabulary.

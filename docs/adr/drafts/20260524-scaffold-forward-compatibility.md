@@ -60,7 +60,7 @@ The breadcrumb is informational in the current beta line. It records only the mi
 
 - `schemaVersion` names the breadcrumb schema.
 - `scaffoldVersion` names the `@ontrails/trails` package that created the
-  project.
+  generated app.
 - `template` names the starter selected by `trails create`.
 - `generatedAt` records when the project was generated.
 

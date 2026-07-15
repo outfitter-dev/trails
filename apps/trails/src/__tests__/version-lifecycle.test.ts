@@ -254,7 +254,7 @@ const lifecycleCommand = (path: string) => {
 };
 
 describe('trails lifecycle commands', () => {
-  test('project the settled lifecycle CLI grammar', () => {
+  test('render the settled lifecycle CLI grammar', () => {
     const revise = lifecycleCommand('revise');
     const deprecate = lifecycleCommand('deprecate');
     const doctor = lifecycleCommand('doctor');

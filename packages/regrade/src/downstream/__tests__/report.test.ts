@@ -140,7 +140,7 @@ describe('createTermRewriteClass', () => {
 });
 
 describe('wardenTermRewriteClasses', () => {
-  test('projects Warden term-rewrite metadata into Regrade classes', () => {
+  test('derives Regrade classes from Warden term-rewrite metadata', () => {
     expect(wardenTermRewriteClasses.map((cls) => cls.id)).toContain(
       'term-rewrite:no-legacy-layer-imports'
     );
@@ -303,7 +303,7 @@ describe('wardenTermRewriteClasses', () => {
     });
 
     // `no-legacy-cli-alias-export` routes through the `export-restructure`
-    // fix class (TRL-1210), so it no longer projects a term-rewrite class.
+    // fix class (TRL-1210), so it no longer derives a term-rewrite class.
     expect(report.selectedClassIds).toEqual([
       'term-rewrite:governed-symbol-residue',
       'term-rewrite:no-legacy-layer-imports',
@@ -497,7 +497,7 @@ describe('wardenTermRewriteClasses', () => {
     ]);
   });
 
-  test('projects rule-local term-rewrite metadata for project rules', () => {
+  test('derives rule-local term-rewrite metadata for project rules', () => {
     const rule = {
       check: () => [],
       description: 'Project-local term rewrite.',

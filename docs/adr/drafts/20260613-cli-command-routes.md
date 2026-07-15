@@ -21,23 +21,23 @@ linear:
 
 Dogfooding Trails against downstream CLI work exposed a real ergonomics gap. The CLI is derived from the trail graph, but real command-line tools need compatibility aliases, shorter command forms, and sometimes more than one command path that reaches the same capability.
 
-The naive answer is to add a large typed CLI projection field and make authors describe the whole command model directly. That is the wrong burden. Trails should not make developers hand-author machinery the framework can derive.
+The naive answer is to add a large typed CLI rendering field and make authors describe the whole command model directly. That is the wrong burden. Trails should not make developers hand-author machinery the framework can derive.
 
 The other naive answer is to treat every alternate command path as a new trail. That is also too blunt. Some alternate command paths are simply alternate CLI surface bindings for the same contract. If they validate into the same input schema, return the same output schema, use the same permit model, and run the same trail, they do not need a second trail just to satisfy CLI ergonomics.
 
-[ADR-0019](../0019-hierarchical-command-trees-from-trail-ids.md) already reserves this space. Trail IDs derive canonical CLI command paths by default, but a trail may override its CLI projection when derivation is wrong. Overrides must stay explicit, local, visible in the resolved graph, and must not introduce a second CLI authoring language.
+[ADR-0019](../0019-hierarchical-command-trees-from-trail-ids.md) already reserves this space. Trail IDs derive canonical CLI command paths by default, but a trail may override its CLI rendering when derivation is wrong. Overrides must stay explicit, local, visible in the resolved graph, and must not introduce a second CLI authoring language.
 
 This ADR fills that gap.
 
 ## Decision
 
-### CLI command routes are projection metadata
+### CLI command routes are rendering metadata
 
-This ADR uses **CLI command route** to mean one concrete command path that a CLI surface accepts for a trail. It is a CLI projection term, not an HTTP route.
+This ADR uses **CLI command route** to mean one concrete command path that a CLI surface accepts for a trail. It is a CLI rendering term, not an HTTP route.
 
 In the cross-surface vocabulary, CLI command routes are surface accommodations. The surface entry is the command. The command path is the CLI-local realization of an approach. A CLI alias is an alternate approach to the same trail contract.
 
-CLI command routes are projection metadata, not behavior. The operational test is:
+CLI command routes are rendering metadata, not behavior. The operational test is:
 
 > A CLI command route is valid only if it can be normalized into the same trail
 > contract without lying.
@@ -74,9 +74,9 @@ wayfind search
 
 The author writes nothing unless derivation is wrong or compatibility requires an extra command path.
 
-### Canonical overrides are projection overrides
+### Canonical overrides are rendering overrides
 
-When the derived command path is wrong, the trail may override only the CLI projection.
+When the derived command path is wrong, the trail may override only the CLI rendering.
 
 ```ts
 trail('wayfind.search', {
@@ -87,7 +87,7 @@ trail('wayfind.search', {
 });
 ```
 
-This does not create a new surface contract. It changes the projected command path for the same trail.
+This does not create a new surface contract. It changes the rendered command path for the same trail.
 
 ### String aliases are sibling leaf aliases
 
@@ -173,7 +173,7 @@ await surface(app, {
 });
 ```
 
-The surface owns the authoring context, but the aliases do not remain private to the adapter. They must flow into the resolved CLI projection so schema output, Wayfinder, Warden, and agents can inspect the real CLI contract.
+The surface owns the authoring context, but the aliases do not remain private to the adapter. They must flow into the resolved CLI rendering so schema output, Wayfinder, Warden, and agents can inspect the real CLI contract.
 
 ### Trails do not carry breadcrumbs for surface-owned aliases
 
@@ -183,7 +183,7 @@ The framework solves author awareness through inspection:
 
 - Wayfinder shows all command paths for a trail.
 - Schema output shows canonical path, aliases, source, and target.
-- Topography serializes trail-owned CLI projection facts, and may include
+- Topography serializes trail-owned CLI-derived facts, and may include
 surface-owned aliases when the deriving surface provides that context.
 - Warden validates alias target existence, collisions, and stale migration
 paths.
@@ -196,9 +196,9 @@ An alternate command path becomes a trail fork when it would change intent, perm
 
 Trail forks are not represented as CLI route metadata. They become distinct trails, composing trails, or surface trailheads that preserve member identity.
 
-### Resolved CLI projections record the route story
+### Resolved CLI renderings record the route story
 
-The authored API stays terse. The resolved projection carries the full command route story.
+The authored API stays terse. The resolved rendering carries the full command route story.
 
 ```ts
 {
@@ -224,7 +224,7 @@ The authored API stays terse. The resolved projection carries the full command r
 }
 ```
 
-The resolved projection is the surface truth. Commander materializes it. The graph explains it.
+The resolved rendering is the surface truth. Commander materializes it. The graph explains it.
 
 ### Conditional input mappings are deferred
 
@@ -251,7 +251,7 @@ The common case remains no CLI metadata. The first authored escape hatch is a si
 
 ### The CLI surface remains a peer surface
 
-CLI command routes do not make CLI behavior more authoritative than MCP or HTTP. They are surface projection facts over the same trail contract.
+CLI command routes do not make CLI behavior more authoritative than MCP or HTTP. They are surface rendering facts over the same trail contract.
 
 ### Warden has a clear review test
 

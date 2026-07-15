@@ -1,5 +1,5 @@
 /**
- * Warden projection for shared adapter readiness checks.
+ * Warden rendering for shared adapter readiness checks.
  *
  * Adapter facts stay in @ontrails/adapter-kit. Warden only maps those facts
  * into governance diagnostics and severity.

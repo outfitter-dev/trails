@@ -53,7 +53,7 @@ For Trails graph-navigation questions, use Wayfinder before reconstructing topo 
 
 Use the shared glob vocabulary precisely. Trail-id selectors use dotted globs (`entity.*`, `entity.**`, `entity.????`). Warden and Regrade scope controls use root-relative path globs through the stable `PathScope` shape: `include`, `exclude`, and `extensions`. Regrade vocabulary plans may additionally declare `policyClassified` protected paths and census-derived `teachingSurfaces`; these extend migration evidence without changing `PathScope`. Do not reintroduce Regrade `ignore` or Warden `jurisdiction` naming.
 
-Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source text that Topography does not project, or when writing new artifacts would violate the current work authority. When you fall back, say why so the next agent does not silently repeat the same graph reconstruction.
+Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source text that Topography does not derive, or when writing new artifacts would violate the current work authority. When you fall back, say why so the next agent does not silently repeat the same graph reconstruction.
 
 ## Lexicon
 
@@ -70,7 +70,7 @@ Use the project language consistently:
 
 `mount` is reserved for cross-app composition. See `docs/lexicon.md` for the full lexicon.
 
-> **Vocabulary is mid-cutover toward the v1 reset.** Describe current code with current-live terms; see `docs/lexicon-pending.md` for terms ratified to change, and do not adopt the targets early.
+The v1 vocabulary families are live. Use `derive` for contract-owned fact production and `render` for surface presentation. Preserve retired terms only in explicitly historical release, migration, or decision evidence.
 
 ## Trail Rules
 
@@ -93,7 +93,7 @@ Use the project language consistently:
 
 ## Surface Accommodations
 
-Land the capability in the trail and accommodate the surface in projection. Surface accommodations include aliases, future input mappings, and trailheads. They are valid only while the same authored trail contract remains true.
+Land the capability in the trail and accommodate the surface in rendering. Surface accommodations include aliases, future input mappings, and trailheads. They are valid only while the same authored trail contract remains true.
 
 - Aliases and input mappings live on the approach axis: many approaches may converge on one trail, but they must normalize without lying.
 - Trailheads live on the entry axis: one grouped entry may gather several trails, but it must preserve selected member trail identity at invocation and response time.
@@ -137,11 +137,11 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `example-valid` (error, source/source-static, external): Trail examples remain valid against their authored schema.
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
-- `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface projections.
+- `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface renderings.
 - `no-legacy-cli-alias-export` (error, source/source-static, external): Legacy app-module CLI alias exports (cliAliases, trailsCliAliases) removed in the TRL-1207 surfaces-overlay cutover do not reappear in committed source.
 - `no-legacy-layer-imports` (error, source/source-static, external): Legacy layer exports removed across TRL-475/TRL-476 (authLayer, autoIterateLayer, dateShortcutsLayer) do not reappear in committed source.
 - `no-top-level-surface` (warn, source/source-static, external): Topo export modules do not open surfaces at module top level.
-- `owner-projection-parity` (error, source/source-static, internal): Framework projections stay aligned with owner exports.
+- `owner-render-parity` (error, source/source-static, internal): Framework renderings stay aligned with owner exports.
 - `prefer-schema-inference` (warn, all/source-static, advisory): Trail schemas should be inferred unless overrides add meaning.
 - `public-export-example-coverage` (error, source/source-static, repo-local): Public API barrel exports carry leading @example TSDoc coverage.
 - `public-internal-deep-imports` (error, project/project-static, internal): Cross-package imports stay on package-owned public exports.
@@ -160,7 +160,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
 - `governed-symbol-residue` (error, source/source-static, external): Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers.
 - `governed-vocabulary-permutation-watch` (warn, all/project-static, advisory): Committed Regrade history keeps unknown governed-stem permutations visible until they are classified.
-- `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
+- `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker derivation subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.
 - `unmaterialized-activation-source` (warn, topo/topo-aware, external): Activation sources have an available runtime materializer before runtime delivery is assumed.
@@ -171,7 +171,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
 - `duplicate-public-contract` (warn, topo/topo-aware, external): Public surface trails should not expose duplicate normalized contract facts.
-- `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails.
+- `library-render-coherence` (error, topo/topo-aware, external): Resolved derived library exports are collision-free and target existing trails.
 - `surface-overlay-coherence` (warn, topo/topo-aware, external): Surface overlay bindings resolve to real trails without group overlap or canonical-entry shadowing.
 - `surface-trailhead-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
@@ -222,18 +222,18 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `governed-symbol-residue`: Require committed Regrade evidence before completing a governed vocabulary migration.
 - `governed-vocabulary-permutation-watch`: Classify unknown governed-stem permutations recorded by committed Regrade history.
-- `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.
+- `library-render-coherence`: Keep resolved derived library exports collision-free and attached to one trail contract.
 - `no-throw-in-implementation`: Convert thrown failures in implementations into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
 - `permit-governance`: Make destructive trail authorization visible on the trail contract.
 - `prefer-schema-inference`: Let schemas remain the owner for field metadata unless an override adds new information.
-- `public-output-schema`: Make public surface result contracts explicit before MCP/HTTP projection.
+- `public-output-schema`: Make public surface result contracts explicit before MCP/HTTP rendering.
 - `resource-declarations`: Keep infrastructure dependencies declared on the trail contract.
 - `resource-exists`: Make declared resources resolve to authored resource definitions.
 - `resource-mock-coverage`: Make each resource declare a test mock or an explicit unmockable reason.
 - `static-resource-accessor-preference`: Use statically scoped resource helpers when the resource definition is already available.
 - `surface-overlay-coherence`: Keep surface overlay bindings pointed at real trails without shadowing canonical surface entries.
-- `surface-trailhead-coherence`: Keep trailhead maps reviewable before they reach MCP projection.
+- `surface-trailhead-coherence`: Keep trailhead maps reviewable before they reach MCP rendering.
 - `trail-fork-coaching`: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 - `trailhead-override-divergence`: Keep call-site MCP trailhead overrides aligned with the authored overlay default.
 

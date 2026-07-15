@@ -5,8 +5,8 @@ import {
   matchWebhookPath,
   NotFoundError,
   parseWebhookPathParams,
-  projectErrorDiagnostics,
-  projectPublicSurfaceError,
+  renderErrorDiagnostics,
+  renderPublicSurfaceError,
   ValidationError,
 } from '@ontrails/core';
 import type { BlobRef, Topo } from '@ontrails/core';
@@ -300,16 +300,16 @@ const json = (body: Record<string, unknown>, status: number): Response =>
   Response.json(body, { status });
 
 const mapErrorResponse = (error: Error): Response => {
-  const projection = projectPublicSurfaceError('http', error);
+  const rendering = renderPublicSurfaceError('http', error);
   return json(
     {
       error: {
-        category: projection.category,
-        code: projection.name,
-        message: projection.message,
+        category: rendering.category,
+        code: rendering.name,
+        message: rendering.message,
       },
     },
-    projection.code
+    rendering.code
   );
 };
 
@@ -332,7 +332,7 @@ const reportInternalDiagnostics = (error: Error, request: Request): void => {
     safeRequestId === undefined
       ? '[ontrails:http/fetch] Internal error'
       : `[ontrails:http/fetch] Internal error (${safeRequestId})`;
-  console.error(label, projectErrorDiagnostics(error));
+  console.error(label, renderErrorDiagnostics(error));
 };
 
 interface ResultLike {

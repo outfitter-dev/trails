@@ -14,14 +14,14 @@ import {
   collectAttachedTypedLayers,
   createResources,
   createTrailContext,
-  deriveSurfaceTrailVersionProjections,
+  deriveSurfaceTrailVersionRenderings,
   executeTrail,
   filterSurfaceTrails,
   getActivationWherePredicate,
   getTraceSink,
   LAYER_FIELD_RESERVED_NAMES,
   matchesTrailPattern,
-  projectLayerFieldName,
+  renderLayerFieldName,
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   validateInput,
@@ -42,7 +42,7 @@ import type {
   BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
-  SurfaceTrailVersionProjection,
+  SurfaceTrailVersionRendering,
   TraceContext,
   Topo,
   Trail,
@@ -99,9 +99,9 @@ export interface HttpRouteDefinition {
   readonly trailId: string;
   readonly inputSource: InputSource;
   readonly trail: Trail<unknown, unknown, unknown>;
-  readonly versions?: readonly SurfaceTrailVersionProjection[] | undefined;
+  readonly versions?: readonly SurfaceTrailVersionRendering[] | undefined;
   /**
-   * JSON Schema for the merged request input (trail input + projected layer
+   * JSON Schema for the merged request input (trail input + rendered layer
    * input fields). Empty/undefined when the trail declares no input and no
    * typed layer is attached. Surface adapters and OpenAPI generators read
    * this to build the published request shape.
@@ -110,7 +110,7 @@ export interface HttpRouteDefinition {
    */
   readonly inputSchema?: Record<string, unknown> | undefined;
   /**
-   * Per-layer projections describing the parameter names the route accepts
+   * Per-layer renderings describing the parameter names the route accepts
    * for typed layers and the routing target back onto each layer's input
    * schema. Empty when the trail has no typed layer attached.
    *
@@ -121,7 +121,7 @@ export interface HttpRouteDefinition {
    *
    * @see TRL-474.
    */
-  readonly layerInputProjections?: readonly HttpLayerInputProjection[];
+  readonly layerInputRenderings?: readonly HttpLayerInputRendering[];
   readonly parseWebhookInput?:
     | ((rawPayload: unknown) => Result<unknown, Error>)
     | undefined;
@@ -379,11 +379,11 @@ const withWebhookActivation = (
 };
 
 // ---------------------------------------------------------------------------
-// Layer input projection (TRL-474)
+// Layer input rendering (TRL-474)
 // ---------------------------------------------------------------------------
 
 /**
- * Per-layer projection onto an HTTP route's request input.
+ * Per-layer rendering onto an HTTP route's request input.
  *
  * `routing` maps the parameter name a consumer sees on the request (a query
  * key for `intent: 'read'`, a body field for write/destroy) to the authored
@@ -391,7 +391,7 @@ const withWebhookActivation = (
  * two are the same; on collision the parameter name carries the layer
  * prefix while the routing target preserves the original field.
  */
-export interface HttpLayerInputProjection {
+export interface HttpLayerInputRendering {
   readonly layerName: string;
   /** parameterName → originalFieldName for this layer. */
   readonly routing: ReadonlyMap<string, string>;
@@ -429,10 +429,10 @@ const readRequiredFields = (value: unknown): readonly string[] => {
     : [];
 };
 
-const projectHttpLayerInput = (
+const renderHttpLayerInput = (
   layer: Layer,
   claimedNames: Set<string>
-): HttpLayerInputProjection => {
+): HttpLayerInputRendering => {
   if (layer.input === undefined) {
     return {
       layerName: layer.name,
@@ -464,7 +464,7 @@ const projectHttpLayerInput = (
     layerSchema.properties
   )) {
     const renamed = buildHttpRenameTarget(layer.name, fieldName);
-    const projection = projectLayerFieldName(
+    const rendering = renderLayerFieldName(
       layer.name,
       fieldName,
       fieldName,
@@ -472,28 +472,28 @@ const projectHttpLayerInput = (
       claimedNames,
       LAYER_FIELD_RESERVED_NAMES
     );
-    properties[projection.claimedName] = fieldSchema;
+    properties[rendering.claimedName] = fieldSchema;
     if (requiredSet.has(fieldName)) {
-      required.push(projection.claimedName);
+      required.push(rendering.claimedName);
     }
-    routing.set(projection.claimedName, projection.routingTarget);
+    routing.set(rendering.claimedName, rendering.routingTarget);
   }
 
   return { layerName: layer.name, properties, required, routing };
 };
 
-interface HttpInputProjection {
+interface HttpInputRendering {
   readonly schema: Record<string, unknown> | undefined;
-  readonly projections: readonly HttpLayerInputProjection[];
+  readonly renderings: readonly HttpLayerInputRendering[];
 }
 
-const projectHttpInputSchema = (
+const renderHttpInputSchema = (
   trail: Trail<unknown, unknown, unknown>,
   attachedLayers: readonly AttachedTypedLayer[]
-): HttpInputProjection => {
+): HttpInputRendering => {
   const baseSchema = zodToJsonSchema(trail.input);
   if (attachedLayers.length === 0) {
-    return { projections: [], schema: baseSchema };
+    return { renderings: [], schema: baseSchema };
   }
 
   const baseProperties =
@@ -513,20 +513,20 @@ const projectHttpInputSchema = (
     ...baseProperties,
   };
   const mergedRequired = [...baseRequired];
-  const projections: HttpLayerInputProjection[] = [];
+  const renderings: HttpLayerInputRendering[] = [];
 
   for (const { layer } of attachedLayers) {
-    const projection = projectHttpLayerInput(layer, claimedNames);
-    if (projection.routing.size === 0) {
+    const rendering = renderHttpLayerInput(layer, claimedNames);
+    if (rendering.routing.size === 0) {
       continue;
     }
-    Object.assign(mergedProperties, projection.properties);
-    mergedRequired.push(...projection.required);
-    projections.push(projection);
+    Object.assign(mergedProperties, rendering.properties);
+    mergedRequired.push(...rendering.required);
+    renderings.push(rendering);
   }
 
-  if (projections.length === 0) {
-    return { projections: [], schema: baseSchema };
+  if (renderings.length === 0) {
+    return { renderings: [], schema: baseSchema };
   }
 
   const mergedSchema: Record<string, unknown> = isJsonObjectSchema(baseSchema)
@@ -538,7 +538,7 @@ const projectHttpInputSchema = (
     delete mergedSchema['required'];
   }
 
-  return { projections, schema: mergedSchema };
+  return { renderings, schema: mergedSchema };
 };
 
 const mergeHttpInputSchemas = (
@@ -644,28 +644,28 @@ const splitHttpSurfaceVersion = (
  * Partition a parsed request input into the trail input plus per-layer
  * inputs, using each layer's routing table.
  *
- * Layer-projected parameter names are stripped from the trail input so the
+ * Layer-rendered parameter names are stripped from the trail input so the
  * trail's schema validation only ever sees its own fields. A layer that
  * received no parameters is omitted from `layerInputs` so consumers can
  * cleanly assert which layers were activated by the request.
  */
 const partitionHttpInput = (
   input: unknown,
-  projections: readonly HttpLayerInputProjection[]
+  renderings: readonly HttpLayerInputRendering[]
 ): {
   readonly trailInput: unknown;
   readonly layerInputs: Record<string, unknown>;
 } => {
-  if (projections.length === 0 || !isJsonObjectSchema(input)) {
+  if (renderings.length === 0 || !isJsonObjectSchema(input)) {
     return { layerInputs: {}, trailInput: input };
   }
   const record = input as Record<string, unknown>;
   const claimedKeys = new Set<string>();
   const layerInputs: Record<string, unknown> = {};
-  for (const projection of projections) {
+  for (const rendering of renderings) {
     const layerInput: Record<string, unknown> = {};
     let received = false;
-    for (const [paramName, fieldName] of projection.routing) {
+    for (const [paramName, fieldName] of rendering.routing) {
       claimedKeys.add(paramName);
       const value = record[paramName];
       if (value === undefined) {
@@ -675,7 +675,7 @@ const partitionHttpInput = (
       received = true;
     }
     if (received) {
-      layerInputs[projection.layerName] = layerInput;
+      layerInputs[rendering.layerName] = layerInput;
     }
   }
   const trailInput: Record<string, unknown> = {};
@@ -704,7 +704,7 @@ const createExecute =
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: DeriveHttpRoutesOptions,
-    layerProjections: readonly HttpLayerInputProjection[]
+    layerRenderings: readonly HttpLayerInputRendering[]
   ): HttpRouteDefinition['execute'] =>
   async (input, requestId, abortSignal, request) => {
     const versionedInput = splitHttpSurfaceVersion(
@@ -714,7 +714,7 @@ const createExecute =
     );
     const { trailInput, layerInputs } = partitionHttpInput(
       versionedInput.input,
-      layerProjections
+      layerRenderings
     );
     const permitResolution = await resolveHttpPermit(
       options,
@@ -767,7 +767,7 @@ const createWebhookConsumerExecute =
     source: WebhookSource,
     layers: readonly Layer[],
     options: DeriveHttpRoutesOptions,
-    layerProjections: readonly HttpLayerInputProjection[]
+    layerRenderings: readonly HttpLayerInputRendering[]
   ): WebhookConsumerExecute =>
   async (input, requestId, abortSignal, request, activationFireId) => {
     const predicate = getActivationWherePredicate(activationEntry.where);
@@ -804,7 +804,7 @@ const createWebhookConsumerExecute =
     );
     const { trailInput, layerInputs } = partitionHttpInput(
       versionedInput.input,
-      layerProjections
+      layerRenderings
     );
     const permitResolution = await resolveHttpPermit(
       options,
@@ -919,22 +919,22 @@ const buildRoute = (
     trail,
     options.layers
   );
-  const inputProjection = projectHttpInputSchema(trail, attachedLayers);
-  const inputSchema = addVersionInputSchema(trail, inputProjection.schema);
-  const versions = deriveSurfaceTrailVersionProjections(trail);
+  const inputRendering = renderHttpInputSchema(trail, attachedLayers);
+  const inputSchema = addVersionInputSchema(trail, inputRendering.schema);
+  const versions = deriveSurfaceTrailVersionRenderings(trail);
   return {
     execute: createExecute(
       graph,
       trail,
       layers,
       options,
-      inputProjection.projections
+      inputRendering.renderings
     ),
     ...(inputSchema === undefined ? {} : { inputSchema }),
     inputSource: deriveHttpInputSource(method),
-    ...(inputProjection.projections.length === 0
+    ...(inputRendering.renderings.length === 0
       ? {}
-      : { layerInputProjections: inputProjection.projections }),
+      : { layerInputRenderings: inputRendering.renderings }),
     method,
     path,
     trail,
@@ -1095,9 +1095,9 @@ const buildWebhookRoute = (
     trail,
     options.layers
   );
-  const inputProjection = projectHttpInputSchema(trail, attachedLayers);
-  const inputSchema = addVersionInputSchema(trail, inputProjection.schema);
-  const versions = deriveSurfaceTrailVersionProjections(trail);
+  const inputRendering = renderHttpInputSchema(trail, attachedLayers);
+  const inputSchema = addVersionInputSchema(trail, inputRendering.schema);
+  const versions = deriveSurfaceTrailVersionRenderings(trail);
   const consumerExecute = createWebhookConsumerExecute(
     graph,
     trail,
@@ -1105,7 +1105,7 @@ const buildWebhookRoute = (
     source.value,
     layers,
     options,
-    inputProjection.projections
+    inputRendering.renderings
   );
   const consumerInvalidRecorder = createWebhookInvalidRecorder(
     graph,
@@ -1118,9 +1118,9 @@ const buildWebhookRoute = (
     execute: createWebhookExecute(consumerExecute),
     ...(inputSchema === undefined ? {} : { inputSchema }),
     inputSource: 'webhook',
-    ...(inputProjection.projections.length === 0
+    ...(inputRendering.renderings.length === 0
       ? {}
-      : { layerInputProjections: inputProjection.projections }),
+      : { layerInputRenderings: inputRendering.renderings }),
     method: source.value.method,
     parseWebhookInput: createWebhookInputParser(source.value),
     path: normalizeSourcePath(basePath, source.value.path),
@@ -1158,7 +1158,7 @@ const isSameWebhookSourceLocation = (
 
 /**
  * Two webhook source routes can only merge when they declare the same
- * verifier identity. Reference equality on `verify` matches the projection
+ * verifier identity. Reference equality on `verify` matches the rendering
  * model used elsewhere — a shared source object always passes, while two
  * separately-declared verifier functions are treated as distinct policies
  * even when their bodies look equivalent.
@@ -1286,9 +1286,9 @@ const mergeWebhookRoutes = (
     [WEBHOOK_CONSUMERS]: consumers,
     [WEBHOOK_INVALID_RECORDERS]: recorders,
     inputSchema: mergeHttpInputSchemas(existing.inputSchema, route.inputSchema),
-    layerInputProjections: [
-      ...(existing.layerInputProjections ?? []),
-      ...(route.layerInputProjections ?? []),
+    layerInputRenderings: [
+      ...(existing.layerInputRenderings ?? []),
+      ...(route.layerInputRenderings ?? []),
     ],
     ...(recordWebhookInvalidFanOut === undefined
       ? {}

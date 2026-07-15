@@ -18,7 +18,7 @@ import {
   getTraceSink,
   isTrailsError,
   matchesTrailPattern,
-  projectActivationSourceDeclaration,
+  deriveActivationSourceFacts,
   resource,
   run,
   traceContextFromRecord,
@@ -402,7 +402,7 @@ const collectQueueConsumers = (
 
 const queueInputContractSignature = (source: QueueSource): string =>
   JSON.stringify(
-    projectActivationSourceDeclaration(source)['parseOutputSchema'] ?? null
+    deriveActivationSourceFacts(source)['parseOutputSchema'] ?? null
   );
 
 const assertQueueSourceCompatibility = (

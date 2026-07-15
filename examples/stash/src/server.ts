@@ -1,7 +1,7 @@
 /**
  * HTTP app builder.
  *
- * `createApp` projects every public trail as a route, and `file.raw`'s
+ * `createApp` renders every public trail as a route, and `file.raw`'s
  * `blobRefSchema` output is streamed as real bytes with its `mimeType` as
  * the Content-Type — the framework derives byte serving from the trail
  * contract, so the app mounts nothing by hand.

@@ -1623,7 +1623,7 @@ describe('validateEstablishedTopo', () => {
     expect(issues[0]?.rule).toBe('signal-fire-exists');
   });
 
-  test('allows signal compatibility issues outside projection checks', () => {
+  test('allows signal compatibility issues outside derivation checks', () => {
     const app = topo('app', {
       consumer: trail('order.consume', {
         implementation: noop,
@@ -1647,7 +1647,7 @@ describe('validateEstablishedTopo', () => {
     expect(established.isOk()).toBe(true);
   });
 
-  test('blocks incompatible queue payloads from established projections', () => {
+  test('blocks incompatible queue payloads from established derivations', () => {
     const app = topo('app', {
       consumer: trail('job.consume', {
         implementation: noop,
@@ -1776,7 +1776,7 @@ describe('validateEstablishedTopo', () => {
     expect(issues[0]?.message).toContain('entity.consume');
   });
 
-  test('allows authoring-only example issues outside projection checks', () => {
+  test('allows authoring-only example issues outside derivation checks', () => {
     const app = topo('app', {
       show: mockTrail('entity.show', {
         examples: [

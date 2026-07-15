@@ -1,7 +1,7 @@
 /**
  * The fixture topo, assembled. Imports the trail/resource/signal namespace and
  * registers it under one topo, mirroring the scaffold's `topo(name, ...modules)`
- * shape. Projection and parity tests derive against `fixtureApp`.
+ * shape. Rendering and parity tests derive against `fixtureApp`.
  */
 import { topo } from '@ontrails/core';
 

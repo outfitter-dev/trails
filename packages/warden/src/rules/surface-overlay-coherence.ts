@@ -147,7 +147,7 @@ const cliCollisionDiagnostics = (
       routeByName.set(segment, { kind: 'canonical', trailId: entry.id });
     }
     for (const route of entry.cli?.routes ?? []) {
-      // Surface-sourced alias routes are the projections of the overlay
+      // Surface-sourced alias routes are the renderings of the overlay
       // bindings themselves (TRL-1207), so a binding can never "shadow"
       // one — only canonical paths and trail-owned aliases are real
       // entries a binding name could collide with.

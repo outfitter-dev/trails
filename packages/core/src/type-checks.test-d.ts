@@ -353,13 +353,13 @@ export type TrailVersionAllowed = [AssertTrailVersionAllowed] extends [true]
   ? 'pass'
   : never;
 
-type AssertTrailMarkerProjected = TrailSpec<
+type AssertTrailMarkerDerived = TrailSpec<
   { name: string },
   { id: string }
 >['marker'] extends never | undefined
   ? true
   : false;
-export type TrailMarkerProjected = [AssertTrailMarkerProjected] extends [true]
+export type TrailMarkerDerived = [AssertTrailMarkerDerived] extends [true]
   ? 'pass'
   : never;
 
@@ -494,7 +494,7 @@ type RevisionTranspose = NonNullable<
   >['transpose']
 >;
 
-type AssertRevisionMarkerProjected = TrailVersionRevisionEntry<
+type AssertRevisionMarkerDerived = TrailVersionRevisionEntry<
   RevisionInput,
   RevisionOutput,
   CurrentInput,
@@ -502,9 +502,7 @@ type AssertRevisionMarkerProjected = TrailVersionRevisionEntry<
 >['marker'] extends never | undefined
   ? true
   : false;
-export type RevisionMarkerProjected = [AssertRevisionMarkerProjected] extends [
-  true,
-]
+export type RevisionMarkerDerived = [AssertRevisionMarkerDerived] extends [true]
   ? 'pass'
   : never;
 

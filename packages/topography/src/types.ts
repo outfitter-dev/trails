@@ -173,7 +173,7 @@ export interface TopoGraphLibraryCollision {
   readonly trailIds: readonly string[];
 }
 
-export interface TopoGraphLibraryProjection {
+export interface TopoGraphLibraryDerived {
   readonly app: string;
   readonly collisions: readonly TopoGraphLibraryCollision[];
   readonly excluded: readonly TopoGraphLibraryExclusion[];
@@ -278,7 +278,7 @@ export interface TopoGraph {
   readonly entries: readonly TopoGraphEntry[];
   readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
   readonly forces?: readonly TopoGraphForceEntry[] | undefined;
-  readonly library?: TopoGraphLibraryProjection | undefined;
+  readonly library?: TopoGraphLibraryDerived | undefined;
   /**
    * Namespaced fact overlays contributed by registered overlay contributions
    * (adapters). Unknown namespaces are preserved verbatim by every reader
@@ -406,7 +406,7 @@ const topoGraphLibraryCollisionSchema = z
   })
   .strict();
 
-export const topoGraphLibraryProjectionSchema = z
+export const topoGraphLibraryDerivedSchema = z
   .object({
     app: z.string(),
     collisions: z.array(topoGraphLibraryCollisionSchema),
@@ -661,7 +661,7 @@ export const topoGraphSchema = z
     entries: z.array(topoGraphEntrySchema),
     forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string().optional(),
-    library: topoGraphLibraryProjectionSchema.optional(),
+    library: topoGraphLibraryDerivedSchema.optional(),
     overlays: z.record(z.string(), z.unknown()).optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
     trailheads: z.array(topoGraphTrailheadEntrySchema).optional(),

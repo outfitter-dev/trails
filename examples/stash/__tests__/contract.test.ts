@@ -1,6 +1,6 @@
 /**
  * The one-liner contract suite: topo validation, every example, output
- * contracts, detours, and CLI/MCP projection builds — with the mocked db.
+ * contracts, detours, and CLI/MCP rendering builds — with the mocked db.
  */
 
 import { testAllEstablished } from '@ontrails/testing/established';

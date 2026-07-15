@@ -8,7 +8,7 @@ import {
 } from '../guide.js';
 
 describe('warden guide manifest', () => {
-  test('projects live Warden rule metadata into a deterministic manifest', () => {
+  test('renders live Warden rule metadata into a deterministic manifest', () => {
     const manifest = buildWardenGuideManifest();
     const ids = manifest.rules.map((rule) => rule.id);
 
@@ -44,7 +44,7 @@ describe('warden guide manifest', () => {
     expect(markdown).toContain('- Docs: [Trail Rules](AGENTS.md#trail-rules)');
   });
 
-  test('projects Regrade-first governed transition guidance', () => {
+  test('renders Regrade-first governed transition guidance', () => {
     const rule = buildWardenGuideManifest().rules.find(
       (candidate) => candidate.id === 'governed-symbol-residue'
     );
@@ -86,8 +86,8 @@ describe('warden guide manifest', () => {
     expect(parsed.rules.at(-1)).not.toHaveProperty('category');
   });
 
-  test('projects rule fix capability faithfully (TRL-831/832)', () => {
-    // The fix field projects exactly the rules that declare a capability.
+  test('renders rule fix capability faithfully (TRL-831/832)', () => {
+    // The fix field renders exactly the rules that declare a capability.
     // no-legacy-layer-imports is the first fixable rule (TRL-832): a
     // review-required term-rewrite. Rules without a capability omit the field.
     const manifest = buildWardenGuideManifest();

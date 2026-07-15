@@ -4,7 +4,7 @@ import * as source from '@ontrails/source';
 import type {
   ArrayExpressionNode,
   AssignmentPatternNode,
-  AstFieldProjection,
+  AstFieldView,
   AstNode,
   AstParentContext,
   AstParseDiagnostic,
@@ -161,7 +161,7 @@ const expectedRuntimeExportKeys = [
 interface SourceTypeExportContract {
   readonly ArrayExpressionNode: ArrayExpressionNode;
   readonly AssignmentPatternNode: AssignmentPatternNode;
-  readonly AstFieldProjection: AstFieldProjection;
+  readonly AstFieldView: AstFieldView;
   readonly AstNode: AstNode;
   readonly AstParentContext: AstParentContext;
   readonly AstParseDiagnostic: AstParseDiagnostic;

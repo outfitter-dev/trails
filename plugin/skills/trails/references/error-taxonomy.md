@@ -39,7 +39,7 @@ The taxonomy has 17 fixed-category classes across 10 categories, plus the dynami
 ### internal (exit 8, HTTP 500)
 
 - **InternalError** — Unexpected failure. Catch-all for bugs. `new InternalError('unexpected null in pipeline')`
-- **DerivationError** — Framework or projection derivation failure. `new DerivationError('could not derive CLI fields from schema')`
+- **DerivationError** — Framework or rendering derivation failure. `new DerivationError('could not derive CLI fields from schema')`
 - **RecoverableCompletionError** — Internal completion failure where recovery may still run before the final result is reported. `new RecoverableCompletionError('trace sink flush failed')`
 - **AssertionError** — Invariant violation. `new AssertionError('items array must not be empty after filter')`
 
@@ -101,7 +101,7 @@ if (isRetryable(error)) {
 
 ## Serialization
 
-Errors serialize cleanly for logging, surface projection, and persistence:
+Errors serialize cleanly for logging, surface rendering, and persistence:
 
 ```typescript
 import { serializeError, deserializeError } from '@ontrails/core';

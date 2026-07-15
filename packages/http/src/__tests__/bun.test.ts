@@ -349,7 +349,7 @@ describe('@ontrails/http/bun', () => {
     ).toHaveLength(2);
   });
 
-  test('maps Bun onError failures through the shared error projection', async () => {
+  test('maps Bun onError failures through the shared error rendering', async () => {
     const app = createApp(topo('bun-api', { genericErrorTrail }));
 
     const response = await app.onError(new Error('database password=secret'));

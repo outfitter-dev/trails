@@ -18,14 +18,14 @@ import {
 import type { AstNode } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
-const RULE_NAME = 'owner-projection-parity';
+const RULE_NAME = 'owner-render-parity';
 
-const HTTP_METHOD_PROJECTION_PATH = resolve(
+const HTTP_METHOD_DERIVATION_PATH = resolve(
   fileURLToPath(new URL('../../../http/src/method.ts', import.meta.url))
 );
 
 const isTargetFile = (filePath: string): boolean =>
-  resolve(filePath) === HTTP_METHOD_PROJECTION_PATH;
+  resolve(filePath) === HTTP_METHOD_DERIVATION_PATH;
 
 const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
   let current = node;
@@ -44,13 +44,13 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
   return current;
 };
 
-interface ProjectionMap {
+interface IntentKeyMap {
   readonly keys: ReadonlySet<string>;
   readonly node: AstNode;
 }
 
-const findHttpMethodByIntentMap = (ast: AstNode): ProjectionMap | null => {
-  let found: ProjectionMap | null = null;
+const findHttpMethodByIntentMap = (ast: AstNode): IntentKeyMap | null => {
+  let found: IntentKeyMap | null = null;
 
   walk(ast, (node) => {
     if (found || node.type !== 'VariableDeclarator') {
@@ -89,16 +89,16 @@ const findHttpMethodByIntentMap = (ast: AstNode): ProjectionMap | null => {
 const buildMessage = (missing: string[], extra: string[]): string => {
   const details = [
     missing.length > 0 ? `missing owner intents: ${missing.join(', ')}` : '',
-    extra.length > 0 ? `unknown projection keys: ${extra.join(', ')}` : '',
+    extra.length > 0 ? `unknown intentKeyMap keys: ${extra.join(', ')}` : '',
   ].filter(Boolean);
 
   return [
-    'owner-projection-parity: httpMethodByIntent must cover the core intentValues owner vocabulary.',
+    'owner-render-parity: httpMethodByIntent must cover the core intentValues owner vocabulary.',
     ...details,
   ].join(' ');
 };
 
-export const ownerProjectionParity: WardenRule = {
+export const ownerRenderParity: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (!isTargetFile(filePath)) {
       return [];
@@ -109,35 +109,35 @@ export const ownerProjectionParity: WardenRule = {
       return [];
     }
 
-    const projection = findHttpMethodByIntentMap(ast);
+    const intentKeyMap = findHttpMethodByIntentMap(ast);
     const ownerKeys = new Set<string>(intentValues);
-    const projectionKeys = projection?.keys ?? new Set<string>();
+    const derivedKeys = intentKeyMap?.keys ?? new Set<string>();
     const missing = [...ownerKeys]
-      .filter((key) => !projectionKeys.has(key))
+      .filter((key) => !derivedKeys.has(key))
       .toSorted();
-    const extra = [...projectionKeys]
+    const extra = [...derivedKeys]
       .filter((key) => !ownerKeys.has(key))
       .toSorted();
 
-    if (projection && missing.length === 0 && extra.length === 0) {
+    if (intentKeyMap && missing.length === 0 && extra.length === 0) {
       return [];
     }
 
-    const node = projection?.node ?? ast;
+    const node = intentKeyMap?.node ?? ast;
     return [
       {
         filePath,
         line: offsetToLine(sourceCode, node.start),
-        message: projection
+        message: intentKeyMap
           ? buildMessage(missing, extra)
-          : 'owner-projection-parity: expected httpMethodByIntent to project core intentValues.',
+          : 'owner-render-parity: expected httpMethodByIntent to render core intentValues.',
         rule: RULE_NAME,
         severity: 'error',
       },
     ];
   },
   description:
-    'Require owner-derived projection maps to cover their authoritative owner vocabulary.',
+    'Require owner-derived intentKeyMap maps to cover their authoritative owner vocabulary.',
   name: RULE_NAME,
   severity: 'error',
 };

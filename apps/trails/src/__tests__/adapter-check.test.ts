@@ -194,7 +194,7 @@ afterEach(() => {
 });
 
 describe('trails adapter check', () => {
-  test('projects as a nested CLI command', () => {
+  test('renders as a nested CLI command', () => {
     const commands = deriveCliCommands(app);
     if (commands.isErr()) {
       throw commands.error;
@@ -204,7 +204,7 @@ describe('trails adapter check', () => {
     expect(paths).toContain('adapter check');
   });
 
-  test('returns the same diagnostic codes as the Warden projection', async () => {
+  test('returns the same diagnostic codes as the Warden derived fact', async () => {
     const root = makeRoot();
     writeHttpOwnerWithSubpathAdapter(root);
     writeHonoAdapter(root);

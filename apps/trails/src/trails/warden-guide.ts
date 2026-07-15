@@ -104,7 +104,7 @@ const wardenGuideFields = {
 >;
 
 export const wardenGuideTrail = trail('warden.guide', {
-  description: 'Project Warden rule guidance as markdown or JSON',
+  description: 'Render Warden rule guidance as markdown or JSON',
   examples: [
     {
       input: { guideFormat: 'markdown' },

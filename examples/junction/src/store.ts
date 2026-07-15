@@ -4,7 +4,7 @@
  * Five tables carry the relay pipeline: inbound `endpoint` configuration,
  * received `event` records, outbound `target` configuration, `route`
  * bindings between the two, and `delivery` attempts. Authored once here,
- * projected to SQLite through `@ontrails/drizzle`.
+ * derived to SQLite through `@ontrails/drizzle`.
  */
 
 import { store as defineStore } from '@ontrails/store';

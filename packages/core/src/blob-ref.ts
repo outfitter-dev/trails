@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 
-/** Metadata key used to recognize BlobRef schemas during JSON Schema projection. */
+/** Metadata key used to recognize BlobRef schemas during JSON Schema derivation. */
 export const BLOB_REF_SCHEMA_META_KEY = 'ontrails/blob-ref';
 
 /** Immutable reference to a blob of binary data. */
@@ -15,7 +15,7 @@ export interface BlobRef {
   readonly data: Uint8Array | ReadableStream<Uint8Array>;
 }
 
-/** Schema-projected metadata for a BlobRef value. */
+/** Schema-derived metadata for a BlobRef value. */
 export interface BlobRefDescriptor {
   readonly kind: 'blob';
   readonly mimeType: string;
@@ -74,7 +74,7 @@ export const isBlobRef = (value: unknown): value is BlobRef => {
   );
 };
 
-/** Zod schema for runtime BlobRef values with metadata for descriptor projection. */
+/** Zod schema for runtime BlobRef values with metadata for descriptor derivation. */
 export const blobRefSchema = z
   .custom<BlobRef>(isBlobRef, { error: 'Expected BlobRef' })
   .meta({ [BLOB_REF_SCHEMA_META_KEY]: true });

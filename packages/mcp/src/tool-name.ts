@@ -3,7 +3,7 @@
  *
  * The derivation itself lives in `@ontrails/core` (`deriveMcpToolName`) so
  * governance readers such as Warden's `surface-overlay-coherence` rule check
- * collisions against the exact projection the MCP surface renders.
+ * collisions against the exact rendering the MCP surface renders.
  */
 
 import { deriveMcpToolName } from '@ontrails/core';

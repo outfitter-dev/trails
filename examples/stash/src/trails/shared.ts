@@ -1,5 +1,5 @@
 /**
- * Shared projections and the visibility choke point for snippet trails.
+ * Shared renderings and the visibility choke point for snippet trails.
  *
  * Every read of a snippet goes through {@link loadVisibleSnippet}: a secret
  * snippet read by anyone but its owner behaves exactly like a snippet that
@@ -105,7 +105,7 @@ export const loadVisibleSnippet = async (
 };
 
 // ---------------------------------------------------------------------------
-// Projections
+// Renderings
 // ---------------------------------------------------------------------------
 
 export const starCountFor = async (

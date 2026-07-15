@@ -7,9 +7,9 @@ import {
   activationSourceKey,
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
-  deriveTrailCliCommandProjection,
+  deriveTrailCliCommandRendering,
   getEntityReferences,
-  projectActivationSourceDeclaration,
+  deriveActivationSourceFacts,
   validateEstablishedTopo,
   signalDiagnosticDefinitions,
   zodToJsonSchema,
@@ -28,14 +28,14 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from './permit.js';
-import { collectLibraryProjection } from './library-projection.js';
+import { deriveTopoGraphLibrary } from './library-derivation.js';
 import { collectTopoGraphOverlays } from './overlays.js';
 import {
   resolveCliAliasInputsFromOverlays,
   resolveTrailheadEntriesFromOverlays,
 } from './surface-bindings.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
-import { projectTrailVersions } from './versioning.js';
+import { deriveTrailVersions } from './versioning.js';
 import type {
   DeriveTopoGraphOptions,
   JsonSchema,
@@ -156,12 +156,12 @@ const SIGNAL_GOVERNANCE_HOOKS = {
   producers: 'trail.fires',
 } as const;
 
-const projectActivationSource = (
+const deriveActivationSource = (
   source: ActivationSource
 ): TopoGraphActivationSource =>
-  projectActivationSourceDeclaration(source) as TopoGraphActivationSource;
+  deriveActivationSourceFacts(source) as TopoGraphActivationSource;
 
-const projectActivationEdge = (
+const deriveActivationEdge = (
   trailId: string,
   activation: ActivationEntry
 ): TopoGraphActivationEdge => {
@@ -190,8 +190,8 @@ const collectActivationSourceCatalog = (
   const sources = new Map<string, TopoGraphActivationSource>();
   for (const trail of topo.trails.values()) {
     for (const activation of trail.activationSources) {
-      const projected = projectActivationSource(activation.source);
-      sources.set(projected.key, projected);
+      const derived = deriveActivationSource(activation.source);
+      sources.set(derived.key, derived);
     }
   }
   return [...sources.values()].toSorted((a, b) => a.key.localeCompare(b.key));
@@ -203,7 +203,7 @@ const collectActivationGraphEdges = (
   const edges = new Map<string, TopoGraphActivationEdge>();
   for (const trail of topo.trails.values()) {
     for (const activation of trail.activationSources) {
-      const edge = projectActivationEdge(trail.id, activation);
+      const edge = deriveActivationEdge(trail.id, activation);
       const key = `${edge.sourceKey}\0${edge.trailId}`;
       const previous = edges.get(key);
       edges.set(
@@ -359,7 +359,7 @@ const addTrailRelations = (
         ...(activation.meta === undefined
           ? {}
           : { meta: canonicalize(activation.meta) }),
-        source: projectActivationSource(activation.source),
+        source: deriveActivationSource(activation.source),
         ...(activation.where === undefined
           ? {}
           : { where: sortKeys({ predicate: true }) }),
@@ -482,16 +482,16 @@ const addVersioning = (
   if (t.version === undefined) {
     return;
   }
-  const projection = projectTrailVersions(t, toSortedJsonSchema);
-  if (projection === undefined) {
+  const derivation = deriveTrailVersions(t, toSortedJsonSchema);
+  if (derivation === undefined) {
     return;
   }
 
-  entry['marker'] = projection.marker;
-  entry['supports'] = projection.supports;
-  entry['version'] = projection.version;
-  if (projection.versions !== undefined) {
-    entry['versions'] = projection.versions;
+  entry['marker'] = derivation.marker;
+  entry['supports'] = derivation.supports;
+  entry['version'] = derivation.version;
+  if (derivation.versions !== undefined) {
+    entry['versions'] = derivation.versions;
   }
 };
 
@@ -503,7 +503,7 @@ const trailToEntry = (
   const raw = t as unknown as Record<string, unknown>;
   const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
-    cli: deriveTrailCliCommandProjection(t, {
+    cli: deriveTrailCliCommandRendering(t, {
       aliasSource: 'surface',
       aliases: surfaceAliases?.[t.id],
     }),
@@ -673,7 +673,7 @@ export const deriveTopoGraph = (
     options?.overlays
   );
   const overlays = collectTopoGraphOverlays(topo, options?.overlays);
-  const library = collectLibraryProjection(topo);
+  const library = deriveTopoGraphLibrary(topo);
 
   return {
     activationGraph: buildActivationGraph(activationEdges, activationSources),

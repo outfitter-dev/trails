@@ -4,7 +4,7 @@
  * `cloudflareR2` authors an ordinary resource definition for an R2 bucket
  * binding. Trails can store and fetch object bytes through the standard
  * resource accessor, then return `BlobRef` values when HTTP/MCP surfaces should
- * project the fetched object as binary output.
+ * render the fetched object as binary output.
  */
 
 import {

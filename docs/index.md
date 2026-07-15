@@ -37,7 +37,7 @@
 - **[Surface Accommodations](./surfaces/surface-accommodations.md)** — How aliases, input mappings, trailheads, and trail forks keep surfaces honest
 - **[Trailheads](./surfaces/surface-trailheads.md)** — MCP shaping for dense topos without adding a new core primitive
 - **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
-- **[Trailhead Parity](./surfaces/surface-trailhead-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped projection
+- **[Trailhead Parity](./surfaces/surface-trailhead-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped rendering
 - **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
 
 ## Governing your codebase?
@@ -70,7 +70,7 @@
 - **[ADR-0012: Adapter-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface
 - **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive
 - **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning
-- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph
+- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational rendering of the resolved graph
 - **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, adapter binding, fixtures
 - **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph
 - **[ADR-0018: Signal-Driven Governance](./adr/0018-signal-driven-governance.md)** — Governance through signals

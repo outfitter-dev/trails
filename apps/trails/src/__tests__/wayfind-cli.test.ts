@@ -45,7 +45,7 @@ const fakeWayfindContext = () => {
 };
 
 describe('Trails Wayfinder CLI surface', () => {
-  test('projects selected Wayfinder queries as local CLI commands', () => {
+  test('renders selected Wayfinder queries as local CLI commands', () => {
     const commands = unwrapCommands();
     const commandPaths = commands.map((command) => command.path.join(' '));
     const trailIds = commands.map((command) => command.trail.id);

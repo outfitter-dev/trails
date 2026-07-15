@@ -174,10 +174,10 @@ describe('surface-overlay-coherence', () => {
     ]);
   });
 
-  test('does not warn when a cli binding name matches only its own projected surface route', async () => {
+  test('does not warn when a cli binding name matches only its own rendered surface route', async () => {
     const app = buildApp();
-    // The binding "ls" itself projects the single-segment alias route
-    // ["ls"] into the graph; that self-projection is not shadowing.
+    // The binding "ls" itself renders the single-segment alias route
+    // ["ls"] into the graph; that self-rendering is not shadowing.
     const graph: TopoGraph = {
       ...deriveTopoGraph(app, {
         overlays: [surfaceOverlay({ cli: { ls: 'gear.list' } })],

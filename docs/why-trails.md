@@ -10,7 +10,7 @@ This is DRY applied not just to code, but to information. Frameworks have always
 
 The conservation law at the center of Trails is simple: if the developer already authored the truth once, the framework should spend it everywhere it can. A schema should not stop at validation. An example should not stop at testing. Intent should not stop at documentation. Error taxonomy should not stop at one transport. Each authored fact should keep paying rent across surfaces, governance, tests, artifacts, docs, and agent ergonomics.
 
-That is why new design questions often feel less like new subsystems and more like consequences being uncovered. The core belief keeps reappearing: author the irreducible truth, derive every faithful projection, and make drift harder than alignment. When a proposal reduces duplicated authorship, creates inspectable ground truth, and leaves adopters with less to remember, it is probably aligned with Trails. When it asks users to restate something the framework already knows, it is probably design feedback.
+That is why new design questions often feel less like new subsystems and more like consequences being uncovered. The core belief keeps reappearing: author the irreducible truth, derive faithful facts, render them for each consumer, and make drift harder than alignment. When a proposal reduces duplicated authorship, creates inspectable ground truth, and leaves adopters with less to remember, it is probably aligned with Trails. When it asks users to restate something the framework already knows, it is probably design feedback.
 
 Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the shipped surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side. WebSocket is part of the architecture, but still planned.
 
@@ -98,7 +98,7 @@ The result: implementations stay pure (input in, `Result` out), infrastructure i
 Every piece of information in a Trails app has a clear ownership model. Six categories, from what you write to what the system learns. (See [Architecture](./architecture.md#information-architecture) for the full reference tables.)
 
 - **Authored:** New information only you know — Zod schemas, intent and metadata, examples, the implementation, trail IDs. Everything else flows from these.
-- **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
+- **Derived:** Mechanically produced, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Derived facts cannot drift because they are computed from the source.
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail composes (from `ctx.compose()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
 - **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracing system. Observations close the loop between declared intent and actual behavior.
@@ -117,7 +117,7 @@ Trails makes a different tradeoff. The trail declaration creates a bounded envir
 - **`output: schema`** constrains the return type. The implementation can't return data the contract doesn't describe.
 - **`Result<T, Error>`** eliminates throw/catch. Every code path returns a typed result.
 - **`examples`** specify concrete inputs plus expected results or error classes. `testExamples(graph)` runs them as assertions. One authoring act — three purposes: specification for builders, documentation for consumers, test coverage for CI.
-- **`intent` / `idempotent`** are behavioral assertions that surfaces honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
+- **`intent` / `idempotent`** are behavioral assertions that surfaces honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These are derived facts, not suggestions.
 
 The implementation satisfies the specification. The framework enforces the boundaries. An agent building a trail writes the irreducible information — schema, examples, logic — and the framework handles the rest.
 
@@ -153,7 +153,7 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 Great tools already exist for each surface. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surfaces. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface adapters — CLI, MCP, and HTTP today, with WebSocket planned — project that contract into whatever runtime format the surface needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surfaces. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface adapters — CLI, MCP, and HTTP today, with WebSocket planned — render that contract into whatever runtime format the surface needs.
 
 The value isn't in being better at any single surface. It's in making the contract the source of truth so that every surface stays consistent with it — not because anyone was careful, but because the framework derives each surface from the same definition.
 

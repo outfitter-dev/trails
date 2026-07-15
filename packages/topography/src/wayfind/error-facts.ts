@@ -1,12 +1,12 @@
 import {
   errorClasses,
-  projectErrorClassSurface,
+  renderErrorClassSurface,
   surfaceNames,
 } from '@ontrails/core';
 import type {
   ErrorCategory,
   ErrorClassRegistryEntry,
-  ErrorClassSurfaceProjection,
+  ErrorClassSurfaceRendering,
   SurfaceName,
 } from '@ontrails/core';
 import type {
@@ -35,7 +35,7 @@ export type TrailErrorFactsCompleteness =
       readonly status: 'unknown';
     };
 
-export interface TrailErrorTaxonomyProjection {
+export interface TrailErrorTaxonomyFacts {
   readonly category?: ErrorCategory | undefined;
   readonly dynamicCategory?:
     | {
@@ -45,7 +45,7 @@ export interface TrailErrorTaxonomyProjection {
   readonly known: boolean;
   readonly name: string;
   readonly retryable?: boolean | undefined;
-  readonly surfaces: readonly ErrorClassSurfaceProjection[];
+  readonly surfaces: readonly ErrorClassSurfaceRendering[];
 }
 
 export type TrailErrorFactProvenance =
@@ -78,7 +78,7 @@ export interface TrailErrorFact {
   readonly completeness: TrailErrorFactsCompleteness;
   readonly kind: TrailErrorFactKind;
   readonly provenance: TrailErrorFactProvenance;
-  readonly taxonomy: TrailErrorTaxonomyProjection;
+  readonly taxonomy: TrailErrorTaxonomyFacts;
 }
 
 export interface TrailErrorFacts {
@@ -110,10 +110,10 @@ const errorClassByName: ReadonlyMap<string, ErrorClassRegistryEntry> = new Map(
   errorClasses.map((entry) => [entry.name, entry])
 );
 
-const taxonomyProjection = (
+const deriveTaxonomyFacts = (
   errorName: string,
   surfaces: readonly SurfaceName[]
-): TrailErrorTaxonomyProjection => {
+): TrailErrorTaxonomyFacts => {
   const registryEntry = errorClassByName.get(errorName);
   if (registryEntry === undefined) {
     return {
@@ -141,8 +141,8 @@ const taxonomyProjection = (
     name: registryEntry.name,
     retryable: registryEntry.retryable,
     surfaces: surfaces.flatMap((surface) => {
-      const projected = projectErrorClassSurface(surface, errorName);
-      return projected === undefined ? [] : [projected];
+      const derived = renderErrorClassSurface(surface, errorName);
+      return derived === undefined ? [] : [derived];
     }),
   };
 };
@@ -189,7 +189,7 @@ const documentedFacts = (
           source: 'trail.examples',
           trailId: entry.id,
         },
-        taxonomy: taxonomyProjection(example.error, surfaces),
+        taxonomy: deriveTaxonomyFacts(example.error, surfaces),
       },
     ];
   });
@@ -207,7 +207,7 @@ const handledFacts = (
         source: 'trail.detours',
         trailId: entry.id,
       },
-      taxonomy: taxonomyProjection(detour.on, surfaces),
+      taxonomy: deriveTaxonomyFacts(detour.on, surfaces),
     })
   );
 
@@ -231,7 +231,7 @@ const versionDocumentedFacts = (
           trailId,
           version,
         },
-        taxonomy: taxonomyProjection(example.error, surfaces),
+        taxonomy: deriveTaxonomyFacts(example.error, surfaces),
       },
     ];
   });
@@ -252,7 +252,7 @@ const versionHandledFacts = (
         trailId,
         version,
       },
-      taxonomy: taxonomyProjection(detour.on, surfaces),
+      taxonomy: deriveTaxonomyFacts(detour.on, surfaces),
     })
   );
 
@@ -285,7 +285,7 @@ const inputFact = (
     trailId: input.trailId,
     ...(input.version === undefined ? {} : { version: input.version }),
   },
-  taxonomy: taxonomyProjection(input.errorName, surfaces),
+  taxonomy: deriveTaxonomyFacts(input.errorName, surfaces),
 });
 
 const byTrail = (

@@ -13,7 +13,7 @@ import {
   ValidationError,
   collectAttachedTypedLayers,
   deriveMcpTrailheadDescription,
-  deriveSurfaceTrailVersionProjections,
+  deriveSurfaceTrailVersionRenderings,
   deriveStructuredTrailExamples,
   executeTrail,
   expandMcpSurfaceBindings,
@@ -22,8 +22,8 @@ import {
   isTrailsError,
   LAYER_FIELD_RESERVED_NAMES,
   matchesTrailPattern,
-  projectLayerFieldName,
-  projectPublicSurfaceError,
+  renderLayerFieldName,
+  renderPublicSurfaceError,
   resolveSurfaceOverlayBindings,
   toBlobRefDescriptor,
   validateSurfaceTopo,
@@ -39,8 +39,8 @@ import type {
   McpSurfaceBindingExpansion,
   OverlayEnvelopeLike,
   ResourceOverrideMap,
-  SurfaceErrorProjection,
-  SurfaceTrailVersionProjection,
+  SurfaceErrorRendering,
+  SurfaceTrailVersionRendering,
   Topo,
   Trail,
   TrailContextInit,
@@ -65,7 +65,7 @@ import { deriveToolName } from './tool-name.js';
 export const MCP_TOOL_EXAMPLES_META_KEY = 'ontrails/examples';
 
 /**
- * Metadata key used for public Trails error projections on MCP tool errors.
+ * Metadata key used for public Trails error renderings on MCP tool errors.
  *
  * @example
  * ```ts
@@ -178,7 +178,7 @@ export interface McpToolDefinition {
   readonly outputSchema?: Record<string, unknown> | undefined;
   /** The trail ID this tool was derived from. */
   readonly trailId?: string | undefined;
-  readonly versions?: readonly SurfaceTrailVersionProjection[] | undefined;
+  readonly versions?: readonly SurfaceTrailVersionRendering[] | undefined;
 }
 
 export interface McpExtra {
@@ -199,7 +199,7 @@ export interface McpToolResult {
   readonly structuredContent?: Record<string, unknown> | undefined;
 }
 
-export type McpToolErrorMeta = Omit<SurfaceErrorProjection, 'surface'> & {
+export type McpToolErrorMeta = Omit<SurfaceErrorRendering, 'surface'> & {
   readonly surface: 'mcp';
 };
 
@@ -492,7 +492,7 @@ const serializeOutput = async (
 };
 
 // `wrapAsData` is decided at build time from the schema shape (see
-// `buildOutputSchemaProjection`). It must be threaded through to the runtime
+// `buildMcpOutputSchemaRendering`). It must be threaded through to the runtime
 // because the schema's wrap decision and the runtime value's wrap decision
 // can diverge — e.g. for `z.union([z.object(...), z.string()])` or
 // `z.any()`, the schema declares a `{ data: ... }` envelope but a runtime
@@ -525,18 +525,18 @@ const toStructuredContent = (
 };
 
 // ---------------------------------------------------------------------------
-// Layer input projection (TRL-474)
+// Layer input rendering (TRL-474)
 // ---------------------------------------------------------------------------
 
 /**
- * Per-layer projection onto an MCP tool's input schema.
+ * Per-layer rendering onto an MCP tool's input schema.
  *
  * `routing` maps the parameter name a consumer sees on the tool to the
  * authored field name on the layer's input schema. When no rename was
  * required the two are the same; on collision the parameter name carries
  * the layer prefix while the routing target preserves the original field.
  */
-interface McpLayerInputProjection {
+interface McpLayerInputRendering {
   readonly layerName: string;
   /** parameterName → originalFieldName for this layer. */
   readonly routing: ReadonlyMap<string, string>;
@@ -549,10 +549,10 @@ interface McpLayerInputProjection {
 /**
  * Build the camelCase rename target for a layer field collision.
  *
- * The CLI projection uses `kebab-case` (`<layerName>-<field>`); MCP exposes
+ * The CLI rendering uses `kebab-case` (`<layerName>-<field>`); MCP exposes
  * fields as JSON properties so the corresponding shape is camelCase
  * (`<layerName><FieldCapitalized>`). The shared collision policy lives in
- * `projectLayerFieldName`; this helper just supplies the surface-specific
+ * `renderLayerFieldName`; this helper just supplies the surface-specific
  * fallback name.
  */
 const buildMcpRenameTarget = (
@@ -575,13 +575,13 @@ const isJsonObjectSchema = (
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
- * Project a single layer's input schema into MCP-shaped property and
+ * Render a single layer's input schema into MCP-shaped property and
  * required fragments, applying the deterministic collision rename rule.
  */
-const projectMcpLayerInput = (
+const renderMcpLayerInput = (
   layer: Layer,
   claimedNames: Set<string>
-): McpLayerInputProjection => {
+): McpLayerInputRendering => {
   if (layer.input === undefined) {
     return {
       layerName: layer.name,
@@ -613,7 +613,7 @@ const projectMcpLayerInput = (
     layerSchema.properties
   )) {
     const renamed = buildMcpRenameTarget(layer.name, fieldName);
-    const projection = projectLayerFieldName(
+    const rendering = renderLayerFieldName(
       layer.name,
       fieldName,
       fieldName,
@@ -621,19 +621,19 @@ const projectMcpLayerInput = (
       claimedNames,
       LAYER_FIELD_RESERVED_NAMES
     );
-    properties[projection.claimedName] = fieldSchema;
+    properties[rendering.claimedName] = fieldSchema;
     if (requiredSet.has(fieldName)) {
-      required.push(projection.claimedName);
+      required.push(rendering.claimedName);
     }
-    routing.set(projection.claimedName, projection.routingTarget);
+    routing.set(rendering.claimedName, rendering.routingTarget);
   }
 
   return { layerName: layer.name, properties, required, routing };
 };
 
-interface McpInputProjection {
+interface McpInputRendering {
   readonly schema: Record<string, unknown>;
-  readonly projections: readonly McpLayerInputProjection[];
+  readonly renderings: readonly McpLayerInputRendering[];
 }
 
 /**
@@ -643,13 +643,13 @@ interface McpInputProjection {
  * per-layer routing tables consumed by the handler when partitioning
  * incoming parameters.
  */
-const projectMcpInputSchema = (
+const renderMcpInputSchema = (
   trail: Trail<unknown, unknown, unknown>,
   attachedLayers: readonly AttachedTypedLayer[]
-): McpInputProjection => {
+): McpInputRendering => {
   const baseSchema = zodToJsonSchema(trail.input);
   if (attachedLayers.length === 0) {
-    return { projections: [], schema: baseSchema };
+    return { renderings: [], schema: baseSchema };
   }
 
   const baseProperties =
@@ -669,20 +669,20 @@ const projectMcpInputSchema = (
     ...baseProperties,
   };
   const mergedRequired = [...baseRequired];
-  const projections: McpLayerInputProjection[] = [];
+  const renderings: McpLayerInputRendering[] = [];
 
   for (const { layer } of attachedLayers) {
-    const projection = projectMcpLayerInput(layer, claimedNames);
-    if (projection.routing.size === 0) {
+    const rendering = renderMcpLayerInput(layer, claimedNames);
+    if (rendering.routing.size === 0) {
       continue;
     }
-    Object.assign(mergedProperties, projection.properties);
-    mergedRequired.push(...projection.required);
-    projections.push(projection);
+    Object.assign(mergedProperties, rendering.properties);
+    mergedRequired.push(...rendering.required);
+    renderings.push(rendering);
   }
 
-  if (projections.length === 0) {
-    return { projections: [], schema: baseSchema };
+  if (renderings.length === 0) {
+    return { renderings: [], schema: baseSchema };
   }
 
   const mergedSchema: Record<string, unknown> = isJsonObjectSchema(baseSchema)
@@ -694,7 +694,7 @@ const projectMcpInputSchema = (
     delete mergedSchema['required'];
   }
 
-  return { projections, schema: mergedSchema };
+  return { renderings, schema: mergedSchema };
 };
 
 const TRAIL_VERSION_PARAM = 'trailVersion';
@@ -743,27 +743,27 @@ const splitMcpSurfaceVersion = (
  * Partition a parsed MCP `args` record into the trail input plus per-layer
  * inputs, using each layer's routing table.
  *
- * Layer-projected parameter names are stripped from the trail input so the
+ * Layer-rendered parameter names are stripped from the trail input so the
  * trail's schema validation only ever sees its own fields. A layer that
  * received no parameters is omitted from `layerInputs` so consumers can
  * cleanly assert which layers were activated by the request.
  */
 const partitionMcpArgs = (
   args: Record<string, unknown>,
-  projections: readonly McpLayerInputProjection[]
+  renderings: readonly McpLayerInputRendering[]
 ): {
   readonly trailInput: Record<string, unknown>;
   readonly layerInputs: Record<string, unknown>;
 } => {
-  if (projections.length === 0) {
+  if (renderings.length === 0) {
     return { layerInputs: {}, trailInput: { ...args } };
   }
   const claimedKeys = new Set<string>();
   const layerInputs: Record<string, unknown> = {};
-  for (const projection of projections) {
+  for (const rendering of renderings) {
     const layerInput: Record<string, unknown> = {};
     let received = false;
-    for (const [paramName, fieldName] of projection.routing) {
+    for (const [paramName, fieldName] of rendering.routing) {
       claimedKeys.add(paramName);
       const value = args[paramName];
       if (value === undefined) {
@@ -773,7 +773,7 @@ const partitionMcpArgs = (
       received = true;
     }
     if (received) {
-      layerInputs[projection.layerName] = layerInput;
+      layerInputs[rendering.layerName] = layerInput;
     }
   }
   const trailInput: Record<string, unknown> = {};
@@ -792,14 +792,14 @@ const partitionMcpArgs = (
 
 const buildMcpErrorMeta = (
   error: Error,
-  projection: SurfaceErrorProjection
+  rendering: SurfaceErrorRendering
 ): Record<string, McpToolErrorMeta> | undefined => {
   if (!isTrailsError(error)) {
     return undefined;
   }
   return {
     [MCP_TOOL_ERROR_META_KEY]: {
-      ...projection,
+      ...rendering,
       surface: 'mcp',
     },
   };
@@ -807,11 +807,11 @@ const buildMcpErrorMeta = (
 
 /** Create an error result for MCP responses. */
 const mcpError = (error: Error): McpToolResult => {
-  const projection = projectPublicSurfaceError('mcp', error);
-  const meta = buildMcpErrorMeta(error, projection);
+  const rendering = renderPublicSurfaceError('mcp', error);
+  const meta = buildMcpErrorMeta(error, rendering);
   return {
     ...(meta === undefined ? {} : { _meta: meta }),
-    content: [{ text: projection.message, type: 'text' }],
+    content: [{ text: rendering.message, type: 'text' }],
     isError: true,
   };
 };
@@ -880,7 +880,7 @@ const createHandler =
     layers: readonly Layer[],
     options: DeriveMcpToolsOptions,
     wrapAsData: boolean,
-    layerProjections: readonly McpLayerInputProjection[]
+    layerRenderings: readonly McpLayerInputRendering[]
   ): ((
     args: Record<string, unknown>,
     extra: McpExtra
@@ -893,7 +893,7 @@ const createHandler =
         : splitMcpSurfaceVersion(args);
     const { trailInput, layerInputs } = partitionMcpArgs(
       versionedArgs.args,
-      layerProjections
+      layerRenderings
     );
     const permitResolution = await resolveMcpPermit(options, extra);
     if (permitResolution.isErr()) {
@@ -957,14 +957,14 @@ const isMcpStructuredObjectSchema = (
   schema: Record<string, unknown>
 ): boolean => schema['type'] === 'object';
 
-interface OutputSchemaProjection {
+interface McpOutputSchemaRendering {
   readonly schema: Record<string, unknown>;
   readonly wrapAsData: boolean;
 }
 
-const projectMcpOutputSchema = (
+const renderMcpOutputSchema = (
   schema: Parameters<typeof zodToJsonSchema>[0]
-): OutputSchemaProjection => {
+): McpOutputSchemaRendering => {
   const raw = zodToJsonSchema(schema);
   if (isMcpStructuredObjectSchema(raw)) {
     return { schema: raw, wrapAsData: false };
@@ -979,10 +979,10 @@ const projectMcpOutputSchema = (
   };
 };
 
-const buildOutputSchemaProjection = (
+const buildMcpOutputSchemaRendering = (
   trail: Trail<unknown, unknown, unknown>
-): OutputSchemaProjection | undefined =>
-  trail.output === undefined ? undefined : projectMcpOutputSchema(trail.output);
+): McpOutputSchemaRendering | undefined =>
+  trail.output === undefined ? undefined : renderMcpOutputSchema(trail.output);
 
 const buildMeta = (
   trail: Trail<unknown, unknown, unknown>
@@ -1014,15 +1014,15 @@ const buildToolDefinition = (
   const rawAnnotations = deriveAnnotations(trail);
   const annotations =
     Object.keys(rawAnnotations).length > 0 ? rawAnnotations : undefined;
-  const projection = buildOutputSchemaProjection(trail);
+  const rendering = buildMcpOutputSchemaRendering(trail);
   const attachedLayers = collectAttachedTypedLayers(
     graph,
     trail,
     options.layers
   );
-  const inputProjection = projectMcpInputSchema(trail, attachedLayers);
-  const inputSchema = addMcpVersionInputSchema(trail, inputProjection.schema);
-  const versions = deriveSurfaceTrailVersionProjections(trail);
+  const inputRendering = renderMcpInputSchema(trail, attachedLayers);
+  const inputSchema = addMcpVersionInputSchema(trail, inputRendering.schema);
+  const versions = deriveSurfaceTrailVersionRenderings(trail);
   return {
     _meta: buildMeta(trail),
     annotations,
@@ -1032,12 +1032,12 @@ const buildToolDefinition = (
       trail,
       layers,
       options,
-      projection?.wrapAsData ?? false,
-      inputProjection.projections
+      rendering?.wrapAsData ?? false,
+      inputRendering.renderings
     ),
     inputSchema,
     name: deriveToolName(graph.name, trail.id),
-    outputSchema: projection?.schema,
+    outputSchema: rendering?.schema,
     trailId: trail.id,
     ...(versions === undefined ? {} : { versions }),
   };

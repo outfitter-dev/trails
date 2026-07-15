@@ -7,9 +7,9 @@ import {
   deriveCliPath,
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
-  deriveTrailCliCommandProjection,
+  deriveTrailCliCommandRendering,
   getEntityReferences,
-  projectActivationSourceDeclaration,
+  deriveActivationSourceFacts,
   signalDiagnosticDefinitions,
   validateEstablishedTopo,
   zodToJsonSchema,
@@ -28,7 +28,7 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from '../permit.js';
-import { collectLibraryProjection } from '../library-projection.js';
+import { deriveTopoGraphLibrary } from '../library-derivation.js';
 import { collectTopoGraphOverlays } from '../overlays.js';
 import {
   resolveCliAliasInputsFromOverlays,
@@ -39,12 +39,12 @@ import {
   LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
 } from '../types.js';
-import { projectTrailVersions } from '../versioning.js';
+import { deriveTrailVersions } from '../versioning.js';
 import type {
   LockManifest,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
-  TopoGraphLibraryProjection,
+  TopoGraphLibraryDerived,
   TopoGraphOverlays,
   TopoGraphTrailheadEntry,
 } from '../types.js';
@@ -69,7 +69,7 @@ type TopoGraphRecord = Readonly<{
   >;
   readonly entries: readonly TopoGraphEntryRecord[];
   readonly generatedAt: string;
-  readonly library: TopoGraphLibraryProjection;
+  readonly library: TopoGraphLibraryDerived;
   readonly overlays?: TopoGraphOverlays | undefined;
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
   readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
@@ -268,7 +268,7 @@ const SIGNAL_GOVERNANCE_HOOKS = {
   producers: 'trail.fires',
 } as const;
 
-interface NormalizedTopoProjection {
+interface NormalizedTopoFacts {
   readonly activationEdges: readonly TopoActivationEdgeRow[];
   readonly activationSources: readonly TopoActivationSourceRow[];
   readonly composings: readonly TopoComposingRow[];
@@ -450,12 +450,12 @@ export const normalizeOnRows = (
     }))
   );
 
-const projectActivationSource = (
+const deriveActivationSource = (
   source: ActivationSource
 ): ActivationSourceCatalogRecord =>
-  projectActivationSourceDeclaration(source) as ActivationSourceCatalogRecord;
+  deriveActivationSourceFacts(source) as ActivationSourceCatalogRecord;
 
-const projectActivationEdge = (
+const deriveActivationEdge = (
   trailId: string,
   activation: ActivationEntry
 ): ActivationGraphEdgeRecord => {
@@ -484,8 +484,8 @@ const collectActivationSourceCatalog = (
   const sources = new Map<string, ActivationSourceCatalogRecord>();
   for (const trail of trails) {
     for (const activation of trail.activationSources) {
-      const projected = projectActivationSource(activation.source);
-      sources.set(projected.key, projected);
+      const derived = deriveActivationSource(activation.source);
+      sources.set(derived.key, derived);
     }
   }
   return [...sources.values()].toSorted((a, b) => a.key.localeCompare(b.key));
@@ -497,7 +497,7 @@ const collectActivationGraphEdges = (
   const edges = new Map<string, ActivationGraphEdgeRecord>();
   for (const trail of trails) {
     for (const activation of trail.activationSources) {
-      const edge = projectActivationEdge(trail.id, activation);
+      const edge = deriveActivationEdge(trail.id, activation);
       const key = `${edge.sourceKey}\0${edge.trailId}`;
       const previous = edges.get(key);
       edges.set(
@@ -606,10 +606,10 @@ const normalizeTrailSignalRows = (
   });
 
 /**
- * Project surface rows for stored topo.
+ * Derive surface rows for stored topo.
  *
  * Currently records only CLI-derived rows. MCP, HTTP, and other surface
- * projections are intentionally deferred until the topo-store schema supports
+ * derivations are intentionally deferred until the topo-store schema supports
  * multi-surface representation. The JSON export (`topo_graph` in
  * `topo_exports`) is more faithful for now. See ADR-0015 for the target shape.
  */
@@ -657,10 +657,10 @@ const normalizeExampleRows = (
     }));
   });
 
-const normalizeTopoProjection = (
+const deriveNormalizedTopoRows = (
   topo: Topo,
   snapshotId: string
-): NormalizedTopoProjection => {
+): NormalizedTopoFacts => {
   const trails = topo.list().toSorted((a, b) => a.id.localeCompare(b.id));
   const resources = topo
     .listResources()
@@ -896,7 +896,7 @@ const addTrailRelations = (
         ...(activation.meta === undefined
           ? {}
           : { meta: canonicalize(activation.meta) }),
-        source: projectActivationSource(activation.source),
+        source: deriveActivationSource(activation.source),
         ...(activation.where === undefined
           ? {}
           : { where: sortKeys({ predicate: true }) }),
@@ -1024,7 +1024,7 @@ const buildTrailEntryBase = (
 } => {
   const raw = trail as unknown as Record<string, unknown>;
   const entry: Record<string, unknown> = {
-    cli: deriveTrailCliCommandProjection(trail, {
+    cli: deriveTrailCliCommandRendering(trail, {
       aliasSource: 'surface',
       aliases: surfaceAliases?.[trail.id],
     }),
@@ -1065,19 +1065,19 @@ const addVersioning = (
   if (trail.version === undefined) {
     return;
   }
-  const projection = projectTrailVersions(
+  const derivation = deriveTrailVersions(
     trail,
     (schema) => sortedJsonSchema(schema as ZodSchemaInput).value
   );
-  if (projection === undefined) {
+  if (derivation === undefined) {
     return;
   }
 
-  entry['marker'] = projection.marker;
-  entry['supports'] = projection.supports;
-  entry['version'] = projection.version;
-  if (projection.versions !== undefined) {
-    entry['versions'] = projection.versions;
+  entry['marker'] = derivation.marker;
+  entry['supports'] = derivation.supports;
+  entry['version'] = derivation.version;
+  if (derivation.versions !== undefined) {
+    entry['versions'] = derivation.versions;
   }
 };
 
@@ -1306,7 +1306,7 @@ const buildTopoGraph = (
     ),
     entries,
     generatedAt,
-    library: collectLibraryProjection(topo),
+    library: deriveTopoGraphLibrary(topo),
     ...(overlays === undefined ? {} : { overlays }),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
     ...(trailheads === undefined ? {} : { trailheads }),
@@ -1400,13 +1400,13 @@ const insertRows = <TRow>(
   }
 };
 
-const insertProjectedRows = (
+const insertDerivedRows = (
   db: Database,
-  projection: NormalizedTopoProjection
+  derivation: NormalizedTopoFacts
 ): void => {
   insertRows(
     db,
-    projection.trails,
+    derivation.trails,
     `INSERT INTO topo_trails (
       id, intent, idempotent, has_output, has_examples, example_count, description, pattern, meta, snapshot_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1425,54 +1425,54 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.composings,
+    derivation.composings,
     'INSERT INTO topo_composings (source_id, target_id, snapshot_id) VALUES (?, ?, ?)',
     (row) => [row.sourceId, row.targetId, row.snapshotId]
   );
   insertRows(
     db,
-    projection.trailResources,
+    derivation.trailResources,
     `INSERT INTO topo_trail_resources (trail_id, resource_id, snapshot_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.resourceId, row.snapshotId]
   );
   insertRows(
     db,
-    projection.resources,
+    derivation.resources,
     `INSERT INTO topo_resources (id, has_mock, has_health, snapshot_id)
      VALUES (?, ?, ?, ?)`,
     (row) => [row.id, row.hasMock, row.hasHealth, row.snapshotId]
   );
   insertRows(
     db,
-    projection.signals,
+    derivation.signals,
     'INSERT INTO topo_signals (id, description, snapshot_id) VALUES (?, ?, ?)',
     (row) => [row.id, row.description, row.snapshotId]
   );
   insertRows(
     db,
-    projection.trailSignals,
+    derivation.trailSignals,
     `INSERT INTO topo_trail_signals (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.signalId, row.snapshotId]
   );
   insertRows(
     db,
-    projection.fires,
+    derivation.fires,
     `INSERT INTO topo_trail_fires (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.signalId, row.snapshotId]
   );
   insertRows(
     db,
-    projection.on,
+    derivation.on,
     `INSERT INTO topo_trail_on (trail_id, signal_id, snapshot_id)
      VALUES (?, ?, ?)`,
     (row) => [row.trailId, row.signalId, row.snapshotId]
   );
   insertRows(
     db,
-    projection.activationSources,
+    derivation.activationSources,
     `INSERT INTO topo_activation_sources (
       source_key, source_id, source_kind, source, snapshot_id
     ) VALUES (?, ?, ?, ?, ?)`,
@@ -1486,7 +1486,7 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.activationEdges,
+    derivation.activationEdges,
     `INSERT INTO topo_activation_edges (
       source_key, source_id, source_kind, trail_id, has_where, edge, snapshot_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1502,7 +1502,7 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.surfaces,
+    derivation.surfaces,
     `INSERT INTO topo_surfaces (trail_id, surface, derived_name, method, snapshot_id)
      VALUES (?, ?, ?, ?, ?)`,
     (row) => [
@@ -1515,7 +1515,7 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.examples,
+    derivation.examples,
     `INSERT INTO topo_examples (
       id, trail_id, ordinal, name, description, input, expected, expected_match, error, signals, snapshot_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1641,7 +1641,7 @@ export const createTopoSnapshot = (
   const snapshot = db.transaction(() => {
     const record = insertTopoSnapshotRecord(db, snapshotInput);
     const artifacts = buildStoredTopoExport(db, record, topo, snapshotInput);
-    insertProjectedRows(db, normalizeTopoProjection(topo, record.id));
+    insertDerivedRows(db, deriveNormalizedTopoRows(topo, record.id));
     insertSchemaRows(db, artifacts.schemaRows);
     insertStoredExport(db, artifacts.exportRow);
     return record;

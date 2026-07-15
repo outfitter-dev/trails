@@ -4,9 +4,9 @@
 
 ## Shipped
 
-**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. `@ontrails/http` owns the framework-agnostic route projection and shared Web Fetch kernel; `@ontrails/hono` provides Hono portability, while `@ontrails/http/bun` provides Bun-native serving without a third-party framework.
+**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. `@ontrails/http` owns the framework-agnostic route derivation and shared Web Fetch kernel; `@ontrails/hono` provides Hono portability, while `@ontrails/http/bun` provides Bun-native serving without a third-party framework.
 
-**OpenAPI generation (`@ontrails/http`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo for HTTP clients. The topo already carries everything OpenAPI needs; the HTTP package owns the surface-specific projection.
+**OpenAPI generation (`@ontrails/http`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo for HTTP clients. The topo already carries everything OpenAPI needs; the HTTP package owns the surface-specific derivation.
 
 **Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers compose and before execution enters each implementation. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
 
@@ -46,4 +46,4 @@
 
 Each horizon follows the same principle: **author what's new, derive what's known, override what's wrong.** If the information exists in the system, don't ask the developer to restate it.
 
-See [Architecture](./architecture.md) for how the current v1 implements this principle across projections, enforcement, inference, and overrides.
+See [Architecture](./architecture.md) for how the current v1 implements this principle across derivation, rendering, enforcement, inference, and overrides.

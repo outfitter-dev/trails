@@ -130,7 +130,7 @@ describe('demo worker under miniflare', () => {
     expect(denied.status).toBe(403);
   });
 
-  test('returns the projected 404 for unknown routes', async () => {
+  test('returns the rendered 404 for unknown routes', async () => {
     const response = await mf.dispatchFetch('http://localhost/nope');
     expect(response.status).toBe(404);
   });

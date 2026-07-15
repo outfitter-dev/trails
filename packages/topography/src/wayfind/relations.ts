@@ -12,7 +12,7 @@ export const relationKindSchema = z.enum([
   'trailhead-groups',
   'fired-by',
   'has-version',
-  'surface-projects',
+  'surface-renders',
   'used-by',
 ]);
 
@@ -142,7 +142,7 @@ export const relationEdges = (graph: TopoGraph): readonly RelationEdge[] => {
       add(refFor(graph, signalId, 'signal'), relation, target);
     }
     for (const surfaceId of entry.surfaces) {
-      add(refFor(graph, surfaceId, 'surface'), 'surface-projects', target);
+      add(refFor(graph, surfaceId, 'surface'), 'surface-renders', target);
     }
     if (entry.kind === 'trail' && entry.version !== undefined) {
       add(target, 'has-version', {
@@ -174,7 +174,7 @@ export const relationEdges = (graph: TopoGraph): readonly RelationEdge[] => {
       const memberRef = refFor(graph, memberId, 'trail');
       add(trailheadRef, 'trailhead-groups', memberRef);
       for (const surfaceRef of surfaceRefs) {
-        add(surfaceRef, 'surface-projects', memberRef);
+        add(surfaceRef, 'surface-renders', memberRef);
       }
     }
   }

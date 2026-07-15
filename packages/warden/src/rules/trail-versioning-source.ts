@@ -1070,7 +1070,7 @@ export const markerSchemaUnsupported: WardenRule = {
     return diagnostics;
   },
   description:
-    'Reject versioned trail schema constructs that cannot be projected into stable marker contracts.',
+    'Reject versioned trail schema constructs that cannot be rendered into stable marker contracts.',
   name: MARKER_SCHEMA_UNSUPPORTED,
   severity: 'error',
 };

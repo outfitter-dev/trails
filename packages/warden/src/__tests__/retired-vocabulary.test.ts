@@ -207,13 +207,33 @@ describe('governed vocabulary registry', () => {
       expect(historical?.paths).toContain('.claude/agent-memory/**');
       expect(historical?.paths).toContain('**/.agents/plans/**');
       expect(historical?.paths).toContain('docs/adr/decision-map.json');
-      expect(historical?.paths).toContain('docs/migration/**');
       expect(historical?.paths).toContain('docs/releases/beta*.md');
       expect(historical?.paths).toContain('scripts/vocab-cutover-*.ts');
       expect(historical?.paths).toContain('**/CHANGELOG.md');
       expect(historical?.paths).toContain('.changeset/**');
       expect(historical?.reason).toBeDefined();
     }
+  });
+
+  test('keeps active migration guides outside historical policy', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-projection-derive-render'
+    );
+    const historical = transition?.scope?.policyClassified?.find(
+      (policy) => policy.disposition === 'historical-by-policy'
+    );
+
+    expect(historical?.paths).toEqual(
+      expect.arrayContaining([
+        'docs/migration/*-to-adapter.md',
+        'docs/migration/*-to-compose.md',
+        'docs/migration/trailhead-to-surface.md',
+      ])
+    );
+    expect(historical?.paths).not.toContain('docs/migration/**');
+    expect(historical?.paths).not.toContain(
+      'docs/migration/layer-evolution.md'
+    );
   });
 
   test('keeps active plans visible without reopening immutable Regrade history', () => {
@@ -554,7 +574,8 @@ describe('governed vocabulary registry', () => {
 
     expect(guide).toContain('v1-facet-trailhead: facet -> trailhead');
     expect(guide).toContain('v1-projection-derive-render: projection ->');
-    expect(guide).toContain('Status: planned');
+    expect(guide).not.toContain('Status: planned');
+    expect(guide).toContain('Status: complete');
     expect(guide).toContain('Provenance: committed Regrade history required');
   });
 });

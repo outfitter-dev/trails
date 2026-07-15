@@ -141,7 +141,7 @@ export type StoreFixtureRow<
 export type StoreSearchDefinition = Readonly<Record<string, unknown>>;
 
 /**
- * Change signals projected from one store entity definition.
+ * Change signals derived from one store entity definition.
  */
 export interface StoreTableSignals<TPayload> {
   readonly created: Signal<TPayload>;
@@ -640,7 +640,7 @@ export type StoreMockSeed<TDef extends AnyStoreDefinition> = Partial<{
  *
  * Concrete adapters extend this shape with their backend-specific fields
  * (e.g. `url`, `dir`). Aligning the authored surface here lets the framework
- * reason about adapter options uniformly — one shape, many projections.
+ * reason about adapter options uniformly — one shape, many renderings.
  */
 export interface StoreAdapterOptions<TDef extends AnyStoreDefinition> {
   /** Optional resource id override. Defaults to `"store"`. */

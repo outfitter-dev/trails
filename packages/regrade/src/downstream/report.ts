@@ -1533,7 +1533,7 @@ export const regradeReportOutput = z.object({
 /**
  * Built-in regrade classes available to the report trail.
  *
- * Warden owns term detection and fix metadata. Regrade projects Warden rules
+ * Warden owns term detection and fix metadata. Regrade derives Warden rules
  * that advertise `term-rewrite` capability into reportable classes and then
  * owns application/reporting of the resulting rewrite or review outcomes.
  */

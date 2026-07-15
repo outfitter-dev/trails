@@ -87,7 +87,7 @@ describe('trailhead-override-divergence', () => {
     expect(diagnostics[0]?.severity).toBe('warn');
     expect(diagnostics[0]?.message).toContain('"governance"');
     expect(diagnostics[0]?.message).toContain(
-      'will not be projected at runtime'
+      'will not be rendered at runtime'
     );
     expect(diagnostics[0]?.message).toContain(
       'the committed lock still advertises it'

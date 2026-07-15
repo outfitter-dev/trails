@@ -35,7 +35,7 @@ const requireResultMethod = (
 };
 
 describe('library surface', () => {
-  test('exposes one callable method per projected export', async () => {
+  test('exposes one callable method per rendered export', async () => {
     const lib = await surface(fixtureApp, surfaceOptions);
     expect(Object.keys(lib.call).toSorted()).toEqual([
       'widgetAdd',
@@ -98,7 +98,7 @@ describe('library surface', () => {
     });
   });
 
-  test('projects and routes typed layer inputs through the library call', async () => {
+  test('renders and routes typed layer inputs through the library call', async () => {
     const lib = await surface(fixtureApp, surfaceOptions);
 
     await expect(
@@ -128,7 +128,7 @@ describe('library surface', () => {
     });
   });
 
-  test('direct Result helper applies the same layer input projection', async () => {
+  test('direct Result helper applies the same layer input rendering', async () => {
     const result = await runLibraryResult(fixtureApp, 'widget.audited', {
       auditMessage: 'logged',
       auditToken: 'secret',
@@ -162,10 +162,10 @@ describe('library surface parity with authored examples', () => {
   test('every exported method honors its trail examples', async () => {
     const lib = await surface(fixtureApp, surfaceOptions);
 
-    expect(lib.projection.exports.length).toBeGreaterThan(0);
+    expect(lib.rendering.exports.length).toBeGreaterThan(0);
     let assertionsRun = 0;
 
-    for (const entry of lib.projection.exports) {
+    for (const entry of lib.rendering.exports) {
       const trail = fixtureApp.get(entry.trailId);
       const method = requireMethod(lib, entry.exportName);
       const examples = trail?.examples ?? [];

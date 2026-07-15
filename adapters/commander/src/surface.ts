@@ -38,7 +38,7 @@ export interface CreateProgramOptions extends BaseSurfaceOptions {
   /**
    * App-authored overlay envelopes (conventionally the app module's
    * `trailsOverlays` export); the `surfaces` envelope's `cli` bindings
-   * project synonym and command-group routes onto the program.
+   * render synonym and command-group routes onto the program.
    */
   readonly overlays?: readonly OverlayEnvelopeLike[] | undefined;
   readonly presets?: CliFlag[][] | undefined;

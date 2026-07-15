@@ -56,7 +56,7 @@ describe('public-output-schema', () => {
       severity: 'error',
     });
     expect(diagnostics[0]?.message).toContain(
-      'Trail "report.read" is visible to public MCP/HTTP surface projection'
+      'Trail "report.read" is visible to public MCP/HTTP surface rendering'
     );
   });
 

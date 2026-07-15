@@ -1,7 +1,7 @@
 /**
  * Governance gates for the showcase, enforced in CI:
  * - Warden reports zero errors for the switchback topo, including the
- *   topo-aware library-projection-coherence rule.
+ *   topo-aware library-render-coherence rule.
  * - The committed trails.lock matches the current graph (no drift).
  */
 
@@ -31,7 +31,7 @@ describe('warden', () => {
 });
 
 describe('trails.lock', () => {
-  test('committed lock embeds the collision-free library projection', async () => {
+  test('committed lock embeds the collision-free library rendering', async () => {
     const lock = (await Bun.file(join(appRoot, 'trails.lock')).json()) as {
       topoGraph: {
         library?: {

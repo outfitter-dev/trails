@@ -2,7 +2,7 @@
 
 Trails HTTP support has a shared core plus HTTP bindings:
 
-- `@ontrails/http` owns route derivation, OpenAPI projection, and the shared Web Fetch request kernel.
+- `@ontrails/http` owns route derivation, OpenAPI derivation, and the shared Web Fetch request kernel.
 - `@ontrails/hono` opens the derived routes through Hono.
 - `@ontrails/http/bun` opens the same derived routes through Bun-native serving.
 - `@ontrails/http/fetch` exposes in-process Web Fetch handlers for adapters and tests.
@@ -47,9 +47,9 @@ HTTP routes are derived from trail contracts:
 
 Trail IDs become paths by replacing dots with slashes. `entity.show` becomes `/entity/show`.
 
-## Pure Projections
+## Pure Derivations
 
-Use pure projection APIs when you need to inspect or persist HTTP shape without opening a server:
+Use pure derivation APIs when you need to inspect or persist HTTP shape without opening a server:
 
 ```typescript
 import { deriveHttpRoutes, deriveOpenApiSpec } from '@ontrails/http';
@@ -87,7 +87,7 @@ const routeResponse = await handler(
 if (routeResponse.status !== 200) throw new Error('unexpected route response');
 ```
 
-The kernel owns query/body parsing, public error projection, request IDs, abort propagation, content-length validation, and webhook parsing behavior.
+The kernel owns query/body parsing, public error rendering, request IDs, abort propagation, content-length validation, and webhook parsing behavior.
 
 ## Testing
 

@@ -11,7 +11,7 @@ import { getActivationSourceInputCompatibilityIssues } from './activation-source
 import {
   activationSourceDeclarationSignature,
   activationSourceKey,
-} from './activation-source-projection.js';
+} from './activation-source-derivation.js';
 import type { AnyEntity } from './entity.js';
 import { getEntityReferences } from './entity.js';
 import { ValidationError } from './errors.js';

@@ -5,12 +5,12 @@ description: Use when reviewing public or queryable Trails outputs that expose u
 
 # Trails Discriminate Union
 
-Use this skill when a trail output, projection, query response, or public schema has multiple object-like branches that consumers must distinguish.
+Use this skill when a trail output, derived view, query response, or public schema has multiple object-like branches that consumers must distinguish.
 
 ## Workflow
 
-1. Confirm the shape is public or queryable. Focus on trail outputs, topo/query projections, surface responses, or agent-consumed schemas.
-2. Identify branch evidence: Zod schemas, JSON Schema projection, tests, examples, and downstream surface behavior.
+1. Confirm the shape is public or queryable. Focus on trail outputs, topo/query derived views, surface responses, or agent-consumed schemas.
+2. Identify branch evidence: Zod schemas, JSON Schema derivation, tests, examples, and downstream surface behavior.
 3. Look for a stable literal discriminant such as `kind`, `mode`, `type`, or another owner-approved field.
 4. Check whether consumers currently branch by field guessing, optional-field presence, message text, or array position.
 5. Recommend one of:
@@ -22,8 +22,8 @@ Use this skill when a trail output, projection, query response, or public schema
 ## Authoritative Sources
 
 - `packages/core/src/validation.ts`
-- Surface builders that project output schemas.
-- Tests that cover examples, MCP/HTTP schema projection, or topo query output.
+- Surface builders that render output schemas.
+- Tests that cover examples, MCP/HTTP schema rendering, or topo query output.
 
 ## Advisory Context
 

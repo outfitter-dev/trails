@@ -13,8 +13,8 @@
  */
 
 import {
-  projectErrorDiagnostics,
-  projectPublicSurfaceError,
+  renderErrorDiagnostics,
+  renderPublicSurfaceError,
 } from '@ontrails/core';
 import type {
   BaseSurfaceOptions,
@@ -104,7 +104,7 @@ export interface CloudflareWorker {
 
 /**
  * Map a materialization failure (route derivation, env bridge resolution) to
- * a projected HTTP error response. Route execution errors never reach this
+ * a rendered HTTP error response. Route execution errors never reach this
  * path — the fetch kernel maps those itself.
  */
 const mapCaughtError = (error: unknown): Response => {
@@ -113,18 +113,18 @@ const mapCaughtError = (error: unknown): Response => {
   // diagnostics to the Worker log while the response stays redacted.
   console.error(
     '[ontrails:cloudflare/workers] Failed to materialize request handler',
-    projectErrorDiagnostics(err)
+    renderErrorDiagnostics(err)
   );
-  const projection = projectPublicSurfaceError('http', err);
+  const rendering = renderPublicSurfaceError('http', err);
   return Response.json(
     {
       error: {
-        category: projection.category,
-        code: projection.name,
-        message: projection.message,
+        category: rendering.category,
+        code: rendering.name,
+        message: rendering.message,
       },
     },
-    { status: projection.code }
+    { status: rendering.code }
   );
 };
 
@@ -135,7 +135,7 @@ const mapCaughtQueueError = (
   const err = error instanceof Error ? error : new Error(String(error));
   console.error(
     '[ontrails:cloudflare/workers] Failed to materialize queue handler',
-    projectErrorDiagnostics(err)
+    renderErrorDiagnostics(err)
   );
   batch.retryAll();
 };

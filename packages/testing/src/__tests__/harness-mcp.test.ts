@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { createMcpHarness } from '../harness-mcp.js';
 
 describe('createMcpHarness', () => {
-  test('threads resource overrides through MCP projection options', async () => {
+  test('threads resource overrides through MCP rendering options', async () => {
     const dbResource = resource('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     });

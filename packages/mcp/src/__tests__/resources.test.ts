@@ -24,7 +24,7 @@ const parseJson = (text: string | undefined): unknown => {
 };
 
 describe('buildMcpResources', () => {
-  test('projects a surface map resource with trailheaded tool metadata', () => {
+  test('renders a surface map resource with trailheaded tool metadata', () => {
     const readTopo = trail('topo.read', {
       description: 'Read topo.',
       implementation: () => Result.ok({ ok: true }),
@@ -62,7 +62,7 @@ describe('buildMcpResources', () => {
     expect(tools[0]?._meta?.[MCP_TOOL_DEFERRED_META_KEY]).toBe(true);
   });
 
-  test('projects examples for trails exposed through a trailhead', () => {
+  test('renders examples for trails exposed through a trailhead', () => {
     const readTopo = trail('topo.read', {
       examples: [
         {

@@ -7,10 +7,10 @@ Surface trailheads are an additive beta feature for dense MCP surfaces. They let
 The Surface Trailheads & MCP Shaping stack changes these publishable packages:
 
 - `@ontrails/topography`: serializes resolved trailhead metadata in TopoGraph artifacts and semantic diffs.
-- `@ontrails/mcp`: adds MCP surface trailheads, MCP resource projection for cold context, and deferred-loading metadata hints.
+- `@ontrails/mcp`: adds MCP surface trailheads, MCP resource rendering for cold context, and deferred-loading metadata hints.
 - `@ontrails/trails`: adds the Trails operator MCP entrypoint and deferred trailhead map.
 - `@ontrails/warden`: adds `surface-trailhead-coherence` guidance for overlap, dynamic selectors, visibility acknowledgement, and description hygiene.
-- `@ontrails/adapter-kit`: exposes adapter type evidence for downstream projection checks without authoring trailheads.
+- `@ontrails/adapter-kit`: exposes adapter type evidence for downstream rendering checks without authoring trailheads.
 
 Each package-touching branch carries a branch-local changeset:
 
@@ -54,7 +54,7 @@ Successful outputs are correlated:
 
 MCP resources are enabled by default:
 
-- `trails://surface-map` exposes the resolved MCP projection, including ordinary tools and trailhead tools.
+- `trails://surface-map` exposes the resolved MCP rendering, including ordinary tools and trailhead tools.
 - `trails://examples/<trailId>` exposes structured examples for exposed trails.
 
 Use `mcpResources: false` to disable MCP resources, or a `McpResourcesConfig` object to select `surfaceMap` and `examples` individually.
@@ -65,17 +65,17 @@ Use `mcpResources: false` to disable MCP resources, or a `McpResourcesConfig` ob
 
 ### Adapter-Kit Boundary
 
-Adapter-kit does not define, author, or own trailheads. It may provide raw adapter evidence such as `adapterType` for future surface-projection conformance checks, but grouped affordance validation should consume resolved surface metadata from the surface or governance layer.
+Adapter-kit does not define, author, or own trailheads. It may provide raw adapter evidence such as `adapterType` for future surface-rendering conformance checks, but grouped affordance validation should consume resolved surface metadata from the surface or governance layer.
 
 ## Migration Posture
 
-Existing MCP consumers that use one-trail-one-tool projection do not need to migrate. Surface trailheads are opt-in.
+Existing MCP consumers that use one-trail-one-tool rendering do not need to migrate. Surface trailheads are opt-in.
 
 Apps that want a shaped MCP surface should:
 
 1. Keep trail contracts unchanged.
 2. Add an explicit MCP trailhead map near the MCP surface entrypoint.
-3. Enable MCP resources or keep the default resource projection.
+3. Enable MCP resources or keep the default resource rendering.
 4. Run Warden and watch for selector overlap, dynamic selectors, visibility widening acknowledgements, and stale descriptions.
 5. Update app docs or agent guidance so callers know to inspect `trails://surface-map` before guessing at grouped tools.
 
@@ -104,7 +104,7 @@ Do not publish from the feature stack unless explicitly authorized. This note is
 Before cutting the beta that includes surface trailheads, confirm:
 
 - docs include the user-facing trailhead guide, MCP resource/deferred guidance, and CLI/HTTP parity decision;
-- Trails skill/plugin guidance teaches trailheads as governed surface projection, not a new primitive;
+- Trails skill/plugin guidance teaches trailheads as governed surface rendering, not a new primitive;
 - Warden generated guidance is refreshed and checked;
 - `trails release smoke --check wayfinder-dogfood` or the repo wrapper
   `bun run wayfinder:dogfood` proves the Trails operator topo remains

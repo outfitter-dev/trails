@@ -32,7 +32,7 @@ const regradeTransformInputToChild = regradeTransformInput.transform(
  * Raw, pre-transform input accepted by {@link regradeTransformInputToChild}.
  *
  * Trail examples and `testExamples()` feed this shape through validation; the
- * Zod transform then projects it into the implementation input.
+ * Zod transform then derives the implementation input.
  */
 type RegradeTransformRawInput = z.input<typeof regradeTransformInputToChild>;
 

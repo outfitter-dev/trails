@@ -52,7 +52,7 @@ export interface TopoStoreActivationContextRecord {
   readonly trailIds: readonly string[];
 }
 
-export interface TopoStoreSurfaceProjectionRecord {
+export interface TopoStoreSurfaceDerivedRecord {
   readonly derivedName: string;
   readonly method: string | null;
   readonly surface: string;
@@ -103,7 +103,7 @@ export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
   readonly layers: readonly TopoGraphLayerReference[];
   readonly output: JsonSchema | null;
   readonly resources: readonly string[];
-  readonly surfaceProjections: readonly TopoStoreSurfaceProjectionRecord[];
+  readonly derivedSurfaces: readonly TopoStoreSurfaceDerivedRecord[];
   readonly surfaces: readonly string[];
 }
 
@@ -175,7 +175,7 @@ interface TopoExampleRow {
   readonly signals: string | null;
 }
 
-interface TopoSurfaceProjectionRow {
+interface TopoSurfaceDerivedRow {
   readonly derived_name: string;
   readonly method: string | null;
   readonly surface: string;
@@ -424,13 +424,13 @@ const readTrailExamples = (
       signals: row.signals === null ? null : parseJson(row.signals),
     }));
 
-const readTrailSurfaceProjections = (
+const readTrailSurfaceDerived = (
   db: Database,
   snapshotId: string,
   trailId: string
-): readonly TopoStoreSurfaceProjectionRecord[] =>
+): readonly TopoStoreSurfaceDerivedRecord[] =>
   db
-    .query<TopoSurfaceProjectionRow, [string, string]>(
+    .query<TopoSurfaceDerivedRow, [string, string]>(
       `SELECT trail_id, surface, derived_name, method
        FROM topo_surfaces
        WHERE snapshot_id = ? AND trail_id = ?
@@ -567,7 +567,7 @@ const buildTrailGraphDetail = (
   | 'input'
   | 'layers'
   | 'output'
-  | 'surfaceProjections'
+  | 'derivedSurfaces'
   | 'surfaces'
 > => {
   const storedTopoGraph = readStoredTopoGraph(db, snapshotId);
@@ -579,6 +579,7 @@ const buildTrailGraphDetail = (
     activationEdges: readTrailActivationEdges(storedTopoGraph, trailId),
     activationSources: entryDetail.activationSources,
     cli: entryDetail.cli,
+    derivedSurfaces: readTrailSurfaceDerived(db, snapshotId, trailId),
     detours: entryDetail.detours,
     entities: entryDetail.entities,
     entityDetails: readTrailEntityDetails(
@@ -591,7 +592,6 @@ const buildTrailGraphDetail = (
     input: entryDetail.input,
     layers: entryDetail.layers,
     output: entryDetail.output,
-    surfaceProjections: readTrailSurfaceProjections(db, snapshotId, trailId),
     surfaces: entryDetail.surfaces,
   };
 };
@@ -871,6 +871,7 @@ export const getTopoStoreTrail = (
     activationSources: graphDetail.activationSources,
     cli: graphDetail.cli,
     composes: readTrailComposings(db, snapshot.id, trailId),
+    derivedSurfaces: graphDetail.derivedSurfaces,
     detours: graphDetail.detours,
     entities: graphDetail.entities,
     entityDetails: graphDetail.entityDetails,
@@ -881,7 +882,6 @@ export const getTopoStoreTrail = (
     layers: graphDetail.layers,
     output: graphDetail.output,
     resources: readTrailResourceIds(db, snapshot.id, trailId),
-    surfaceProjections: graphDetail.surfaceProjections,
     surfaces: graphDetail.surfaces,
   };
 };

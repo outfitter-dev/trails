@@ -49,7 +49,8 @@ Use these terms — they are non-negotiable in Trails codebases.
 | `implementation` | Authored behavior that establishes how a trail runs from validated input to Result | handler, impl |
 | `surface` | The boundary-owned one-liner that opens a graph | serve, mount |
 | `graph` | Local name for a topo instance | app, registry |
-| `projection` | Deterministic derivation of graph onto a surface shape | mapping |
+| `derive` | Produce canonical facts or an intermediate representation from authored truth | operation |
+| `render` | Present derived facts through a surface or format | operation |
 | `meta` | Trail annotations and ownership data | tags, metadata |
 | `warden` | Governance enforcement | linter |
 
@@ -112,7 +113,7 @@ trails schema wayfind
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
 - Use `trails wayfind query "<phrase>"` for indexed text queries. Treat Wayfinder as graph-read only; do not assume semantic search, signposts, or implications exist in v0.
 
-Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary. Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source code that Topography does not project, or when writing artifacts is outside your current authority.
+Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary. Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source code that Topography does not derive, or when writing artifacts is outside your current authority.
 
 ## Creating Trails
 
@@ -172,7 +173,7 @@ await surface(graph);
 
 Use `cli` on a trail only for canonical command overrides or trail-owned aliases that still normalize into the same trail contract. String aliases are sibling leaf aliases (`find` beside `search`); string-array aliases are absolute command paths (`['wf', 'search']`). App-owned compatibility aliases belong in CLI surface options and should also be exported from the app module as `cliAliases` or `trailsCliAliases` so compile, validate, Wayfinder, and `trails schema` inspect the same routes the runtime CLI accepts.
 
-Treat aliases, future input mappings, and trailheads as **surface accommodations**: projection-level fit adjustments, not alternate behavior. The trail stays the capability. A surface entry is the invocable affordance on a surface; an approach is the way a caller reaches it. Aliases add alternate approaches to the same trail, input mappings normalize surface-shaped input into the same trail input, and trailheads group several trails into one entry while preserving the selected trail ID. Use the ADR-0050 test: if the fit would change intent, permits, errors, outputs, lifecycle, side effects, or hide which trail is running, call it a trail fork and author a distinct or composing trail instead.
+Treat aliases, future input mappings, and trailheads as **surface accommodations**: render-level fit adjustments, not alternate behavior. The trail stays the capability. A surface entry is the invocable affordance on a surface; an approach is the way a caller reaches it. Aliases add alternate approaches to the same trail, input mappings normalize surface-shaped input into the same trail input, and trailheads group several trails into one entry while preserving the selected trail ID. Use the ADR-0050 test: if the fit would change intent, permits, errors, outputs, lifecycle, side effects, or hide which trail is running, call it a trail fork and author a distinct or composing trail instead.
 
 Classify surface-fit work before editing:
 
@@ -190,7 +191,7 @@ import { surface } from '@ontrails/mcp';
 await surface(graph);
 ```
 
-Dense MCP surfaces may use **trailheads** to group related trails into fewer agent-facing tools. A trailhead is surface-side projection configuration, not a core `Facet` primitive and not a new domain operation. It groups and selects without merging. Author it in MCP surface options, call it with `{ trail, input }`, and expect successful results as `{ trail, output }` so the underlying trail stays visible.
+Dense MCP surfaces may use **trailheads** to group related trails into fewer agent-facing tools. A trailhead is surface rendering configuration, not a core `Facet` primitive and not a new domain operation. It groups and selects without merging. Author it in MCP surface options, call it with `{ trail, input }`, and expect successful results as `{ trail, output }` so the underlying trail stays visible.
 
 ```typescript
 await surface(graph, {
@@ -205,7 +206,7 @@ await surface(graph, {
 });
 ```
 
-Use `trails://surface-map` and per-trail MCP resources for cold context before guessing at grouped affordances. Adapter-kit may validate resolved projection evidence for future surface adapters, but it does not define or author trailheads. Do not invent `facet()`, `overlapsWith`, or adapter-kit `facet` config.
+Use `trails://surface-map` and per-trail MCP resources for cold context before guessing at grouped affordances. Adapter-kit may validate resolved derived evidence for future surface adapters, but it does not define or author trailheads. Do not invent `facet()`, `overlapsWith`, or adapter-kit `facet` config.
 
 **HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy. Use Hono for framework portability or Bun-native HTTP when you want Bun serving without a third-party runtime; both share the `@ontrails/http` route/fetch kernel.
 

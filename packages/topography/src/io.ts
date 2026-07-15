@@ -222,7 +222,7 @@ export const writeTrailsLock = async (
 /**
  * Read a lock v4 manifest from `<dir>/trails.lock`.
  *
- * v5 root locks are projected back to the v4 manifest shape for compatibility.
+ * v5 root locks are derived back to the v4 manifest shape for compatibility.
  */
 export const readLockManifest = async (
   options?: ReadOptions

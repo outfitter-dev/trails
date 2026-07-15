@@ -1,6 +1,6 @@
 /**
  * The hero surface: the switchback topo consumed as a typed in-process
- * library. Also proves the projection is collision-free and that the same
+ * library. Also proves the renderingPlan is collision-free and that the same
  * trail produces identical results through the library client and headless
  * execution.
  */
@@ -24,16 +24,16 @@ const evaluateInput = {
   key: 'checkout-v2',
 };
 
-describe('library projection', () => {
-  const projection = deriveLibraryApi(app);
+describe('library renderingPlan', () => {
+  const renderingPlan = deriveLibraryApi(app);
 
   test('is collision-free with no exclusions', () => {
-    expect(projection.collisions).toEqual([]);
-    expect(projection.excluded).toEqual([]);
+    expect(renderingPlan.collisions).toEqual([]);
+    expect(renderingPlan.excluded).toEqual([]);
   });
 
   test('exports every trail under a consumer-native name', () => {
-    const names = projection.exports.map((entry) => entry.exportName);
+    const names = renderingPlan.exports.map((entry) => entry.exportName);
     expect(names).toEqual([
       'auditList',
       'flagArchive',

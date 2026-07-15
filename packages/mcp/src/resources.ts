@@ -1,5 +1,5 @@
 /**
- * MCP resource projection for cold Trails context.
+ * MCP resource rendering for cold Trails context.
  */
 
 import { deriveStructuredTrailExamples } from '@ontrails/core';
@@ -107,7 +107,7 @@ interface McpTrailResource {
 const asJson = (value: unknown): string =>
   `${JSON.stringify(value, null, 2)}\n`;
 
-const projectSurfaceMapTool = (tool: McpToolDefinition): McpSurfaceMapTool => ({
+const renderSurfaceMapTool = (tool: McpToolDefinition): McpSurfaceMapTool => ({
   annotations: tool.annotations,
   description: tool.description,
   inputSchema: tool.inputSchema,
@@ -130,7 +130,7 @@ const buildSurfaceMap = (
   tools: readonly McpToolDefinition[]
 ): McpSurfaceMap => ({
   surface: 'mcp',
-  tools: tools.map(projectSurfaceMapTool),
+  tools: tools.map(renderSurfaceMapTool),
 });
 
 const exposedTrailIds = (
@@ -216,7 +216,7 @@ const buildTrailGraphResource = (
         tool.trailId === trailItem.id ||
         tool.memberTrailIds?.includes(trailItem.id) === true
     )
-    .map(projectSurfaceMapTool);
+    .map(renderSurfaceMapTool);
   const payload: McpTrailResource = {
     composes: trailItem.composes,
     ...(trailItem.description === undefined
@@ -289,7 +289,7 @@ export const buildMcpResources = (
 
   if (config.surfaceMap !== false) {
     const surfaceMapListing = {
-      description: 'Resolved MCP surface projection for this Trails app.',
+      description: 'Resolved MCP surface rendering for this Trails app.',
       mimeType: 'application/json',
       name: 'Trails MCP surface map',
       uri: MCP_SURFACE_MAP_RESOURCE_URI,
@@ -323,7 +323,7 @@ export const buildMcpResources = (
 };
 
 /**
- * Return whether an MCP tool was projected from a surface trailhead.
+ * Return whether an MCP tool was rendered from a surface trailhead.
  *
  * @example
  * ```ts

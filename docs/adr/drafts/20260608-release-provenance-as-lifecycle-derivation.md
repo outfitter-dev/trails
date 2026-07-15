@@ -1,6 +1,6 @@
 ---
-slug: release-provenance-as-lifecycle-projection
-title: Release Provenance as Lifecycle Projection
+slug: release-provenance-as-lifecycle-derivation
+title: Release Provenance as Lifecycle Derivation
 status: draft
 created: 2026-06-08
 updated: 2026-06-09
@@ -8,7 +8,7 @@ owners: ['[galligan](https://github.com/galligan)']
 depends_on: [47, 48]
 ---
 
-# ADR: Release Provenance as Lifecycle Projection
+# ADR: Release Provenance as Lifecycle Derivation
 
 ## Context
 
@@ -20,9 +20,9 @@ There is also a naming risk. It is tempting to promote "release" into a new prim
 
 ## Decision
 
-### Release is a lifecycle projection
+### Release is a lifecycle derivation
 
-Trails models release work as a lifecycle projection over existing facts:
+Trails models release work as a lifecycle derivation over existing facts:
 
 - package changes and publishable workspace membership;
 - source diffs in the owning branch;
@@ -48,7 +48,7 @@ A **release target** is a deferred named scope for future release planning: pack
 
 ADR-0048 decides trail-only contract versioning. Package semver describes npm distribution compatibility. Trail version entries describe capability compatibility inside a topo. A public trail contract change can be a release fact even when the trail's own `version` field does not change, and a trail version entry can preserve old runtime compatibility inside a package release.
 
-The release projection must keep those axes visible:
+The release-derived view must keep those axes visible:
 
 - package semver answers "what public framework bits are being distributed?";
 - trail versions answer "which contract versions can this topo resolve?";

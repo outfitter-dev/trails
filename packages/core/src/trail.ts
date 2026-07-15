@@ -15,7 +15,7 @@ import type { AnyEntity } from './entity.js';
 import type {
   FieldOverride,
   CliCommandPathInput,
-  TrailCliProjection,
+  TrailCliRendering,
 } from './derive.js';
 import type { Layer } from './layer.js';
 import type { Result } from './result.js';
@@ -504,13 +504,13 @@ export interface TrailSpec<
    * `topo → surface → trail → implementation` (outermost-first).
    *
    * Layers are typed and inspectable. Omit `input` for surface-invisible
-   * wrappers that do not project any fields.
+   * wrappers that do not render any fields.
    */
   readonly layers?: readonly Layer[] | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
-  /** CLI projection metadata for canonical command path overrides and aliases. */
-  readonly cli?: CliCommandPathInput | TrailCliProjection | undefined;
+  /** CLI rendering metadata for canonical command path overrides and aliases. */
+  readonly cli?: CliCommandPathInput | TrailCliRendering | undefined;
   /** Entities this trail operates on. */
   readonly entities?: readonly AnyEntity[] | undefined;
   /** IDs or trail objects of downstream trails this trail may invoke via ctx.compose() */
@@ -548,13 +548,13 @@ export interface TrailSpec<
     | undefined;
   /** Auth requirement: scopes object, 'public', or omitted (undeclared) */
   readonly permit?: PermitRequirement | undefined;
-  /** Primary input fields and their order. CLI projects as positional args. */
+  /** Primary input fields and their order. CLI derives as positional args. */
   readonly args?: readonly string[] | false | undefined;
   /** Current trail version number. Omit for current-only unversioned trails. */
   readonly version?: number | undefined;
   /** Explicit historical trail versions. Current stays top-level. */
   readonly versions?: TrailVersions<I, O> | undefined;
-  /** Version markers are projected into the resolved graph, not authored. */
+  /** Version markers are derived into the resolved graph, not authored. */
   readonly marker?: never;
 }
 
@@ -976,12 +976,12 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
 
   if (hasOwn(raw, 'kind')) {
     throw new ValidationError(
-      `Trail "${trailId}" version ${version} must not author kind; it is projected`
+      `Trail "${trailId}" version ${version} must not author kind; it is derived`
     );
   }
   if (hasOwn(raw, 'marker')) {
     throw new ValidationError(
-      `Trail "${trailId}" version ${version} must not author marker; it is projected`
+      `Trail "${trailId}" version ${version} must not author marker; it is derived`
     );
   }
 
@@ -1286,7 +1286,7 @@ export function trail<
 
   if (hasOwn(rawSpec, 'marker')) {
     throw new ValidationError(
-      `Trail "${resolved.id}" must not author marker; it is projected`
+      `Trail "${resolved.id}" must not author marker; it is derived`
     );
   }
 

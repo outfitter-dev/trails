@@ -1,5 +1,5 @@
 /**
- * TRL-474: Project typed layer input onto the MCP surface.
+ * TRL-474: Render typed layer input onto the MCP surface.
  *
  * When a layer attached at trail/surface/topo scope declares an `input`
  * schema, the MCP tool definition merges that schema into the published
@@ -89,10 +89,10 @@ const asJsonObject = (value: unknown): JsonObjectSchema => {
 };
 
 // ---------------------------------------------------------------------------
-// Schema projection
+// Schema rendering
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 MCP layer input projection — schema merge', () => {
+describe('TRL-474 MCP layer input rendering — schema merge', () => {
   test('a typed trail-scope layer adds a property to the tool input schema', () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
@@ -188,7 +188,7 @@ describe('TRL-474 MCP layer input projection — schema merge', () => {
 // Runtime mapping
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 MCP layer input projection — runtime mapping', () => {
+describe('TRL-474 MCP layer input rendering — runtime mapping', () => {
   test('parsed layer parameters reach the layer at runtime', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
@@ -263,7 +263,7 @@ describe('TRL-474 MCP layer input projection — runtime mapping', () => {
 // Collisions
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 MCP layer input projection — collisions', () => {
+describe('TRL-474 MCP layer input rendering — collisions', () => {
   test('a layer field colliding with a trail field is renamed and delivered', async () => {
     const bucket: InputBucket = { value: undefined };
     const collidingLayer = captureLayerInput(

@@ -176,6 +176,7 @@ describe('trails guide', () => {
             trail: [],
           },
           composes: [],
+          derivedSurfaces: [],
           description: 'Say hello',
           detours: [
             {
@@ -200,7 +201,6 @@ describe('trails guide', () => {
           resources: [],
           safety: 'read',
           supports: [],
-          surfaceProjections: [],
           surfaces: [],
           version: null,
           versions: {},

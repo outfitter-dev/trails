@@ -26,7 +26,7 @@ import {
   redactErrorContext,
   redactErrorStack,
   redactErrorString,
-} from './error-projection.js';
+} from './error-rendering.js';
 import { Result } from './result.js';
 
 // ---------------------------------------------------------------------------

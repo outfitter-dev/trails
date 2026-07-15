@@ -24,7 +24,7 @@ The first implemented proof already points the right way:
 - `WardenRuleMetadata` carries optional rule-level fix capability.
 - `WardenFix` distinguishes a transform class, safety level, concrete edits,
   reason, and fixture pointer.
-- The guide/manifest projection exposes rule-level fix availability.
+- The guide/manifest rendering exposes rule-level fix availability.
 - `warden --fix` applies only safe edits and leaves review-required fixes
   reported.
 - `no-legacy-layer-imports` emits review-required `term-rewrite` metadata for
@@ -76,7 +76,7 @@ The rule-level capability feeds `warden guide`, manifests, agent guides, and rul
 
 Concrete edits do not live on rule metadata because a rule-level declaration does not know the source span. Prose guidance does not substitute for diagnostic metadata because prose is not a stable integration contract.
 
-Diagnostic fix metadata must survive Warden's trail-shaped outputs. A rule trail output that strips `fix` recreates the parallel-surface drift [ADR-0036](../0036-warden-rules-ship-only-as-trails.md) was written to remove: raw-rule consumers would see richer facts than trail consumers. If a diagnostic has structured fix metadata, every supported Warden diagnostic projection must either carry it or explicitly document why that projection is summary-only.
+Diagnostic fix metadata must survive Warden's trail-shaped outputs. A rule trail output that strips `fix` recreates the parallel-surface drift [ADR-0036](../0036-warden-rules-ship-only-as-trails.md) was written to remove: raw-rule consumers would see richer facts than trail consumers. If a diagnostic has structured fix metadata, every supported Warden diagnostic rendering must either carry it or explicitly document why that rendering is summary-only.
 
 ### Safe fixes are deterministic source edits
 
@@ -117,7 +117,7 @@ This means Warden fix metadata blocks rename-class Regrade integration. It does 
 
 Regrade is not a migration utility bolted onto Trails. It is the contract-first model applied to contract change. If Trails makes drift structurally harder while a trail is being authored, the same posture should carry into the moments when a framework contract moves.
 
-The useful invariant is narrower than a generic codemod: Regrade should migrate authored boundaries, then let derivation fan the projections back out. A generic codemod rewrites every surface it can see because it is blind to authored versus derived state. A Trails-aware migration should usually touch less. If Regrade rewrites a projected output, that is a smell; the projection should have re-derived from the updated contract unless the projection itself is the authored artifact.
+The useful invariant is narrower than a generic codemod: Regrade should migrate authored boundaries, then let derivation fan the derived outputs back out. A generic codemod rewrites every surface it can see because it is blind to authored versus derived state. A Trails-aware migration should usually touch less. If Regrade rewrites a rendered output, that is a smell; the rendering should have re-rendered from the updated contract unless the rendered artifact itself is authored.
 
 For Warden-detected migrations, that keeps the ownership line sharp:
 
@@ -178,10 +178,10 @@ This is the same "one write, many reads" doctrine applied to governance repair: 
 - **Regrade drift.** Regrade could quietly add its own mappings for convenience.
   Mitigation: TRL-836 must consume Warden-owned metadata, and local review
   should reject parallel mapping tables.
-- **Projection drift.** A raw Warden rule path might preserve diagnostic fixes
+- **Rendering drift.** A raw Warden rule path might preserve diagnostic fixes
   while a Warden trail path drops them. Mitigation: diagnostic `fix` is part of
   the supported Warden diagnostic shape; TRL-866 closes the current rule-trail
-  projection gap before TRL-836 depends on it.
+  rendering gap before TRL-836 depends on it.
 
 ## Non-decisions
 

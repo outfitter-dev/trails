@@ -2,7 +2,7 @@ import type { AttachedTypedLayer, Layer, Topo, Trail } from '@ontrails/core';
 import {
   LAYER_FIELD_RESERVED_NAMES,
   collectAttachedTypedLayers,
-  projectLayerFieldName,
+  renderLayerFieldName,
   zodToJsonSchema,
 } from '@ontrails/core';
 import { z } from 'zod';
@@ -10,20 +10,20 @@ import { z } from 'zod';
 type AnyTrail = Trail<unknown, unknown, unknown>;
 type MutableLayerShape = Record<string, z.ZodRawShape[string]>;
 
-export interface LibraryLayerFieldProjection {
+export interface LibraryLayerFieldRendering {
   readonly claimedName: string;
   readonly routingTarget: string;
 }
 
-export interface LibraryLayerInputProjection {
-  readonly fields: readonly LibraryLayerFieldProjection[];
+export interface LibraryLayerInputRendering {
+  readonly fields: readonly LibraryLayerFieldRendering[];
   readonly input: z.ZodObject<z.ZodRawShape>;
   readonly layerName: string;
 }
 
-export interface LibraryInputProjection {
+export interface LibraryInputRendering {
   readonly input: z.ZodType;
-  readonly layers: readonly LibraryLayerInputProjection[];
+  readonly layers: readonly LibraryLayerInputRendering[];
 }
 
 const isJsonObjectSchema = (
@@ -59,19 +59,19 @@ const objectPropertiesFor = (schema: z.ZodType): readonly string[] => {
 const isJsonObjectInput = (schema: z.ZodType): boolean =>
   isJsonObjectSchema(zodToJsonSchema(schema));
 
-const projectLayerInputFields = (
+const renderLayerInputFields = (
   attached: AttachedTypedLayer,
   claimedNames: Set<string>,
   layerShape: MutableLayerShape
-): LibraryLayerInputProjection => {
+): LibraryLayerInputRendering => {
   const { layer } = attached;
   if (layer.input === undefined) {
     return { fields: [], input: z.object({}), layerName: layer.name };
   }
 
-  const fields: LibraryLayerFieldProjection[] = [];
+  const fields: LibraryLayerFieldRendering[] = [];
   for (const [fieldName, fieldSchema] of Object.entries(layer.input.shape)) {
-    const projection = projectLayerFieldName(
+    const rendering = renderLayerFieldName(
       layer.name,
       fieldName,
       fieldName,
@@ -80,24 +80,24 @@ const projectLayerInputFields = (
       LAYER_FIELD_RESERVED_NAMES
     );
     fields.push({
-      claimedName: projection.claimedName,
-      routingTarget: projection.routingTarget,
+      claimedName: rendering.claimedName,
+      routingTarget: rendering.routingTarget,
     });
-    layerShape[projection.claimedName] = fieldSchema;
+    layerShape[rendering.claimedName] = fieldSchema;
   }
 
   return { fields, input: layer.input, layerName: layer.name };
 };
 
 /**
- * Project a trail's public library input: authored trail input plus any typed
+ * Render a trail's public library input: authored trail input plus any typed
  * layer input fields attached at topo, surface, or trail scope.
  */
-export const projectLibraryInput = (
+export const renderLibraryInput = (
   graph: Topo,
   trail: AnyTrail,
   surfaceLayers?: readonly Layer[]
-): LibraryInputProjection => {
+): LibraryInputRendering => {
   const attachedLayers = collectAttachedTypedLayers(
     graph,
     trail,
@@ -111,20 +111,20 @@ export const projectLibraryInput = (
   const claimedNames = new Set(trailProperties);
   if (trailProperties.length === 0 && !isJsonObjectInput(trail.input)) {
     throw new Error(
-      `Library layer input projection requires object input for trail "${trail.id}".`
+      `Library layer input rendering requires object input for trail "${trail.id}".`
     );
   }
 
   const layerShape: MutableLayerShape = {};
-  const layers: LibraryLayerInputProjection[] = [];
+  const layers: LibraryLayerInputRendering[] = [];
   for (const attached of attachedLayers) {
-    const projection = projectLayerInputFields(
+    const rendering = renderLayerInputFields(
       attached,
       claimedNames,
       layerShape
     );
-    if (projection.fields.length > 0) {
-      layers.push(projection);
+    if (rendering.fields.length > 0) {
+      layers.push(rendering);
     }
   }
 
@@ -140,25 +140,25 @@ export const projectLibraryInput = (
 
 /**
  * Split a library method input back into trail input plus per-layer runtime
- * input slots using the projection routing table.
+ * input slots using the rendering routing table.
  */
 export const partitionLibraryInput = (
   input: unknown,
-  projections: readonly LibraryLayerInputProjection[]
+  renderings: readonly LibraryLayerInputRendering[]
 ): {
   readonly layerInputs: Record<string, unknown>;
   readonly trailInput: unknown;
 } => {
-  if (projections.length === 0 || !isObjectRecord(input)) {
+  if (renderings.length === 0 || !isObjectRecord(input)) {
     return { layerInputs: {}, trailInput: input };
   }
 
   const claimedKeys = new Set<string>();
   const layerInputs: Record<string, unknown> = {};
-  for (const projection of projections) {
+  for (const rendering of renderings) {
     const layerInput: Record<string, unknown> = {};
     let received = false;
-    for (const field of projection.fields) {
+    for (const field of rendering.fields) {
       claimedKeys.add(field.claimedName);
       const value = input[field.claimedName];
       if (value === undefined) {
@@ -168,13 +168,13 @@ export const partitionLibraryInput = (
       received = true;
     }
     if (received) {
-      layerInputs[projection.layerName] = layerInput;
+      layerInputs[rendering.layerName] = layerInput;
       continue;
     }
 
-    const emptyInput = projection.input.safeParse({});
+    const emptyInput = rendering.input.safeParse({});
     if (emptyInput.success) {
-      layerInputs[projection.layerName] = emptyInput.data;
+      layerInputs[rendering.layerName] = emptyInput.data;
     }
   }
 

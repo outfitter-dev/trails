@@ -20,7 +20,7 @@ This is not a private helper package. The Trails operator app consumes Topograph
 ## What it owns
 
 - deterministic TopoGraph generation from an established topo
-- structured example and field-override provenance projection for TopoGraph entries
+- structured example and field-override provenance derivation for TopoGraph entries
 - stable hashing for CI drift detection
 - semantic diffing between two TopoGraphs
 - file I/O helpers for root `trails.lock` plus legacy artifact-family readers
@@ -91,11 +91,11 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 | `readTopoGraph(options?)` | Read a TopoGraph from v4 `trails.lock` or legacy `topo.lock` |
 | `writeTopoGraph(topoGraph, options?)` | Write legacy `topo.lock` for explicit migration/testing paths |
 | `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v3 manifest |
-| `readLockManifest(options?)` | Read v3 manifests, projecting v4 locks back to v3 for compatibility |
+| `readLockManifest(options?)` | Read v3 manifests, deriving v4 locks back to v3 for compatibility |
 | `createTopoStore(options?)` | Read-only query interface over the persisted topo state in the Trails state-store `trails.db` |
 | `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
 | `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
-| `createTopoSnapshot(topo, options?)` | Persist a new topo snapshot row plus its denormalized projections |
+| `createTopoSnapshot(topo, options?)` | Persist a new topo snapshot row plus its denormalized derived facts |
 | `listTopoSnapshots(options?)` | List historical topo snapshots (filterable by pinned status) |
 | `pinTopoSnapshot(id, name, options?)` / `unpinTopoSnapshot(nameOrId, options?)` | Manage human-named pins |
 

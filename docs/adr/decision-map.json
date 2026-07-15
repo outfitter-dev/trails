@@ -1285,7 +1285,7 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
-          "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph",
+          "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational rendering of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
         },
@@ -1556,7 +1556,7 @@
           "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
         },
         {
-          "context": "[ADR-0019](../0019-hierarchical-command-trees-from-trail-ids.md) already reserves this space. Trail IDs derive canonical CLI command paths by default, but a trail may override its CLI projection when ",
+          "context": "[ADR-0019](../0019-hierarchical-command-trees-from-trail-ids.md) already reserves this space. Trail IDs derive canonical CLI command paths by default, but a trail may override its CLI rendering when d",
           "from": "20260613",
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
@@ -2294,7 +2294,7 @@
           "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
         },
         {
-          "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder",
+          "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` rendering ladder",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
@@ -2779,7 +2779,7 @@
         {
           "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
           "from": "20260608",
-          "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md"
+          "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md"
         },
         {
           "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
@@ -2840,7 +2840,7 @@
         {
           "context": "- [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md) - trail contract versions are separate from package semver.",
           "from": "20260608",
-          "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md"
+          "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md"
         }
       ],
       "number": "0048",

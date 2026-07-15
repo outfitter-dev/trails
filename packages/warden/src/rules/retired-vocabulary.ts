@@ -235,7 +235,9 @@ const v1VocabularyHistoricalPaths = [
   '**/CHANGELOG.md',
   'docs/adr/0*.md',
   'docs/adr/decision-map.json',
-  'docs/migration/**',
+  'docs/migration/*-to-adapter.md',
+  'docs/migration/*-to-compose.md',
+  'docs/migration/trailhead-to-surface.md',
   'docs/releases/beta*.md',
   'docs/releases/v1-vocabulary-reset.md',
   'docs/releases/v1-vocabulary-transition-workflow.md',
@@ -788,7 +790,105 @@ export const governedVocabularyTransitions =
       target: { kind: 'single', to: '@ontrails/topography' },
     }),
     defineV1Transition({
-      codeIdentifiers: [],
+      codeIdentifiers: [
+        'ActivationSourceProjection',
+        'AstFieldProjection',
+        'DeriveTrailCliCommandProjectionOptions',
+        'ErrorClassSurfaceProjection',
+        'ErrorDiagnosticsProjection',
+        'HTTP_METHOD_PROJECTION_PATH',
+        'HttpInputProjection',
+        'HttpLayerInputProjection',
+        'LayerFieldProjection',
+        'LayerFlagProjection',
+        'LibraryInputProjection',
+        'LibraryLayerFieldProjection',
+        'LibraryLayerInputProjection',
+        'LibraryProjection',
+        'McpInputProjection',
+        'McpLayerInputProjection',
+        'NormalizedTopoProjection',
+        'OutputSchemaProjection',
+        'PROJECTION_BLOCKING_RULES',
+        'ProjectionMap',
+        'ProjectedLayerField',
+        'ProjectedPermitRequirement',
+        'RenamedLayerFieldProjection',
+        'ShippedSurfaceProjection',
+        'SurfaceErrorProjection',
+        'SurfaceProjectionSource',
+        'SurfaceTrailVersionProjection',
+        'TopoGraphLibraryProjection',
+        'TopoStoreSurfaceProjectionRecord',
+        'TopoSurfaceProjectionRow',
+        'TrailCliCommandProjection',
+        'TrailCliProjection',
+        'TrailCliProjectionInput',
+        'TrailErrorTaxonomyProjection',
+        'buildOutputSchemaProjection',
+        'buildProjectionDiagnostic',
+        'cliProjection',
+        'cliProjectionSchema',
+        'collectLibraryProjection',
+        'projectActivationEdge',
+        'projectActivationSource',
+        'projectActivationSourceDeclaration',
+        'projectActual',
+        'projectAstFields',
+        'projectErrorClassSurface',
+        'projectErrorDiagnostics',
+        'projectExample',
+        'projectHttpInputSchema',
+        'projectHttpLayerInput',
+        'projectInputForSchema',
+        'projectLayerFieldName',
+        'projectLayerFlags',
+        'projectLayerInputFields',
+        'projectLibraryInput',
+        'projectMcpInputSchema',
+        'projectMcpLayerInput',
+        'projectMcpOutputSchema',
+        'projectPermitRequirement',
+        'projectPublicSurfaceError',
+        'projectSchema',
+        'projectSignalAssertion',
+        'projectSignalAssertions',
+        'projectSignalExample',
+        'projectSingleLayerFlags',
+        'projectSurfaceError',
+        'projectSurfaceMapTool',
+        'projectTrailVersionEntry',
+        'projectTrailVersions',
+        'projectVersionDetours',
+        'projectVersionRuntimeRefs',
+        'SchemaProjector',
+        'deriveShippedSurfaceProjectionInventory',
+        'deriveTrailCliCommandProjection',
+        'errorSurfaceProjectionSchema',
+        'errorTaxonomyProjectionSchema',
+        'expectProjectionCounts',
+        'inputProjection',
+        'isProjectionBlockingIssue',
+        'isTrailCliProjection',
+        'keepProjectionBlockingIssues',
+        'layerProjection',
+        'libraryProjectionCoherence',
+        'libraryProjectionCoherenceTrail',
+        'normalizeTopoProjection',
+        'ownerProjectionParity',
+        'ownerProjectionParityTrail',
+        'projectionDb',
+        'projectionKeys',
+        'projectionSource',
+        'seedLegacyProjectionStore',
+        'simpleProjectionApp',
+        'surfaceProjectionBaseOutput',
+        'surfaceProjectionOutput',
+        'taxonomyProjection',
+        'topoGraphLibraryProjectionSchema',
+        'trailCliProjectionFor',
+        'withProjectionDb',
+      ],
       docs: {
         guidance: [
           'Use derive for contract-owned fact production.',
@@ -797,6 +897,72 @@ export const governedVocabularyTransitions =
         ],
         summary: 'Projection vocabulary splits by stage into derive or render.',
       },
+      fileRenames: [
+        {
+          from: 'docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md',
+          to: 'docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md',
+        },
+        {
+          from: 'packages/cli/src/__tests__/layer-input-projection.test.ts',
+          to: 'packages/cli/src/__tests__/layer-input-rendering.test.ts',
+        },
+        {
+          from: 'packages/core/src/__tests__/activation-source-projection.test.ts',
+          to: 'packages/core/src/__tests__/activation-source-derivation.test.ts',
+        },
+        {
+          from: 'packages/core/src/__tests__/error-projection.test.ts',
+          to: 'packages/core/src/__tests__/error-rendering.test.ts',
+        },
+        {
+          from: 'packages/core/src/activation-source-projection.ts',
+          to: 'packages/core/src/activation-source-derivation.ts',
+        },
+        {
+          from: 'packages/core/src/error-projection.ts',
+          to: 'packages/core/src/error-rendering.ts',
+        },
+        {
+          from: 'packages/core/src/layer-projection.ts',
+          to: 'packages/core/src/layer-field-rendering.ts',
+        },
+        {
+          from: 'packages/http/src/__tests__/layer-input-projection.test.ts',
+          to: 'packages/http/src/__tests__/layer-input-rendering.test.ts',
+        },
+        {
+          from: 'packages/mcp/src/__tests__/layer-input-projection.test.ts',
+          to: 'packages/mcp/src/__tests__/layer-input-rendering.test.ts',
+        },
+        {
+          from: 'packages/topography/src/library-projection.ts',
+          to: 'packages/topography/src/library-derivation.ts',
+        },
+        {
+          from: 'packages/warden/src/__tests__/library-projection-coherence.test.ts',
+          to: 'packages/warden/src/__tests__/library-render-coherence.test.ts',
+        },
+        {
+          from: 'packages/warden/src/__tests__/owner-projection-parity.test.ts',
+          to: 'packages/warden/src/__tests__/owner-render-parity.test.ts',
+        },
+        {
+          from: 'packages/warden/src/rules/library-projection-coherence.ts',
+          to: 'packages/warden/src/rules/library-render-coherence.ts',
+        },
+        {
+          from: 'packages/warden/src/rules/owner-projection-parity.ts',
+          to: 'packages/warden/src/rules/owner-render-parity.ts',
+        },
+        {
+          from: 'packages/warden/src/trails/library-projection-coherence.trail.ts',
+          to: 'packages/warden/src/trails/library-render-coherence.trail.ts',
+        },
+        {
+          from: 'packages/warden/src/trails/owner-projection-parity.trail.ts',
+          to: 'packages/warden/src/trails/owner-render-parity.trail.ts',
+        },
+      ],
       from: 'projection',
       id: 'v1-projection-derive-render',
       intent:
@@ -806,20 +972,100 @@ export const governedVocabularyTransitions =
         'projection',
         'projections',
         'project',
+        'projects',
+        'Projects',
+        'projecting',
+        'Projecting',
         'projected',
         'Projected',
+      ],
+      preserve: [
+        {
+          pattern: "\\b[Pp]roject(?:[-/:]|['’]s\\b)",
+          reason:
+            'Preserve compound project-domain nouns, permit scopes, paths, and possessives without suppressing the standalone retired verb.',
+        },
+        {
+          pattern:
+            '\\b[Pp]roject\\s+(?:root|directory|files?|paths?|state|scripts?|guidance|structure|name|marker|context|conventions?|vocabulary|rules?|findings?|operations?|key|source|config|metadata|policy|package|scope|entities|resources|diagnostics|history|update|control|instructions?|overview|documentation|boundary|helpers?|shape|dependencies|dependency|detection|substrate|truth|work|writing|management|settings?|skills?|issue|ids?)\\b',
+          reason:
+            'Preserve project as an attributive noun before established repository and workspace concepts.',
+        },
+        {
+          pattern:
+            '\\b(?:A|An|The|This|That|a|an|the|this|that|each|entire|every|existing|new|current|same|target|nested|downstream|Trails|Linear|Node|UX|logical|adopting|generated|scaffolded|source-shaped|first-party|temp)\\s+project\\b',
+          reason:
+            'Preserve project as an ordinary count noun selected by a determiner or domain adjective.',
+        },
+        {
+          pattern:
+            "\\b(?:Trails|Matt[’']s|Vite|ADR|adopting|application|consumer|customer|developer|framework|package|software|source|workspace|generated|scaffolded|new|existing|source-shaped|first-party|downstream|most|large|all|many|multiple|other|our|several|their|these|those|your)\\s+projects\\b",
+          reason:
+            'Preserve projects as an ordinary plural repository or application noun selected by an established domain modifier.',
+        },
+        {
+          pattern:
+            '\\b(?:across|among|between|for|from|in|inside|of|outside|under|within|with|without)\\s+(?:the\\s+)?projects\\b',
+          reason:
+            'Preserve projects as the object of a repository or application preposition.',
+        },
+        {
+          pattern:
+            '(?:[\'"`/.][Pp]rojects(?:[\'"`/]|\\b)|\\b[Pp]rojects\\b\\s*(?:=|[):;,]))',
+          reason:
+            'Preserve exact projects domain literals, member accesses, route segments, and enum values.',
+        },
+        {
+          pattern:
+            '\\b(?:in|for|within|across|under|outside|inside|from|of|with|without|per|before|after)\\s+(?:the\\s+)?project\\b',
+          reason:
+            'Preserve project as the object of a repository or workspace preposition.',
+        },
+        {
+          pattern:
+            '(?:[\'"`/]project(?:[\'"`/]|\\b)|\\bproject\\b\\s*(?:=|[);,]))',
+          reason:
+            'Preserve exact project domain literals, example variables, route segments, and enum values.',
+        },
+        {
+          pattern:
+            '(?:\\bmemory:\\s*project\\b|\\bproject\\b(?=\\s+(?:from|health-check|show)\\b))',
+          reason:
+            'Preserve project as an exact metadata value, import alias, or domain command segment.',
+        },
+        {
+          pattern:
+            '(?:\\bA Node project\\b|\\ba non-trivial UX project\\b|\\bproject\\s+`warden\\.)',
+          reason:
+            'Preserve established multiword project nouns and project-scoped Warden configuration prose.',
+        },
       ],
       provenance: { mode: 'regrade-history' },
       reviewForms: [
         'projection',
         'projections',
         'project',
+        'projects',
+        'Projects',
+        'projecting',
+        'Projecting',
         'projected',
         'Projected',
       ],
       safeRewriteForms: {},
       scope: {
         policyClassified: [
+          {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: [
+              'apps/trails/src/__tests__/mcp.test.ts',
+              'apps/trails/src/__tests__/regrade.test.ts',
+              'packages/regrade/src/downstream/__tests__/**',
+            ],
+            reason:
+              'Preserve exact old/new vocabulary fixtures that prove CLI, MCP, registry, and rewrite behavior without treating them as current teaching or API residue.',
+          },
           {
             disposition: 'historical-by-policy',
             expectMatches: true,
@@ -830,7 +1076,234 @@ export const governedVocabularyTransitions =
         ],
         teachingSurfaces: ['docs/**'],
       },
-      status: 'planned',
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: 'library-projection-coherence',
+          to: 'library-render-coherence',
+        },
+        { from: 'owner-projection-parity', to: 'owner-render-parity' },
+        { from: 'surface-projects', to: 'surface-renders' },
+      ],
+      symbolRenames: [
+        { from: 'ActivationSourceProjection', to: 'ActivationSourceFacts' },
+        { from: 'AstFieldProjection', to: 'AstFieldView' },
+        {
+          from: 'DeriveTrailCliCommandProjectionOptions',
+          to: 'DeriveTrailCliCommandOptions',
+        },
+        {
+          from: 'ErrorClassSurfaceProjection',
+          to: 'ErrorClassSurfaceRendering',
+        },
+        {
+          from: 'ErrorDiagnosticsProjection',
+          to: 'ErrorDiagnosticsRendering',
+        },
+        {
+          from: 'HTTP_METHOD_PROJECTION_PATH',
+          to: 'HTTP_METHOD_DERIVATION_PATH',
+        },
+        { from: 'HttpInputProjection', to: 'HttpInputRendering' },
+        {
+          from: 'HttpLayerInputProjection',
+          to: 'HttpLayerInputRendering',
+        },
+        { from: 'LayerFieldProjection', to: 'LayerFieldRendering' },
+        { from: 'LayerFlagProjection', to: 'LayerFlagRendering' },
+        { from: 'LibraryInputProjection', to: 'LibraryInputRendering' },
+        {
+          from: 'LibraryLayerFieldProjection',
+          to: 'LibraryLayerFieldRendering',
+        },
+        {
+          from: 'LibraryLayerInputProjection',
+          to: 'LibraryLayerInputRendering',
+        },
+        { from: 'LibraryProjection', to: 'LibraryRenderingPlan' },
+        { from: 'McpInputProjection', to: 'McpInputRendering' },
+        {
+          from: 'McpLayerInputProjection',
+          to: 'McpLayerInputRendering',
+        },
+        { from: 'NormalizedTopoProjection', to: 'NormalizedTopoFacts' },
+        {
+          from: 'OutputSchemaProjection',
+          to: 'McpOutputSchemaRendering',
+        },
+        {
+          from: 'PROJECTION_BLOCKING_RULES',
+          to: 'DERIVATION_BLOCKING_RULES',
+        },
+        { from: 'ProjectionMap', to: 'IntentKeyMap' },
+        { from: 'ProjectedLayerField', to: 'RenderedLayerField' },
+        {
+          from: 'ProjectedPermitRequirement',
+          to: 'DerivedPermitRequirement',
+        },
+        {
+          from: 'RenamedLayerFieldProjection',
+          to: 'RenamedLayerFieldRendering',
+        },
+        { from: 'ShippedSurfaceProjection', to: 'ShippedSurfaceDerived' },
+        { from: 'SurfaceErrorProjection', to: 'SurfaceErrorRendering' },
+        { from: 'SurfaceProjectionSource', to: 'SurfaceDerivedSource' },
+        {
+          from: 'SurfaceTrailVersionProjection',
+          to: 'SurfaceTrailVersionRendering',
+        },
+        {
+          from: 'TopoGraphLibraryProjection',
+          to: 'TopoGraphLibraryDerived',
+        },
+        {
+          from: 'TopoStoreSurfaceProjectionRecord',
+          to: 'TopoStoreSurfaceDerivedRecord',
+        },
+        {
+          from: 'TopoSurfaceProjectionRow',
+          to: 'TopoSurfaceDerivedRow',
+        },
+        {
+          from: 'TrailCliCommandProjection',
+          to: 'TrailCliCommandRendering',
+        },
+        { from: 'TrailCliProjection', to: 'TrailCliRendering' },
+        {
+          from: 'TrailCliProjectionInput',
+          to: 'TrailCliRenderingInput',
+        },
+        {
+          from: 'TrailErrorTaxonomyProjection',
+          to: 'TrailErrorTaxonomyFacts',
+        },
+        {
+          from: 'buildOutputSchemaProjection',
+          to: 'buildMcpOutputSchemaRendering',
+        },
+        {
+          from: 'buildProjectionDiagnostic',
+          to: 'buildDerivationDiagnostic',
+        },
+        { from: 'cliProjection', to: 'cliRendering' },
+        { from: 'cliProjectionSchema', to: 'cliDerivedSchema' },
+        {
+          from: 'collectLibraryProjection',
+          to: 'deriveTopoGraphLibrary',
+        },
+        { from: 'projectActivationEdge', to: 'deriveActivationEdge' },
+        { from: 'projectActivationSource', to: 'deriveActivationSource' },
+        {
+          from: 'projectActivationSourceDeclaration',
+          to: 'deriveActivationSourceFacts',
+        },
+        { from: 'projectActual', to: 'deriveActualOutcome' },
+        { from: 'projectAstFields', to: 'deriveAstFieldView' },
+        {
+          from: 'projectErrorClassSurface',
+          to: 'renderErrorClassSurface',
+        },
+        { from: 'projectErrorDiagnostics', to: 'renderErrorDiagnostics' },
+        { from: 'projectExample', to: 'deriveExample' },
+        { from: 'projectHttpInputSchema', to: 'renderHttpInputSchema' },
+        { from: 'projectHttpLayerInput', to: 'renderHttpLayerInput' },
+        { from: 'projectInputForSchema', to: 'deriveInputForSchema' },
+        { from: 'projectLayerFieldName', to: 'renderLayerFieldName' },
+        { from: 'projectLayerFlags', to: 'renderLayerFlags' },
+        { from: 'projectLayerInputFields', to: 'renderLayerInputFields' },
+        { from: 'projectLibraryInput', to: 'renderLibraryInput' },
+        { from: 'projectMcpInputSchema', to: 'renderMcpInputSchema' },
+        { from: 'projectMcpLayerInput', to: 'renderMcpLayerInput' },
+        { from: 'projectMcpOutputSchema', to: 'renderMcpOutputSchema' },
+        { from: 'projectPermitRequirement', to: 'derivePermitRequirement' },
+        {
+          from: 'projectPublicSurfaceError',
+          to: 'renderPublicSurfaceError',
+        },
+        { from: 'projectSchema', to: 'deriveSchema' },
+        { from: 'projectSignalAssertion', to: 'deriveSignalAssertion' },
+        { from: 'projectSignalAssertions', to: 'deriveSignalAssertions' },
+        { from: 'projectSignalExample', to: 'deriveSignalExample' },
+        { from: 'projectSingleLayerFlags', to: 'renderSingleLayerFlags' },
+        { from: 'projectSurfaceError', to: 'renderSurfaceError' },
+        { from: 'projectSurfaceMapTool', to: 'renderSurfaceMapTool' },
+        { from: 'projectTrailVersionEntry', to: 'deriveTrailVersionEntry' },
+        { from: 'projectTrailVersions', to: 'deriveTrailVersions' },
+        { from: 'projectVersionDetours', to: 'deriveVersionDetours' },
+        {
+          from: 'projectVersionRuntimeRefs',
+          to: 'deriveVersionRuntimeRefs',
+        },
+        { from: 'SchemaProjector', to: 'SchemaDeriver' },
+        {
+          from: 'deriveShippedSurfaceProjectionInventory',
+          to: 'deriveShippedSurfaceInventory',
+        },
+        {
+          from: 'deriveTrailCliCommandProjection',
+          to: 'deriveTrailCliCommandRendering',
+        },
+        {
+          from: 'errorSurfaceProjectionSchema',
+          to: 'errorSurfaceDerivedSchema',
+        },
+        {
+          from: 'errorTaxonomyProjectionSchema',
+          to: 'errorTaxonomyDerivedSchema',
+        },
+        { from: 'expectProjectionCounts', to: 'expectDerivedRowCounts' },
+        { from: 'inputProjection', to: 'inputRendering' },
+        {
+          from: 'isProjectionBlockingIssue',
+          to: 'isDerivationBlockingIssue',
+        },
+        { from: 'isTrailCliProjection', to: 'isTrailCliRendering' },
+        {
+          from: 'keepProjectionBlockingIssues',
+          to: 'keepDerivationBlockingIssues',
+        },
+        { from: 'layerProjection', to: 'layerRendering' },
+        {
+          from: 'libraryProjectionCoherence',
+          to: 'libraryRenderCoherence',
+        },
+        {
+          from: 'libraryProjectionCoherenceTrail',
+          to: 'libraryRenderCoherenceTrail',
+        },
+        {
+          from: 'normalizeTopoProjection',
+          to: 'deriveNormalizedTopoRows',
+        },
+        { from: 'ownerProjectionParity', to: 'ownerRenderParity' },
+        {
+          from: 'ownerProjectionParityTrail',
+          to: 'ownerRenderParityTrail',
+        },
+        { from: 'projectionDb', to: 'derivedDb' },
+        { from: 'projectionKeys', to: 'derivedKeys' },
+        { from: 'projectionSource', to: 'derivedSource' },
+        {
+          from: 'seedLegacyProjectionStore',
+          to: 'seedLegacyDerivedStore',
+        },
+        { from: 'simpleProjectionApp', to: 'simpleDerivedRowsApp' },
+        {
+          from: 'surfaceProjectionBaseOutput',
+          to: 'surfaceDerivedBaseOutput',
+        },
+        {
+          from: 'surfaceProjectionOutput',
+          to: 'surfaceDerivedOutput',
+        },
+        { from: 'taxonomyProjection', to: 'deriveTaxonomyFacts' },
+        {
+          from: 'topoGraphLibraryProjectionSchema',
+          to: 'topoGraphLibraryDerivedSchema',
+        },
+        { from: 'trailCliProjectionFor', to: 'trailCliRenderingFor' },
+        { from: 'withProjectionDb', to: 'withDerivedDb' },
+      ],
       target: {
         guidance:
           'No single replacement is safe. Classify by whether the occurrence produces contract facts or presents derived facts.',

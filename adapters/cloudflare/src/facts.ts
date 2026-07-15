@@ -1,7 +1,7 @@
 /**
  * Cloudflare lock facts.
  *
- * The adapter's `trails.lock` overlay overlay: `derive` projects the
+ * The adapter's `trails.lock` overlay overlay: `derive` derives the
  * topo's env-bound resources (resources with a registered
  * {@link EnvBindingSpec | env binding}, such as every `cloudflareKv`
  * definition) into `overlays.cloudflare`, listing the wrangler binding name

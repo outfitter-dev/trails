@@ -1,5 +1,5 @@
 /**
- * TRL-474: Project typed layer input onto the HTTP surface.
+ * TRL-474: Render typed layer input onto the HTTP surface.
  *
  * When a layer attached at trail/surface/topo scope declares an `input`
  * schema, the HTTP route definition merges that schema into the published
@@ -98,10 +98,10 @@ const asJsonObject = (value: unknown): JsonObjectSchema => {
 };
 
 // ---------------------------------------------------------------------------
-// Schema projection — query (read) and body (write/destroy)
+// Schema rendering — query (read) and body (write/destroy)
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 HTTP layer input projection — schema merge', () => {
+describe('TRL-474 HTTP layer input rendering — schema merge', () => {
   test('a typed trail-scope layer adds a property to the read route input schema', () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
@@ -187,7 +187,7 @@ describe('TRL-474 HTTP layer input projection — schema merge', () => {
       asJsonObject(baselineRoute.inputSchema).properties ?? {}
     );
     expect(new Set(propsWith)).toEqual(new Set(propsBaseline));
-    expect(withLayer.layerInputProjections ?? []).toHaveLength(0);
+    expect(withLayer.layerInputRenderings ?? []).toHaveLength(0);
   });
 
   test('merged webhook routes publish layer input fields from every consumer', () => {
@@ -240,7 +240,7 @@ describe('TRL-474 HTTP layer input projection — schema merge', () => {
 // Runtime routing — query and body
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 HTTP layer input projection — runtime routing', () => {
+describe('TRL-474 HTTP layer input rendering — runtime routing', () => {
   test('parsed query parameters are routed to the layer at runtime (read)', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
@@ -327,7 +327,7 @@ describe('TRL-474 HTTP layer input projection — runtime routing', () => {
 // Collisions
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 HTTP layer input projection — collisions', () => {
+describe('TRL-474 HTTP layer input rendering — collisions', () => {
   test('a layer field colliding with a trail field is renamed and routed', async () => {
     const bucket: InputBucket = { value: undefined };
     const collidingLayer = captureLayerInput(

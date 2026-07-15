@@ -1,12 +1,9 @@
 import { deriveTopoGraph } from '@ontrails/topography';
-import type {
-  TopoGraph,
-  TopoGraphLibraryProjection,
-} from '@ontrails/topography';
+import type { TopoGraph, TopoGraphLibraryDerived } from '@ontrails/topography';
 
 import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
 
-const RULE_NAME = 'library-projection-coherence';
+const RULE_NAME = 'library-render-coherence';
 const TOPO_FILE = '<topo>';
 
 const resolveGraph = (
@@ -26,7 +23,7 @@ const collisionDiagnostic = (
 ): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
-  message: `Library projection export collision on "${exportName}": trails ${renderTrailIds(trailIds)} derive the same package export. Rename one trail or add a library export override before materializing the generated package.`,
+  message: `Library rendering export collision on "${exportName}": trails ${renderTrailIds(trailIds)} derive the same package export. Rename one trail or add a library export override before materializing the generated package.`,
   rule: RULE_NAME,
   severity: 'error',
 });
@@ -37,7 +34,7 @@ const missingTargetDiagnostic = (
 ): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
-  message: `Library projection export "${exportName}" targets unknown trail "${trailId}". Resolved library exports must stay attached to existing trail contracts.`,
+  message: `Library rendering export "${exportName}" targets unknown trail "${trailId}". Resolved library exports must stay attached to existing trail contracts.`,
   rule: RULE_NAME,
   severity: 'error',
 });
@@ -48,16 +45,16 @@ const duplicateExportDiagnostic = (
 ): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
-  message: `Library projection contains duplicate export "${exportName}" for trails ${renderTrailIds(trailIds)}. The resolved projection should record the collision and keep only one emitted export.`,
+  message: `Library rendering contains duplicate export "${exportName}" for trails ${renderTrailIds(trailIds)}. The resolved rendering should record the collision and keep only one emitted export.`,
   rule: RULE_NAME,
   severity: 'error',
 });
 
 const collectDuplicateExportDiagnostics = (
-  projection: TopoGraphLibraryProjection
+  rendering: TopoGraphLibraryDerived
 ): readonly WardenDiagnostic[] => {
   const trailIdsByExport = new Map<string, string[]>();
-  for (const entry of projection.exports) {
+  for (const entry of rendering.exports) {
     const trailIds = trailIdsByExport.get(entry.exportName) ?? [];
     trailIds.push(entry.trailId);
     trailIdsByExport.set(entry.exportName, trailIds);
@@ -70,14 +67,14 @@ const collectDuplicateExportDiagnostics = (
 };
 
 const collectMissingTargetDiagnostics = (
-  projection: TopoGraphLibraryProjection,
+  rendering: TopoGraphLibraryDerived,
   knownTrailIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] =>
-  projection.exports
+  rendering.exports
     .filter((entry) => !knownTrailIds.has(entry.trailId))
     .map((entry) => missingTargetDiagnostic(entry.exportName, entry.trailId));
 
-export const libraryProjectionCoherence: TopoAwareWardenRule = {
+export const libraryRenderCoherence: TopoAwareWardenRule = {
   checkTopo(topo, context) {
     const graph = resolveGraph(topo, context?.graph);
     if (!graph.library) {
@@ -94,7 +91,7 @@ export const libraryProjectionCoherence: TopoAwareWardenRule = {
     ];
   },
   description:
-    'Ensure resolved library projection exports are collision-free and target existing trails.',
+    'Ensure resolved library rendering exports are collision-free and target existing trails.',
   name: RULE_NAME,
   severity: 'error',
 };

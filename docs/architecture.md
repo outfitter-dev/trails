@@ -43,7 +43,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 ## Core Principles
 
-**The trail is the product, not the surface.** A trail is a typed contract with a Zod schema, `Result` output, error taxonomy, examples, metadata, and an `implementation` that establishes how it runs. CLI commands, MCP tools, HTTP endpoints, and plain TypeScript library functions are projections of that trail onto surfaces.
+**The trail is the product, not the surface.** A trail is a typed contract with a Zod schema, `Result` output, error taxonomy, examples, metadata, and an `implementation` that establishes how it runs. Trails derives surface facts from that contract, then renders CLI commands, MCP tools, HTTP endpoints, and plain TypeScript library functions for consumers.
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
@@ -76,11 +76,11 @@ These are the creative contributions. They can't be derived because they don't e
 | The `implementation` | The authored behavior that establishes how the trail runs |
 | Trail ID (`entity.show`) | Your domain hierarchy and naming |
 
-### Projected — mechanically derived, guaranteed correct
+### Derived — mechanically derived, guaranteed correct
 
 These are deterministic transformations from authored information. If the input exists, the output is unambiguous.
 
-| Authored | Projected |
+| Authored | Derived |
 | --- | --- |
 | Zod input schema | CLI flags (types, defaults, descriptions), MCP `inputSchema` (JSON Schema), library input schemas |
 | Trail ID | Full CLI command path (`entity show`, `topo pin`, `topo pin remove`), MCP tool name (`myapp_entity_show`), library export name (`entityShow`) |
@@ -140,7 +140,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error projection, `entity()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topography` per ADR-0042.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error rendering, `entity()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topography` per ADR-0042.
 
 **The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
 
@@ -153,7 +153,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
-| `@ontrails/library` | Plain TypeScript library projection, runtime-backed package emitter, `surface()` | None beyond core |
+| `@ontrails/library` | Plain TypeScript library rendering, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
 ### Infrastructure Adapters (right side)

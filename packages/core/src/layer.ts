@@ -12,13 +12,13 @@ import type { Implementation } from './types.js';
  *
  * Layers attach at trail, surface, or topo scope and may declare an object
  * `input` schema describing the configuration they need from the surrounding
- * surface. Surface packages (CLI, MCP, HTTP) project this schema onto their
+ * surface. Surface packages (CLI, MCP, HTTP) render this schema onto their
  * native idioms — flags, tool parameters, query strings — alongside the
  * trail's own input schema.
  *
  * @remarks
- * The `input` schema is metadata for surface projection. It must be an object
- * schema so every surface can project named fields consistently. It is
+ * The `input` schema is metadata for surface rendering. It must be an object
+ * schema so every surface can render named fields consistently. It is
  * optional; layers without an `input` schema behave as plain wrappers. The
  * layer's `wrap` function is the runtime contract.
  */
@@ -31,13 +31,13 @@ export interface Layer {
   /**
    * Authored configuration the layer needs from the surrounding surface.
    *
-   * Surface packages project this schema onto their native idioms (CLI flags,
+   * Surface packages render this schema onto their native idioms (CLI flags,
    * MCP tool parameters, HTTP query strings) so a layer's input fields appear
    * alongside the trail's own input fields. Optional — layers that wrap purely
    * by behavior, with no surface-visible inputs, may omit it.
    *
-   * @see TRL-473 for CLI flag projection.
-   * @see TRL-474 for MCP and HTTP projection.
+   * @see TRL-473 for CLI flag rendering.
+   * @see TRL-474 for MCP and HTTP rendering.
    */
   readonly input?: LayerInputSchema | undefined;
 

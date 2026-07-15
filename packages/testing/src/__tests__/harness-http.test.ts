@@ -108,7 +108,7 @@ describe('createHttpHarness', () => {
     expect(result.error?.code).toBe('ValidationError');
   });
 
-  test('threads resource overrides through HTTP projection options', async () => {
+  test('threads resource overrides through HTTP rendering options', async () => {
     const dbResource = resource('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     });

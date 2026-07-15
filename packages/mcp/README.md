@@ -76,19 +76,19 @@ No manual annotation definitions. The contract is the source of truth.
 
 ## Schemas and Examples
 
-MCP tool definitions include the trail's input schema, and trails with an `output` schema also project that schema into MCP `outputSchema`. Non-object trail outputs are wrapped in a `{ data: ... }` object because MCP structured tool results are object-shaped.
+MCP tool definitions include the trail's input schema, and trails with an `output` schema also render that schema into MCP `outputSchema`. Non-object trail outputs are wrapped in a `{ data: ... }` object because MCP structured tool results are object-shaped.
 
-Trail examples are projected as structured metadata under `_meta["ontrails/examples"]`. Each projected example preserves its input, expected output or error, a success/error kind, and provenance pointing back to the authored `trail.examples` field.
+Trail examples are rendered as structured metadata under `_meta["ontrails/examples"]`. Each rendered example preserves its input, expected output or error, a success/error kind, and provenance pointing back to the authored `trail.examples` field.
 
 ## MCP resources and deferred loading
 
-Cold context is projected through MCP resources, not extra Trails resources. `surface(graph)` and `createServer(graph)` expose MCP resources by default:
+Cold context is rendered through MCP resources, not extra Trails resources. `surface(graph)` and `createServer(graph)` expose MCP resources by default:
 
-- `trails://surface-map` lists the resolved MCP tool projection, including ordinary tools, trailhead tools, schemas, versions, deferred hints, and member trail IDs.
+- `trails://surface-map` lists the resolved MCP tool rendering, including ordinary tools, trailhead tools, schemas, versions, deferred hints, and member trail IDs.
 - `trails://examples/<trailId>` exposes structured examples for exposed trails that define examples.
 - `trails://trail/<trailId>` exposes MCP-visible graph facts for an exposed trail when graph resources are enabled.
 
-Disable resource projection only when the host needs a minimal MCP capability surface:
+Disable resource rendering only when the host needs a minimal MCP capability surface:
 
 ```typescript
 await surface(graph, { mcpResources: false });

@@ -166,7 +166,7 @@ const errorFromUnknown = (
  * On success, the inner value is taken straight from the trail's
  * `Result.ok(...)` payload. On failure the envelope captures the error's
  * `name` and `message` -- both safe to serialize and consistent with how
- * other Trails surfaces project errors.
+ * other Trails surfaces render errors.
  */
 export const buildTraceJsonEnvelope = (
   result: ResultLike,

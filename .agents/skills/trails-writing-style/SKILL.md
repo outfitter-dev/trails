@@ -15,7 +15,7 @@ metadata:
 
 # Trails Writing Style
 
-> **Vocabulary is mid-cutover toward the v1 reset.** Describe current code with current-live terms; see `docs/lexicon-pending.md` for terms ratified to change, and do not adopt the targets early.
+The v1 vocabulary families are live. Use `derive` for contract-owned fact production and `render` for surface presentation.
 
 This skill covers how Trails prose should read: sentence rhythm, structural patterns, examples, and vocabulary discipline.
 
@@ -103,9 +103,9 @@ Avoid:
 
 ## Vocabulary Discipline
 
-Use the current project vocabulary from `docs/lexicon.md`, `AGENTS.md`, ADRs, and `docs/lexicon-pending.md`.
+Use the current project vocabulary from `docs/lexicon.md`, `AGENTS.md`, and ADRs.
 
-Current high-signal direction (stable terms; for terms mid-cutover see `docs/lexicon-pending.md`):
+Current high-signal direction:
 
 - `trail`, not action, endpoint, handler, or route for the unit of work.
 - `surface`, not transport, when naming the outside boundary.
@@ -115,9 +115,7 @@ Current high-signal direction (stable terms; for terms mid-cutover see `docs/lex
 - `resource` for declared infrastructure dependencies.
 - `layer` for typed execution wrappers.
 
-Grouped surface entries and the derive/render split are mid-cutover. Describe current code in current terms and follow `docs/lexicon-pending.md`. Preserve retired terms only in explicitly historical release, migration, or decision evidence.
-
-`docs/lexicon-pending.md` is the transition control surface. Its Current column describes live reality; its Target column describes ratified reset direction. Do not adopt target terms in code, docs, examples, or plugin guidance before the cutover unless the work is explicitly part of that reset.
+Use `derive` for contract-owned fact production and `render` for surface presentation. Preserve retired terms only in explicitly historical release, migration, or decision evidence.
 
 ## Theme Is Not A Checklist
 

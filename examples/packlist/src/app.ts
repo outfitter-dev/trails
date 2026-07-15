@@ -37,7 +37,7 @@ export const graph = topo(
  * App-authored surface bindings: each scalar `cli` binding is a transparent
  * synonym command (`packlist gear ls` ≡ `packlist gear list`). `trails
  * compile` embeds them in `trails.lock` under `overlays.surfaces`, and the
- * CLI surface projects the same bindings at runtime.
+ * CLI surface renders the same bindings at runtime.
  */
 export const trailsOverlays = [
   surfaceOverlay({

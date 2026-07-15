@@ -55,7 +55,7 @@ The runbook keeps plugin version `0.3.4` separate from the bundled skill's Trail
 | `trails-warden-advisory` | Classify hardening findings into Warden, repo-local Oxlint, docs, advisory, or no-rule homes. |
 | `trails-derive-from-source` | Derive framework facts from owner exports instead of shadow registries or duplicated maps. |
 | `trails-dogfood-check` | Review framework code against Trails' own Result, cwd, loading, and host-boundary rules. |
-| `trails-error-format` | Review error taxonomy, projection, redaction, retryability, and Result-vs-throw boundaries. |
+| `trails-error-format` | Review error taxonomy, rendering, redaction, retryability, and Result-vs-throw boundaries. |
 | `trails-discriminate-union` | Review public/queryable union-like outputs for stable branch discriminants. |
 | `trails-primitive-parity` | Compare primitive maturity without forcing trail-equivalent scope or speculative public API. |
 | `trails-writing-voice` | Review Trails docs, ADRs, release notes, README content, and agent guidance for stance, audience, and tone. |

@@ -245,7 +245,7 @@ export const readonly = connectReadOnlyDrizzle(definition, {
 });
 ```
 
-The root package still owns the authored persistence model; adapter packages project that model into runnable resources.
+The root package still owns the authored persistence model; adapter packages render that model into runnable resources.
 
 ## Schema export for external tooling
 

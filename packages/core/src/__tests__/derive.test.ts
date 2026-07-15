@@ -5,7 +5,7 @@ import { z } from 'zod';
 import {
   deriveCliPath,
   deriveFields,
-  deriveTrailCliCommandProjection,
+  deriveTrailCliCommandRendering,
   normalizeCliCommandPath,
 } from '../derive.js';
 
@@ -46,7 +46,7 @@ describe('derive', () => {
     });
   });
 
-  describe('CLI command route projection', () => {
+  describe('CLI command route rendering', () => {
     test('normalizes authored canonical command paths', () => {
       expect(normalizeCliCommandPath('wayfind search')).toEqual([
         'wayfind',
@@ -59,15 +59,15 @@ describe('derive', () => {
     });
 
     test('derives canonical and alias routes from trail CLI metadata', () => {
-      const projection = deriveTrailCliCommandProjection({
+      const rendering = deriveTrailCliCommandRendering({
         cli: {
           aliases: ['find', ['wf', 'search']],
         },
         id: 'wayfind.search',
       });
 
-      expect(projection.path).toEqual(['wayfind', 'search']);
-      expect(projection.routes).toEqual([
+      expect(rendering.path).toEqual(['wayfind', 'search']);
+      expect(rendering.routes).toEqual([
         {
           kind: 'canonical',
           path: ['wayfind', 'search'],
@@ -91,7 +91,7 @@ describe('derive', () => {
 
     test('rejects multi-segment string aliases', () => {
       expect(() =>
-        deriveTrailCliCommandProjection({
+        deriveTrailCliCommandRendering({
           cli: {
             aliases: ['wayfind find'],
           },
@@ -103,7 +103,7 @@ describe('derive', () => {
     });
 
     test('records surface-owned aliases separately from trail-owned aliases', () => {
-      const projection = deriveTrailCliCommandProjection(
+      const rendering = deriveTrailCliCommandRendering(
         {
           cli: {
             aliases: ['find'],
@@ -113,7 +113,7 @@ describe('derive', () => {
         { aliases: [['wf', 'search']] }
       );
 
-      expect(projection.routes.map((route) => route.source)).toEqual([
+      expect(rendering.routes.map((route) => route.source)).toEqual([
         'derived',
         'trail',
         'surface',

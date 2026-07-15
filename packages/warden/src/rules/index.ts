@@ -21,7 +21,7 @@ import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-stand
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { layerFieldNameDrift } from './layer-field-name-drift.js';
-import { libraryProjectionCoherence } from './library-projection-coherence.js';
+import { libraryRenderCoherence } from './library-render-coherence.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
@@ -38,7 +38,7 @@ import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { noTopLevelSurface } from './no-top-level-surface.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
-import { ownerProjectionParity } from './owner-projection-parity.js';
+import { ownerRenderParity } from './owner-render-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { publicExportExampleCoverage } from './public-export-example-coverage.js';
@@ -170,7 +170,7 @@ export { governedVocabularyPermutationWatch } from './governed-vocabulary-permut
 export { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
-export { libraryProjectionCoherence } from './library-projection-coherence.js';
+export { libraryRenderCoherence } from './library-render-coherence.js';
 export { layerFieldNameDrift } from './layer-field-name-drift.js';
 export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
@@ -188,7 +188,7 @@ export { implementationReturnsResult } from './implementation-returns-result.js'
 export { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 export { noTopLevelSurface } from './no-top-level-surface.js';
 export { orphanedSignal } from './orphaned-signal.js';
-export { ownerProjectionParity } from './owner-projection-parity.js';
+export { ownerRenderParity } from './owner-render-parity.js';
 export { permitGovernance } from './permit-governance.js';
 export { preferSchemaInference } from './prefer-schema-inference.js';
 export { publicInternalDeepImports } from './public-internal-deep-imports.js';
@@ -253,7 +253,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [missingReconcile.name, missingReconcile],
   [onReferencesExist.name, onReferencesExist],
   [orphanedSignal.name, orphanedSignal],
-  [ownerProjectionParity.name, ownerProjectionParity],
+  [ownerRenderParity.name, ownerRenderParity],
   [publicExportExampleCoverage.name, publicExportExampleCoverage],
   [publicInternalDeepImports.name, publicInternalDeepImports],
   [resourceDeclarations.name, resourceDeclarations],
@@ -308,7 +308,7 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [cliCommandRouteCoherence.name, cliCommandRouteCoherence],
     [duplicatePublicContract.name, duplicatePublicContract],
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
-    [libraryProjectionCoherence.name, libraryProjectionCoherence],
+    [libraryRenderCoherence.name, libraryRenderCoherence],
     [permitGovernance.name, permitGovernance],
     [publicOutputSchema.name, publicOutputSchema],
     [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],

@@ -166,7 +166,7 @@ describe('deriveTopoGraph', () => {
       expect(entry.resources).toEqual(['db.main']);
     });
 
-    test('trail-owned CLI projection metadata is serialized with route facts', () => {
+    test('trail-owned CLI derivation metadata is serialized with route facts', () => {
       const t = trail('wayfind.search', {
         cli: {
           aliases: ['find', ['wf', 'search']],
@@ -289,7 +289,7 @@ describe('deriveTopoGraph', () => {
       ).toThrow(ValidationError);
     });
 
-    test('embeds serializable library projection facts in the topo graph', () => {
+    test('embeds serializable library derivation facts in the topo graph', () => {
       const created = signal('widget.created', {
         payload: z.object({ id: z.string() }),
       });
@@ -420,7 +420,7 @@ describe('deriveTopoGraph', () => {
       expect(map.entries[0]?.output).toBeUndefined();
     });
 
-    test('versioned trail entries project historical contracts and support', () => {
+    test('versioned trail entries derive historical contracts and support', () => {
       const audit = trail('audit.log', {
         implementation: noop,
         input: z.object({ id: z.string() }),
@@ -681,7 +681,7 @@ describe('deriveTopoGraph', () => {
       );
     });
 
-    test('rejects unsupported marker schema projections', () => {
+    test('rejects unsupported marker schema derivations', () => {
       const versioned = trail('marker.unsupported', {
         implementation: (input) => Result.ok({ value: input.value }),
         input: z.object({ value: z.any() }),
@@ -908,7 +908,7 @@ describe('deriveTopoGraph', () => {
       ]);
     });
 
-    test('activation source projection records source payload and parse schemas', () => {
+    test('activation source derivation records source payload and parse schemas', () => {
       const webhookSource = webhook('webhook.user.upsert', {
         method: 'post',
         parse: {
@@ -1119,7 +1119,7 @@ describe('deriveTopoGraph', () => {
       expect(() => JSON.stringify(map)).not.toThrow();
     });
 
-    test('field overrides expose projection-local provenance', () => {
+    test('field overrides expose derivation-local provenance', () => {
       const t = trail('with.field.overrides', {
         fields: {
           name: { hint: 'Shown in prompts' },
@@ -1263,7 +1263,7 @@ describe('deriveTopoGraph', () => {
       expect(map.trailheads?.[0]?.surfaces).toEqual(['mcp']);
     });
 
-    test('scalar mcp bindings project no trailhead entries', () => {
+    test('scalar mcp bindings derive no trailhead entries', () => {
       const read = trail('topo.read', {
         implementation: noop,
         input: z.object({}),

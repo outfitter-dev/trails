@@ -40,7 +40,7 @@ For v1, the topo store and TopoGraph record authored error-related contract fact
 - `examples` may include named error examples from `trail.examples`.
 - `detours` include the declared recovery error class name and effective capped attempt count.
 
-These fields are not exhaustive per-trail error contracts. Error categories, retryability, and surface codes stay owned by the core error taxonomy registry, while public body redaction stays owned by the shared error projection policy. See [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
+These fields are not exhaustive per-trail error contracts. Error categories, retryability, and surface codes stay owned by the core error taxonomy registry, while public body redaction stays owned by the shared error derived view policy. See [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
 ## Commands
 
@@ -84,7 +84,7 @@ trails survey resource db.main
 trails survey signal user.created
 ```
 
-Use `trails survey surfaces` when a blind agent or parity check needs the complete shipped-surface projection inventory. The report lists every public trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool names, HTTP method/path pairs, and whether each projection came from explicit authored surface metadata or default derivation. WebSocket is still planned and is intentionally reported as excluded until a public package/API exists.
+Use `trails survey surfaces` when a blind agent or parity check needs the complete shipped-surface derived view inventory. The report lists every public trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool names, HTTP method/path pairs, and whether each derived view came from explicit authored surface metadata or default derivation. WebSocket is still planned and is intentionally reported as excluded until a public package/API exists.
 
 ### `trails topo history`
 

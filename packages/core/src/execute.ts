@@ -158,19 +158,19 @@ export interface ExecuteTrailOptions {
    * Per-layer runtime input keyed by `Layer.name`.
    *
    * Surfaces (CLI, MCP, HTTP) parse their native idiom into a per-layer
-   * input object — usually projected from each layer's `input` schema —
+   * input object — usually derived from each layer's `input` schema —
    * and pass it here. The executor merges these into
    * `ctx.extensions[LAYER_INPUTS_KEY]` so layers can read their own slot
    * via `ctx.extensions?.[LAYER_INPUTS_KEY]?.[layer.name]`.
    *
-   * @see TRL-473 for the CLI projection contract.
+   * @see TRL-473 for the CLI rendering contract.
    */
   readonly layerInputs?: Readonly<Record<string, unknown>> | undefined;
   /**
    * Execute a specific live trail version.
    *
    * Omit for the current top-level contract. Number and numeric-string
-   * references select authored versions; marker references select projected
+   * references select authored versions; marker references select derived
    * content-addressed markers by unambiguous prefix.
    */
   readonly version?: TrailVersionReference | undefined;

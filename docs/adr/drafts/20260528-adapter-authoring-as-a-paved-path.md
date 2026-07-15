@@ -138,7 +138,7 @@ The first implementation launches this check loop as **opt-in** for existing ada
 
 ### Commands are trail-shaped
 
-The user-facing commands are trails, so adapter authoring is queryable without a new runtime primitive: `create.adapter` projects to `trails create adapter`; `adapter.catalog` / `adapter.describe` / `adapter.check` project to `trails adapter catalog | describe | check`.
+The user-facing commands are trails, so adapter authoring is queryable without a new runtime primitive: `create.adapter` renders as `trails create adapter`; `adapter.catalog` / `adapter.describe` / `adapter.check` render as `trails adapter catalog | describe | check`.
 
 ## Non-goals
 

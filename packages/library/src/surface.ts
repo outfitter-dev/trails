@@ -17,7 +17,7 @@ import { deriveLibraryApi } from './derive.js';
 import type {
   DeriveLibraryApiOptions,
   LibraryExport,
-  LibraryProjection,
+  LibraryRenderingPlan,
 } from './derive.js';
 import { toLibraryError } from './errors.js';
 import type { LibraryError } from './errors.js';
@@ -26,7 +26,7 @@ import { kernelRun } from './kernel.js';
 import type { KernelRunOptions, Topo } from './kernel.js';
 
 /**
- * Options for the in-memory library surface: projection selectors plus the
+ * Options for the in-memory library surface: rendering selectors plus the
  * runtime context the client owns (e.g. a permit for permitted trails).
  */
 export interface SurfaceLibraryOptions
@@ -42,14 +42,14 @@ export type LibraryResultMethod = (
   input: unknown
 ) => Promise<Result<unknown, LibraryError>>;
 
-/** The held in-memory client: one method per projected export, plus the projection. */
+/** The held in-memory client: one method per rendered export, plus the rendering. */
 export interface LibraryClient {
   /** Invoke an exported trail by its consumer-native name. */
   readonly call: Readonly<Record<string, LibraryMethod>>;
   /** Invoke an exported trail by name without unwrapping the Result boundary. */
   readonly result: Readonly<Record<string, LibraryResultMethod>>;
-  /** The resolved projection this client was built from (introspection). */
-  readonly projection: LibraryProjection;
+  /** The resolved rendering this client was built from (introspection). */
+  readonly rendering: LibraryRenderingPlan;
 }
 
 const prepareLibraryInput = (
@@ -96,11 +96,9 @@ export const runLibraryResult = async (
   input: unknown,
   options: SurfaceLibraryOptions = {}
 ): Promise<Result<unknown, LibraryError>> => {
-  const projection = deriveLibraryApi(graph, options);
+  const rendering = deriveLibraryApi(graph, options);
   const runOptions = runtimeOptionsFor(graph, options);
-  const entry = projection.exports.find(
-    (candidate) => candidate.trailId === id
-  );
+  const entry = rendering.exports.find((candidate) => candidate.trailId === id);
   const prepared = entry
     ? prepareLibraryInput(entry, input)
     : { layerInputs: {}, trailInput: input };
@@ -117,7 +115,7 @@ export const runLibraryResult = async (
 };
 
 /**
- * Materialize a topo as an in-memory library client. Each projected export
+ * Materialize a topo as an in-memory library client. Each rendered export
  * becomes a method that executes its trail through the shared pipeline and
  * unwraps the Result — returning the value or throwing the error. The same
  * export names are available under `result` for callers that want the raw
@@ -132,12 +130,12 @@ export const surface = async (
   options: SurfaceLibraryOptions = {}
   // oxlint-disable-next-line require-await -- async to match peer surfaces and allow future resource init
 ): Promise<LibraryClient> => {
-  const projection = deriveLibraryApi(graph, options);
+  const rendering = deriveLibraryApi(graph, options);
   const runOptions = runtimeOptionsFor(graph, options);
   const call: Record<string, LibraryMethod> = {};
   const result: Record<string, LibraryResultMethod> = {};
 
-  for (const entry of projection.exports) {
+  for (const entry of rendering.exports) {
     const runExport: LibraryResultMethod = async (input: unknown) => {
       const prepared = prepareLibraryInput(entry, input);
       if (prepared instanceof ValidationError) {
@@ -169,7 +167,7 @@ export const surface = async (
 
   return {
     call: Object.freeze(call),
-    projection,
+    rendering,
     result: Object.freeze(result),
   };
 };

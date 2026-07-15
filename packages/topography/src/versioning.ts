@@ -23,7 +23,7 @@ import type {
   TopoGraphVersionEntry,
 } from './types.js';
 
-type SchemaProjector = (schema: unknown) => JsonSchema;
+type SchemaDeriver = (schema: unknown) => JsonSchema;
 
 const sortPlainRecord = <T extends Record<string, unknown>>(value: T): T => {
   const sorted: Record<string, unknown> = {};
@@ -33,7 +33,7 @@ const sortPlainRecord = <T extends Record<string, unknown>>(value: T): T => {
   return sorted as T;
 };
 
-const projectVersionDetours = (
+const deriveVersionDetours = (
   entry: TrailVersionEntry
 ): TopoGraphVersionEntry['detours'] => {
   const raw = entry as unknown as Record<string, unknown>;
@@ -57,7 +57,7 @@ const projectVersionDetours = (
   });
 };
 
-const projectVersionRuntimeRefs = (
+const deriveVersionRuntimeRefs = (
   entry: TrailVersionEntry,
   field: 'composes' | 'resources'
 ): readonly string[] | undefined => {
@@ -85,46 +85,46 @@ const projectVersionRuntimeRefs = (
   return refs.toSorted();
 };
 
-export const projectTrailVersionEntry = (
+export const deriveTrailVersionEntry = (
   entry: TrailVersionEntry,
-  projectSchema: SchemaProjector
+  deriveSchema: SchemaDeriver
 ): TopoGraphVersionEntry => {
   const kind = getTrailVersionEntryKind(entry);
   const examples = deriveStructuredTrailExamples(entry.examples, {
     provenance: { source: 'trail.versions.examples' },
   });
-  const projected: Record<string, unknown> = {
+  const derived: Record<string, unknown> = {
     exampleCount: entry.examples?.length ?? 0,
-    input: projectSchema(entry.input),
+    input: deriveSchema(entry.input),
     kind,
     marker: deriveTrailVersionEntryMarker(entry),
-    output: projectSchema(entry.output),
+    output: deriveSchema(entry.output),
   };
 
   if (examples !== undefined) {
-    projected['examples'] = examples;
+    derived['examples'] = examples;
   }
 
   if (entry.status !== undefined) {
-    projected['status'] = sortPlainRecord({ ...entry.status });
+    derived['status'] = sortPlainRecord({ ...entry.status });
   }
 
   if (kind === 'fork') {
-    const composes = projectVersionRuntimeRefs(entry, 'composes');
-    const resources = projectVersionRuntimeRefs(entry, 'resources');
-    const detours = projectVersionDetours(entry);
+    const composes = deriveVersionRuntimeRefs(entry, 'composes');
+    const resources = deriveVersionRuntimeRefs(entry, 'resources');
+    const detours = deriveVersionDetours(entry);
     if (composes !== undefined) {
-      projected['composes'] = composes;
+      derived['composes'] = composes;
     }
     if (resources !== undefined) {
-      projected['resources'] = resources;
+      derived['resources'] = resources;
     }
     if (detours !== undefined) {
-      projected['detours'] = detours;
+      derived['detours'] = detours;
     }
   }
 
-  return sortPlainRecord(projected) as unknown as TopoGraphVersionEntry;
+  return sortPlainRecord(derived) as unknown as TopoGraphVersionEntry;
 };
 
 export interface TopoGraphVersionMarkerRecord {
@@ -241,9 +241,9 @@ export const resolveTopoGraphVersionReference = (
   };
 };
 
-export const projectTrailVersions = (
+export const deriveTrailVersions = (
   trail: AnyTrail,
-  projectSchema: SchemaProjector
+  deriveSchema: SchemaDeriver
 ):
   | {
       readonly marker: string;
@@ -256,14 +256,11 @@ export const projectTrailVersions = (
     return undefined;
   }
 
-  const projectedEntries: Record<string, TopoGraphVersionEntry> = {};
+  const derivedEntries: Record<string, TopoGraphVersionEntry> = {};
   for (const [rawVersion, entry] of Object.entries(
     trail.versions ?? {}
   ).toSorted(([left], [right]) => Number(left) - Number(right))) {
-    projectedEntries[rawVersion] = projectTrailVersionEntry(
-      entry,
-      projectSchema
-    );
+    derivedEntries[rawVersion] = deriveTrailVersionEntry(entry, deriveSchema);
   }
 
   const currentMarker = deriveCurrentTrailVersionMarker(trail);
@@ -273,8 +270,8 @@ export const projectTrailVersions = (
     marker: currentMarker,
     supports: deriveSupportedTrailVersions(trail),
     version: trail.version,
-    ...(Object.keys(projectedEntries).length > 0
-      ? { versions: projectedEntries }
+    ...(Object.keys(derivedEntries).length > 0
+      ? { versions: derivedEntries }
       : {}),
   };
 };

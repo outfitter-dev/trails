@@ -52,7 +52,7 @@ export interface ResourceSpec<T, C = unknown> {
   readonly description?: string | undefined;
   /** Arbitrary meta for tooling and filtering. */
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
-  /** Signals projected or owned by this resource. */
+  /** Signals derived or owned by this resource. */
   readonly signals?: readonly AnySignal[] | undefined;
   /** Reserved for future resource-specific design; trail versioning is trail-only. */
   readonly version?: never;

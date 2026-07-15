@@ -274,7 +274,7 @@ testSurfaceParity(graph, {
 });
 ```
 
-Use `@ontrails/testing/established` for `testAllEstablished()` when an established app should run root contract checks plus CLI, MCP, and HTTP projection validation in one call.
+Use `@ontrails/testing/established` for `testAllEstablished()` when an established app should run root contract checks plus CLI, MCP, and HTTP rendering validation in one call.
 
 ## Recommended Test Structure
 

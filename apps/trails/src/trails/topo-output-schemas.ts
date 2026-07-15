@@ -86,27 +86,27 @@ const entityDetailOutput = z.object({
   surfaces: z.array(z.string()).readonly(),
 });
 
-const surfaceProjectionBaseOutput = {
+const surfaceDerivedBaseOutput = {
   derivedName: z.string(),
   source: z.enum(['authored', 'default-derived']),
   trailId: z.string(),
 } as const;
 
-export const surfaceProjectionOutput = z.discriminatedUnion('surface', [
+export const surfaceDerivedOutput = z.discriminatedUnion('surface', [
   z.object({
-    ...surfaceProjectionBaseOutput,
+    ...surfaceDerivedBaseOutput,
     commandPath: z.array(z.string()).readonly(),
     method: z.null(),
     surface: z.literal('cli'),
   }),
   z.object({
-    ...surfaceProjectionBaseOutput,
+    ...surfaceDerivedBaseOutput,
     method: z.null(),
     surface: z.literal('mcp'),
     toolName: z.string(),
   }),
   z.object({
-    ...surfaceProjectionBaseOutput,
+    ...surfaceDerivedBaseOutput,
     method: z.string(),
     path: z.string(),
     surface: z.literal('http'),
@@ -115,6 +115,7 @@ export const surfaceProjectionOutput = z.discriminatedUnion('surface', [
 
 export const shippedSurfaceInventoryOutput = z.object({
   count: z.number(),
+  derivedSurfaces: z.array(surfaceDerivedOutput).readonly(),
   excludedSurfaces: z
     .array(
       z.object({
@@ -124,13 +125,12 @@ export const shippedSurfaceInventoryOutput = z.object({
       })
     )
     .readonly(),
-  projections: z.array(surfaceProjectionOutput).readonly(),
   shippedSurfaces: z.array(z.enum(['cli', 'mcp', 'http'])).readonly(),
   trails: z
     .array(
       z.object({
+        derivedSurfaces: z.array(surfaceDerivedOutput).readonly(),
         explicitSurfaces: z.array(z.string()).readonly(),
-        projections: z.array(surfaceProjectionOutput).readonly(),
         trailId: z.string(),
       })
     )
@@ -201,6 +201,7 @@ export const trailDetailOutput = z.object({
     trail: z.array(z.string()).readonly(),
   }),
   composes: z.array(z.string()).readonly(),
+  derivedSurfaces: z.array(surfaceDerivedOutput).readonly(),
   description: z.string().nullable(),
   detours: z
     .array(
@@ -228,7 +229,6 @@ export const trailDetailOutput = z.object({
   resources: z.array(z.string()).readonly(),
   safety: z.string(),
   supports: z.array(z.number()).readonly(),
-  surfaceProjections: z.array(surfaceProjectionOutput).readonly(),
   surfaces: z.array(z.string()).readonly(),
   version: z.number().nullable(),
   versions: z.record(z.string(), trailVersionEntryOutput),

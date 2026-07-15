@@ -1112,7 +1112,7 @@ describe('deriveHttpRoutes', () => {
       expect(result.value).toEqual({ reply: 'hello' });
     });
 
-    test('projects live versions and executes selected request version', async () => {
+    test('renders live versions and executes selected request version', async () => {
       const versioned = trail('versioned.greet', {
         implementation: (input: { name: string }) =>
           Result.ok({ message: `Hello, ${input.name}!` }),

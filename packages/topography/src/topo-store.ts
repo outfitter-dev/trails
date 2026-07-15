@@ -190,7 +190,7 @@ export type {
   TopoStoreRef,
   TopoStoreSignalDetailRecord,
   TopoStoreSignalRecord,
-  TopoStoreSurfaceProjectionRecord,
+  TopoStoreSurfaceDerivedRecord,
   TopoStoreTopoGraphEntryRecord,
   TopoStoreTopoGraphRecord,
   TopoStoreTrailDetailRecord,

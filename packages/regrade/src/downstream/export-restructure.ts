@@ -1563,7 +1563,7 @@ export const loadWardenRegradeClasses = async (
   const restructureRules = [...wardenRules.values()];
   if (root !== undefined) {
     // Project diagnostics are already carried by the term-rewrite loader; this
-    // second pass only projects export-restructure-capable project rules.
+    // second pass only derives export-restructure-capable project rules.
     const projectRules = await loadProjectWardenRules(root);
     restructureRules.push(...projectRules.sourceRules);
   }

@@ -215,9 +215,9 @@ More precise:
 
 ### Authorship
 
-Schemas, flags, tool names, HTTP routes, and error mappings can be derived or projected. The `implementation` is authored because it contains behavior only the developer can know.
+Schemas, flags, tool names, HTTP routes, and error mappings can be derived or rendered. The `implementation` is authored because it contains behavior only the developer can know.
 
-This distinction matters because Trails separates authored information from projected information. The `implementation` belongs to the authored category: it is the irreducible behavior that makes the contract real.
+This distinction matters because Trails separates authored information from derived information. The `implementation` belongs to the authored category: it is the irreducible behavior that makes the contract real.
 
 ## Replacement Patterns
 
@@ -258,7 +258,7 @@ Use the ADR-0048 source shape when writing current-facing versioning guidance:
 - `revision` for a historical entry that uses pure `transpose:` transforms.
 - `fork` for a historical entry with its own `implementation:`.
 - `status` for lifecycle metadata such as deprecated or archived.
-- `marker` for projected content-addressed identities.
+- `marker` for derived content-addressed identities.
 - `@N` and `@<marker-prefix>` for version references.
 - `(trail, version)` for the runtime contract-resolution pair.
 

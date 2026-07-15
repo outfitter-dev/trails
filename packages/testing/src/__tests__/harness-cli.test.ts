@@ -66,7 +66,7 @@ describe('createCliHarness', () => {
     expect(calls).toEqual(['topo.pin', 'topo']);
   });
 
-  test('threads resource overrides through CLI projection options', async () => {
+  test('threads resource overrides through CLI rendering options', async () => {
     const dbResource = resource('db.main', {
       create: () => Result.ok({ source: 'factory' }),
     });

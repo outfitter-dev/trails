@@ -4,7 +4,7 @@
  * The trail returns a `BlobRef` (name, mimeType, size, bytes) with the
  * content type derived from the file extension. Because the output schema is
  * `blobRefSchema`, the derived HTTP route (`GET /file/raw`) streams the bytes
- * with that content-type header — byte serving is a projection of the
+ * with that content-type header — byte serving is a rendering of the
  * contract, not app wiring. Visibility applies here exactly as everywhere
  * else: a secret snippet's files read as not-found to anyone but the owner.
  */

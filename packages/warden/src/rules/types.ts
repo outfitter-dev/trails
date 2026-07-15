@@ -84,7 +84,7 @@ export interface WardenGuidanceLink {
 }
 
 /**
- * Structured remediation guidance that can be rendered for humans or projected
+ * Structured remediation guidance that can be rendered for humans or rendered
  * into agent-facing manifests without scraping diagnostic prose.
  */
 export interface WardenGuidance {
@@ -144,7 +144,7 @@ export interface WardenFixEdit {
 }
 
 /**
- * Source targets a fix class can inspect when projected into downstream tools.
+ * Source targets a fix class can inspect when rendered into downstream tools.
  *
  * Warden itself decides which committed files it scans. This metadata is for
  * consumers such as Regrade that need to derive a narrower collection before
@@ -180,7 +180,7 @@ export interface WardenFix {
 }
 
 /**
- * Per-rule fix capability, projected into the guide/manifest.
+ * Per-rule fix capability, rendered into the guide/manifest.
  *
  * Declares that a rule can emit {@link WardenFix} metadata and the default
  * safety for its fixes, so `warden --help`, the guide, and agent surfaces can
@@ -192,7 +192,7 @@ export interface WardenFixCapability {
   readonly class: WardenFixClass;
   /** Default safety for fixes this rule emits. */
   readonly safety: WardenFixSafety;
-  /** Downstream scan targets for tools that project this fix capability. */
+  /** Downstream scan targets for tools that render this fix capability. */
   readonly scanTargets?: WardenFixScanTargets | undefined;
 }
 
@@ -214,7 +214,7 @@ export interface WardenRuleMetadata {
   readonly tier: WardenRuleTier;
   /** Structured remediation guidance for diagnostics emitted by this rule. */
   readonly guidance?: WardenGuidance | undefined;
-  /** Declares that this rule can emit fix metadata, for guide projection. */
+  /** Declares that this rule can emit fix metadata, for guide rendering. */
   readonly fix?: WardenFixCapability | undefined;
 }
 

@@ -66,9 +66,9 @@ describe('compile', () => {
 
   test('root index emits stateless functions and a resource factory', () => {
     const index = fileContent(compile(fixtureApp, options), 'src/index.ts');
-    // Stateless trails project to top-level named functions.
-    expect(index).toContain('Stateless echo; projects to a root named export.');
-    expect(index).toContain('Projects trail `widget.ping`');
+    // Stateless trails render to top-level named functions.
+    expect(index).toContain('Stateless echo; renders to a root named export.');
+    expect(index).toContain('Renders trail `widget.ping`');
     expect(index).toContain('export const widgetPing = (\n  input: unknown');
     expect(index).toContain('export const widgetCheck = (\n  input: unknown');
     expect(index).toContain('export const widgetGreet = (\n  input: unknown');
@@ -78,7 +78,7 @@ describe('compile', () => {
     expect(index).toContain(
       'The runtime validates declared output schemas before this unwrap returns.'
     );
-    // Resource-bearing trails project behind a createX factory.
+    // Resource-bearing trails render behind a createX factory.
     expect(index).toContain('import type { SurfaceLibraryOptions }');
     expect(index).toContain(
       "import { createClient, rootClient } from './client.js';"
@@ -131,11 +131,11 @@ describe('compile', () => {
     );
   });
 
-  test('schemas subpath fails loudly if projection drifts', () => {
+  test('schemas subpath fails loudly if rendering drifts', () => {
     const schemas = fileContent(compile(fixtureApp, options), 'src/schemas.ts');
     expect(schemas).toContain('const requireExport = (name: string) => {');
     expect(schemas).toContain(
-      "throw new Error('missing projected library export: ' + name);"
+      "throw new Error('missing rendered library export: ' + name);"
     );
     expect(schemas).toContain(
       'export const widgetPingInputSchema = requireExport'
@@ -153,7 +153,7 @@ describe('compile', () => {
     expect(schemas).not.toContain('?.output');
   });
 
-  test('typed bindings project schema-owned public signatures', () => {
+  test('typed bindings render schema-owned public signatures', () => {
     const typed = compile(fixtureApp, {
       ...options,
       trailTypeExports: {
@@ -231,9 +231,9 @@ describe('compile', () => {
     expect(index).not.toContain('secret');
   });
 
-  test('carries the resolved projection on the result', () => {
+  test('carries the resolved rendering on the result', () => {
     const result = compile(fixtureApp, options);
-    expect(result.projection.exports).toHaveLength(6);
-    expect(result.projection.app).toBe('library-fixture');
+    expect(result.rendering.exports).toHaveLength(6);
+    expect(result.rendering.app).toBe('library-fixture');
   });
 });

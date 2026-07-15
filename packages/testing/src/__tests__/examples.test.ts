@@ -94,7 +94,7 @@ const taxonomyErrorTrail = trail('taxonomy.errors', {
   ],
   implementation: (input: { type: 'derivation' | 'retry' }) => {
     if (input.type === 'derivation') {
-      return Result.err(new DerivationError('could not derive projection'));
+      return Result.err(new DerivationError('could not derive rendering'));
     }
     return Result.err(
       new RetryExhaustedError(new ConflictError('version mismatch'), {

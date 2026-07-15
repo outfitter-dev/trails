@@ -12,7 +12,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import {
-  projectPublicSurfaceError,
+  renderPublicSurfaceError,
   Result,
   ValidationError,
 } from '@ontrails/core';
@@ -138,9 +138,9 @@ export const runCompletionsInstall = async (
 
 const handleCliError = (error: unknown): void => {
   const err = error instanceof Error ? error : new Error(String(error));
-  const projection = projectPublicSurfaceError('cli', err);
-  process.stderr.write(`Error: ${projection.message}\n`);
-  process.exit(projection.code);
+  const rendering = renderPublicSurfaceError('cli', err);
+  process.stderr.write(`Error: ${rendering.message}\n`);
+  process.exit(rendering.code);
 };
 
 const findCompletionsCommand = (program: Command): Command | undefined =>

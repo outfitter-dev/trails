@@ -11,7 +11,7 @@ import type {
   Layer,
   Result,
   CliCommandRoute,
-  SurfaceTrailVersionProjection,
+  SurfaceTrailVersionRendering,
   TrailContext,
 } from '@ontrails/core';
 
@@ -86,7 +86,7 @@ export interface CliCommand {
   readonly flags: CliFlag[];
   readonly args: CliArg[];
   readonly trail: AnyTrail;
-  readonly versions?: readonly SurfaceTrailVersionProjection[] | undefined;
+  readonly versions?: readonly SurfaceTrailVersionRendering[] | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly intent: 'read' | 'write' | 'destroy';
   readonly idempotent?: boolean | undefined;

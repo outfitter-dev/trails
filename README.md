@@ -2,7 +2,7 @@
 
 **Define once. Surface everywhere.**
 
-Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework renders it on CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
 
 Trails ships CLI, MCP, and HTTP surfaces today. WebSocket is part of the architecture and roadmap, but not yet built.
 

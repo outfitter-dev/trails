@@ -53,7 +53,7 @@ import {
 import { createIsolatedExampleInput } from './topo-support.js';
 import {
   briefReportSchema,
-  deriveShippedSurfaceProjectionInventory,
+  deriveShippedSurfaceInventory,
 } from './topo-reports.js';
 import type { SurfaceLayerNames } from './topo-reports.js';
 
@@ -61,7 +61,7 @@ export {
   briefReportSchema,
   deriveBriefReport,
   deriveResourceDetail,
-  deriveShippedSurfaceProjectionInventory,
+  deriveShippedSurfaceInventory,
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
@@ -69,7 +69,7 @@ export {
 export type {
   BriefReport,
   ShippedSurfaceInventoryReport,
-  ShippedSurfaceProjection,
+  ShippedSurfaceDerived,
   SignalDetailReport,
   SurfaceLayerNames,
   SurveyListReport,
@@ -562,7 +562,7 @@ const buildSurveySignalDetail = (
 };
 
 const buildSurveySurfaceInventory = (app: Topo): Result<object, Error> =>
-  Result.ok(deriveShippedSurfaceProjectionInventory(app));
+  Result.ok(deriveShippedSurfaceInventory(app));
 
 interface SurveyInput {
   id?: string | undefined;
@@ -827,10 +827,10 @@ export const surveyBriefTrail = trail('survey.brief', {
 });
 
 export const surveySurfacesTrail = trail('survey.surfaces', {
-  description: 'Inventory shipped surface projections',
+  description: 'Inventory shipped surface derived facts',
   examples: [
     {
-      description: 'Show CLI, MCP, and HTTP projections for public trails',
+      description: 'Show CLI, MCP, and HTTP derived facts for public trails',
       input: createIsolatedExampleInput('survey-surfaces'),
       name: 'Shipped surface inventory',
     },

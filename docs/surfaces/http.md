@@ -34,11 +34,11 @@ await surface(graph, { port: 3000 });
 
 `@ontrails/hono` is the portable Hono integration. `@ontrails/http/bun` uses Bun's native `routes` fast path, keeps a Fetch fallback for unmatched requests, and adds no third-party HTTP framework dependency.
 
-## Projection and runtime binding
+## Rendering and runtime binding
 
 HTTP follows the surface naming split:
 
-- `deriveHttpRoutes()` and `deriveOpenApiSpec()` are `derive*` projections from
+- `deriveHttpRoutes()` and `deriveOpenApiSpec()` are `derive*` renderings from
   the topo. They do not open a server.
 - `createRouteHandler()` and `createFetchHandler()` from
   `@ontrails/http/fetch` are `create*` runtime helpers. They return Web
@@ -47,7 +47,7 @@ HTTP follows the surface naming split:
   to Hono; `@ontrails/http/bun` starts the native Bun HTTP binding through
   `Bun.serve()`.
 
-The shared Fetch kernel owns query/body parsing, content-length validation, public error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing. Hono and Bun consume the same kernel so those behaviors stay in parity.
+The shared Fetch kernel owns query/body parsing, content-length validation, public error rendering, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing. Hono and Bun consume the same kernel so those behaviors stay in parity.
 
 Versioned trails expose a surface-owned `trailVersion` request field and also accept `X-Trails-Version` / `X-Trail-Version` headers. The selected version is stripped before trail input validation and forwarded to the shared execution pipeline.
 
@@ -230,7 +230,7 @@ HTTP 200 for all successful responses.
 }
 ```
 
-The `code` is the error class name. The `category` matches the error taxonomy. HTTP bodies use the shared public error projection: `TrailsError` messages are redacted before they are returned, internal-category errors are made opaque, and unknown native errors are reported as `InternalError` with `Internal server error`.
+The `code` is the error class name. The `category` matches the error taxonomy. HTTP bodies use the shared public error rendering: `TrailsError` messages are redacted before they are returned, internal-category errors are made opaque, and unknown native errors are reported as `InternalError` with `Internal server error`.
 
 ### Blob outputs
 
@@ -349,7 +349,7 @@ for (const route of routesResult.value) {
 export default hono;
 ```
 
-This gives you full control over the HTTP framework while preserving the shared query/body parsing, error projection, diagnostics, abort propagation, and webhook behavior.
+This gives you full control over the HTTP framework while preserving the shared query/body parsing, error rendering, diagnostics, abort propagation, and webhook behavior.
 
 `deriveHttpRoutes()` returns `Result<HttpRouteDefinition[], Error>`. If two trails resolve to the same method + path (e.g. two trails both map to `POST /entity/add`), it returns a `ValidationError` describing the collision instead of silently overwriting a route.
 

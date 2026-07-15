@@ -6,7 +6,7 @@ const errorRedactor = createRedactor();
 
 export const INTERNAL_ERROR_PUBLIC_MESSAGE = 'Internal server error';
 
-export interface ErrorDiagnosticsProjection {
+export interface ErrorDiagnosticsRendering {
   readonly category?: ErrorCategory | undefined;
   readonly context?: Record<string, unknown> | undefined;
   readonly message: string;
@@ -28,9 +28,9 @@ export const redactErrorStack = (
 ): string | undefined =>
   stack === undefined ? undefined : redactErrorString(stack);
 
-export const projectErrorDiagnostics = (
+export const renderErrorDiagnostics = (
   error: Error
-): ErrorDiagnosticsProjection => {
+): ErrorDiagnosticsRendering => {
   const context = isTrailsError(error)
     ? redactErrorContext(error.context)
     : undefined;

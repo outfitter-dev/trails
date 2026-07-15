@@ -36,7 +36,7 @@ import {
 import type { ActivationProvenance } from './activation-provenance.js';
 import type { ActivationWhereSpec } from './activation-source.js';
 import { getActivationWherePredicate } from './activation-source.js';
-import { activationSourceKey } from './activation-source-projection.js';
+import { activationSourceKey } from './activation-source-derivation.js';
 import { NotFoundError, TrailsError, ValidationError } from './errors.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import {

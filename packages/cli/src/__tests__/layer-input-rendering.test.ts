@@ -1,5 +1,5 @@
 /**
- * TRL-473: Project typed layer input onto the CLI surface.
+ * TRL-473: Render typed layer input onto the CLI surface.
  *
  * When a layer attached at trail/surface/topo scope declares an `input`
  * schema, the CLI command derives flags from that schema, parses values from
@@ -94,10 +94,10 @@ const withMutedStderr = <T>(fn: () => T): { result: T; stderr: string } => {
 };
 
 // ---------------------------------------------------------------------------
-// Flag projection
+// Flag rendering
 // ---------------------------------------------------------------------------
 
-describe('TRL-473 layer input projection — flag derivation', () => {
+describe('TRL-473 layer input rendering — flag derivation', () => {
   test('a typed trail-scope layer adds a flag derived from its input schema', () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
@@ -209,7 +209,7 @@ describe('TRL-473 layer input projection — flag derivation', () => {
 // Runtime mapping
 // ---------------------------------------------------------------------------
 
-describe('TRL-473 layer input projection — runtime mapping', () => {
+describe('TRL-473 layer input rendering — runtime mapping', () => {
   test('parsed flag values reach the layer at runtime', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
@@ -304,7 +304,7 @@ describe('TRL-473 layer input projection — runtime mapping', () => {
 // Collisions
 // ---------------------------------------------------------------------------
 
-describe('TRL-473 layer input projection — collisions', () => {
+describe('TRL-473 layer input rendering — collisions', () => {
   test('a layer field colliding with a trail field is renamed and delivered', async () => {
     const bucket: InputBucket = { value: undefined };
     const collidingLayer = captureLayerInput(

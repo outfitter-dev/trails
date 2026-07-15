@@ -388,24 +388,24 @@ describe('topo and dev trails', () => {
         version: 5,
       });
 
-      const projectionDb = openReadTrailsDb({ rootDir: dir });
+      const derivedDb = openReadTrailsDb({ rootDir: dir });
       try {
-        const pinnedRows = projectionDb
+        const pinnedRows = derivedDb
           .query<{ count: number }, [string]>(
             'SELECT COUNT(*) as count FROM topo_trails WHERE snapshot_id = ?'
           )
           .get(firstPin.snapshot.id);
-        const exportedRows = projectionDb
+        const exportedRows = derivedDb
           .query<{ count: number }, [string]>(
             'SELECT COUNT(*) as count FROM topo_trails WHERE snapshot_id = ?'
           )
           .get(firstCompile.snapshot.id);
-        const projectedSaves = projectionDb
+        const derivedSaves = derivedDb
           .query<{ count: number }, []>(
             'SELECT COUNT(DISTINCT snapshot_id) as count FROM topo_trails'
           )
           .get();
-        const cachedSchemas = projectionDb
+        const cachedSchemas = derivedDb
           .query<{ count: number }, []>(
             'SELECT COUNT(*) as count FROM topo_schemas'
           )
@@ -413,10 +413,10 @@ describe('topo and dev trails', () => {
 
         expect(pinnedRows?.count).toBe(2);
         expect(exportedRows?.count).toBe(2);
-        expect(projectedSaves?.count).toBe(3);
+        expect(derivedSaves?.count).toBe(3);
         expect(cachedSchemas?.count).toBeGreaterThanOrEqual(9);
       } finally {
-        projectionDb.close();
+        derivedDb.close();
       }
 
       const store = createDevStore({ rootDir: dir });

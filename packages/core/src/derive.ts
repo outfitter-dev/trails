@@ -51,7 +51,7 @@ export interface FieldOverride {
 }
 
 // ---------------------------------------------------------------------------
-// CLI command route projection
+// CLI command route rendering
 // ---------------------------------------------------------------------------
 
 /** Authored CLI command path shape. Strings are split on whitespace. */
@@ -71,8 +71,8 @@ export type CliCommandRouteSource = 'derived' | 'trail' | 'surface';
 /** Whether a resolved CLI command route is canonical or an alias. */
 export type CliCommandRouteKind = 'alias' | 'canonical';
 
-/** Trail-authored CLI projection metadata. */
-export interface TrailCliProjection {
+/** Trail-authored CLI rendering metadata. */
+export interface TrailCliRendering {
   readonly aliases?: readonly CliCommandAliasInput[] | undefined;
   readonly path?: CliCommandPathInput | undefined;
 }
@@ -85,18 +85,18 @@ export interface CliCommandRoute {
   readonly target: string;
 }
 
-/** Resolved CLI projection for one trail. */
-export interface TrailCliCommandProjection {
+/** Resolved CLI rendering for one trail. */
+export interface TrailCliCommandRendering {
   readonly path: readonly string[];
   readonly routes: readonly CliCommandRoute[];
 }
 
-interface TrailCliProjectionInput {
-  readonly cli?: CliCommandPathInput | TrailCliProjection | undefined;
+interface TrailCliRenderingInput {
+  readonly cli?: CliCommandPathInput | TrailCliRendering | undefined;
   readonly id: string;
 }
 
-export interface DeriveTrailCliCommandProjectionOptions {
+export interface DeriveTrailCliCommandOptions {
   readonly aliases?: readonly CliCommandAliasInput[] | undefined;
   readonly aliasSource?: Extract<CliCommandRouteSource, 'surface' | 'trail'>;
 }
@@ -306,38 +306,38 @@ export const normalizeCliCommandPath = (
     ? splitCliPathString(value, context)
     : value.map((segment) => validateCliSegment(segment, context));
 
-const isTrailCliProjection = (
-  value: CliCommandPathInput | TrailCliProjection
-): value is TrailCliProjection =>
+const isTrailCliRendering = (
+  value: CliCommandPathInput | TrailCliRendering
+): value is TrailCliRendering =>
   typeof value !== 'string' &&
   !Array.isArray(value) &&
   value !== null &&
   typeof value === 'object';
 
-const trailCliProjectionFor = (
-  trail: TrailCliProjectionInput
-): TrailCliProjection | undefined => {
+const trailCliRenderingFor = (
+  trail: TrailCliRenderingInput
+): TrailCliRendering | undefined => {
   if (trail.cli === undefined) {
     return undefined;
   }
-  return isTrailCliProjection(trail.cli) ? trail.cli : { path: trail.cli };
+  return isTrailCliRendering(trail.cli) ? trail.cli : { path: trail.cli };
 };
 
 const deriveCanonicalCliRoute = (
-  trail: TrailCliProjectionInput
+  trail: TrailCliRenderingInput
 ): CliCommandRoute => {
-  const projection = trailCliProjectionFor(trail);
+  const rendering = trailCliRenderingFor(trail);
   const path =
-    projection?.path === undefined
+    rendering?.path === undefined
       ? deriveCliPath(trail.id)
       : normalizeCliCommandPath(
-          projection.path,
+          rendering.path,
           `CLI command path for trail "${trail.id}"`
         );
   return {
     kind: 'canonical',
     path,
-    source: projection?.path === undefined ? 'derived' : 'trail',
+    source: rendering?.path === undefined ? 'derived' : 'trail',
     target: trail.id,
   };
 };
@@ -387,7 +387,7 @@ const normalizeCliAlias = ({
  *
  * MCP tool names must be `[a-z0-9_]+`: the app name prefixes the trail id,
  * dots and hyphens collapse to underscores, and everything lowercases. This
- * is the one owner for the projection — the MCP surface renders tools with
+ * is the one owner for the rendering — the MCP surface renders tools with
  * it and Warden checks binding-name collisions against it, so the two
  * readers cannot drift.
  *
@@ -404,14 +404,14 @@ export const deriveMcpToolName = (appName: string, trailId: string): string => {
 };
 
 /** Derive resolved CLI command routes for one trail. */
-export const deriveTrailCliCommandProjection = (
-  trail: TrailCliProjectionInput,
-  options?: DeriveTrailCliCommandProjectionOptions
-): TrailCliCommandProjection => {
+export const deriveTrailCliCommandRendering = (
+  trail: TrailCliRenderingInput,
+  options?: DeriveTrailCliCommandOptions
+): TrailCliCommandRendering => {
   const canonical = deriveCanonicalCliRoute(trail);
-  const projection = trailCliProjectionFor(trail);
+  const rendering = trailCliRenderingFor(trail);
   const trailAliases =
-    projection?.aliases?.map((alias) =>
+    rendering?.aliases?.map((alias) =>
       normalizeCliAlias({
         alias,
         canonicalPath: canonical.path,

@@ -76,7 +76,7 @@ export interface Overlay {
    */
   readonly schema: z.ZodType;
   /**
-   * Project the topo into this overlay's facts.
+   * Derive the topo into this overlay's facts.
    *
    * Must be deterministic — the same topo always yields the same facts
    * (sort any collections) — and must return JSON-plain data, because the

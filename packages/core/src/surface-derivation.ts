@@ -21,7 +21,7 @@ export interface SurfaceSelectionOptions {
 }
 
 export interface SurfaceValidationOptions {
-  /** Set to `false` to skip established-topo validation during projection. */
+  /** Set to `false` to skip established-topo validation during derivation. */
   readonly validate?: boolean | undefined;
 }
 

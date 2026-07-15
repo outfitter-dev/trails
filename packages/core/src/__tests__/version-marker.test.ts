@@ -274,7 +274,7 @@ describe('trail version markers', () => {
 
   test('accepts schemas with a deterministic JSON-schema override (blobRefSchema)', () => {
     // blobRefSchema is z.custom(...).meta({...}) — the preflight must not reject
-    // it, because zodToJsonSchema projects it to a canonical descriptor.
+    // it, because zodToJsonSchema derives it to a canonical descriptor.
     const marker = deriveCurrentTrailVersionMarker(
       markerInput(z.object({ file: blobRefSchema }))
     );
@@ -289,8 +289,8 @@ describe('trail version markers', () => {
     );
   });
 
-  test('rejects multi-value literals that the projection cannot represent', () => {
-    // The projection emits only the first literal value, so a multi-value
+  test('rejects multi-value literals that the derivation cannot represent', () => {
+    // The derivation emits only the first literal value, so a multi-value
     // literal must fail loudly instead of colliding with a single-value one.
     expectUnsupportedMarkerSchema(
       z.object({ value: z.literal(['a', 'b']) }),

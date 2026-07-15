@@ -375,7 +375,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 400,
-    name: 'known TrailsError projection: validation',
+    name: 'known TrailsError rendering: validation',
     request: () => ({ path: '/errors/validation' }),
   },
   {
@@ -387,7 +387,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 404,
-    name: 'known TrailsError projection: not_found',
+    name: 'known TrailsError rendering: not_found',
     request: () => ({ path: '/errors/not_found' }),
   },
   {
@@ -399,7 +399,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 409,
-    name: 'known TrailsError projection: conflict',
+    name: 'known TrailsError rendering: conflict',
     request: () => ({ path: '/errors/conflict' }),
   },
   {
@@ -411,7 +411,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 401,
-    name: 'known TrailsError projection: unauthorized',
+    name: 'known TrailsError rendering: unauthorized',
     request: () => ({ path: '/errors/auth' }),
   },
   {
@@ -423,7 +423,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 403,
-    name: 'known TrailsError projection: forbidden',
+    name: 'known TrailsError rendering: forbidden',
     request: () => ({ path: '/errors/permission' }),
   },
   {
@@ -435,7 +435,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 429,
-    name: 'known TrailsError projection: rate_limited',
+    name: 'known TrailsError rendering: rate_limited',
     request: () => ({ path: '/errors/rate_limit' }),
   },
   {
@@ -452,7 +452,7 @@ const parityScenarios: readonly ParityScenario[] = [
       },
     },
     expectedStatus: 500,
-    name: 'known TrailsError projection: internal is redacted',
+    name: 'known TrailsError rendering: internal is redacted',
     request: () => ({ path: '/errors/internal' }),
   },
   {

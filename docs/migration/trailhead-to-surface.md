@@ -21,14 +21,14 @@ The framework now consistently uses `surface` for CLI, MCP, HTTP, and WebSocket 
 | Legacy `SurfaceMapEntry.trailheads` | `TopoGraphEntry.surfaces` | Update JSON consumers to read from root `trails.lock` and regenerate `trails.lock`. |
 | `extractTrailheads` | `extractSurfaces` | Update internal imports if you reached into non-public helpers. |
 | `Trailhead "<name>" added/removed` | `Surface "<name>" added/removed` | Update diff-output tests or parsers. |
-| `transportNames` / `TransportName` | `surfaceNames` / `SurfaceName` | Import the surface-named error projection API. |
-| `transportErrorMap` | `surfaceErrorMap` | Import the surface-named error projection API. |
-| `transportErrorRegistry` | `surfaceErrorRegistry` | Import the surface-named error projection API. |
-| `mapTransportError` | `mapSurfaceError` | Import the surface-named error projection API. |
-| `createTransportErrorMapper` | `createSurfaceErrorMapper` | Import the surface-named error projection API. |
-| `TransportErrorCode` | `SurfaceErrorCode` | Import the surface-named error projection API. |
-| `TransportErrorMapper` | `SurfaceErrorMapper` | Import the surface-named error projection API. |
-| `TransportErrorMappings` | `SurfaceErrorMappings` | Import the surface-named error projection API. |
+| `transportNames` / `TransportName` | `surfaceNames` / `SurfaceName` | Import the surface-named error rendering API. |
+| `transportErrorMap` | `surfaceErrorMap` | Import the surface-named error rendering API. |
+| `transportErrorRegistry` | `surfaceErrorRegistry` | Import the surface-named error rendering API. |
+| `mapTransportError` | `mapSurfaceError` | Import the surface-named error rendering API. |
+| `createTransportErrorMapper` | `createSurfaceErrorMapper` | Import the surface-named error rendering API. |
+| `TransportErrorCode` | `SurfaceErrorCode` | Import the surface-named error rendering API. |
+| `TransportErrorMapper` | `SurfaceErrorMapper` | Import the surface-named error rendering API. |
+| `TransportErrorMappings` | `SurfaceErrorMappings` | Import the surface-named error rendering API. |
 | `MapTransportError` | `typeof mapSurfaceError` | Use the canonical function type. |
 | `AuthCredentials` | `PermitExtractionInput` | Import `PermitExtractionInput` from `@ontrails/permits`. |
 | `isVisibleToTrailheads` | `isVisibleToSurfaces` | Update internal callers if you imported non-public helpers. |

@@ -120,7 +120,7 @@ const materializeAuthAdapter = async (
  * Resolve a surface-extracted bearer token to a `BasePermit`.
  *
  * Surfaces own credential extraction. This helper owns the shared auth
- * adapter lookup, invocation, error normalization, and BasePermit projection.
+ * adapter lookup, invocation, error normalization, and BasePermit rendering.
  */
 export const resolvePermitFromBearerToken = async (
   options: ResolvePermitFromBearerTokenOptions

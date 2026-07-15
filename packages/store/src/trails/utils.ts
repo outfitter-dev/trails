@@ -12,7 +12,7 @@ import type { AnyStoreTable } from '../types.js';
 /**
  * The entity type produced by {@link createTableEntity} for a given store
  * table. Threads the table's name, schema shape, and identity through the
- * entity generics so downstream `deriveTrail()` calls project concrete
+ * entity generics so downstream `deriveTrail()` calls derive concrete
  * input/output types instead of widening back to
  * `Entity<string, z.ZodRawShape, string>` (the `AnyEntity` alias).
  */

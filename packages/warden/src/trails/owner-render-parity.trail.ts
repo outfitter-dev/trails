@@ -1,9 +1,9 @@
 import { fileURLToPath } from 'node:url';
 
-import { ownerProjectionParity } from '../rules/owner-projection-parity.js';
+import { ownerRenderParity } from '../rules/owner-render-parity.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const ownerProjectionParityTrail = wrapRule({
+export const ownerRenderParityTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
@@ -19,8 +19,8 @@ export const httpMethodByIntent = {
   write: 'POST',
 } as const satisfies Record<Intent, 'GET' | 'POST' | 'DELETE'>;`,
       },
-      name: 'HTTP method projection covers core intent values',
+      name: 'HTTP method rendering covers core intent values',
     },
   ],
-  rule: ownerProjectionParity,
+  rule: ownerRenderParity,
 });

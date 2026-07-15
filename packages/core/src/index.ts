@@ -45,29 +45,29 @@ export type {
 export {
   createSurfaceErrorMapper,
   mapSurfaceError,
-  projectErrorClassSurface,
-  projectPublicSurfaceError,
-  projectSurfaceError,
+  renderErrorClassSurface,
+  renderPublicSurfaceError,
+  renderSurfaceError,
   surfaceErrorMap,
   surfaceErrorRegistry,
   surfaceNames,
 } from './transport-error-map.js';
 export type {
-  ErrorClassSurfaceProjection,
+  ErrorClassSurfaceRendering,
   SurfaceErrorCode,
   SurfaceErrorMapper,
   SurfaceErrorMappings,
-  SurfaceErrorProjection,
+  SurfaceErrorRendering,
   SurfaceName,
 } from './transport-error-map.js';
 export {
   INTERNAL_ERROR_PUBLIC_MESSAGE,
-  projectErrorDiagnostics,
+  renderErrorDiagnostics,
   redactErrorContext,
   redactErrorStack,
   redactErrorString,
-} from './error-projection.js';
-export type { ErrorDiagnosticsProjection } from './error-projection.js';
+} from './error-rendering.js';
+export type { ErrorDiagnosticsRendering } from './error-rendering.js';
 export type {
   DiagnosticBase,
   DiagnosticSeverity,
@@ -186,9 +186,9 @@ export type {
 export {
   activationSourceDeclarationSignature,
   activationSourceKey,
-  projectActivationSourceDeclaration,
-} from './activation-source-projection.js';
-export type { ActivationSourceProjection } from './activation-source-projection.js';
+  deriveActivationSourceFacts,
+} from './activation-source-derivation.js';
+export type { ActivationSourceFacts } from './activation-source-derivation.js';
 export {
   deriveSupportedTrailVersions,
   forkVersion,
@@ -260,8 +260,8 @@ export {
   shouldIncludeTrailForSurface,
 } from './surface-filter.js';
 export type { SurfaceFilterOptions } from './surface-filter.js';
-export { deriveSurfaceTrailVersionProjections } from './surface-versioning.js';
-export type { SurfaceTrailVersionProjection } from './surface-versioning.js';
+export { deriveSurfaceTrailVersionRenderings } from './surface-versioning.js';
+export type { SurfaceTrailVersionRendering } from './surface-versioning.js';
 export {
   shouldValidateSurfaceTopo,
   validateSurfaceTopo,
@@ -502,23 +502,23 @@ export {
   collectAttachedTypedLayers,
   LAYER_FIELD_RESERVED_NAMES,
   LAYER_FIELD_RESERVED_NAMES_KEBAB,
-  projectLayerFieldName,
-} from './layer-projection.js';
+  renderLayerFieldName,
+} from './layer-field-rendering.js';
 export type {
   AttachedLayerScope,
   AttachedTypedLayer,
-  LayerFieldProjection,
+  LayerFieldRendering,
   LayerFieldRenameReason,
-  ProjectedLayerField,
-  RenamedLayerFieldProjection,
-} from './layer-projection.js';
+  RenderedLayerField,
+  RenamedLayerFieldRendering,
+} from './layer-field-rendering.js';
 
 // Derive
 export {
   deriveCliPath,
   deriveFields,
   deriveMcpToolName,
-  deriveTrailCliCommandProjection,
+  deriveTrailCliCommandRendering,
   normalizeCliCommandPath,
 } from './derive.js';
 export type {
@@ -527,11 +527,11 @@ export type {
   CliCommandRoute,
   CliCommandRouteKind,
   CliCommandRouteSource,
-  DeriveTrailCliCommandProjectionOptions,
+  DeriveTrailCliCommandOptions,
   Field,
   FieldOverride,
-  TrailCliCommandProjection,
-  TrailCliProjection,
+  TrailCliCommandRendering,
+  TrailCliRendering,
 } from './derive.js';
 
 // Compose schema

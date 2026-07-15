@@ -347,7 +347,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     await expect(readTopoGraph({ dir: tempDir })).resolves.toEqual(topoGraph);
   });
 
-  test('projects v5 root locks back to v4 manifests for compatibility', async () => {
+  test('derives v5 root locks back to v4 manifests for compatibility', async () => {
     const topoGraph = makeTopoGraph();
     const trailsLock = makeTrailsLock(topoGraph);
     await writeTrailsLock(trailsLock, { dir: tempDir });

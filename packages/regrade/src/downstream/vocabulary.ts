@@ -2241,7 +2241,7 @@ export const vocabularyRegradeRunOutput = z.object({
         })
         .describe('Expected and observed current teaching surfaces'),
     })
-    .describe('Projected run report'),
+    .describe('Derived run report'),
 });
 
 const vocabularyTransitionRecordEnvironmentSchema = z

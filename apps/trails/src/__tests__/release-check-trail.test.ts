@@ -121,7 +121,7 @@ afterEach(() => {
 });
 
 describe('trails release check', () => {
-  test('projects as a nested CLI command', () => {
+  test('renders as a nested CLI command', () => {
     const commands = deriveCliCommands(app);
     if (commands.isErr()) {
       throw commands.error;

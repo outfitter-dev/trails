@@ -1157,9 +1157,23 @@ const governedTargetError = (
   );
 };
 
+const registryFileRenamesForRoot = (
+  registryPlan: VocabularyRegradePlan | undefined,
+  rootDir: string | undefined
+): VocabularyRegradePlan['fileRenames'] | undefined => {
+  const fileRenames = registryPlan?.fileRenames?.filter(
+    (rename) =>
+      rootDir === undefined ||
+      existsSync(join(rootDir, rename.from)) ||
+      existsSync(join(rootDir, rename.to))
+  );
+  return fileRenames?.length === 0 ? undefined : fileRenames;
+};
+
 const buildVocabularyPlan = (
   input: RegradeInput,
-  configScope?: VocabularyRegradePlan['scope']
+  configScope?: VocabularyRegradePlan['scope'],
+  rootDir?: string
 ): TrailsResult<VocabularyRegradePlan, ValidationError> => {
   if (input.from === undefined || input.to === undefined) {
     return Result.err(
@@ -1196,7 +1210,8 @@ const buildVocabularyPlan = (
   const overrides = mergeVocabularyOverrides(registryPlan, input);
   const preserveRules = mergeVocabularyPreserveRules(registryPlan, preserve);
   const scope = mergeVocabularyScope(registryPlan?.scope, configScope, input);
-  const fileRenames = input.fileRenames ?? registryPlan?.fileRenames;
+  const fileRenames =
+    input.fileRenames ?? registryFileRenamesForRoot(registryPlan, rootDir);
 
   return Result.ok({
     ...(registryPlan?.caseSensitive === undefined
@@ -2336,7 +2351,8 @@ const runVocabularyCommandRegrade = async (
 
   const planResult = buildVocabularyPlan(
     input,
-    vocabularyScopeFromConfig(configScope)
+    vocabularyScopeFromConfig(configScope),
+    rootDir
   );
   if (planResult.isErr()) {
     return planResult;
@@ -2977,7 +2993,8 @@ const runPlanRegrade = async (
   };
   const planResult = buildVocabularyPlan(
     planInput,
-    vocabularyScopeFromConfig(configScope)
+    vocabularyScopeFromConfig(configScope),
+    rootDir
   );
   if (planResult.isErr()) {
     return planResult;

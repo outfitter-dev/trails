@@ -216,7 +216,7 @@ const buildDerivedInput = (
 };
 
 /**
- * Project the merged candidate input down to keys the trail's input schema
+ * Derive the merged candidate input down to keys the trail's input schema
  * knows about.
  *
  * `buildDerivedInput` emits synthesized prefixed aliases (e.g. `userEmail`)
@@ -227,7 +227,7 @@ const buildDerivedInput = (
  * before validation. Non-object inputs pass through unchanged — they are
  * validated as-is and can decide for themselves.
  */
-const projectInputForSchema = (
+const deriveInputForSchema = (
   inputSchema: Trail<unknown, unknown, unknown>['input'],
   candidate: Record<string, unknown>
 ): Record<string, unknown> => {
@@ -236,13 +236,13 @@ const projectInputForSchema = (
   }
 
   const known = Object.keys(inputSchema.shape);
-  const projected: Record<string, unknown> = {};
+  const derived: Record<string, unknown> = {};
   for (const key of known) {
     if (Object.hasOwn(candidate, key)) {
-      projected[key] = candidate[key];
+      derived[key] = candidate[key];
     }
   }
-  return projected;
+  return derived;
 };
 
 /**
@@ -344,7 +344,7 @@ export const deriveTrailExamples = (
 
   return fixtureSets.flatMap((fixtures, index) => {
     const merged = buildDerivedInput(fixtures);
-    const input = projectInputForSchema(trail.input, merged);
+    const input = deriveInputForSchema(trail.input, merged);
     const validated = trail.input.safeParse(input);
     if (!validated.success) {
       return [];

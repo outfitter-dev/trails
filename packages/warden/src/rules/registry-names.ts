@@ -29,7 +29,7 @@ import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-stand
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { layerFieldNameDrift } from './layer-field-name-drift.js';
-import { libraryProjectionCoherence } from './library-projection-coherence.js';
+import { libraryRenderCoherence } from './library-render-coherence.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
@@ -46,7 +46,7 @@ import { noThrowInImplementation } from './no-throw-in-implementation.js';
 import { noTopLevelSurface } from './no-top-level-surface.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
-import { ownerProjectionParity } from './owner-projection-parity.js';
+import { ownerRenderParity } from './owner-render-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { publicExportExampleCoverage } from './public-export-example-coverage.js';
@@ -117,7 +117,7 @@ export const registeredRuleNames: readonly string[] = [
   incompleteCrud.name,
   intentPropagation.name,
   layerFieldNameDrift.name,
-  libraryProjectionCoherence.name,
+  libraryRenderCoherence.name,
   markerSchemaUnsupported.name,
   missingReconcile.name,
   missingVisibility.name,
@@ -135,7 +135,7 @@ export const registeredRuleNames: readonly string[] = [
   noTopLevelSurface.name,
   onReferencesExist.name,
   orphanedSignal.name,
-  ownerProjectionParity.name,
+  ownerRenderParity.name,
   pendingForce.name,
   permitGovernance.name,
   preferSchemaInference.name,

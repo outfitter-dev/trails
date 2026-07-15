@@ -33,13 +33,13 @@ Built-in adapter subpaths remain intentionally scoped to their owning package wh
 
 Do not extract `@ontrails/jwt` or `@ontrails/otel` as part of this migration.
 
-## Adapter Kit And Surface Projection Evidence
+## Adapter Kit And Surface Rendering Evidence
 
 `@ontrails/adapter-kit` checks adapter package readiness. It verifies package placement, owner target metadata, public exports, dependency direction, and conformance tests. That is **contract-content conformance**: the adapter package claims a target and proves it can be built and reviewed as that target.
 
-Surface trailheads introduce a separate kind of question: whether a surface adapter can support a grouped affordance over already-resolved trails. That is **surface-projection conformance**. It should consume resolved projection evidence such as the trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation shape.
+Surface trailheads introduce a separate kind of question: whether a surface adapter can support a grouped affordance over already-resolved trails. That is **surface-rendering conformance**. It should consume resolved rendering evidence such as the trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation shape.
 
-Do not add trailhead authoring configuration to adapter-kit. Adapter-kit may expose raw evidence such as `adapterType` and target conformance paths; the surface or governance layer that already has the resolved projection should validate any future grouped-affordance claim. No adapter target is required to support grouping unless it explicitly claims that capability.
+Do not add trailhead authoring configuration to adapter-kit. Adapter-kit may expose raw evidence such as `adapterType` and target conformance paths; the surface or governance layer that already has the resolved rendering should validate any future grouped-affordance claim. No adapter target is required to support grouping unless it explicitly claims that capability.
 
 ## Code Imports
 

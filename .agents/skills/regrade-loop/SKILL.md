@@ -37,7 +37,7 @@ Keep three artifacts distinct:
 
 - **Plan:** authored migration intent. It names the source, target, scope, overrides, and preserve rules. It must not accumulate run state.
 - **Ledger:** observed run state. It records cycle number, forms seen, occurrence verdicts, paths, spans, reasons, and replacements.
-- **Report:** projected operator output. It summarizes counts, gate status, review inventory, skipped files, and applied file counts.
+- **Report:** rendered operator output. It summarizes counts, gate status, review inventory, skipped files, and applied file counts.
 
 For a long run, write resume state under a gitignored working directory such as `.agents/regrade/<plan-id>/`:
 

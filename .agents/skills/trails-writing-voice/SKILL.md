@@ -15,7 +15,7 @@ metadata:
 
 # Trails Writing Voice
 
-> **Vocabulary is mid-cutover toward the v1 reset.** Describe current code with current-live terms; see `docs/lexicon-pending.md` for terms ratified to change, and do not adopt the targets early.
+The v1 vocabulary families are live. Use `derive` for contract-owned fact production and `render` for surface presentation.
 
 Trails writes like a framework with a spine.
 
@@ -83,7 +83,7 @@ Avoid:
 
 Trails can use outdoor and wayfinding language when it clarifies the mental model. Theme is not a writing quota.
 
-Use themed terms when they are official vocabulary or carry the concept better than a plain word: `trail`, `topo`, `surface`, `warden`, `wayfinder`, and `detour`. (Some grouped-entry vocabulary is mid-cutover — see `docs/lexicon-pending.md`.)
+Use themed terms when they are official vocabulary or carry the concept better than a plain word: `trail`, `topo`, `surface`, `warden`, `wayfinder`, and `detour`.
 
 Do not decorate ordinary prose with theme language when a plain word is clearer.
 

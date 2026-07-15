@@ -178,7 +178,7 @@ const exampleApp = () => {
     resources: [dbMain],
   });
 
-  return topo('projection-app', {
+  return topo('derivation-app', {
     dbMain,
     entityAdd,
     entityAdded,
@@ -313,7 +313,7 @@ const readExampleRows = (
     )
     .all(snapshotId);
 
-const readProjectedTrailIds = (
+const readDerivedTrailIds = (
   db: ReturnType<typeof openWriteTrailsDb>,
   snapshotId: string
 ) =>
@@ -343,7 +343,7 @@ const hasEntitySurfaceEntry = (entry: unknown, id: string): boolean => {
   return candidate.id === id && candidate.kind === 'entity';
 };
 
-const expectProjectionCounts = (
+const expectDerivedRowCounts = (
   db: ReturnType<typeof openWriteTrailsDb>,
   snapshotId: string
 ): void => {
@@ -361,7 +361,7 @@ const expectProjectionCounts = (
   expect(countRows(db, 'topo_exports')).toBeGreaterThanOrEqual(1);
 };
 
-const expectProjectedFixtureRows = (
+const expectDerivedFixtureRows = (
   db: ReturnType<typeof openWriteTrailsDb>,
   snapshotId: string
 ): void => {
@@ -432,8 +432,8 @@ const expectProjectedFixtureRows = (
   ]);
 };
 
-const simpleProjectionApp = (withList: boolean) =>
-  topo('projection-app', {
+const simpleDerivedRowsApp = (withList: boolean) =>
+  topo('derivation-app', {
     entityAdd: trail('entity.add', {
       implementation: noop,
       input: z.object({}),
@@ -582,11 +582,11 @@ const seedHistoryOnlyTopoSchema = (
 };
 
 /**
- * Seed a pre-v7 projection store that still uses the `topo_trailheads`
+ * Seed a pre-v7 derivation store that still uses the `topo_trailheads`
  * table and the `save_id` foreign-key column. The fresh migration should
  * ignore this legacy state and create the snapshot-first schema alongside it.
  */
-const seedLegacyProjectionStore = (
+const seedLegacyDerivedStore = (
   db: ReturnType<typeof openWriteTrailsDb>
 ): void => {
   db.run(
@@ -627,7 +627,7 @@ const replaceStoreWithHistoryOnlyStore = async (
   }
 };
 
-describe('topo store projection', () => {
+describe('topo store derivation', () => {
   let tmpRoot: string | undefined;
   let testStateHome: string | undefined;
   let originalTrailsStateHome: string | undefined;
@@ -659,7 +659,7 @@ describe('topo store projection', () => {
     return tmpRoot;
   };
 
-  const withProjectionDb = (
+  const withDerivedDb = (
     run: (db: ReturnType<typeof openWriteTrailsDb>) => void
   ): void => {
     const db = openWriteTrailsDb({ rootDir: makeRoot() });
@@ -670,8 +670,8 @@ describe('topo store projection', () => {
     }
   };
 
-  test('projects a snapshot-scoped relational topo from the established app graph', () => {
-    withProjectionDb((db) => {
+  test('derives a snapshot-scoped relational topo from the established app graph', () => {
+    withDerivedDb((db) => {
       const snapshot = unwrap(
         createTopoSnapshot(db, exampleApp(), {
           createdAt: '2026-04-03T12:00:00.000Z',
@@ -679,8 +679,8 @@ describe('topo store projection', () => {
           gitSha: 'abc123',
         })
       );
-      expectProjectionCounts(db, snapshot.id);
-      expectProjectedFixtureRows(db, snapshot.id);
+      expectDerivedRowCounts(db, snapshot.id);
+      expectDerivedFixtureRows(db, snapshot.id);
 
       const stored = requireStoredExport(db, snapshot.id);
       const topoGraph = JSON.parse(stored.topoGraphJson);
@@ -737,7 +737,7 @@ describe('topo store projection', () => {
         artifacts: [
           { path: 'topo.lock', role: 'topo', sha256: stored.topoGraphHash },
         ],
-        scope: { app: 'projection-app' },
+        scope: { app: 'derivation-app' },
         summary: { entities: 1, resources: 2, signals: 1, trails: 2 },
         version: LOCK_MANIFEST_SCHEMA_VERSION,
       });
@@ -745,7 +745,7 @@ describe('topo store projection', () => {
   });
 
   test('stored TopoGraph includes trail signal and layer contract fields', () => {
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       const topoPolicy: Layer = {
         input: z.object({ tenant: z.string() }),
         name: 'topo.policy',
@@ -850,7 +850,7 @@ describe('topo store projection', () => {
   });
 
   test('stored TopoGraph includes surface-owned CLI alias route facts', () => {
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       const search = trail('wayfind.search', {
         cli: {
           aliases: ['find'],
@@ -910,7 +910,7 @@ describe('topo store projection', () => {
     // Regression for TRL-1191: `.describe()` edits and field reorders do not
     // change the zod definition hash, so a warm store used to serve the
     // pre-edit JSON Schema bytes into freshly compiled lock graphs.
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       const buildApp = (edited: boolean) =>
         topo('schema-freshness-app', {
           read: trail('note.read', {
@@ -943,7 +943,7 @@ describe('topo store projection', () => {
   });
 
   test('reordering schema fields is reflected in the stored export from a warm store', () => {
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       // Shapes are built from entry lists so key order survives lint
       // autofixes that alphabetize inline object literals — the order IS
       // the fixture here.
@@ -991,7 +991,7 @@ describe('topo store projection', () => {
   });
 
   test('stored TopoGraph rejects surface overlay cli bindings that resolve to no trails', () => {
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       const search = trail('wayfind.search', {
         implementation: noop,
         input: z.object({ query: z.string() }),
@@ -1017,15 +1017,15 @@ describe('topo store projection', () => {
     });
   });
 
-  test('keeps projected rows isolated across successive snapshots', () => {
-    withProjectionDb((db) => {
+  test('keeps derived rows isolated across successive snapshots', () => {
+    withDerivedDb((db) => {
       const firstSnapshot = unwrap(
-        createTopoSnapshot(db, simpleProjectionApp(false), {
+        createTopoSnapshot(db, simpleDerivedRowsApp(false), {
           createdAt: '2026-04-03T12:00:00.000Z',
         })
       );
       const secondSnapshot = unwrap(
-        createTopoSnapshot(db, simpleProjectionApp(true), {
+        createTopoSnapshot(db, simpleDerivedRowsApp(true), {
           createdAt: '2026-04-03T12:05:00.000Z',
         })
       );
@@ -1033,10 +1033,8 @@ describe('topo store projection', () => {
       expect(firstSnapshot.id).not.toBe(secondSnapshot.id);
       expect(countRows(db, 'topo_trails', firstSnapshot.id)).toBe(1);
       expect(countRows(db, 'topo_trails', secondSnapshot.id)).toBe(2);
-      expect(readProjectedTrailIds(db, firstSnapshot.id)).toEqual([
-        'entity.add',
-      ]);
-      expect(readProjectedTrailIds(db, secondSnapshot.id)).toEqual([
+      expect(readDerivedTrailIds(db, firstSnapshot.id)).toEqual(['entity.add']);
+      expect(readDerivedTrailIds(db, secondSnapshot.id)).toEqual([
         'entity.add',
         'entity.list',
       ]);
@@ -1046,8 +1044,8 @@ describe('topo store projection', () => {
     });
   });
 
-  test("pruning an unpinned snapshot removes only that snapshot's projected rows", () => {
-    withProjectionDb((db) => {
+  test("pruning an unpinned snapshot removes only that snapshot's derived rows", () => {
+    withDerivedDb((db) => {
       const pinned = unwrap(
         createTopoSnapshot(db, buildSignalPruneApp(), {
           createdAt: '2026-04-03T12:00:00.000Z',
@@ -1067,7 +1065,7 @@ describe('topo store projection', () => {
 
       expect(pruneUnpinnedSnapshots(db, { keep: 0 })).toBe(1);
 
-      // Pinned snapshot retains its projected rows, including fires/on edges.
+      // Pinned snapshot retains its derived rows, including fires/on edges.
       expect(countRows(db, 'topo_trails', pinned.id)).toBe(2);
       expectSignalEdgeCounts(db, pinned.id, 1);
 
@@ -1076,7 +1074,7 @@ describe('topo store projection', () => {
   });
 
   test('persists fires and on edges for signal-declaring trails', () => {
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       const created = signal('entity.created', {
         from: ['entity.create'],
         meta: { owner: 'entity' },
@@ -1331,8 +1329,8 @@ describe('topo store projection', () => {
     });
   });
 
-  test('activation source projection records source payload and parse schemas', () => {
-    withProjectionDb((db) => {
+  test('activation source derivation records source payload and parse schemas', () => {
+    withDerivedDb((db) => {
       const webhookSource = webhook('webhook.user.upsert', {
         method: 'post',
         parse: {
@@ -1387,8 +1385,8 @@ describe('topo store projection', () => {
     });
   });
 
-  test('rejects signal edges that are not in the signal namespace before projection', () => {
-    withProjectionDb((db) => {
+  test('rejects signal edges that are not in the signal namespace before derivation', () => {
+    withDerivedDb((db) => {
       const producer = trail('entity.produce', {
         fires: ['entity.missing'],
         implementation: () => Result.ok({ ok: true }),
@@ -1465,9 +1463,9 @@ describe('topo store projection', () => {
       });
     });
 
-    test('createTopoSnapshot succeeds alongside a legacy projection store', () => {
-      withProjectionDb((db) => {
-        seedLegacyProjectionStore(db);
+    test('createTopoSnapshot succeeds alongside a legacy derivation store', () => {
+      withDerivedDb((db) => {
+        seedLegacyDerivedStore(db);
 
         const snapshot = unwrap(
           createTopoSnapshot(db, exampleApp(), {
@@ -1477,12 +1475,12 @@ describe('topo store projection', () => {
 
         expect(tableExists(db, 'topo_trailheads')).toBe(true);
         expect(countRows(db, 'topo_snapshots')).toBe(1);
-        expectProjectionCounts(db, snapshot.id);
+        expectDerivedRowCounts(db, snapshot.id);
       });
     });
 
     test('ensureTopoSnapshotSchema migrates v8 example assertion columns', () => {
-      withProjectionDb((db) => {
+      withDerivedDb((db) => {
         db.run(
           `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
            VALUES ('topo', 8, ?)`,
@@ -1516,7 +1514,7 @@ describe('topo store projection', () => {
     });
 
     test('ensureTopoSnapshotSchema migrates v11 export artifact columns', () => {
-      withProjectionDb((db) => {
+      withDerivedDb((db) => {
         db.run(
           `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
            VALUES ('topo', 11, ?)`,
@@ -1556,7 +1554,7 @@ describe('topo store projection', () => {
     });
 
     test('ensureTopoSnapshotSchema migrates v12 compositions table to composings', () => {
-      withProjectionDb((db) => {
+      withDerivedDb((db) => {
         db.run(
           `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
            VALUES ('topo', 12, ?)`,
@@ -1621,7 +1619,7 @@ describe('topo store projection', () => {
   });
 
   test('history-only topo stores are ignored instead of translated into snapshots', () => {
-    withProjectionDb((db) => {
+    withDerivedDb((db) => {
       seedHistoryOnlyTopoSchema(db);
       ensureTopoSnapshotSchema(db);
       expect(
@@ -1760,7 +1758,7 @@ describe('signal edge normalizers', () => {
     ]);
   });
 
-  test('normalizeActivationEdgeRows projects deduped source-to-trail edges', () => {
+  test('normalizeActivationEdgeRows derives deduped source-to-trail edges', () => {
     const nightly = schedule('schedule.nightly', {
       cron: '0 * * * *',
       input: { id: 'n1' },

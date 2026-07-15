@@ -91,7 +91,7 @@ Calls to unregistered trail IDs return `Result.err` with a descriptive message, 
 
 ## Surface Harnesses
 
-Surface harnesses live on explicit subpaths so projects that only import contract helpers from `@ontrails/testing` do not need CLI, MCP, or HTTP peers. Install the peer package for the subpath you use:
+Surface harnesses live on explicit subpaths so renders that only import contract helpers from `@ontrails/testing` do not need CLI, MCP, or HTTP peers. Install the peer package for the subpath you use:
 
 - `@ontrails/testing/cli` requires `@ontrails/cli`
 - `@ontrails/testing/mcp` requires `@ontrails/mcp`
@@ -120,7 +120,7 @@ const response = await http.get('/entity/show', { name: 'Alpha' });
 expect(response.status).toBe(200);
 ```
 
-Use `testAllEstablished()` from `@ontrails/testing/established` when an established app should run the root contract suite and validate CLI, MCP, and HTTP projections in one call.
+Use `testAllEstablished()` from `@ontrails/testing/established` when an established app should run the root contract suite and validate CLI, MCP, and HTTP renderings in one call.
 
 ## Surface Parity
 
