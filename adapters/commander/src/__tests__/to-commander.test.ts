@@ -2848,7 +2848,7 @@ describe('toCommander option wiring', () => {
         program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
       ).rejects.toThrow('EXIT 8');
       expect(process.stderr.write).toHaveBeenCalledWith(
-        'Error: Internal server error\n'
+        'Error: Internal error\n'
       );
     });
   });
@@ -3101,6 +3101,80 @@ describe('toCommander option wiring', () => {
       expect(process.stderr.write).toHaveBeenCalledWith(
         '  - Resource "note-store" is not in the topo (notes.list)\n'
       );
+    });
+  });
+
+  test('error handling preserves redacted topo issues under --json', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        implementation: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new ValidationError(
+              'Topo validation failed with 1 issue(s)',
+              {
+                context: {
+                  issues: [
+                    {
+                      message: 'Resource token=secret is not in the topo',
+                      rule: 'resource-exists',
+                      trailId: 'notes.add',
+                    },
+                  ],
+                },
+              }
+            );
+          },
+          flags: [
+            {
+              name: 'json',
+              required: false,
+              type: 'boolean' as const,
+              variadic: false,
+            },
+          ],
+          intent: 'read' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail', '--json'], { from: 'node' })
+      ).rejects.toThrow('EXIT 1');
+      const output = String(
+        (process.stderr.write as ReturnType<typeof mock>).mock.calls[0]?.[0]
+      );
+      const envelope = JSON.parse(output) as {
+        context?: {
+          issues?: readonly {
+            message?: string;
+            rule?: string;
+            trailId?: string;
+          }[];
+        };
+        details?: readonly string[];
+        error?: { category?: string; message?: string };
+      };
+      expect(envelope.error).toEqual(
+        expect.objectContaining({
+          category: 'validation',
+          message: 'Topo validation failed with 1 issue(s)',
+        })
+      );
+      expect(envelope.context?.issues?.[0]).toMatchObject({
+        message: 'Resource [REDACTED] is not in the topo',
+        rule: 'resource-exists',
+        trailId: 'notes.add',
+      });
+      expect(envelope.details).toEqual([
+        '- Resource [REDACTED] is not in the topo (notes.add)',
+      ]);
+      expect(output).not.toContain('token=secret');
     });
   });
 

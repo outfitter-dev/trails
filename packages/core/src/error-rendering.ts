@@ -15,6 +15,13 @@ export interface ErrorDiagnosticsRendering {
   readonly stack?: string | undefined;
 }
 
+export interface PublicErrorRendering {
+  readonly category: ErrorCategory;
+  readonly message: string;
+  readonly name: string;
+  readonly retryable: boolean;
+}
+
 export const redactErrorString = (value: string): string =>
   errorRedactor.redact(value);
 
@@ -47,5 +54,34 @@ export const renderErrorDiagnostics = (
     message: redactErrorString(error.message),
     name: error.name || error.constructor.name || 'Error',
     ...(stack === undefined ? {} : { stack }),
+  };
+};
+
+/**
+ * Project an error through the shared public redaction policy.
+ *
+ * @example
+ * ```ts
+ * const rendering = renderPublicError(new NotFoundError('missing'));
+ * ```
+ */
+export const renderPublicError = (error: Error): PublicErrorRendering => {
+  if (isTrailsError(error)) {
+    return {
+      category: error.category,
+      message:
+        error.category === 'internal'
+          ? INTERNAL_ERROR_PUBLIC_MESSAGE
+          : redactErrorString(error.message),
+      name: error.name,
+      retryable: error.retryable,
+    };
+  }
+
+  return {
+    category: 'internal',
+    message: INTERNAL_ERROR_PUBLIC_MESSAGE,
+    name: 'InternalError',
+    retryable: false,
   };
 };

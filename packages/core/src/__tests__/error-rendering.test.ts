@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { InternalError, PermissionError } from '../errors.js';
 import {
   INTERNAL_ERROR_PUBLIC_MESSAGE,
+  renderPublicError,
   renderErrorDiagnostics,
   redactErrorString,
 } from '../error-rendering.js';
@@ -43,6 +44,36 @@ describe('error rendering redaction', () => {
       retryable: false,
       surface: 'mcp',
     });
+  });
+
+  test('projects one redacted public contract before surface mapping', () => {
+    const error = new PermissionError('Denied token=secret');
+
+    expect(renderPublicError(error)).toEqual({
+      category: 'permission',
+      message: 'Denied [REDACTED]',
+      name: 'PermissionError',
+      retryable: false,
+    });
+    expect(renderPublicError(new Error('token=secret'))).toEqual({
+      category: 'internal',
+      message: INTERNAL_ERROR_PUBLIC_MESSAGE,
+      name: 'InternalError',
+      retryable: false,
+    });
+  });
+
+  test('keeps public projection parity while using CLI vocabulary', () => {
+    const error = new Error('token=secret');
+
+    expect(renderPublicSurfaceError('cli', error).message).toBe(
+      'Internal error'
+    );
+    for (const surface of ['http', 'jsonRpc', 'mcp'] as const) {
+      expect(renderPublicSurfaceError(surface, error).message).toBe(
+        INTERNAL_ERROR_PUBLIC_MESSAGE
+      );
+    }
   });
 
   test('uses a generic public message for internal TrailsError instances', () => {

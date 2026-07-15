@@ -63,11 +63,15 @@ export type {
 export {
   INTERNAL_ERROR_PUBLIC_MESSAGE,
   renderErrorDiagnostics,
+  renderPublicError,
   redactErrorContext,
   redactErrorStack,
   redactErrorString,
 } from './error-rendering.js';
-export type { ErrorDiagnosticsRendering } from './error-rendering.js';
+export type {
+  ErrorDiagnosticsRendering,
+  PublicErrorRendering,
+} from './error-rendering.js';
 export type {
   DiagnosticBase,
   DiagnosticSeverity,

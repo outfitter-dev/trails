@@ -139,7 +139,7 @@ Dynamic classes:
 - `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
 <!-- error-taxonomy:end -->
 
-Public surface renderings redact sensitive substrings before exposing a non-internal `TrailsError` message. Internal-category `TrailsError` instances and unknown native errors render with the generic message `Internal server error`; diagnostics and serialized payloads keep their useful structure while redacting messages, context, and stack strings.
+Public surfaces share one redacted rendering contract before applying surface codes. Sensitive substrings are removed from non-internal `TrailsError` messages. Internal-category `TrailsError` instances and unknown native errors remain opaque: HTTP, MCP, and library boundaries use `Internal server error`, while CLI uses the transport-neutral `Internal error`. Diagnostics and serialized payloads keep their useful structure while redacting messages, context, and stack strings.
 
 The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
 

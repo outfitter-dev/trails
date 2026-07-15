@@ -9,14 +9,12 @@ import {
   codesByCategory,
   errorClasses,
   exitCodeMap,
-  isTrailsError,
   jsonRpcCodeMap,
   statusCodeMap,
 } from './errors.js';
-import {
-  INTERNAL_ERROR_PUBLIC_MESSAGE,
-  redactErrorString,
-} from './error-rendering.js';
+import { renderPublicError } from './error-rendering.js';
+
+const CLI_INTERNAL_ERROR_PUBLIC_MESSAGE = 'Internal error';
 
 export const surfaceNames = ['cli', 'http', 'jsonRpc', 'mcp'] as const;
 
@@ -118,23 +116,14 @@ export const renderPublicSurfaceError = (
   surface: SurfaceName,
   error: Error
 ): SurfaceErrorRendering => {
-  if (isTrailsError(error)) {
-    const rendering = renderSurfaceError(surface, error);
-    return {
-      ...rendering,
-      message:
-        rendering.category === 'internal'
-          ? INTERNAL_ERROR_PUBLIC_MESSAGE
-          : redactErrorString(rendering.message),
-    };
-  }
-
+  const rendering = renderPublicError(error);
   return {
-    category: 'internal',
-    code: codesByCategory.internal[surfaceCodeKeys[surface]],
-    message: INTERNAL_ERROR_PUBLIC_MESSAGE,
-    name: 'InternalError',
-    retryable: false,
+    ...rendering,
+    code: codesByCategory[rendering.category][surfaceCodeKeys[surface]],
+    message:
+      surface === 'cli' && rendering.category === 'internal'
+        ? CLI_INTERNAL_ERROR_PUBLIC_MESSAGE
+        : rendering.message,
     surface,
   };
 };

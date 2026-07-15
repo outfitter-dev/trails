@@ -1,11 +1,10 @@
 /* oxlint-disable max-classes-per-file -- package-facing error taxonomy stays co-located */
 import {
-  INTERNAL_ERROR_PUBLIC_MESSAGE,
   createSurfaceErrorMapper,
   isTrailsError,
-  redactErrorString,
+  renderPublicError,
 } from '@ontrails/core';
-import type { ErrorCategory, TrailsError } from '@ontrails/core';
+import type { ErrorCategory } from '@ontrails/core';
 
 export interface LibraryErrorOptions {
   readonly cause?: Error | undefined;
@@ -171,25 +170,21 @@ const libraryErrorClasses = {
 
 const mapLibraryErrorClass = createSurfaceErrorMapper(libraryErrorClasses);
 
-const publicMessage = (error: TrailsError): string =>
-  error.category === 'internal'
-    ? INTERNAL_ERROR_PUBLIC_MESSAGE
-    : redactErrorString(error.message);
-
 export const toLibraryError = (error: Error): LibraryError => {
   if (error instanceof LibraryError) {
     return error;
   }
 
+  const rendering = renderPublicError(error);
   if (!isTrailsError(error)) {
-    return new LibraryInternalError(INTERNAL_ERROR_PUBLIC_MESSAGE, {
+    return new LibraryInternalError(rendering.message, {
       cause: error,
       originalName: error.name || 'Error',
     });
   }
 
   const ErrorClass = mapLibraryErrorClass(error);
-  return new ErrorClass(publicMessage(error), {
+  return new ErrorClass(rendering.message, {
     cause: error,
     originalName: error.name,
   });
