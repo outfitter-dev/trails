@@ -135,6 +135,11 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — defines authored,",
+          "from": "0053",
+          "fromPath": "docs/adr/0053-regrade-moves-governed-contract-change.md"
+        },
+        {
           "context": "- docs/adr/0000-core-premise.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -741,6 +746,11 @@
           "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) - Warden",
           "from": "0038",
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
+          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — makes",
+          "from": "0053",
+          "fromPath": "docs/adr/0053-regrade-moves-governed-contract-change.md"
         },
         {
           "context": "Warden is the governance arm of Trails. It is where drift becomes visible before runtime, and [ADR-0007](../0007-governance-as-trails.md) made that governance trail-shaped instead of a parallel lint s",
@@ -1727,6 +1737,11 @@
           "fromPath": "docs/adr/0040-resource-scoped-store-signal-identity.md"
         },
         {
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md)",
+          "from": "0053",
+          "fromPath": "docs/adr/0053-regrade-moves-governed-contract-change.md"
+        },
+        {
           "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames; note that `resource` in this ADR refers to the distribution unit, distinct from `resourc",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
@@ -2362,6 +2377,11 @@
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
         },
         {
+          "context": "- [ADR-0037: Owner-First Authority](0037-owner-first-authority.md) — keeps",
+          "from": "0053",
+          "fromPath": "docs/adr/0053-regrade-moves-governed-contract-change.md"
+        },
+        {
           "context": "- docs/adr/0037-owner-first-authority.md",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
@@ -2972,6 +2992,19 @@
       "superseded_by": null,
       "title": "Overlays Are the Lock's One Extension Mechanism",
       "updated": "2026-07-07"
+    },
+    {
+      "created": "2026-07-15",
+      "depends_on": ["0", "7", "23", "37"],
+      "inbound": [],
+      "number": "0053",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0053-regrade-moves-governed-contract-change.md",
+      "slug": "regrade-moves-governed-contract-change",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Regrade Moves Governed Contract Change",
+      "updated": "2026-07-15"
     }
   ],
   "version": 1
