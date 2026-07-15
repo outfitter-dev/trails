@@ -33,8 +33,8 @@ The repo already has a workable release mechanism:
 - `.changeset/config.json` fixes `@ontrails/*` packages together.
 - `bun run publish:check` packs public workspaces and rejects unresolved
   `workspace:` or `catalog:` ranges.
-- `bun run publish:packages` publishes through Bun and derives the dist-tag
-  from `.changeset/pre.json`.
+- `bun run publish:packages` packs and validates through Bun, publishes those
+  tarballs through npm, and derives the dist-tag from `.changeset/pre.json`.
 - `bun run publish:registry-check` and
   `bun run publish:registry-check:published` verify registry posture without
   mutating the registry. The first command is the pre-publish readiness check:
@@ -132,9 +132,9 @@ bun test
 
 The point is not just that the scaffold command runs. The generated `package.json`, selected lockfile versions, typecheck, and tests together prove that a new user can consume the published framework family.
 
-### Changesets computes; Bun publishes
+### Changesets computes; Bun packs; npm publishes
 
-Changesets owns version and changelog calculation. Bun owns publication.
+Changesets owns version and changelog calculation. Bun owns package discovery, packing, and validation. The npm CLI owns the authenticated registry mutation, including GitHub OIDC trusted publishing.
 
 The stable flow keeps these responsibilities separate:
 
@@ -145,7 +145,7 @@ The stable flow keeps these responsibilities separate:
 - use `bun run publish:check` to prove the package tarballs are clean;
 - use `bun run publish:packages` to publish.
 
-Do not use `changeset publish`, `npm publish`, or ad hoc package publication for the normal release path. If an emergency requires a different operation, that operation is an incident with written evidence, not a new default.
+Do not use `changeset publish`, a direct `npm publish`, or ad hoc package publication for the normal release path. If an emergency requires a different operation, that operation is an incident with written evidence, not a new default.
 
 ### Changelogs and release notes are part of the contract
 

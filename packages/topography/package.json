@@ -2,6 +2,11 @@
   "name": "@ontrails/topography",
   "version": "1.0.0-beta.43",
   "description": "Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, and semantic diffing.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/outfitter-dev/trails.git",
+    "directory": "packages/topography"
+  },
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",

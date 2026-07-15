@@ -110,11 +110,11 @@ Do not run a broad automatic prose rewrite. Some sentences need `adapter`, some 
 
 ## Changesets And Publishing
 
-Changesets in this cutover are version and changelog metadata only. Package publication later uses the repo's Bun publish flow:
+Changesets in this cutover are version and changelog metadata only. The repo release flow packs and validates with Bun, then publishes the resolved tarball through npm:
 
 ```bash
 bun run publish:check
 bun run publish:packages
 ```
 
-Do not use `changeset publish` or `npm publish` for this migration.
+Do not invoke `changeset publish` or `npm publish` directly for this migration.

@@ -26,7 +26,7 @@ jobs:
     outputs:
       has_changesets: ${{ steps.changesets.outputs.hasChangesets }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -85,7 +85,7 @@ jobs:
       tag: ${{ steps.policy.outputs.tag }}
       version: ${{ steps.policy.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -107,14 +107,22 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      - name: Set up npm trusted publishing
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - name: Pin trusted publishing npm CLI
+        run: npm install --global npm@11.18.0
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: bun run publish:packages
+        run: bun run publish:packages -- --trusted-publishing
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 
@@ -128,14 +136,22 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      - name: Set up npm trusted publishing
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - name: Pin trusted publishing npm CLI
+        run: npm install --global npm@11.18.0
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: bun run publish:packages
+        run: bun run publish:packages -- --trusted-publishing
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 
@@ -147,7 +163,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup

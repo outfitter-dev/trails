@@ -2,6 +2,11 @@
   "name": "@ontrails/regrade",
   "version": "1.0.0-beta.43",
   "description": "Downstream migration reporting and safe rewrite helpers for Trails.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/outfitter-dev/trails.git",
+    "directory": "packages/regrade"
+  },
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",

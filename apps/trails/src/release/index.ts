@@ -1,5 +1,7 @@
 export {
+  nativeBunPackBinding,
   nativeBunReleaseBinding,
+  npmReleaseAdapterBinding,
   releaseBindingCapabilityValues,
   releaseBindingKindValues,
   releaseBindingPlacementValues,
@@ -55,8 +57,12 @@ export {
   type ReleaseRuleInput,
 } from './config.js';
 export {
+  createNpmPublishCommand,
   findPackedFirstPartyDependencyMismatches,
+  publicationActionForRegistryState,
   runNativeBunPublishCli,
+  trustedPublishingPreflightErrors,
+  unsupportedPublishLifecycleScripts,
   type NativeBunPublishOptions,
   type NativeBunPublishPackageJson,
   type NativeBunPublishWorkspace,
@@ -79,6 +85,7 @@ export {
   checkRegistryPosture,
   classifyPackageRegistryState,
   discoverRegistryWorkspaces,
+  factsFromRegistryResult,
   formatDistTagSummary,
   npmRegistryVersionView,
   npmRegistryView,

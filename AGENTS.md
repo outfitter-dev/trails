@@ -353,7 +353,7 @@ Use these constraints alongside the two principles:
 
 ## Releasing
 
-All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets) in pre-release (`beta`) mode. We use Changesets only for versioning and changelogs — **not** `changeset publish`. Publishing goes through `bun publish` via our script, which correctly resolves `workspace:^` to real versions (npm publish does not).
+All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets) in pre-release (`beta`) mode. We use Changesets only for versioning and changelogs, not `changeset publish`. The repo release flow packs and validates each package with Bun, then publishes that resolved tarball through npm. GitHub releases use npm trusted publishing; local credentialed publication remains the bootstrap and recovery path for first-time packages and dist-tag repairs. Do not invoke `npm publish` directly.
 
 ```bash
 # 1. Add a changeset (or create .changeset/<name>.md manually)
@@ -362,18 +362,18 @@ bunx changeset add
 # 2. Version
 bun run version:packages
 
-# 3. Commit, push, publish
-git add -A && git commit -m "chore: version packages to 1.0.0-beta.N"
-git push
+# 3. Validate the generated version branch before its Graphite PR
 bun run publish:check
-bun run publish:packages
+bun run publish:registry-check
 ```
+
+Stage only the generated version files, commit and submit the version branch through Graphite, and merge it after CI and review are clean. The GitHub release workflow publishes through npm trusted publishing after merge. Run `bun run publish:packages` locally only for first-time package bootstrap or explicit incident recovery.
 
 Every PR that changes publishable `@ontrails/*` package contents must satisfy branch-local release rules. The normal intent source is a `.changeset/*.md` entry for the affected package. The compatibility `release:none` label/flag is allowed only when the branch truly does not ship user-visible package content, and the PR, issue, or handoff explains why. The CI release check reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole local stack. Public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes are release facts and need the same branch-local intent. Fix missing release intent on the owning Graphite branch; do not paper over lower-branch release gaps with a top-stack cleanup changeset.
 
 To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual. Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/releases/stable-cutover.md).
 
-`bun run publish:check` auto-discovers every non-private workspace, topo-sorts by `workspace:` dep edges, runs `bun pm pack --dry-run` per package (required because `npm pack` does not resolve `catalog:`), and asserts the packed `package.json` contains no unresolved `workspace:` or `catalog:` ranges. It also verifies first-party `workspace:` ranges pack to the current lockstep package versions, so generated release PRs cannot merge with stale `bun.lock` workspace metadata. `bun run publish:registry-check` performs read-only registry/dist-tag probes before publication; missing packages are reported as first-time package candidates. After publishing, use `bun run publish:registry-check:published` to require every package and expected dist-tag to be present. `bun run publish:packages` uses the same discovery and applies the explicit dist-tag from `.changeset/pre.json` (falling back to `latest` outside prerelease mode). Packages intentionally ship source `.ts` files while their `exports` map points at `src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the published tarballs.
+`bun run publish:check` auto-discovers every non-private workspace, topo-sorts by `workspace:` dep edges, runs `bun pm pack --dry-run` per package (required because `npm pack` does not resolve `catalog:`), and asserts the packed `package.json` contains no unresolved `workspace:` or `catalog:` ranges. It also verifies first-party `workspace:` ranges pack to the current lockstep package versions, so generated release PRs cannot merge with stale `bun.lock` workspace metadata. `bun run publish:registry-check` performs read-only registry/dist-tag probes before publication; missing packages are reported as first-time package candidates. After publishing, use `bun run publish:registry-check:published` to require every package and expected dist-tag to be present. `bun run publish:packages` preflights the complete selected package set before mutation, packs each package with Bun, and publishes the resolved tarball through npm using the explicit dist-tag from `.changeset/pre.json` (falling back to `latest` outside prerelease mode). Packages intentionally ship source `.ts` files while their `exports` map points at `src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the published tarballs.
 
 ## Testing
 

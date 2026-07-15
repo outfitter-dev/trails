@@ -2,6 +2,11 @@
   "name": "@ontrails/adapter-kit",
   "version": "1.0.0-beta.43",
   "description": "Internal adapter authoring kit for Trails metadata, scaffolding, and checks.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/outfitter-dev/trails.git",
+    "directory": "packages/adapter-kit"
+  },
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",
