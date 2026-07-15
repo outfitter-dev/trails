@@ -11,7 +11,6 @@
 '@ontrails/regrade': minor
 '@ontrails/store': minor
 '@ontrails/testing': minor
-'@ontrails/tracing': minor
 '@ontrails/trails': minor
 '@ontrails/warden': minor
 ---

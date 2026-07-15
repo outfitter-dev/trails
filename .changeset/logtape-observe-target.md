@@ -1,5 +1,4 @@
 ---
-"@ontrails/observe": major
 ---
 
 Retarget the LogTape adapter to the `@ontrails/observe/logtape` subpath and use `createLogtapeSink` as the canonical factory name.

@@ -1,7 +1,6 @@
 ---
 '@ontrails/core': minor
 '@ontrails/cli': minor
-'@ontrails/tracing': minor
 '@ontrails/warden': minor
 ---
 

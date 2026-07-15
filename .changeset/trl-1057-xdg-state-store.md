@@ -1,7 +1,6 @@
 ---
 "@ontrails/core": patch
 "@ontrails/trails": patch
-"@ontrails/tracing": patch
 "@ontrails/topography": patch
 ---
 

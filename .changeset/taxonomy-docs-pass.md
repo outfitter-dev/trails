@@ -5,7 +5,6 @@
 "@ontrails/hono": patch
 "@ontrails/http": patch
 "@ontrails/mcp": patch
-"@ontrails/observe": patch
 "@ontrails/store": patch
 ---
 

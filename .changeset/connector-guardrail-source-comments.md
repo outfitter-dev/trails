@@ -4,7 +4,6 @@
 "@ontrails/hono": patch
 "@ontrails/http": patch
 "@ontrails/mcp": patch
-"@ontrails/observe": patch
 ---
 
 Refresh source comments and test labels for retired connector terminology as adapter guardrails become strict.

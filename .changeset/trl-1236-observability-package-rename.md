@@ -1,7 +1,6 @@
 ---
 '@ontrails/core': patch
 '@ontrails/observability': major
-'@ontrails/tracing': patch
 '@ontrails/testing': patch
 '@ontrails/trails': patch
 '@ontrails/warden': patch

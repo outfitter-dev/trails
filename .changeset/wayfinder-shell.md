@@ -1,5 +1,4 @@
 ---
-'@ontrails/observe': patch
 '@ontrails/topography': patch
 ---
 

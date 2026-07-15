@@ -1,5 +1,4 @@
 ---
-"@ontrails/tracing": minor
 ---
 
 **BREAKING:** Complete the tracing wire-format cutover from `trailhead` to `surface`.

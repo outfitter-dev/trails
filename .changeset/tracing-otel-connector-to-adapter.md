@@ -1,5 +1,4 @@
 ---
-"@ontrails/tracing": major
 ---
 
 BREAKING: rename the OpenTelemetry tracing connector API to adapter vocabulary.

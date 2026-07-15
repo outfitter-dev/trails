@@ -1,7 +1,6 @@
 ---
 '@ontrails/core': major
 '@ontrails/config': major
-'@ontrails/tracing': major
 '@ontrails/trails': major
 ---
 

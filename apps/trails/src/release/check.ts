@@ -436,6 +436,84 @@ const parseChangesetPackages = (content: string): readonly string[] => {
   });
 };
 
+const readBaseChangeset = (
+  repoRoot: string,
+  baseRef: string | undefined,
+  path: string
+): string | null => {
+  if (baseRef === undefined) {
+    return null;
+  }
+
+  const result = Bun.spawnSync({
+    cmd: ['git', 'show', `${baseRef}:${path}`],
+    cwd: repoRoot,
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+
+  return result.exitCode === 0 ? result.stdout.toString() : null;
+};
+
+const removeChangesetPackageRows = (
+  content: string,
+  packages: ReadonlySet<string>
+): string => {
+  let insideFrontmatter = false;
+
+  return content
+    .split('\n')
+    .filter((line, index) => {
+      const normalizedLine = line.replace(/\r$/u, '');
+
+      if (normalizedLine === '---') {
+        insideFrontmatter = index === 0;
+        return true;
+      }
+
+      if (!insideFrontmatter) {
+        return true;
+      }
+
+      const packageName = normalizedLine.match(CHANGESET_PACKAGE_PATTERN)?.[1];
+      return packageName === undefined || !packages.has(packageName);
+    })
+    .join('\n');
+};
+
+const findRetiredPackageChangesetCleanups = (
+  changedChangesetPaths: readonly string[],
+  input: ReleaseCheckInput
+): readonly string[] => {
+  const workspaceNames = new Set(
+    input.workspaces.map((workspace) => workspace.name)
+  );
+
+  return changedChangesetPaths.filter((path) => {
+    const absolutePath = join(input.repoRoot, path);
+    if (!existsSync(absolutePath)) {
+      return false;
+    }
+
+    const baseContent = readBaseChangeset(input.repoRoot, input.baseRef, path);
+    if (baseContent === null) {
+      return false;
+    }
+
+    const retiredPackages = new Set(
+      parseChangesetPackages(baseContent).filter(
+        (packageName) => !workspaceNames.has(packageName)
+      )
+    );
+
+    return (
+      retiredPackages.size > 0 &&
+      removeChangesetPackageRows(baseContent, retiredPackages) ===
+        readFileSync(absolutePath, 'utf8')
+    );
+  });
+};
+
 const findChangedChangesetPaths = (
   changedFiles: readonly string[]
 ): readonly string[] =>
@@ -563,6 +641,9 @@ export const checkReleaseRules = (
     input.changedFiles,
     input.repoRoot
   );
+  const retiredPackageChangesetCleanups = new Set(
+    findRetiredPackageChangesetCleanups(changedChangesets, input)
+  );
   const changesets = findChangedChangesets(changedChangesets, input.repoRoot);
   const coveredPackages = [
     ...new Set(changesets.flatMap((changeset) => changeset.packages)),
@@ -590,7 +671,9 @@ export const checkReleaseRules = (
     versionRelease;
   const activePackageChangesetsWithoutReleaseFacts =
     activeChangedChangesets.length > 0 && !hasReleaseFacts
-      ? activeChangedChangesets
+      ? activeChangedChangesets.filter(
+          (path) => !retiredPackageChangesetCleanups.has(path)
+        )
       : [];
   const matchedRuleIds = findMatchedRuleIds(input);
   const requiresPackageIntent = ruleMatchesFactType(input, 'package-content');

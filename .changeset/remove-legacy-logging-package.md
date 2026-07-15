@@ -1,8 +1,6 @@
 ---
-"@ontrails/observe": minor
 "@ontrails/trails": patch
 "@ontrails/testing": patch
-"@ontrails/tracing": patch
 "@ontrails/warden": patch
 ---
 

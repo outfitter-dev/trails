@@ -450,6 +450,87 @@ describe('checkReleaseRules', () => {
     }
   });
 
+  test('allows pruning release rows for packages absent from the live workspace', () => {
+    const { repoRoot, value: baseRef } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'retired-package.md'),
+        "---\n'@ontrails/core': patch\n'@ontrails/retired': patch\n---\n\nHistorical release note.\n"
+      );
+      execSync('git init', { cwd: root, stdio: 'ignore' });
+      execSync('git add .', { cwd: root, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m base',
+        { cwd: root, stdio: 'ignore' }
+      );
+      const committedRef = execSync('git rev-parse HEAD', {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      writeFileSync(
+        join(root, '.changeset', 'retired-package.md'),
+        "---\n'@ontrails/core': patch\n---\n\nHistorical release note.\n"
+      );
+      return committedRef;
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseRef,
+        baseWorkspaces: workspaces,
+        changedFiles: ['.changeset/retired-package.md'],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.activePackageChangesetsWithoutReleaseFacts).toEqual([]);
+      expect(result.coveredPackages).toEqual(['@ontrails/core']);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects other changes hidden beside a retired package row removal', () => {
+    const { repoRoot, value: baseRef } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'retired-package.md'),
+        "---\n'@ontrails/core': patch\n'@ontrails/retired': patch\n---\n\nHistorical release note.\n"
+      );
+      execSync('git init', { cwd: root, stdio: 'ignore' });
+      execSync('git add .', { cwd: root, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m base',
+        { cwd: root, stdio: 'ignore' }
+      );
+      const committedRef = execSync('git rev-parse HEAD', {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      writeFileSync(
+        join(root, '.changeset', 'retired-package.md'),
+        "---\n'@ontrails/core': minor\n---\n\nHistorical release note.\n"
+      );
+      return committedRef;
+    });
+
+    try {
+      const result = checkReleaseRules({
+        baseRef,
+        baseWorkspaces: workspaces,
+        changedFiles: ['.changeset/retired-package.md'],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.activePackageChangesetsWithoutReleaseFacts).toEqual([
+        '.changeset/retired-package.md',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('rejects active package changesets without a matching release fact', () => {
     const { repoRoot } = withTempRepo((root) => {
       writeFileSync(
