@@ -87,7 +87,7 @@ Project defaults may narrow scope, but an explicit plan can override them.
 Run without `apply` first:
 
 ```bash
-trails regrade --root-dir . --from facet --to trailhead --json
+trails regrade --root-dir . --from '<from>' --to '<to>' --json
 trails regrade --root-dir . --class-ids term-rewrite:no-retired-cross-vocabulary --json
 ```
 
@@ -114,7 +114,7 @@ Never hide uncertainty by applying a broad replacement.
 Apply only after the dry-run report is understood:
 
 ```bash
-trails regrade --root-dir . --from facet --to trailhead --apply --json
+trails regrade --root-dir . --from '<from>' --to '<to>' --apply --json
 ```
 
 Safe apply may still leave the gate open when target text contains the source, when review inventory remains, or when new neighbor forms are discovered. That is expected. Continue the loop instead of calling the migration done.

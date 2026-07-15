@@ -46,9 +46,9 @@ import type {
  * @example
  * ```ts
  * const candidate: FileRenameCandidate = {
- *   evidence: ['docs/surface-facets.md'],
- *   from: 'docs/surface-facets.md',
- *   to: 'docs/surface-trailheads.md',
+ *   evidence: ['docs/legacy-guide.md'],
+ *   from: 'docs/legacy-guide.md',
+ *   to: 'docs/current-guide.md',
  * };
  * ```
  */
@@ -1311,7 +1311,7 @@ const withExactMovedTargets = (params: {
  * @example
  * ```ts
  * const candidates = deriveFileRenameCandidates({
- *   plan: { from: 'facet', kind: 'vocabulary', to: 'trailhead' },
+ *   plan: { from: 'legacy', kind: 'vocabulary', to: 'current' },
  *   root: process.cwd(),
  * });
  * ```

@@ -1,6 +1,6 @@
 # v1 Vocabulary Reset Transition Plan
 
-This is the executable plan for the v1 vocabulary reset. It coordinates the family order, safety policy, compatibility stance, and evidence required before any reset branch changes live code or public API names.
+This is the execution record for the v1 vocabulary reset. It preserves the family order, safety policy, compatibility stance, and evidence used to move live code and public API names. All four vocabulary families are now live; the cleanup branch closes their temporary scaffolding without weakening the durable regression boundary.
 
 The reset is not a broad text replacement. The typed transition facts live in `packages/warden/src/rules/retired-vocabulary.ts` and are consumed by Regrade. This document owns the narrative: order, boundaries, compatibility decisions, namespace census rules, and verification.
 
@@ -12,8 +12,7 @@ Use these artifacts together:
 
 | Artifact | Role |
 | --- | --- |
-| `docs/lexicon.md` | Current live vocabulary until the cutover lands. |
-| `docs/lexicon.md` | Canonical live vocabulary after each completed family lands. |
+| `docs/lexicon.md` | Canonical live vocabulary for the completed reset. |
 | `packages/warden/src/rules/retired-vocabulary.ts` | Typed governed vocabulary registry: family ids, forms, symbol renames, review forms, and target shape. |
 | `packages/regrade/src/downstream/vocabulary-registry.ts` | Registry-to-Regrade bridge for single-target vocabulary plans. |
 | Regrade run output | Observed ledger and report for an execution attempt. |
@@ -192,6 +191,8 @@ Cleanup must:
 - regenerate Warden guide output and agent guidance;
 - confirm docs, skills, plugin guidance, release notes, and changesets match the final vocabulary.
 
+The cleanup branch retained the facet transition's repo-local Warden guard, added a durable TopoGraph artifact-family guard, confirmed there are no active Regrade plans, and retained the governed transition registry plus legacy-input rejection paths as durable regression checks. Repo-local Claude, Codex, and Clark guidance now teaches the live lexicon directly, matching the distributed plugin skills. Generic Regrade examples no longer use a completed reset family as their default placeholder.
+
 ## Execution Gate
 
 A family branch cannot leave draft until it records:
@@ -223,7 +224,7 @@ Run narrower checks first while iterating. The full gate is required before read
 
 ## What This Does Not Decide
 
-This plan does not start the actual reset.
+This record does not authorize another vocabulary reset.
 
 It also does not decide:
 

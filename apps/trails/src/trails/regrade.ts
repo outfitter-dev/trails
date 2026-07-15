@@ -341,7 +341,7 @@ const regradeAdjustInputSchema = z.object({
   transition: z
     .string()
     .min(1)
-    .describe('Graduated transition name, e.g. facet-to-trailhead'),
+    .describe('Graduated transition name, e.g. <transition-name>'),
 });
 
 type RegradePlanInput = z.output<typeof regradePlanInputSchema>;

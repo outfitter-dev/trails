@@ -124,11 +124,11 @@ export interface VocabularyFileRenameEvidence extends VocabularyFileRename {
  * @example
  * ```ts
  * const proposal: VocabularyFormProposal = {
- *   from: 'facets',
+ *   from: 'legacies',
  *   kind: 'safe-rewrite',
  *   reason: 'default-morphology',
  *   source: 'default-morphology',
- *   to: 'trailheads',
+ *   to: 'currents',
  * };
  * ```
  */
@@ -741,9 +741,9 @@ const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] => {
  * @example
  * ```ts
  * const forms = deriveVocabularyFormProposals({
- *   from: 'facet',
+ *   from: 'legacy',
  *   kind: 'vocabulary',
- *   to: 'trailhead',
+ *   to: 'current',
  * });
  * ```
  */

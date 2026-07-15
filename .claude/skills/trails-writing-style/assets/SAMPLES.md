@@ -2,7 +2,8 @@
 
 Worked craft samples for Trails prose, adapted and expanded from the Outfitter styleguide samples. They cover both framework docs (ADRs, guides, reference, agent guidance, release notes) and trails.dev narrative and launch writing. Use them with `trails-writing-style` -- they illustrate the rules by example; they are not new rules.
 
-> Vocabulary note: examples here use only stable Trails terms on purpose. The framework's vocabulary is mid-cutover toward the v1 reset, so don't treat any single term as permanent -- when you write new samples, prefer terms that are settled.
+> Vocabulary note: examples here use the live v1 Trails terms. Use `derive`
+> for contract-owned facts and `render` for surface presentation.
 
 ## Opening moves
 
