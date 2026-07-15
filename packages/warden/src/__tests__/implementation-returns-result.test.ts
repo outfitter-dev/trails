@@ -112,6 +112,136 @@ trail("entity.pick", {
     expect(diagnostics.length).toBe(0);
   });
 
+  test('allows conditional Result expressions assigned before return', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    const result = input.id === undefined
+      ? await ctx.compose("entity.default", {})
+      : Result.ok({ id: input.id });
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('allows conditional Result helper calls assigned before return', () => {
+    const code = `
+const loadDefault = (): Result<object, Error> => Result.ok({ id: "default" });
+const loadInput = (): Result<object, Error> => Result.ok({ id: "input" });
+
+trail("entity.pick", {
+  implementation: (input, ctx) => {
+    const result = input.id === undefined ? loadDefault() : loadInput();
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('allows aliases and parenthesized compose results', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    const composed = (await ctx.compose("entity.default", {}));
+    const result = composed;
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('clears Result provenance after raw reassignment', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    let result = Result.ok({ id: input.id });
+    result = { id: input.id };
+    return result;
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('entity.pick');
+  });
+
+  test('preserves proven Result provenance across Result reassignments', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    let result = Result.ok({ id: input.id });
+    if (input.useDefault) {
+      result = await ctx.compose("entity.default", {});
+    }
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('tracks Result provenance from straight-line assignments', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    let result;
+    result = await ctx.compose("entity.default", {});
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('clears Result provenance after compound assignments', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    let result = Result.ok({ id: input.id });
+    result += Result.ok({ id: "other" });
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toHaveLength(1);
+  });
+
+  test('does not promote branch-local assignments to unconditional Result provenance', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    let result = { id: input.id };
+    if (input.valid) {
+      result = Result.ok({ id: input.id });
+    }
+    return result;
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('entity.pick');
+  });
+
+  test('does not promote unbraced branch assignments', () => {
+    const code = `
+trail("entity.pick", {
+  implementation: async (input, ctx) => {
+    let result = { id: input.id };
+    if (input.valid) result = Result.ok({ id: input.id });
+    return result;
+  }
+})`;
+
+    expect(implementationReturnsResult.check(code, TEST_FILE)).toHaveLength(1);
+  });
+
   test('allows awaited conditional returns whose branches produce Results', () => {
     const code = `
 trail("entity.pick", {

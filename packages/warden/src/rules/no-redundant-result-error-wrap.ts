@@ -23,11 +23,11 @@ import {
 import type { AstNode, AstParentContext } from '@ontrails/source';
 import {
   collectAllResultHelperNames,
+  collectDirectResultAssignments,
   collectNamespaceHelperImports,
   collectResultTypeNames,
   findNearestBindingScope,
-  isHelperCall,
-  isResultExpression,
+  isResultProducingExpression,
   trackScopedResultHelperDeclaration,
 } from './implementation-returns-result.js';
 import { isTestFile } from './scan.js';
@@ -81,16 +81,6 @@ const getErrorSourceVariable = (node: AstNode | null): string | null => {
   const member = getMemberExpression(node);
   return identifierName(member?.object);
 };
-
-const isResultProducingExpression = (
-  node: AstNode,
-  helperNames: ReadonlySet<string>,
-  namespaceHelpers: NamespaceHelperMap,
-  scopes: readonly ReadonlySet<string>[],
-  scopedHelpers: ScopedHelperMap
-): boolean =>
-  isResultExpression(node) ||
-  isHelperCall(node, helperNames, namespaceHelpers, scopes, scopedHelpers);
 
 type ResultProvenance = Map<ReadonlySet<string>, Set<string>>;
 
@@ -158,6 +148,7 @@ const trackVariableDeclarator = (
     isResultProducingExpression(
       init,
       helperNames,
+      provenance,
       namespaceHelpers,
       scopes,
       scopedHelpers
@@ -175,11 +166,10 @@ const trackAssignmentExpression = (
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   scopedHelpers: ScopedHelperMap,
+  directAssignments: ReadonlySet<AstNode>,
   scopes: readonly ReadonlySet<string>[]
 ): void => {
   const left = getNodeLeft(node);
-  const operator = getNodeOperator(node);
-  const right = getNodeRight(node);
   const name = identifierName(left);
   if (!name) {
     return;
@@ -188,16 +178,22 @@ const trackAssignmentExpression = (
   if (!scope) {
     return;
   }
-  if (
-    operator === '=' &&
+  const right = getNodeRight(node);
+  const resultRhs =
+    getNodeOperator(node) === '=' &&
     right &&
     isResultProducingExpression(
       right,
       helperNames,
+      provenance,
       namespaceHelpers,
       scopes,
       scopedHelpers
-    )
+    );
+  if (
+    resultRhs &&
+    (hasResultProvenance(provenance, scope, name) ||
+      directAssignments.has(node))
   ) {
     markResultVariable(provenance, scope, name);
     return;
@@ -258,6 +254,7 @@ const checkFunctionBody = (
   const scopedHelpers: MutableScopedHelperMap = new Map();
   const implScope = collectScopeFrameBindings(owner);
   const initialScopes = implScope.size > 0 ? [implScope] : [];
+  const directAssignments = collectDirectResultAssignments(body);
 
   walkWithScopes(
     body,
@@ -287,6 +284,7 @@ const checkFunctionBody = (
           helperNames,
           namespaceHelpers,
           scopedHelpers,
+          directAssignments,
           scopes
         );
         return;

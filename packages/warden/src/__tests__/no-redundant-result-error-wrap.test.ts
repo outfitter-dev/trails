@@ -63,6 +63,56 @@ trail('entity.load', {
     expect(diagnostics[0]?.message).toContain('Return parsed directly');
   });
 
+  test('flags re-wrapping conditional Result helper provenance', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+import type {
+  Result as ResultType
+} from '@ontrails/core';
+
+const parseLeft = (): ResultType<object, Error> => Result.err(new Error('left'));
+const parseRight = (): ResultType<object, Error> => Result.err(new Error('right'));
+
+trail('entity.load', {
+  implementation: async (input, ctx) => {
+    const parsed = input.left ? parseLeft() : parseRight();
+    return Result.err(parsed.error);
+  },
+});
+`;
+
+    const diagnostics = noRedundantResultErrorWrap.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('Return parsed directly');
+  });
+
+  test('flags re-wrapping aliased parenthesized compose provenance', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+
+trail('entity.load', {
+  composes: ['entity.fetch'],
+  implementation: async (input, ctx) => {
+    const composed = (await ctx.compose('entity.fetch', input));
+    const fetched = composed;
+    return Result.err(fetched.error);
+  },
+});
+`;
+
+    const diagnostics = noRedundantResultErrorWrap.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('Return fetched directly');
+  });
+
   test('allows returning the Result directly', () => {
     const code = `
 import {
@@ -142,6 +192,110 @@ trail('entity.load', {
     let fetched = await ctx.compose('entity.fetch', input);
     fetched = { error: new Error('different') };
     return Result.err(fetched.error);
+  },
+});
+`;
+
+    expect(noRedundantResultErrorWrap.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('preserves proven provenance across Result reassignments', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+
+trail('entity.load', {
+  composes: ['entity.fetch'],
+  implementation: async (input, ctx) => {
+    let fetched = Result.err(new Error('initial'));
+    if (input.refresh) {
+      fetched = await ctx.compose('entity.fetch', input);
+    }
+    return Result.err(fetched.error);
+  },
+});
+`;
+
+    const diagnostics = noRedundantResultErrorWrap.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('Return fetched directly');
+  });
+
+  test('tracks provenance from straight-line Result assignments', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+
+trail('entity.load', {
+  composes: ['entity.fetch'],
+  implementation: async (input, ctx) => {
+    let fetched;
+    fetched = await ctx.compose('entity.fetch', input);
+    return Result.err(fetched.error);
+  },
+});
+`;
+
+    expect(noRedundantResultErrorWrap.check(code, TEST_FILE)).toHaveLength(1);
+  });
+
+  test('clears proven provenance after compound assignments', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+
+trail('entity.load', {
+  implementation: async (input, ctx) => {
+    let fetched = Result.err(new Error('initial'));
+    fetched += Result.err(new Error('other'));
+    return Result.err(fetched.error);
+  },
+});
+`;
+
+    expect(noRedundantResultErrorWrap.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('does not promote branch-local assignments to unconditional Result provenance', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+
+trail('entity.load', {
+  implementation: async (input, ctx) => {
+    let result = { error: new Error('plain') };
+    if (input.valid) {
+      result = Result.err(new Error('result'));
+    }
+    return Result.err(result.error);
+  },
+});
+`;
+
+    expect(noRedundantResultErrorWrap.check(code, TEST_FILE)).toEqual([]);
+  });
+
+  test('does not promote unbraced branch assignments', () => {
+    const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+
+trail('entity.load', {
+  implementation: async (input, ctx) => {
+    let result = { error: new Error('plain') };
+    if (input.valid) result = Result.err(new Error('result'));
+    return Result.err(result.error);
   },
 });
 `;

@@ -3520,7 +3520,7 @@ export const regradeTrail = trail('regrade', {
         )
       : await runClassModeRegrade(input, rootDirResult.value, configScope);
     if (reportResult.isErr()) {
-      return Result.err(reportResult.error);
+      return reportResult;
     }
     const outputResult = validateOutput(
       regradeReportOutput,

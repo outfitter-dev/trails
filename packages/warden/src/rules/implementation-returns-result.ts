@@ -25,8 +25,11 @@ import {
   getNodeImported,
   getNodeInit,
   getNodeLocal,
+  getNodeLeft,
   getNodeName,
+  getNodeOperator,
   getNodeReturnType,
+  getNodeRight,
   getNodeSource,
   getNodeTypeAnnotation,
   getNodeValue,
@@ -97,12 +100,15 @@ export type ScopedHelperMap = ReadonlyMap<
 
 export type MutableScopedHelperMap = Map<ReadonlySet<string>, Set<string>>;
 
-type ScopedResultVariableMap = ReadonlyMap<
+export type ScopedResultVariableMap = ReadonlyMap<
   ReadonlySet<string>,
   ReadonlySet<string>
 >;
 
-type MutableScopedResultVariableMap = Map<ReadonlySet<string>, Set<string>>;
+export type MutableScopedResultVariableMap = Map<
+  ReadonlySet<string>,
+  Set<string>
+>;
 
 export const findNearestBindingScope = (
   name: string,
@@ -224,8 +230,8 @@ const unwrapReturnExpression = (node: AstNode): AstNode => {
   return current;
 };
 
-/** Check if a return argument is an allowed Result value. */
-const isAllowedReturnArgument = (
+/** Check whether an expression has visible Result-producing provenance. */
+export const isResultProducingExpression = (
   argument: AstNode,
   helperNames: ReadonlySet<string>,
   resultVars: ScopedResultVariableMap,
@@ -240,7 +246,7 @@ const isAllowedReturnArgument = (
     return (
       consequent !== undefined &&
       alternate !== undefined &&
-      isAllowedReturnArgument(
+      isResultProducingExpression(
         consequent,
         helperNames,
         resultVars,
@@ -248,7 +254,7 @@ const isAllowedReturnArgument = (
         scopes,
         scopedHelpers
       ) &&
-      isAllowedReturnArgument(
+      isResultProducingExpression(
         alternate,
         helperNames,
         resultVars,
@@ -369,6 +375,14 @@ const addScopedResultVariable = (
   resultVars.set(scope, new Set([name]));
 };
 
+const clearScopedResultVariable = (
+  resultVars: MutableScopedResultVariableMap,
+  scope: ReadonlySet<string>,
+  name: string
+): void => {
+  resultVars.get(scope)?.delete(name);
+};
+
 /** Record `const helper = (): Result<...> => ...` declarations for the current lexical scope. */
 export const trackScopedResultHelperDeclaration = (
   node: AstNode,
@@ -440,8 +454,14 @@ const trackResultVariable = (
     }
     if (
       hasResultVariableAnnotation(id, sourceCode, resultTypeNames) ||
-      isResultExpression(init) ||
-      isHelperCall(init, helperNames, namespaceHelpers, scopes, scopedHelpers)
+      isResultProducingExpression(
+        init,
+        helperNames,
+        resultVars,
+        namespaceHelpers,
+        scopes,
+        scopedHelpers
+      )
     ) {
       const bindingScope = findNearestBindingScope(name, scopes);
       if (bindingScope) {
@@ -449,6 +469,63 @@ const trackResultVariable = (
       }
     }
   }
+};
+
+export const collectDirectResultAssignments = (
+  body: AstNode
+): ReadonlySet<AstNode> => {
+  const assignments = new Set<AstNode>();
+  for (const statement of getNodeBodyStatements(body)) {
+    if (statement.type !== 'ExpressionStatement') {
+      continue;
+    }
+    const expression = getNodeExpression(statement);
+    if (expression?.type === 'AssignmentExpression') {
+      assignments.add(expression);
+    }
+  }
+  return assignments;
+};
+
+const trackResultAssignment = (
+  node: AstNode,
+  resultVars: MutableScopedResultVariableMap,
+  helperNames: ReadonlySet<string>,
+  namespaceHelpers: NamespaceHelperMap,
+  directAssignments: ReadonlySet<AstNode>,
+  scopes: readonly ReadonlySet<string>[],
+  scopedHelpers: ScopedHelperMap
+): void => {
+  const left = getNodeLeft(node);
+  const name = identifierName(left);
+  if (!name) {
+    return;
+  }
+  const bindingScope = findNearestBindingScope(name, scopes);
+  if (!bindingScope) {
+    return;
+  }
+  const right = getNodeRight(node);
+  const resultRhs =
+    getNodeOperator(node) === '=' &&
+    right &&
+    isResultProducingExpression(
+      right,
+      helperNames,
+      resultVars,
+      namespaceHelpers,
+      scopes,
+      scopedHelpers
+    );
+  if (
+    resultRhs &&
+    (isScopedResultVariableBinding(name, scopes, resultVars) ||
+      directAssignments.has(node))
+  ) {
+    addScopedResultVariable(resultVars, bindingScope, name);
+    return;
+  }
+  clearScopedResultVariable(resultVars, bindingScope, name);
 };
 
 // ---------------------------------------------------------------------------
@@ -470,6 +547,7 @@ const checkReturnStatements = (
   const resultVars: MutableScopedResultVariableMap = new Map();
   const scopedHelpers: MutableScopedHelperMap = new Map();
   const initialScopes = implScope.size > 0 ? [implScope] : [];
+  const directAssignments = collectDirectResultAssignments(blockBody);
 
   walkWithScopes(
     blockBody,
@@ -494,6 +572,18 @@ const checkReturnStatements = (
         );
       }
 
+      if (node.type === 'AssignmentExpression') {
+        trackResultAssignment(
+          node,
+          resultVars,
+          helperNames,
+          namespaceHelpers,
+          directAssignments,
+          currentScopes,
+          scopedHelpers
+        );
+      }
+
       if (node.type !== 'ReturnStatement') {
         return;
       }
@@ -505,7 +595,7 @@ const checkReturnStatements = (
       }
 
       if (
-        isAllowedReturnArgument(
+        isResultProducingExpression(
           argument,
           helperNames,
           resultVars,
