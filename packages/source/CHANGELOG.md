@@ -1,5 +1,13 @@
 # @ontrails/source
 
+## 1.0.0-beta.44
+
+### Patch Changes
+
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+
 ## 1.0.0-beta.43
 
 ### Minor Changes

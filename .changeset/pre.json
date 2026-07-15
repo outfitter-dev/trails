@@ -276,6 +276,7 @@
     "trl-120-versioning-warden",
     "trl-1200-lock-roundtrip-gate",
     "trl-1218-inverse-toggle-contracts",
+    "trl-1221-trusted-publishing",
     "trl-1231-captured-kernel",
     "trl-1235-source-kernel",
     "trl-1236-observability-package-rename",
