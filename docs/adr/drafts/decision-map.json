@@ -180,7 +180,13 @@
     {
       "created": "2026-05-03",
       "depends_on": ["17", "27", "37", "42"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| `survey` | **keep the standing ruling** | This does not preserve `survey` as a peer command. The standing decision remains that its useful live-introspection behavior moves under Wayfinder and the t",
+          "from": "v1-vocabulary-reset",
+          "fromPath": "docs/releases/v1-vocabulary-reset.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260503-wayfinding.md",

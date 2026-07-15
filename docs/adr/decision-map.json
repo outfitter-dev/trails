@@ -2240,6 +2240,11 @@
           "context": "- [ADR-0033: Detour Execution for Recovery](0033-detour-execution-for-recovery.md)",
           "from": "0045",
           "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
+          "context": "| `detour` | **keep** | The term names error-class-specific recovery and has a mechanical boundary from layers: detours branch on a declared error class; layers do not. [ADR-0033](../adr/0033-detour-e",
+          "from": "v1-vocabulary-reset",
+          "fromPath": "docs/releases/v1-vocabulary-reset.md"
         }
       ],
       "number": "0033",
@@ -2429,6 +2434,11 @@
           "context": "- docs/adr/0038-typed-signal-emission.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "| `fires` | **keep** | The plural declaration `fires: [...]` mirrors the runtime verb `ctx.fire(...)` and pairs with consumer-side `on: [...]`; the [lexicon](../lexicon.md#fires) teaches that producer",
+          "from": "v1-vocabulary-reset",
+          "fromPath": "docs/releases/v1-vocabulary-reset.md"
         }
       ],
       "number": "0038",
@@ -2861,6 +2871,11 @@
           "context": "- [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md) - trail contract versions are separate from package semver.",
           "from": "20260608",
           "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md"
+        },
+        {
+          "context": "| `transpose` | **keep** | The field has a narrow job on a revision entry: pure input/output translation between a historical contract and current, without runtime context. The [lexicon](../lexicon.md",
+          "from": "v1-vocabulary-reset",
+          "fromPath": "docs/releases/v1-vocabulary-reset.md"
         }
       ],
       "number": "0048",

@@ -193,6 +193,21 @@ Cleanup must:
 
 The cleanup branch retained the facet transition's repo-local Warden guard, added a durable TopoGraph artifact-family guard, confirmed there are no active Regrade plans, and retained the governed transition registry plus legacy-input rejection paths as durable regression checks. Repo-local Claude, Codex, and Clark guidance now teaches the live lexicon directly, matching the distributed plugin skills. Generic Regrade examples no longer use a completed reset family as their default placeholder.
 
+## Post-Reset Evidence Audit
+
+[TRL-1128](https://linear.app/outfitter/issue/TRL-1128/) re-audited `detour`, `fires`, `transpose`, and `survey` after the four reset families, cleanup, and ADR-0053 were complete. This was an evidence gate, not an invitation to spend the now-lower cost of a governed migration. A rename still requires demonstrated adopter friction, external-consumer or support evidence, or repeated agent error attributable to the word itself.
+
+The 2026-07-15 audit checked the live lexicon and governing ADRs, the relevant Linear implementation and cleanup history, and repository issues matching each term with `confusing`, `confusion`, `unclear`, `misleading`, or `friction`. The repository search returned no matching issue. The Linear results described implementation, contract-alignment, or stale-teaching work; none attributed its failure to confusion caused by the term. This is bounded evidence from the project record, not a claim that unrecorded external feedback cannot exist.
+
+| Term | Verdict | Evidence |
+| --- | --- | --- |
+| `detour` | **keep** | The term names error-class-specific recovery and has a mechanical boundary from layers: detours branch on a declared error class; layers do not. [ADR-0033](../adr/0033-detour-execution-for-recovery.md) makes the declaration load-bearing at runtime. [TRL-384](https://linear.app/outfitter/issue/TRL-384/) recorded stale target-trail semantics across docs, governance, and tests, not confusion about the word. The repair aligned those surfaces on `{ on, recover }`. |
+| `fires` | **keep** | The plural declaration `fires: [...]` mirrors the runtime verb `ctx.fire(...)` and pairs with consumer-side `on: [...]`; the [lexicon](../lexicon.md#fires) teaches that producer/consumer symmetry directly. [ADR-0038](../adr/0038-typed-signal-emission.md) and [TRL-444](https://linear.app/outfitter/issue/TRL-444/) show that prior work concerned typed signal objects and declaration/runtime parity, not naming friction. |
+| `transpose` | **keep** | The field has a narrow job on a revision entry: pure input/output translation between a historical contract and current, without runtime context. The [lexicon](../lexicon.md#transpose) explicitly distinguishes it from an external adapter, while [ADR-0048](../adr/0048-trail-versioning-v3.md) and [TRL-114](https://linear.app/outfitter/issue/TRL-114/) keep that boundary consistent. No scoped record showed the term producing adopter or agent confusion. |
+| `survey` | **keep the standing ruling** | This does not preserve `survey` as a peer command. The standing decision remains that its useful live-introspection behavior moves under Wayfinder and the top-level command retires; [TRL-1050](https://linear.app/outfitter/issue/TRL-1050/) owns that migration, and the [Wayfinding ADR draft](../adr/drafts/20260503-wayfinding.md#source-selection) records the capability merge. The audit found no new evidence that challenges or broadens that decision, so it neither re-ratifies the term nor creates another transition. |
+
+All four verdicts are `keep` under TRL-1128's decision vocabulary. For `survey`, the object being kept is the existing retirement ruling, not the command. No source was renamed, no pending-lexicon entry was created, and no follow-up vocabulary issue is warranted by the evidence reviewed.
+
 ## Execution Gate
 
 A family branch cannot leave draft until it records:
