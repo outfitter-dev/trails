@@ -1,5 +1,11 @@
 # @ontrails/core
 
+## 1.0.0-beta.45
+
+### Patch Changes
+
+- [`f9533a4`](https://github.com/outfitter-dev/trails/commit/f9533a4ef7392201c71d7f751361b4f7177eeacb): Keep public error projection shared and redacted while using transport-neutral CLI vocabulary and preserving safe topo diagnostics in structured output.
+
 ## 1.0.0-beta.44
 
 ### Patch Changes

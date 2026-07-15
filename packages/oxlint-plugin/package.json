@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/oxlint-plugin",
-  "version": "1.0.0-beta.44",
+  "version": "1.0.0-beta.45",
   "private": true,
   "type": "module",
   "sideEffects": false,
