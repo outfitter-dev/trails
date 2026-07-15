@@ -11,6 +11,7 @@ import type { TopoGraph } from '@ontrails/topography';
 import type { WardenDepth } from '../config.js';
 import type { WardenImportResolution } from '../resolve.js';
 import type { WardenPublicWorkspace } from '../workspaces.js';
+import type { GovernedVocabularyHistoryProvenance } from './retired-vocabulary.js';
 
 /**
  * Severity level for warden diagnostics.
@@ -304,6 +305,16 @@ export interface AuthoredMcpSurfaceBindingSet {
  * Options for compose-file rules that need knowledge of all trail IDs in a project.
  */
 export interface ProjectContext {
+  /** Whether this project owns the governed transition registry and must prove completed migrations. */
+  readonly governedVocabularyHistoryRequired?: boolean | undefined;
+  /** Validated committed Regrade history evidence keyed by governed transition. */
+  readonly governedVocabularyHistoryByTransitionId?:
+    | ReadonlyMap<string, GovernedVocabularyHistoryEvidence>
+    | undefined;
+  /** Invalid committed history artifacts observed while building context. */
+  readonly governedVocabularyHistoryIssues?:
+    | readonly GovernedVocabularyHistoryIssue[]
+    | undefined;
   /**
    * Per-app authored `mcp` surface bindings, resolved from the project's
    * topo targets (the serialized graph overlays when available, else the
@@ -368,10 +379,28 @@ export interface ProjectContext {
   readonly crudCoverageByEntity?: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
+export interface GovernedVocabularyHistoryEvidence {
+  readonly id: string;
+  readonly path: string;
+  readonly provenance?: GovernedVocabularyHistoryProvenance;
+  readonly runCount: number;
+  readonly transitionId: string;
+}
+
+export interface GovernedVocabularyHistoryIssue {
+  readonly message: string;
+  readonly path: string;
+  readonly transitionId?: string;
+}
+
 /**
  * A project-aware rule that requires knowledge of all trail IDs.
  */
 export interface ProjectAwareWardenRule extends WardenRule {
+  /** Run project-wide validation once, independently of any source file. */
+  readonly checkProject?: (
+    context: ProjectContext
+  ) => readonly WardenDiagnostic[];
   /** Run the rule with project-level context */
   readonly checkWithContext: (
     sourceCode: string,

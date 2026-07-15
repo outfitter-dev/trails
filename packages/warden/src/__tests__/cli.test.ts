@@ -883,6 +883,78 @@ export const second = entity('second', {
 });
 
 describe('runWarden project context', () => {
+  test('keeps governed residue detection in source-only runs', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(join(dir, 'residue.ts'), 'export const facet = true;\n');
+
+      const report = await runWarden({ depth: 'source', rootDir: dir });
+
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: join(dir, 'residue.ts'),
+          rule: 'governed-symbol-residue',
+        })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('skips governed history validation in source-only runs', async () => {
+    const dir = makeTempDir();
+    try {
+      const historyDirectory = join(dir, '.trails', 'regrade', 'history');
+      mkdirSync(historyDirectory, { recursive: true });
+      writeFileSync(join(historyDirectory, 'invalid.json'), '{not-json}\n');
+      writeFileSync(join(dir, 'index.ts'), 'export const clean = true;\n');
+
+      const reports = await Promise.all([
+        runWarden({ depth: 'source', rootDir: dir }),
+        runWarden({ rootDir: dir, tier: 'source-static' }),
+      ]);
+
+      for (const report of reports) {
+        expect(report.diagnostics).not.toContainEqual(
+          expect.objectContaining({
+            filePath: '.trails/regrade/history/invalid.json',
+            rule: 'governed-symbol-residue',
+          })
+        );
+      }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('runs governed history validation once for project-capable selectors', async () => {
+    const dir = makeTempDir();
+    try {
+      const historyDirectory = join(dir, '.trails', 'regrade', 'history');
+      mkdirSync(historyDirectory, { recursive: true });
+      writeFileSync(join(historyDirectory, 'invalid.json'), '{not-json}\n');
+      writeFileSync(join(dir, 'index.ts'), 'export const clean = true;\n');
+
+      const reports = await Promise.all([
+        runWarden({ rootDir: dir }),
+        runWarden({ rootDir: dir, tier: 'project-static' }),
+      ]);
+      for (const report of reports) {
+        const diagnostics = report.diagnostics.filter(
+          (diagnostic) => diagnostic.rule === 'governed-symbol-residue'
+        );
+        expect(diagnostics).toEqual([
+          expect.objectContaining({
+            filePath: '.trails/regrade/history/invalid.json',
+            message: 'Committed Regrade history is not valid JSON.',
+          }),
+        ]);
+      }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('reports throw inside detour recover functions', async () => {
     const dir = makeTempDir();
     try {

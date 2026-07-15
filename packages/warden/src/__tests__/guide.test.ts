@@ -44,6 +44,23 @@ describe('warden guide manifest', () => {
     expect(markdown).toContain('- Docs: [Trail Rules](AGENTS.md#trail-rules)');
   });
 
+  test('projects Regrade-first governed transition guidance', () => {
+    const rule = buildWardenGuideManifest().rules.find(
+      (candidate) => candidate.id === 'governed-symbol-residue'
+    );
+
+    expect(rule).toMatchObject({
+      guidance: {
+        summary:
+          'Require committed Regrade evidence before completing a governed vocabulary migration.',
+      },
+      tier: 'source-static',
+    });
+    expect(rule?.guidance?.steps).toContain(
+      'Use manual edits only for review or cleanup after Regrade exhausts the safe slice.'
+    );
+  });
+
   test('agent-json rendering is stable and parseable', () => {
     const manifest = buildWardenGuideManifest();
     const agentGuide = buildWardenAgentGuide(manifest);

@@ -18,6 +18,7 @@ import {
   verifyRegradeHistoryRuns,
 } from '../regrade/history.js';
 import {
+  currentRegradeSourceHashMatches,
   legacyRegradeSourceHash,
   regradePlanContentHash,
   regradePlanSlugForBody,
@@ -102,6 +103,47 @@ const makeReportWithReviewDetail = (): RegradeReport => ({
   ],
   matched: 1,
   review: 1,
+});
+
+const makeReportWithFileRenameEvidence = (): RegradeReport => ({
+  ...makeReportWithReviewDetail(),
+  run: {
+    ledger: { cycle: 1, forms: {}, occurrences: [] },
+    plan: {
+      fileRenames: [{ from: 'docs/old.md', to: 'docs/new.md' }],
+      from: 'old',
+      kind: 'vocabulary',
+      to: 'new',
+    },
+    report: {
+      applied: 0,
+      deferred: 0,
+      dispositions: {},
+      fileRenames: [
+        {
+          deferred: 0,
+          from: 'docs/old.md',
+          historical: 1,
+          preserved: 0,
+          rewritten: 0,
+          skipped: 1,
+          to: 'docs/new.md',
+        },
+      ],
+      filesChanged: 0,
+      gate: {
+        reasons: [],
+        remaining: 0,
+        remainingByDisposition: {},
+        status: 'green',
+      },
+      modified: 0,
+      open: 0,
+      scopeTiers: { 'in-scope': 0, 'policy-classified': 0 },
+      skipped: 1,
+      teachingSurfaces: { expected: [], missing: [], touched: [] },
+    },
+  },
 });
 
 describe('regradePlanContentHash', () => {
@@ -189,6 +231,19 @@ describe('regradeSourceHash', () => {
         regradeSourceHashMatches(hash, sourceReport)
       )
     ).toBe(true);
+    expect(
+      currentRegradeSourceHashMatches(
+        regradeSourceHash(sourceReport),
+        sourceReport
+      )
+    ).toBe(true);
+    const compatibilityHash = compatibleHashes.find(
+      (hash) => hash !== regradeSourceHash(sourceReport)
+    );
+    expect(compatibilityHash).toBeDefined();
+    expect(
+      currentRegradeSourceHashMatches(compatibilityHash ?? '', sourceReport)
+    ).toBe(false);
   });
 
   test('changes when protected file-reference evidence changes', () => {
@@ -250,10 +305,135 @@ describe('regradeSourceHash', () => {
     expect(regradeSourceHash(changedReport)).not.toBe(
       regradeSourceHash(sourceReport)
     );
+    const compatibleHashes = regradeSourceHashes(sourceReport);
+    expect(
+      compatibleHashes.every((hash) =>
+        regradeSourceHashMatches(hash, sourceReport)
+      )
+    ).toBe(true);
   });
 });
 
 describe('appendRegradeHistoryRun', () => {
+  test('persists deterministic governed provenance for safe apply and review follow-up', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact({
+        ...makePlanBody(),
+        id: 'v1-facet-trailhead',
+      });
+      const report = {
+        ...makeReportWithReviewDetail(),
+        apply: {
+          applied: 2,
+          filesChanged: 2,
+          review: 1,
+          skipped: 0,
+          unknown: 0,
+        },
+      };
+      const completedReport = makeReport([
+        'term-rewrite:no-retired-cross-vocabulary',
+      ]);
+
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        completedReport,
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+      expect(appended.value.id).toMatch(/^[0-9a-f]{12}$/);
+      expect(appended.value.provenance).toEqual({
+        disposition: 'review-follow-up',
+        kind: 'governed-vocabulary',
+        planContentHash: regradePlanContentHash(artifact.plan),
+        reviewPending: 1,
+        safeApplied: 2,
+        sourceHashAfter: regradeSourceHash(completedReport),
+        sourceHashBefore: regradeSourceHash(report),
+        transitionId: 'v1-facet-trailhead',
+      });
+
+      const history = readRegradeHistoryArtifact(
+        regradeHistoryPathForPlan(dir, artifact.plan)
+      );
+      if (history.isErr()) {
+        throw history.error;
+      }
+      expect(history.value.runs[0]?.provenance).toEqual(
+        appended.value.provenance
+      );
+      expect(verifyRegradeHistoryRuns(history.value).isOk()).toBe(true);
+    });
+  });
+
+  test('resolves governed provenance from an id-less plan pair', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact(makePlanBody());
+      const report = makeReport(['term-rewrite:no-retired-cross-vocabulary']);
+
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+
+      expect(appended.value.provenance?.transitionId).toBe(
+        'v1-facet-trailhead'
+      );
+    });
+  });
+
+  test('resolves governed provenance from a plan pair with a custom id', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact({
+        ...makePlanBody(),
+        id: 'local-plan',
+      });
+      const report = makeReport(['term-rewrite:no-retired-cross-vocabulary']);
+
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+
+      expect(appended.value.provenance?.transitionId).toBe(
+        'v1-facet-trailhead'
+      );
+    });
+  });
+
+  test('rejects an id-less plan with a governed source and unknown target', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact({
+        ...makePlanBody(),
+        to: 'unknown-target',
+      });
+
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        report: makeReport([]),
+        rootDir: dir,
+      });
+
+      expect(appended.isErr()).toBe(true);
+      if (appended.isErr()) {
+        expect(appended.error.message).toContain(
+          'does not match its registry transition'
+        );
+      }
+    });
+  });
+
   test('appends runs per transition, recognizes replays, and never overwrites unrecognized files', () => {
     withFixtureDir((dir) => {
       const artifact = makePlanArtifact(makePlanBody());
@@ -517,6 +697,150 @@ describe('appendRegradeHistoryRun', () => {
     });
   });
 
+  test('verifies governed provenance stamped with legacy report hashes', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact({
+        ...makePlanBody(),
+        id: 'v1-facet-trailhead',
+      });
+      const report = makeReportWithReviewDetail();
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        completedReport: report,
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+
+      const historyPath = regradeHistoryPathForPlan(dir, artifact.plan);
+      const persisted = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        runs: {
+          completionReport: RegradeReport;
+          completionReportHash: string;
+          lockHashAtRun: string;
+          provenance: {
+            sourceHashAfter: string;
+            sourceHashBefore: string;
+          };
+          report: RegradeReport;
+        }[];
+      };
+      const [run] = persisted.runs;
+      if (run === undefined) {
+        throw new Error('Expected a recorded history run.');
+      }
+      for (const source of [run.report, run.completionReport]) {
+        const detail = source.entries[0]?.reviewDetails?.[0];
+        if (detail === undefined) {
+          throw new Error('Expected a recorded review detail.');
+        }
+        source.entries[0] = {
+          ...source.entries[0],
+          reviewDetails: [
+            {
+              classId: detail.classId,
+              matchedForm: detail.matchedForm,
+              preserveCautions: detail.preserveCautions,
+              reason: detail.reason,
+              signals: detail.signals,
+              span: detail.span,
+              symbol: detail.symbol,
+            },
+          ],
+        };
+      }
+      run.lockHashAtRun = legacyRegradeSourceHash(run.report);
+      run.completionReportHash = legacyRegradeSourceHash(run.completionReport);
+      run.provenance.sourceHashBefore = run.lockHashAtRun;
+      run.provenance.sourceHashAfter = run.completionReportHash;
+      writeFileSync(historyPath, `${JSON.stringify(persisted, null, 2)}\n`);
+
+      const legacy = readRegradeHistoryArtifact(historyPath);
+      if (legacy.isErr()) {
+        throw legacy.error;
+      }
+      expect(verifyRegradeHistoryRuns(legacy.value).isOk()).toBe(true);
+
+      run.provenance.sourceHashBefore = '0'.repeat(64);
+      writeFileSync(historyPath, `${JSON.stringify(persisted, null, 2)}\n`);
+      const tampered = readRegradeHistoryArtifact(historyPath);
+      if (tampered.isErr()) {
+        throw tampered.error;
+      }
+      const failed = verifyRegradeHistoryRuns(tampered.value);
+      expect(failed.isErr()).toBe(true);
+      if (failed.isErr()) {
+        expect(failed.error.message).toBe(
+          'Regrade history run provenance mismatch.'
+        );
+      }
+    });
+  });
+
+  test('verifies governed provenance stamped with legacy file evidence hashes', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact({
+        ...makePlanBody(),
+        id: 'v1-facet-trailhead',
+      });
+      const report = makeReportWithFileRenameEvidence();
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        completedReport: report,
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+
+      const historyPath = regradeHistoryPathForPlan(dir, artifact.plan);
+      const persisted = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        runs: {
+          completionReport: RegradeReport;
+          completionReportHash: string;
+          lockHashAtRun: string;
+          provenance: {
+            sourceHashAfter: string;
+            sourceHashBefore: string;
+          };
+          report: RegradeReport;
+        }[];
+      };
+      const [run] = persisted.runs;
+      if (run === undefined) {
+        throw new Error('Expected a recorded history run.');
+      }
+      expect(regradeSourceHashes(run.report).length).toBeGreaterThan(2);
+      const sourceHash = regradeSourceHashes(run.report).find(
+        (hash) =>
+          hash !== regradeSourceHash(run.report) &&
+          hash !== legacyRegradeSourceHash(run.report)
+      );
+      const completionHash = regradeSourceHashes(run.completionReport).find(
+        (hash) =>
+          hash !== regradeSourceHash(run.completionReport) &&
+          hash !== legacyRegradeSourceHash(run.completionReport)
+      );
+      if (sourceHash === undefined || completionHash === undefined) {
+        throw new Error('Expected legacy file-evidence source hashes.');
+      }
+      run.lockHashAtRun = sourceHash;
+      run.completionReportHash = completionHash;
+      run.provenance.sourceHashBefore = sourceHash;
+      run.provenance.sourceHashAfter = completionHash;
+      writeFileSync(historyPath, `${JSON.stringify(persisted, null, 2)}\n`);
+
+      const legacy = readRegradeHistoryArtifact(historyPath);
+      if (legacy.isErr()) {
+        throw legacy.error;
+      }
+      expect(verifyRegradeHistoryRuns(legacy.value).isOk()).toBe(true);
+    });
+  });
+
   test('refuses to fork a consolidated history when the plan pins a different transition id', () => {
     withFixtureDir((dir) => {
       const artifact = makePlanArtifact(makePlanBody());
@@ -598,6 +922,40 @@ describe('appendRegradeHistoryRun', () => {
 });
 
 describe('verifyRegradeHistoryRuns', () => {
+  test('requires provenance for id-less governed plans', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact({
+        ...makePlanBody(),
+        from: 'projection',
+        to: 'derive',
+      });
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        report: makeReport(['first-class']),
+        rootDir: dir,
+      });
+      expect(appended.isOk()).toBe(true);
+
+      const historyPath = regradeHistoryPathForPlan(dir, artifact.plan);
+      const written = readRegradeHistoryArtifact(historyPath);
+      if (written.isErr()) {
+        throw written.error;
+      }
+      const withoutProvenance = {
+        ...written.value,
+        runs: written.value.runs.map(
+          ({ provenance: _provenance, ...run }) => run
+        ),
+      };
+      const verified = verifyRegradeHistoryRuns(withoutProvenance);
+
+      expect(verified.isErr()).toBe(true);
+      if (verified.isErr()) {
+        expect(verified.error.message).toContain('lacks governed provenance');
+      }
+    });
+  });
+
   test('accepts a freshly written artifact after report serialization normalizes nested keys', () => {
     withFixtureDir((dir) => {
       const artifact = makePlanArtifact(makePlanBody());

@@ -368,7 +368,10 @@ export const canonicalJsonStringify = (value: unknown): string =>
 export const isGeneratedRegradeArtifactPath = (path: string): boolean =>
   /(?:^|\/)\.trails\/regrade\/.+\.json$/u.test(path);
 
-const sourceHashLedgerFacts = (report: RegradeReport): unknown => {
+const sourceHashLedgerFacts = (
+  report: RegradeReport,
+  policyMode: 'current' | 'legacy'
+): unknown => {
   const ledger = report.run?.ledger;
   if (ledger === undefined) {
     return undefined;
@@ -377,7 +380,8 @@ const sourceHashLedgerFacts = (report: RegradeReport): unknown => {
   const occurrences = ledger.occurrences.filter(
     (occurrence) =>
       occurrence.scopeTier !== 'policy-classified' ||
-      !isGeneratedRegradeArtifactPath(occurrence.path)
+      (policyMode === 'current' &&
+        !isGeneratedRegradeArtifactPath(occurrence.path))
   );
   const forms = new Set(occurrences.map((occurrence) => occurrence.form));
   return {
@@ -389,20 +393,23 @@ const sourceHashLedgerFacts = (report: RegradeReport): unknown => {
   };
 };
 
-const regradeSourceHashFacts = (report: RegradeReport): unknown => ({
+const regradeSourceHashFacts = (
+  report: RegradeReport,
+  policyMode: 'current' | 'legacy' = 'current',
+  fileEvidenceMode: 'current' | 'legacy' = 'current'
+): unknown => ({
   entries: sourceHashEntryFacts(report.entries),
   fileRenames: report.run?.report.fileRenames?.map(
     ({ deferred, from, historical, preserved, rewritten, skipped, to }) => ({
       deferred,
       from,
-      historical,
-      preserved,
+      ...(fileEvidenceMode === 'current' ? { historical, preserved } : {}),
       rewritten,
-      skipped,
+      ...(fileEvidenceMode === 'current' ? { skipped } : {}),
       to,
     })
   ),
-  ledger: sourceHashLedgerFacts(report),
+  ledger: sourceHashLedgerFacts(report, policyMode),
   selectedClassIds: report.selectedClassIds,
 });
 
@@ -414,22 +421,39 @@ export const regradeSourceHash = (report: RegradeReport): string =>
     canonicalJsonStringify(regradeSourceHashFacts(report))
   );
 
+/** Match only the complete current source-evidence shape used by active plans. */
+export const currentRegradeSourceHashMatches = (
+  stampedHash: string,
+  report: RegradeReport
+): boolean => stampedHash === regradeSourceHash(report);
+
 export const legacyRegradeSourceHash = (report: RegradeReport): string =>
   hashSerializedSourceFacts(JSON.stringify(regradeSourceHashFacts(report)));
 
-/** Match source evidence written before canonical JSON hashing. */
+export const regradeSourceHashes = (
+  report: RegradeReport
+): readonly string[] => {
+  const facts = [
+    regradeSourceHashFacts(report),
+    regradeSourceHashFacts(report, 'current', 'legacy'),
+    regradeSourceHashFacts(report, 'legacy'),
+    regradeSourceHashFacts(report, 'legacy', 'legacy'),
+  ];
+  return [
+    ...new Set(
+      facts.flatMap((value) => [
+        hashSerializedSourceFacts(canonicalJsonStringify(value)),
+        hashSerializedSourceFacts(JSON.stringify(value)),
+      ])
+    ),
+  ];
+};
+
+/** Match source evidence written by any supported historical hash shape. */
 export const regradeSourceHashMatches = (
   stampedHash: string,
   report: RegradeReport
-): boolean =>
-  stampedHash === regradeSourceHash(report) ||
-  stampedHash === legacyRegradeSourceHash(report);
-
-export const regradeSourceHashes = (
-  report: RegradeReport
-): readonly string[] => [
-  ...new Set([regradeSourceHash(report), legacyRegradeSourceHash(report)]),
-];
+): boolean => regradeSourceHashes(report).includes(stampedHash);
 
 /**
  * Canonical content hash of a resolved Regrade plan body — the authored

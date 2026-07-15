@@ -50,10 +50,12 @@ describe('governed vocabulary registry', () => {
       'v1-projection-derive-render'
     );
     expect(projection?.oldForms).toContain('project');
+    expect(projection?.provenance).toEqual({ mode: 'regrade-history' });
     expect(projection?.target.kind).toBe('classified');
 
     const facet = getGovernedVocabularyTransition('v1-facet-trailhead');
     expect(facet?.status).toBe('complete');
+    expect(facet?.provenance.mode).toBe('legacy');
 
     const implementation = getGovernedVocabularyTransition(
       'v1-blaze-implementation'
@@ -539,5 +541,6 @@ describe('governed vocabulary registry', () => {
     expect(guide).toContain('v1-facet-trailhead: facet -> trailhead');
     expect(guide).toContain('v1-projection-derive-render: projection ->');
     expect(guide).toContain('Status: planned');
+    expect(guide).toContain('Provenance: committed Regrade history required');
   });
 });

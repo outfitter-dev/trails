@@ -158,7 +158,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `draft-file-marking` (error, source/source-static, external): Draft-authored state is visibly marked in filenames.
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
 - `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
-- `governed-symbol-residue` (error, source/source-static, external): Active governed vocabulary symbol renames do not leave retired identifiers in source.
+- `governed-symbol-residue` (error, source/source-static, external): Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers.
 - `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.
@@ -219,6 +219,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `duplicate-exported-symbol`: Keep exported symbol ownership from drifting across first-party packages.
 - `duplicate-public-contract`: Keep duplicate public contract facts from drifting into separate capabilities.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
+- `governed-symbol-residue`: Require committed Regrade evidence before completing a governed vocabulary migration.
 - `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.
 - `no-throw-in-implementation`: Convert thrown failures in implementations into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.

@@ -62,7 +62,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `draft-file-marking` (error, source/source-static, external): Draft-authored state is visibly marked in filenames.
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
 - `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
-- `governed-symbol-residue` (error, source/source-static, external): Active governed vocabulary symbol renames do not leave retired identifiers in source.
+- `governed-symbol-residue` (error, source/source-static, external): Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers. Guidance: Require committed Regrade evidence before completing a governed vocabulary migration.
 - `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.

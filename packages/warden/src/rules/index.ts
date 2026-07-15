@@ -79,6 +79,8 @@ import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 import { webhookRouteCollision } from './webhook-route-collision.js';
 
 export type {
+  GovernedVocabularyHistoryEvidence,
+  GovernedVocabularyHistoryIssue,
   WardenFix,
   WardenFixCapability,
   WardenFixClass,
@@ -107,7 +109,9 @@ export {
   getGovernedVocabularyTransition,
   governedVocabularyLiteralRenameSchema,
   governedVocabularyFileRenameSchema,
+  governedVocabularyHistoryProvenanceSchema,
   governedVocabularyPreserveRuleSchema,
+  governedVocabularyProvenancePolicySchema,
   governedVocabularyRegistrySchema,
   governedVocabularyScopeSchema,
   governedVocabularySymbolRenameSchema,
@@ -120,7 +124,9 @@ export {
 } from './retired-vocabulary.js';
 export type {
   GovernedVocabularyLiteralRename,
+  GovernedVocabularyHistoryProvenance,
   GovernedVocabularyPreserveRule,
+  GovernedVocabularyProvenancePolicy,
   GovernedVocabularyScope,
   GovernedVocabularySymbolRename,
   GovernedVocabularyTarget,

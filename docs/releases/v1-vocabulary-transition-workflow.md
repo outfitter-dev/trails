@@ -97,6 +97,8 @@ bun apps/trails/bin/trails.ts regrade apply \
 
 Regrade is the primary migration engine. Apply consumes an active plan artifact and appends the evidence as a run entry in the transition's consolidated history file at `.trails/regrade/history/<slug>.json`. Manual edits are reviewed follow-up after Regrade exhausts the safe slice, not a substitute for running the transition.
 
+For a registry-governed transition, apply also stamps the history run and the CLI/MCP result with governed provenance: transition identity, plan and source hashes, safely applied count, and remaining review count. Warden loads that committed evidence once per project run. A completed transition that requires Regrade provenance cannot be satisfied by an equivalent hand migration with no history entry.
+
 Use `trails regrade check --root-dir . --plan "$PLAN_PATH"` when a family should prove the saved plan gate without writing. The check succeeds only when the plan is fresh and its completion gate is green. Use `trails regrade plans --root-dir .` when more than one active plan may exist, because commands without `--plan <path-or-name>` intentionally fail on ambiguity.
 
 Safe follow-up edits usually include:

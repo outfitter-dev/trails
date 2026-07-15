@@ -1,11 +1,73 @@
 import { describe, expect, test } from 'bun:test';
 
 import { governedSymbolResidue } from '../rules/governed-symbol-residue.js';
+import type { ProjectContext } from '../rules/types.js';
 
 const check = (sourceCode: string) =>
   governedSymbolResidue.check(sourceCode, '/repo/src/example.ts');
 
+const projectContext = (
+  overrides: Partial<ProjectContext> = {}
+): ProjectContext => ({
+  knownTrailIds: new Set(),
+  ...overrides,
+});
+
 describe('governed-symbol-residue', () => {
+  test('cites committed history when a governed symbol is reintroduced', () => {
+    const diagnostics = governedSymbolResidue.checkWithContext(
+      'const contourId = "invoice";\n',
+      '/repo/src/example.ts',
+      projectContext({
+        governedVocabularyHistoryByTransitionId: new Map([
+          [
+            'v1-contour-entity',
+            {
+              id: 'history-id',
+              path: '.trails/regrade/history/contour-to-entity.json',
+              runCount: 2,
+              transitionId: 'v1-contour-entity',
+            },
+          ],
+        ]),
+      })
+    );
+
+    expect(diagnostics[0]?.message).toContain(
+      "governed transition 'v1-contour-entity'"
+    );
+    expect(diagnostics[0]?.message).toContain(
+      '.trails/regrade/history/contour-to-entity.json'
+    );
+    expect(diagnostics[0]?.message).toContain('history-id');
+  });
+
+  test('fails invalid committed provenance once at the project boundary', () => {
+    const diagnostics = governedSymbolResidue.checkProject?.(
+      projectContext({
+        governedVocabularyHistoryIssues: [
+          {
+            message:
+              'Committed Regrade history lacks required governed provenance.',
+            path: '.trails/regrade/history/projection-to-derive.json',
+            transitionId: 'v1-projection-derive-render',
+          },
+        ],
+      })
+    );
+
+    expect(diagnostics).toEqual([
+      {
+        filePath: '.trails/regrade/history/projection-to-derive.json',
+        line: 1,
+        message:
+          'Committed Regrade history lacks required governed provenance.',
+        rule: 'governed-symbol-residue',
+        severity: 'error',
+      },
+    ]);
+  });
+
   test('does not duplicate cross-compose fixes owned by the beta.19 rule', () => {
     const diagnostics = check(
       [

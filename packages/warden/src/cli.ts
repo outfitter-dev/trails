@@ -39,6 +39,7 @@ import type { DriftResult } from './drift.js';
 import { checkDrift, staleDriftMessage } from './drift.js';
 import { loadProjectWardenRules } from './project-rules.js';
 import type { ProjectWardenRules } from './project-rules.js';
+import { loadGovernedVocabularyHistory } from './regrade-history.js';
 import {
   collectProjectDocumentationImportResolutions,
   collectProjectExportedSymbolDefinitions,
@@ -393,6 +394,9 @@ interface MutableProjectContext {
     string,
     readonly WardenExportedSymbolDefinition[]
   >;
+  governedVocabularyHistoryByTransitionId: ProjectContext['governedVocabularyHistoryByTransitionId'];
+  governedVocabularyHistoryIssues: ProjectContext['governedVocabularyHistoryIssues'];
+  governedVocabularyHistoryRequired: ProjectContext['governedVocabularyHistoryRequired'];
   documentedImportResolutionsByFile: Map<
     string,
     readonly WardenImportResolution[]
@@ -414,6 +418,9 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   >(),
   entityReferencesByName: new Map<string, Set<string>>(),
   exportedSymbolDefinitionsByName: new Map(),
+  governedVocabularyHistoryByTransitionId: undefined,
+  governedVocabularyHistoryIssues: undefined,
+  governedVocabularyHistoryRequired: undefined,
   importResolutionsByFile: new Map<string, readonly WardenImportResolution[]>(),
   knownEntityIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
@@ -471,6 +478,24 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
       }
     : {}),
   composeTargetTrailIds: context.composeTargetTrailIds,
+  ...(context.governedVocabularyHistoryByTransitionId === undefined
+    ? {}
+    : {
+        governedVocabularyHistoryByTransitionId:
+          context.governedVocabularyHistoryByTransitionId,
+      }),
+  ...(context.governedVocabularyHistoryIssues === undefined
+    ? {}
+    : {
+        governedVocabularyHistoryIssues:
+          context.governedVocabularyHistoryIssues,
+      }),
+  ...(context.governedVocabularyHistoryRequired === undefined
+    ? {}
+    : {
+        governedVocabularyHistoryRequired:
+          context.governedVocabularyHistoryRequired,
+      }),
   knownEntityIds: context.knownEntityIds,
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
@@ -951,6 +976,10 @@ const buildProjectContext = (
     | undefined = undefined
 ): ProjectContext => {
   const context = createMutableProjectContext();
+  const governedHistory = loadGovernedVocabularyHistory(rootDir);
+  context.governedVocabularyHistoryByTransitionId =
+    governedHistory.byTransitionId;
+  context.governedVocabularyHistoryIssues = governedHistory.issues;
   context.authoredMcpSurfaceBindingSets = authoredMcpSurfaceBindingSets;
   const typeScriptSourceFiles = sourceFiles.filter(
     (sourceFile) => sourceFile.kind === 'typescript'
@@ -961,6 +990,8 @@ const buildProjectContext = (
   context.publicWorkspaces = collectPublicWorkspaces(rootDir, {
     exclude: scope.exclude,
   });
+  context.governedVocabularyHistoryRequired =
+    context.publicWorkspaces.has('@ontrails/warden');
 
   if (appTopos.length > 0) {
     for (const appTopo of appTopos) {
@@ -1095,6 +1126,25 @@ const isSelectedRule = (
     : ruleMatchesDepth(metadata, selector.depth);
 };
 
+const selectorIncludesProjectChecks = (
+  selector: WardenRuleSelector
+): boolean => {
+  if (selector.tier !== undefined) {
+    return selector.tier !== 'source-static';
+  }
+  return (
+    selector.depth === undefined ||
+    depthIncludesTier(selector.depth, 'project-static')
+  );
+};
+
+const isSelectedProjectRule = (
+  rule: WardenRule,
+  selector: WardenRuleSelector
+): boolean =>
+  selectorIncludesProjectChecks(selector) &&
+  (selector.tier === 'project-static' || isSelectedRule(rule, selector));
+
 const isSelectedTopoRule = (
   rule: TopoAwareWardenRule,
   selector: WardenRuleSelector
@@ -1182,6 +1232,15 @@ const lintSourceFiles = (
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
   const rules = [...wardenRules.values(), ...extraSourceRules];
+  for (const rule of rules) {
+    if (
+      isSelectedProjectRule(rule, selector) &&
+      isProjectAwareRule(rule) &&
+      rule.checkProject !== undefined
+    ) {
+      diagnostics.push(...rule.checkProject(context));
+    }
+  }
   for (const sourceFile of sourceFiles) {
     for (const rule of rules) {
       if (

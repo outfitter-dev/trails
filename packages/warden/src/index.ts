@@ -10,6 +10,8 @@
 // Rule types
 export type {
   BuiltinWardenRuleName,
+  GovernedVocabularyHistoryEvidence,
+  GovernedVocabularyHistoryIssue,
   ProjectAwareWardenRule,
   ProjectContext,
   TopoAwareWardenRule,
@@ -40,7 +42,9 @@ export {
   getGovernedVocabularyTransition,
   governedVocabularyLiteralRenameSchema,
   governedVocabularyFileRenameSchema,
+  governedVocabularyHistoryProvenanceSchema,
   governedVocabularyPreserveRuleSchema,
+  governedVocabularyProvenancePolicySchema,
   governedVocabularyRegistrySchema,
   governedVocabularyScopeSchema,
   governedVocabularySymbolRenameSchema,
@@ -63,7 +67,9 @@ export {
 } from './rules/index.js';
 export type {
   GovernedVocabularyLiteralRename,
+  GovernedVocabularyHistoryProvenance,
   GovernedVocabularyPreserveRule,
+  GovernedVocabularyProvenancePolicy,
   GovernedVocabularyScope,
   GovernedVocabularySymbolRename,
   GovernedVocabularyTarget,

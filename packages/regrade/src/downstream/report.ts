@@ -6,6 +6,7 @@ import {
 } from '@ontrails/core';
 import type { ScanTargets } from '@ontrails/core';
 import type {
+  GovernedVocabularyHistoryProvenance,
   WardenDiagnostic,
   WardenFixEdit,
   WardenGuidance,
@@ -13,6 +14,7 @@ import type {
 } from '@ontrails/warden';
 import {
   getWardenRuleMetadata,
+  governedVocabularyHistoryProvenanceSchema,
   isWardenSourceScanTarget,
   loadProjectWardenRules,
   wardenRules,
@@ -756,7 +758,9 @@ export interface RegradeReport {
   };
   /** Saved applied Regrade history evidence for vocabulary regrades. */
   readonly history?: {
+    readonly id?: string;
     readonly path: string;
+    readonly provenance?: GovernedVocabularyHistoryProvenance;
     readonly schemaVersion: number;
     readonly status: 'applied' | 'checked' | 'replay';
   };
@@ -1464,7 +1468,14 @@ export const regradeReportOutput = z.object({
     ),
   history: z
     .object({
+      id: z
+        .string()
+        .optional()
+        .describe('Stable consolidated Regrade history identity'),
       path: z.string().describe('Root-relative applied history entry path'),
+      provenance: governedVocabularyHistoryProvenanceSchema
+        .optional()
+        .describe('Governed transition evidence attached to the applied run'),
       schemaVersion: z.number().describe('Regrade history schema version'),
       status: z
         .enum(['applied', 'checked', 'replay'])

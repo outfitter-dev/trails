@@ -390,12 +390,21 @@ describe('trails regrade', () => {
         expect(applyResult.exitCode).toBe(0);
         const applied = parseCliJson<{
           readonly history?: {
+            readonly id?: string;
             readonly path?: string;
+            readonly provenance?: {
+              readonly safeApplied?: number;
+              readonly transitionId?: string;
+            };
             readonly status?: string;
           };
         }>(applyResult);
         expect(applied.history).toMatchObject({
           path: '.trails/regrade/history/facet-to-trailhead.json',
+          provenance: {
+            safeApplied: 1,
+            transitionId: 'v1-facet-trailhead',
+          },
           status: 'applied',
         });
         expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toContain(
@@ -444,6 +453,7 @@ describe('trails regrade', () => {
           readonly runs?: readonly {
             readonly lockHashAtRun?: string;
             readonly planContentHash?: string;
+            readonly provenance?: { readonly transitionId?: string };
           }[];
           readonly schemaVersion?: number;
         }
@@ -456,6 +466,9 @@ describe('trails regrade', () => {
         expect(consolidated.runs).toHaveLength(1);
         expect(consolidated.runs?.[0]?.planContentHash).toBeDefined();
         expect(consolidated.runs?.[0]?.lockHashAtRun).toBeDefined();
+        expect(consolidated.runs?.[0]?.provenance?.transitionId).toBe(
+          'v1-facet-trailhead'
+        );
 
         // A third identical plan+apply over the unchanged tree is a replay: no
         // duplicate run is appended and the earlier stamps stay untouched.
@@ -719,6 +732,53 @@ describe('trails regrade', () => {
         '`fileRenames` is not supported for class-mode plans'
       );
       expect(existsSync(join(dir, '.trails', 'regrade'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects mismatched governed plans before applying source edits', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/current.md', 'Replace alpha here.\n');
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'alpha',
+        'omega',
+        '--root-dir',
+        dir,
+        '--extensions',
+        '.md',
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+      const planPath = parseCliJson<{ readonly path?: string }>(planned).path;
+      if (planPath === undefined) {
+        throw new Error('Expected a saved Regrade plan path.');
+      }
+      const absolutePlanPath = join(dir, planPath);
+      const artifact = JSON.parse(readFileSync(absolutePlanPath, 'utf8')) as {
+        plan: { id?: string };
+      };
+      artifact.plan.id = 'v1-facet-trailhead';
+      writeFileSync(absolutePlanPath, `${JSON.stringify(artifact, null, 2)}\n`);
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(applied.exitCode).toBe(1);
+      expect(applied.stderr).toContain(
+        'Governed Regrade plan does not match its registry transition.'
+      );
+      expect(readFileSync(join(dir, 'docs/current.md'), 'utf8')).toBe(
+        'Replace alpha here.\n'
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1551,7 +1611,9 @@ describe('trails regrade', () => {
           '.trails/regrade/history/facet-to-trailhead.json'
         );
         interface HistoryFile {
-          readonly runs?: { lockHashAtRun?: string }[];
+          readonly runs?: {
+            provenance?: { transitionId?: string };
+          }[];
         }
         const tampered = JSON.parse(
           readFileSync(historyFile, 'utf8')
@@ -1559,7 +1621,10 @@ describe('trails regrade', () => {
         if (tampered.runs?.[0] === undefined) {
           throw new Error('Expected a recorded history run to tamper.');
         }
-        tampered.runs[0].lockHashAtRun = 'deadbeef'.repeat(8);
+        if (tampered.runs[0].provenance === undefined) {
+          throw new Error('Expected governed provenance to tamper.');
+        }
+        tampered.runs[0].provenance.transitionId = 'v1-contour-entity';
         writeFileSync(historyFile, `${JSON.stringify(tampered, null, 2)}\n`);
 
         const tamperedCheck = runRawCli([
@@ -1572,7 +1637,7 @@ describe('trails regrade', () => {
           '--json',
         ]);
         expect(tamperedCheck.exitCode).not.toBe(0);
-        expect(tamperedCheck.stderr).toContain('stamp mismatch');
+        expect(tamperedCheck.stderr).toContain('provenance mismatch');
       } finally {
         rmSync(dir, { force: true, recursive: true });
       }

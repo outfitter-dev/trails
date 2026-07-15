@@ -610,6 +610,11 @@ describe('Trails MCP surface shaping', () => {
       expect(applied.isError).toBeUndefined();
       expect(applied.structuredContent).toMatchObject({
         history: {
+          id: expect.stringMatching(/^[0-9a-f]{12}$/),
+          provenance: {
+            kind: 'governed-vocabulary',
+            transitionId: 'v1-facet-trailhead',
+          },
           status: 'applied',
         },
       });
@@ -636,6 +641,26 @@ describe('Trails MCP surface shaping', () => {
       expect(
         readFileSync(join(dir, 'scripts', 'vocab-cutover-fixture.ts'), 'utf8')
       ).toBe('export const facet = "facet";\n');
+
+      const absoluteHistoryPath = join(dir, historyPath ?? 'missing');
+      const tampered = JSON.parse(
+        readFileSync(absoluteHistoryPath, 'utf8')
+      ) as {
+        runs?: { provenance?: { transitionId?: string } }[];
+      };
+      if (tampered.runs?.[0]?.provenance === undefined) {
+        throw new Error('Expected governed MCP history provenance.');
+      }
+      tampered.runs[0].provenance.transitionId = 'v1-contour-entity';
+      writeFileSync(
+        absoluteHistoryPath,
+        `${JSON.stringify(tampered, null, 2)}\n`
+      );
+      const tamperedCheck = await checkRegrade.handler(
+        { plan: 'facet-to-trailhead', rootDir: dir },
+        {}
+      );
+      expect(tamperedCheck.isError).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

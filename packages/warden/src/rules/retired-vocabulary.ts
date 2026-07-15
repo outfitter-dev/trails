@@ -81,6 +81,30 @@ export const governedVocabularyFileRenameSchema = z.object({
   to: z.string().min(1),
 });
 
+export const governedVocabularyProvenancePolicySchema = z.discriminatedUnion(
+  'mode',
+  [
+    z.object({ mode: z.literal('regrade-history') }),
+    z.object({
+      mode: z.literal('legacy'),
+      reason: z.string().min(1),
+    }),
+  ]
+);
+
+export const governedVocabularyHistoryProvenanceSchema = z
+  .object({
+    disposition: z.enum(['applied-clean', 'review-follow-up']),
+    kind: z.literal('governed-vocabulary'),
+    planContentHash: z.string().regex(/^[0-9a-f]{64}$/),
+    reviewPending: z.number().int().nonnegative(),
+    safeApplied: z.number().int().nonnegative(),
+    sourceHashAfter: z.string().regex(/^[0-9a-f]{64}$/),
+    sourceHashBefore: z.string().regex(/^[0-9a-f]{64}$/),
+    transitionId: z.string().min(1),
+  })
+  .strict();
+
 export const governedVocabularyTransitionSchema = z.object({
   codeIdentifiers: z.array(z.string().min(1)).default([]),
   docs: z.object({
@@ -95,6 +119,11 @@ export const governedVocabularyTransitionSchema = z.object({
   oldForms: z.array(z.string().min(1)).min(1),
   overrides: z.record(z.string().min(1), z.string().min(1)).default({}),
   preserve: z.array(governedVocabularyPreserveRuleSchema).default([]),
+  provenance: governedVocabularyProvenancePolicySchema.default({
+    mode: 'legacy',
+    reason:
+      'Transition completed before committed Regrade history provenance became enforceable.',
+  }),
   reviewForms: z.array(z.string().min(1)).default([]),
   safeRewriteForms: z.record(z.string().min(1), z.string().min(1)).default({}),
   scope: governedVocabularyScopeSchema.optional(),
@@ -130,6 +159,18 @@ export const governedVocabularyRegistrySchema = z
         });
       }
       seenFrom.add(transition.from);
+
+      if (
+        transition.status === 'planned' &&
+        transition.provenance.mode !== 'regrade-history'
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'Planned governed transitions must require committed Regrade history provenance.',
+          path: [index, 'provenance'],
+        });
+      }
     }
   });
 
@@ -150,6 +191,12 @@ export type GovernedVocabularyLiteralRename = z.output<
 >;
 export type GovernedVocabularyTransition = z.output<
   typeof governedVocabularyTransitionSchema
+>;
+export type GovernedVocabularyHistoryProvenance = z.output<
+  typeof governedVocabularyHistoryProvenanceSchema
+>;
+export type GovernedVocabularyProvenancePolicy = z.output<
+  typeof governedVocabularyProvenancePolicySchema
 >;
 export type GovernedVocabularyTransitionInput = z.input<
   typeof governedVocabularyTransitionSchema
@@ -762,6 +809,7 @@ export const governedVocabularyTransitions =
         'projected',
         'Projected',
       ],
+      provenance: { mode: 'regrade-history' },
       reviewForms: [
         'projection',
         'projections',
@@ -834,6 +882,11 @@ export const formatGovernedVocabularyTransitionGuide = (
         `- ${transition.id}: ${transition.from} -> ${target}`,
         `  - Status: ${transition.status}`,
         `  - Intent: ${transition.intent}`,
+        `  - Provenance: ${
+          transition.provenance.mode === 'regrade-history'
+            ? 'committed Regrade history required'
+            : `legacy (${transition.provenance.reason})`
+        }`,
         `  - Safe rewrites: ${Object.keys(transition.safeRewriteForms).length}`,
         `  - Review forms: ${transition.reviewForms.join(', ') || 'none'}`,
       ];

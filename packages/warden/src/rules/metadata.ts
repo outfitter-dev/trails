@@ -316,8 +316,23 @@ const builtinWardenRuleMetadataInput = {
   'governed-symbol-residue': {
     ...durableExternal,
     fix: { class: 'term-rewrite', safety: 'safe' },
+    guidance: {
+      docs: [
+        {
+          label: 'Vocabulary transition workflow',
+          path: 'docs/releases/v1-vocabulary-transition-workflow.md',
+        },
+      ],
+      steps: [
+        'Run the governed transition through Regrade so committed history proves the primary migration.',
+        'Use manual edits only for review or cleanup after Regrade exhausts the safe slice.',
+        'Keep the transition registry and committed history evidence aligned.',
+      ],
+      summary:
+        'Require committed Regrade evidence before completing a governed vocabulary migration.',
+    },
     invariant:
-      'Active governed vocabulary symbol renames do not leave retired identifiers in source.',
+      'Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers.',
     tier: 'source-static',
   },
   'implementation-returns-result': {

@@ -60,6 +60,7 @@ import {
   readRegradeHistoryArtifact,
   regradeHistoryPathForPlan,
   resolveRegradeHistoryPath,
+  validateGovernedRegradePlan,
   verifyRegradeHistoryRuns,
 } from '../regrade/history.js';
 import type { RegradeHistorySummary } from '../regrade/history.js';
@@ -72,11 +73,11 @@ import {
 import {
   REGRADE_PLAN_SCHEMA_VERSION,
   canonicalJsonStringify,
+  currentRegradeSourceHashMatches,
   isGeneratedRegradeArtifactPath,
   regradePlanArtifactSchema,
   regradePlanPathForPlan,
   regradeSourceHash,
-  regradeSourceHashMatches,
   rootRelativePath,
 } from '../regrade/plan-artifact.js';
 import type {
@@ -1416,7 +1417,11 @@ const reportWithHistorySummary = (
 ): RegradeReport => ({
   ...report,
   history: {
+    id: params.id,
     path: params.path,
+    ...(params.provenance === undefined
+      ? {}
+      : { provenance: params.provenance }),
     schemaVersion: params.schemaVersion,
     status: params.status,
   },
@@ -1750,7 +1755,7 @@ const planStatusForReport = (
   report: RegradeReport,
   rootDir: string
 ): 'active' | 'stale' => {
-  if (!regradeSourceHashMatches(artifact.sourceHash, report)) {
+  if (!currentRegradeSourceHashMatches(artifact.sourceHash, report)) {
     return 'stale';
   }
   if (artifact.plan.kind === 'class' || artifact.derivation === undefined) {
@@ -3241,6 +3246,12 @@ const runApplyRegradePlan = async (
   const loaded = await loadPlanForInput(input, rootDir);
   if (loaded.isErr()) {
     return loaded;
+  }
+  const governedPlanValidation = validateGovernedRegradePlan(
+    loaded.value.artifact
+  );
+  if (governedPlanValidation.isErr()) {
+    return governedPlanValidation;
   }
   const dryRunReport = await runPlanArtifactDryRun({
     artifact: loaded.value.artifact,
