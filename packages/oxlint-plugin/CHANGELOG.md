@@ -1,5 +1,7 @@
 # @ontrails/oxlint-plugin
 
+## 1.0.0-beta.44
+
 ## 1.0.0-beta.43
 
 ### Patch Changes
