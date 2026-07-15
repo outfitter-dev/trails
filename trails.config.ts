@@ -15,6 +15,7 @@ export default defineConfig({
         'examples/stash/src/app.ts',
         'examples/switchback/src/app.ts',
       ],
+      scope: { exclude: ['scripts/scratch-inventory/**'] },
     },
   },
   schema: z.object({

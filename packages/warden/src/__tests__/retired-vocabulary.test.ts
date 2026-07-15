@@ -208,7 +208,6 @@ describe('governed vocabulary registry', () => {
       expect(historical?.paths).toContain('**/.agents/plans/**');
       expect(historical?.paths).toContain('docs/adr/decision-map.json');
       expect(historical?.paths).toContain('docs/releases/beta*.md');
-      expect(historical?.paths).toContain('scripts/vocab-cutover-*.ts');
       expect(historical?.paths).toContain('**/CHANGELOG.md');
       expect(historical?.paths).toContain('.changeset/**');
       expect(historical?.reason).toBeDefined();

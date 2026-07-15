@@ -44,6 +44,7 @@ export {
 } from './downstream/vocabulary.js';
 export {
   listVocabularyRegradePlansFromRegistry,
+  listVocabularyRegradeAuditPlansFromRegistry,
   vocabularyRegradePlanFromTransition,
   vocabularyRegradePlanForInput,
   vocabularyRegradeTransitionForInput,

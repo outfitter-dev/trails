@@ -20,6 +20,7 @@ import {
   writeVocabularyTransitionRecord,
 } from '../vocabulary.js';
 import {
+  listVocabularyRegradeAuditPlansFromRegistry,
   listVocabularyRegradePlansFromRegistry,
   vocabularyRegradePlanFromTransition,
   vocabularyRegradePlanForInput,
@@ -609,6 +610,20 @@ describe('runVocabularyRegrade', () => {
     expect(
       listVocabularyRegradePlansFromRegistry().map((plan) => plan.id)
     ).not.toContain('cross-compose');
+  });
+
+  test('derives review-only audit plans for completed unsafe transitions', () => {
+    const auditPlan = listVocabularyRegradeAuditPlansFromRegistry().find(
+      (plan) => plan.id === 'cross-compose'
+    );
+
+    expect(auditPlan).toMatchObject({
+      deferForms: expect.arrayContaining(['cross', 'Cross', 'crossInput']),
+      from: 'cross',
+      id: 'cross-compose',
+      to: 'compose',
+    });
+    expect(auditPlan?.overrides).toBeUndefined();
   });
 
   test('keeps active migration guide vocabulary inside the completion gate', () => {

@@ -27,19 +27,49 @@ Trails now uses the `compose` family for trail-to-trail composition. The old `cr
 
 ## Source Update
 
-Run the vocabulary rewrite in a clean worktree, then review the diff:
+Create a saved Regrade plan in a clean worktree, then review its derived forms, namespace census, and occurrence inventory:
 
 ```bash
-bun run vocab:rewrite -- --rule compose-api --write
+mkdir -p .tmp-regrade
+bun apps/trails/bin/trails.ts regrade plan \
+  --root-dir . \
+  --type class \
+  --name cross-compose \
+  --class-ids term-rewrite:no-retired-cross-vocabulary \
+  --include-entries all \
+  --json > .tmp-regrade/cross-compose-plan.json
+
+PLAN_PATH="$(jq -r '.path' .tmp-regrade/cross-compose-plan.json)"
 ```
 
 For a smaller migration, scope it to a package or app:
 
 ```bash
-bun run vocab:rewrite -- --rule compose-api --write --path packages/my-app
+bun apps/trails/bin/trails.ts regrade plan \
+  --root-dir . \
+  --type class \
+  --name cross-compose \
+  --class-ids term-rewrite:no-retired-cross-vocabulary \
+  --include 'packages/my-app/**' \
+  --include-entries all \
+  --json > .tmp-regrade/cross-compose-plan.json
+
+PLAN_PATH="$(jq -r '.path' .tmp-regrade/cross-compose-plan.json)"
 ```
 
-The codemod handles source identifiers, trail spec keys, context calls, testing helper names, Warden rule names, and the topo persistence names. It does not replace unrelated English uses such as cross-app, cross-package, or cross-cutting.
+This class plan safely rewrites the exact forms recognized by the retired-cross Warden rule. Review broader `cross`/`Cross` identifiers from the namespace census separately; the class does not rewrite unrelated English uses such as cross-app, cross-package, or cross-cutting.
+
+Preview and dry-run the saved plan before applying it:
+
+```bash
+bun apps/trails/bin/trails.ts regrade preview --root-dir . --plan "$PLAN_PATH"
+bun apps/trails/bin/trails.ts regrade apply \
+  --root-dir . --plan "$PLAN_PATH" --dry-run
+bun apps/trails/bin/trails.ts regrade apply --root-dir . --plan "$PLAN_PATH"
+bun apps/trails/bin/trails.ts regrade check --root-dir . --plan cross-compose
+```
+
+Apply appends deterministic evidence to the transition's consolidated history. Make any semantic review edits only after Regrade exhausts the safe slice.
 
 ## Trails Lock
 
@@ -60,7 +90,8 @@ bun run test
 bun run lint
 bun run lint:ast-grep
 bun run format:check
-bun run vocab:audit
+bun run trails:check
+bun run regrade:audit
 ```
 
 If Warden or generated agent guidance changes, regenerate and check the Warden guide blocks:

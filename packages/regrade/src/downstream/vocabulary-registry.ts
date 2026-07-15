@@ -145,6 +145,43 @@ export const listVocabularyRegradePlansFromRegistry =
       .map((transition) => vocabularyRegradePlanFromTransition(transition))
       .filter((plan): plan is VocabularyRegradePlan => plan !== null);
 
+/**
+ * Derive conservative current-tree audit plans for every single-target
+ * governed transition. Transitions that are unsafe to rewrite mechanically
+ * still participate with every known form deferred to review.
+ */
+export const listVocabularyRegradeAuditPlansFromRegistry =
+  (): readonly VocabularyRegradePlan[] =>
+    listGovernedVocabularyTransitions().flatMap((transition) => {
+      if (
+        transition.status === 'planned' ||
+        transition.target.kind !== 'single'
+      ) {
+        return [];
+      }
+      const runnable = vocabularyRegradePlanFromTransition(transition);
+      if (runnable !== null) {
+        return [runnable];
+      }
+      const scope = scopeFromTransition(transition);
+      return [
+        {
+          caseSensitive: true,
+          deferForms: uniqueForms([
+            ...transition.oldForms,
+            ...transition.reviewForms,
+          ]),
+          from: transition.from,
+          id: transition.id,
+          intent: transition.intent,
+          kind: 'vocabulary' as const,
+          preserve: preserveRulesFromTransition(transition),
+          ...(scope === undefined ? {} : { scope }),
+          to: transition.target.to,
+        },
+      ];
+    });
+
 export const vocabularyRegradeTransitionForInput = (
   from: string,
   to: string

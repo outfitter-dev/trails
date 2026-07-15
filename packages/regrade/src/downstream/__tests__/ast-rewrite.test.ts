@@ -619,7 +619,7 @@ describe('createAstIdentifierRenameClass', () => {
       transition,
       {
         shouldPreserve: (occurrence) =>
-          occurrence.path === 'scripts/vocab-cutover-map.ts',
+          occurrence.path === 'src/regrade-fixture.ts',
       }
     );
     const preservingLiteralClass = preservingClasses.find((cls) =>
@@ -633,7 +633,7 @@ describe('createAstIdentifierRenameClass', () => {
     }
     expect(
       preservingLiteralClass.apply("const historical = 'blaze';", {
-        path: 'scripts/vocab-cutover-map.ts',
+        path: 'src/regrade-fixture.ts',
       })
     ).toMatchObject({ kind: 'no-op' });
   });

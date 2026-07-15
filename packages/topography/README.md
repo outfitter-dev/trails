@@ -132,7 +132,7 @@ Wayfind trails are internal by default. Surface hosts expose selected query trai
 
 ### Operator File Outline
 
-File outline is an operator capability, not a public Topographer query trail. Use `trails wayfind file <file> --outline` for a compact map of authored trail and app declarations, surface membership, saved graph matches, and diagnostics. Add `--source` when the inspection also needs import, export, and declaration rows. The operator parses the explicit file through `@ontrails/source` and reconciles trail IDs with saved Topographer artifacts. Missing artifacts are diagnostics, not hard failures, so outline remains useful in a fresh checkout or during repair work.
+File outline is an operator capability, not a public Topography query trail. Use `trails wayfind file <file> --outline` for a compact map of authored trail and app declarations, surface membership, saved graph matches, and diagnostics. Add `--source` when the inspection also needs import, export, and declaration rows. The operator parses the explicit file through `@ontrails/source` and reconciles trail IDs with saved Topography artifacts. Missing artifacts are diagnostics, not hard failures, so outline remains useful in a fresh checkout or during repair work.
 
 ### Backend Support Subpath
 

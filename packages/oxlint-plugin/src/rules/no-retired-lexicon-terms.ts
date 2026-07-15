@@ -8,7 +8,6 @@ import {
   getImportSourceFromReExportDeclaration,
   getImportSourceFromRequire,
   isRepoSourceFile,
-  normalizeFilePath,
   reportNode,
 } from './shared.js';
 import type { RuleModule } from './shared.js';
@@ -22,8 +21,6 @@ interface RetiredLexiconTerm {
 const RESERVED_TERMS_HEADING = '## Reserved Terms';
 const NEXT_HEADING_PATTERN = /^## /mu;
 const TABLE_ROW_PATTERN = /^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|\s*$/u;
-const VOCAB_CUTOVER_SCRIPT_PATTERN =
-  /(?:^|\/)scripts\/vocab-cutover-(?:audit|map|rewrite|utils)\.ts$/u;
 const TERM_OPTION_KEY = 'retiredTerms';
 
 let retiredTermsCache: readonly RetiredLexiconTerm[] | undefined;
@@ -188,13 +185,8 @@ const getLiteralMemberPropertyName = (node: unknown): string | undefined => {
   return asLiteralString(property);
 };
 
-const shouldCheckFile = (filePath: string | undefined): boolean => {
-  if (!isRepoSourceFile(filePath)) {
-    return false;
-  }
-
-  return !VOCAB_CUTOVER_SCRIPT_PATTERN.test(normalizeFilePath(filePath ?? ''));
-};
+const shouldCheckFile = (filePath: string | undefined): boolean =>
+  isRepoSourceFile(filePath);
 
 const formatReplacement = (term: RetiredLexiconTerm): string =>
   term.replacement ? ` Use '${term.replacement}'.` : '';

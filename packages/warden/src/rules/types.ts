@@ -281,6 +281,10 @@ export interface WardenRule {
   readonly description: string;
   /** Optional inline classification. Built-ins are classified by registry. */
   readonly metadata?: WardenRuleMetadata | undefined;
+  /** Source file kinds this rule explicitly supports beyond TypeScript. */
+  readonly sourceKinds?:
+    | readonly ('documentation' | 'text' | 'typescript')[]
+    | undefined;
   /** Run the rule against source code and return any diagnostics */
   readonly check: (
     sourceCode: string,

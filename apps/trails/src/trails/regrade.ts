@@ -53,6 +53,11 @@ import type { Dirent } from 'node:fs';
 import { basename, dirname, extname, isAbsolute, join, posix } from 'node:path';
 import { z } from 'zod';
 
+import {
+  auditRegradeHistory,
+  regradeAuditInputSchema,
+  regradeAuditOutputSchema,
+} from '../regrade/audit.js';
 import { loadRegradeConfig } from '../regrade/config.js';
 import {
   REGRADE_HISTORY_SCHEMA_VERSION,
@@ -3597,6 +3602,47 @@ export const listRegradesTrail = trail('list.regrades', {
   }),
   intent: 'read',
   output: regradePlansOutputSchema,
+  permit: 'public',
+});
+
+export const auditRegradeTrail = trail('audit.regrade', {
+  cli: { path: ['regrade', 'audit'] },
+  description:
+    'Audit applied Regrade vocabulary transitions against current source',
+  implementation: async (input, ctx) => {
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return rootDirResult;
+    }
+    const result = await auditRegradeHistory(input, rootDirResult.value);
+    if (result.isErr()) {
+      return result;
+    }
+    const output = validateOutput(regradeAuditOutputSchema, result.value);
+    if (output.isErr()) {
+      return Result.err(output.error);
+    }
+    if (input.failOnOpen && output.value.gate.status === 'open') {
+      return Result.err(
+        new ValidationError('Regrade audit found current-tree residue.', {
+          context: {
+            gate: output.value.gate,
+            transitions: output.value.transitions
+              .filter((transition) => transition.report.status === 'open')
+              .map((transition) => ({
+                open: transition.report.open,
+                source: transition.source,
+                transitionId: transition.transitionId,
+              })),
+          },
+        })
+      );
+    }
+    return Result.ok(output.value);
+  },
+  input: regradeAuditInputSchema,
+  intent: 'read',
+  output: regradeAuditOutputSchema,
   permit: 'public',
 });
 

@@ -333,21 +333,36 @@ const collectTextScanFiles = (dir: string): readonly string[] => [
   ...collectFilesMatching(dir, '**/*.zsh', true),
   ...collectFilesMatching(dir, '**/*.yml', true),
   ...collectFilesMatching(dir, '**/*.yaml', true),
+  ...collectFilesMatching(dir, 'plugin/**/*.json', true),
+  ...collectFilesMatching(dir, 'plugin/**/*.jsonc', true),
+  ...collectFilesMatching(dir, 'plugin/**/*.toml', true),
+  ...collectFilesMatching(dir, 'plugin/**/*.cjs', true),
+  ...collectFilesMatching(dir, 'plugin/**/*.mjs', true),
+  ...collectFilesMatching(dir, 'scripts/**/*.json', true),
+  ...collectFilesMatching(dir, 'scripts/**/*.jsonc', true),
+  ...collectFilesMatching(dir, 'scripts/**/*.toml', true),
+  ...collectFilesMatching(dir, 'scripts/**/*.cjs', true),
+  ...collectFilesMatching(dir, 'scripts/**/*.mjs', true),
   ...collectFilesMatching(dir, '**/package.json', true),
 ];
 
 const isDocumentationScanTarget = (match: string): boolean => {
-  if (match === 'README.md') {
+  if (
+    match === 'AGENTS.md' ||
+    match === 'README.md' ||
+    /^(?:packages|adapters|apps)(?:\/[^/]+)*\/AGENTS\.md$/.test(match)
+  ) {
     return true;
   }
   if (/^(?:packages|adapters|apps)\/[^/]+\/README\.md$/.test(match)) {
     return true;
   }
   return (
-    match.startsWith('docs/') &&
-    !match.startsWith('docs/adr/') &&
-    !match.startsWith('docs/migration/') &&
-    !match.startsWith('docs/releases/') &&
+    (match.startsWith('plugin/') ||
+      (match.startsWith('docs/') &&
+        !match.startsWith('docs/adr/') &&
+        !match.startsWith('docs/migration/') &&
+        !match.startsWith('docs/releases/'))) &&
     match.endsWith('.md')
   );
 };
@@ -1245,6 +1260,7 @@ const lintSourceFiles = (
     for (const rule of rules) {
       if (
         sourceFile.kind === 'text' &&
+        !rule.sourceKinds?.includes('text') &&
         rule.name !== 'no-dev-permit-in-source' &&
         rule.name !== 'public-internal-deep-imports'
       ) {
@@ -1253,6 +1269,7 @@ const lintSourceFiles = (
 
       if (
         sourceFile.kind === 'documentation' &&
+        !rule.sourceKinds?.includes('documentation') &&
         rule.name !== 'public-internal-deep-imports'
       ) {
         continue;

@@ -84,6 +84,7 @@ describe('Trails MCP surface shaping', () => {
       'trails_add_trail',
       'trails_adjust_regrade',
       'trails_apply_regrade',
+      'trails_audit_regrade',
       'trails_check_regrade',
       'trails_compile',
       'trails_create',
@@ -535,11 +536,12 @@ describe('Trails MCP surface shaping', () => {
       writeFile(dir, 'CHANGELOG.md', 'The facet API shipped in beta.\n');
       writeFile(
         dir,
-        'scripts/vocab-cutover-fixture.ts',
+        'src/regrade-fixture.ts',
         'export const facet = "facet";\n'
       );
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const planRegrade = requireTool(tools, 'trails_plan_regrade');
+      const auditRegrade = requireTool(tools, 'trails_audit_regrade');
       const listRegrades = requireTool(tools, 'trails_list_regrades');
       const checkRegrade = requireTool(tools, 'trails_check_regrade');
       const previewRegrade = requireTool(tools, 'trails_preview_regrade');
@@ -548,6 +550,14 @@ describe('Trails MCP surface shaping', () => {
       const planResult = await planRegrade.handler(
         {
           from: 'facet',
+          policyClassified: [
+            {
+              disposition: 'explicit-preserve',
+              expectMatches: true,
+              paths: ['src/regrade-fixture.ts'],
+              reason: 'Preserve the MCP lifecycle before-state fixture.',
+            },
+          ],
           rootDir: dir,
           to: 'trailhead',
         },
@@ -592,7 +602,10 @@ describe('Trails MCP surface shaping', () => {
         },
         run: {
           report: {
-            dispositions: { 'historical-by-policy': 16 },
+            dispositions: {
+              'explicit-preserve': 2,
+              'historical-by-policy': 14,
+            },
             scopeTiers: { 'in-scope': 0, 'policy-classified': 16 },
           },
         },
@@ -613,7 +626,7 @@ describe('Trails MCP surface shaping', () => {
       expect(previewOccurrences).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            path: 'scripts/vocab-cutover-fixture.ts',
+            path: 'src/regrade-fixture.ts',
             scopeTier: 'policy-classified',
             verdict: 'skipped',
           }),
@@ -652,9 +665,24 @@ describe('Trails MCP surface shaping', () => {
       expect(readFileSync(join(dir, 'CHANGELOG.md'), 'utf8')).toBe(
         'The facet API shipped in beta.\n'
       );
-      expect(
-        readFileSync(join(dir, 'scripts', 'vocab-cutover-fixture.ts'), 'utf8')
-      ).toBe('export const facet = "facet";\n');
+      expect(readFileSync(join(dir, 'src', 'regrade-fixture.ts'), 'utf8')).toBe(
+        'export const facet = "facet";\n'
+      );
+
+      const audited = await auditRegrade.handler(
+        { rootDir: dir, transitionIds: ['v1-facet-trailhead'] },
+        {}
+      );
+      expect(audited.isError).toBeUndefined();
+      expect(audited.structuredContent).toMatchObject({
+        gate: { open: 0, status: 'green' },
+        transitions: [
+          {
+            source: '.trails/regrade/history/facet-to-trailhead.json',
+            transitionId: 'v1-facet-trailhead',
+          },
+        ],
+      });
 
       const absoluteHistoryPath = join(dir, historyPath ?? 'missing');
       const tampered = JSON.parse(

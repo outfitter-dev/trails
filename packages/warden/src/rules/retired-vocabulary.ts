@@ -243,7 +243,6 @@ const v1VocabularyHistoricalPaths = [
   'docs/releases/v1-vocabulary-transition-workflow.md',
   'packages/warden/src/__tests__/retired-vocabulary.test.ts',
   'packages/warden/src/rules/retired-vocabulary.ts',
-  'scripts/vocab-cutover-*.ts',
 ];
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
@@ -1061,7 +1060,7 @@ export const governedVocabularyTransitions =
             paths: [
               'apps/trails/src/__tests__/mcp.test.ts',
               'apps/trails/src/__tests__/regrade.test.ts',
-              'packages/regrade/src/downstream/__tests__/**',
+              'packages/regrade/src/downstream/__tests__/**/*.test.ts',
             ],
             reason:
               'Preserve exact old/new vocabulary fixtures that prove CLI, MCP, registry, and rewrite behavior without treating them as current teaching or API residue.',

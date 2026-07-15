@@ -21,6 +21,7 @@ export const trailsMcpIncludedTrails = [
   'guide',
   'adjust.regrade',
   'apply.regrade',
+  'audit.regrade',
   'check.regrade',
   'list.regrades',
   'plan.regrade',

@@ -15,8 +15,15 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
+import type { VocabularyRegradePlan } from '@ontrails/regrade';
 
 import { operatorApp } from '../app.js';
+import {
+  mergeAuditPlan,
+  projectExcludesForMarkdownAudit,
+  projectIncludesForMarkdownAudit,
+  projectPolicyClassifiedForMarkdownAudit,
+} from '../regrade/audit.js';
 import { planRegradeTrail, regradeTrail } from '../trails/regrade.js';
 
 const makeTempDir = (): string =>
@@ -192,6 +199,7 @@ describe('trails regrade', () => {
       { id: 'regrade', path: ['regrade'] },
       { id: 'adjust.regrade', path: ['regrade', 'adjust'] },
       { id: 'apply.regrade', path: ['regrade', 'apply'] },
+      { id: 'audit.regrade', path: ['regrade', 'audit'] },
       { id: 'check.regrade', path: ['regrade', 'check'] },
       { id: 'plan.regrade', path: ['regrade', 'plan'] },
       { id: 'list.regrades', path: ['regrade', 'plans'] },
@@ -1558,6 +1566,428 @@ describe('trails regrade', () => {
           },
         },
       });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('regrade audit reports Markdown residue from an applied transition', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'A facet groups trails.\n');
+      expect(
+        runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]).exitCode
+      ).toBe(0);
+      expect(
+        runRawCli(['regrade', 'apply', '--root-dir', dir, '--json']).exitCode
+      ).toBe(0);
+
+      writeFile(dir, 'docs/regression.md', 'A facet returned to the guide.\n');
+      const audit = runRawCli([
+        'regrade',
+        'audit',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--include-entries',
+        'all',
+        '--json',
+      ]);
+
+      expect(audit.exitCode).toBe(0);
+      expect(parseCliJson(audit)).toMatchObject({
+        gate: { open: 1, status: 'open' },
+        transitions: [
+          {
+            report: {
+              entries: [
+                {
+                  outcome: 'rewrite',
+                  path: 'docs/regression.md',
+                },
+              ],
+              occurrences: 1,
+              open: 1,
+              status: 'open',
+            },
+            source: '.trails/regrade/history/facet-to-trailhead.json',
+            transitionId: 'v1-facet-trailhead',
+          },
+        ],
+      });
+      const checked = runRawCli([
+        'regrade',
+        'audit',
+        '--fail-on-open',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--json',
+      ]);
+      expect({
+        exitCode: checked.exitCode,
+        stderr: checked.stderr,
+        stdout: checked.stdout,
+      }).toMatchObject({ exitCode: 1 });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('regrade audit merges registry evidence into committed caller scope', () => {
+    const latest = {
+      from: 'projection',
+      kind: 'vocabulary',
+      scope: {
+        include: ['packages/my-app/**'],
+        policyClassified: [
+          {
+            disposition: 'explicit-preserve',
+            paths: ['packages/my-app/README.md'],
+            reason: 'Preserve app-specific evidence.',
+          },
+        ],
+      },
+      to: 'derive',
+    } satisfies VocabularyRegradePlan;
+    const registry = {
+      from: 'projection',
+      kind: 'vocabulary',
+      scope: {
+        include: ['docs/**'],
+        policyClassified: [
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['docs/adr/0*.md'],
+            reason: 'Retain accepted decision evidence.',
+          },
+        ],
+        teachingSurfaces: ['docs/**'],
+      },
+      to: 'derive',
+    } satisfies VocabularyRegradePlan;
+
+    const merged = mergeAuditPlan(latest, registry);
+    expect(merged.scope).toEqual({
+      include: ['packages/my-app/**'],
+      policyClassified: [
+        latest.scope.policyClassified[0],
+        registry.scope.policyClassified[0],
+      ],
+      teachingSurfaces: ['docs/**'],
+    });
+    const projectedPolicy = projectPolicyClassifiedForMarkdownAudit(merged);
+    expect(projectIncludesForMarkdownAudit(merged, projectedPolicy)).toEqual([
+      'docs/**',
+      'docs/adr/0*.md',
+      'packages/my-app/**',
+      'packages/my-app/README.md',
+    ]);
+  });
+
+  test('regrade audit keeps zero-residue evidence failures open', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'A facet groups trails.\n');
+      expect(
+        runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]).exitCode
+      ).toBe(0);
+      expect(
+        runRawCli(['regrade', 'apply', '--root-dir', dir, '--json']).exitCode
+      ).toBe(0);
+
+      const historyPath = join(
+        dir,
+        '.trails/regrade/history/facet-to-trailhead.json'
+      );
+      const history = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        runs: { plan: { plan: Record<string, unknown> } }[];
+      };
+      const latestPlan = history.runs.at(-1)?.plan.plan;
+      if (latestPlan === undefined) {
+        throw new Error('Expected an applied Regrade history plan.');
+      }
+      latestPlan['scope'] = { teachingSurfaces: ['docs/missing.md'] };
+      writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
+
+      const audit = runRawCli([
+        'regrade',
+        'audit',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--json',
+      ]);
+      expect(audit.exitCode).toBe(0);
+      expect(parseCliJson(audit)).toMatchObject({
+        gate: { open: 0, status: 'open' },
+        transitions: [
+          {
+            report: { open: 0, status: 'open' },
+            transitionId: 'v1-facet-trailhead',
+          },
+        ],
+      });
+
+      const failed = runRawCli([
+        'regrade',
+        'audit',
+        '--fail-on-open',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--json',
+      ]);
+      expect(failed.exitCode).toBe(1);
+      expect(failed.stderr).toContain('v1-facet-trailhead');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('regrade audit drops source-only evidence requirements from Markdown projection', () => {
+    const plan = {
+      from: 'projection',
+      kind: 'vocabulary' as const,
+      scope: {
+        exclude: ['.agents/goals/**', 'docs/adr/0001-example.md'],
+        policyClassified: [
+          {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: ['packages/regrade/src/downstream/__tests__/**'],
+            reason: 'Source fixture evidence.',
+          },
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['docs/adr/0*.md'],
+            reason: 'Markdown history evidence.',
+          },
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['.agents/goals/**'],
+            reason: 'Excluded local planning evidence.',
+          },
+        ],
+      },
+      to: 'derive',
+    };
+    const projected = projectPolicyClassifiedForMarkdownAudit(plan);
+
+    expect(projected?.[0]).not.toHaveProperty('expectMatches');
+    expect(projected?.[1]).toHaveProperty('expectMatches', true);
+    expect(projected?.[1]?.paths).toEqual(['docs/adr/0*.md']);
+    expect(projected).toHaveLength(2);
+    expect(projectExcludesForMarkdownAudit(plan, projected)).toEqual([
+      '.agents/goals/**',
+    ]);
+  });
+
+  test('regrade audit preserves expected policy evidence requirements', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'A facet groups trails.\n');
+      expect(
+        runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]).exitCode
+      ).toBe(0);
+      expect(
+        runRawCli(['regrade', 'apply', '--root-dir', dir, '--json']).exitCode
+      ).toBe(0);
+
+      const historyPath = join(
+        dir,
+        '.trails/regrade/history/facet-to-trailhead.json'
+      );
+      const history = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        runs: { plan: { plan: Record<string, unknown> } }[];
+      };
+      const latestPlan = history.runs.at(-1)?.plan.plan;
+      if (latestPlan === undefined) {
+        throw new Error('Expected an applied Regrade history plan.');
+      }
+      latestPlan['scope'] = {
+        policyClassified: [
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['docs/required-evidence.md'],
+            reason: 'The completed transition requires historical evidence.',
+          },
+        ],
+      };
+      writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
+
+      const audit = runRawCli([
+        'regrade',
+        'audit',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--json',
+      ]);
+      expect(audit.exitCode).toBe(0);
+      expect(parseCliJson(audit)).toMatchObject({
+        gate: { open: 0, status: 'open' },
+        transitions: [
+          {
+            report: {
+              open: 0,
+              status: 'open',
+            },
+            transitionId: 'v1-facet-trailhead',
+          },
+        ],
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('regrade audit preserves the committed plan scope', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'A facet groups trails.\n');
+      expect(
+        runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]).exitCode
+      ).toBe(0);
+      expect(
+        runRawCli(['regrade', 'apply', '--root-dir', dir, '--json']).exitCode
+      ).toBe(0);
+
+      const historyPath = join(
+        dir,
+        '.trails/regrade/history/facet-to-trailhead.json'
+      );
+      const history = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        runs: { plan: { plan: Record<string, unknown> } }[];
+      };
+      const latestPlan = history.runs.at(-1)?.plan.plan;
+      if (latestPlan === undefined) {
+        throw new Error('Expected an applied Regrade history plan.');
+      }
+      latestPlan['scope'] = { include: ['docs/**'] };
+      writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
+      writeFile(
+        dir,
+        'outside.md',
+        'A facet outside the committed audit scope.\n'
+      );
+
+      const audit = runRawCli([
+        'regrade',
+        'audit',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--json',
+      ]);
+      expect(audit.exitCode).toBe(0);
+      expect(parseCliJson(audit)).toMatchObject({
+        gate: { open: 0, status: 'green' },
+        transitions: [
+          {
+            report: { occurrences: 0, open: 0, status: 'green' },
+            transitionId: 'v1-facet-trailhead',
+          },
+        ],
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('selected regrade audit ignores malformed unrelated history only', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'A facet groups trails.\n');
+      expect(
+        runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]).exitCode
+      ).toBe(0);
+      expect(
+        runRawCli(['regrade', 'apply', '--root-dir', dir, '--json']).exitCode
+      ).toBe(0);
+      writeFile(dir, '.trails/regrade/history/unrelated.json', '{not-json\n');
+
+      const selected = [
+        'regrade',
+        'audit',
+        '--root-dir',
+        dir,
+        '--transition-ids',
+        'v1-facet-trailhead',
+        '--json',
+      ] as const;
+      expect(runRawCli(selected).exitCode).toBe(0);
+
+      writeFile(
+        dir,
+        '.trails/regrade/history/facet-to-trailhead.json',
+        '{"id":"v1-facet-trailhead","runs":[{}]}\n'
+      );
+      const malformedSelected = runRawCli(selected);
+      expect(malformedSelected.exitCode).toBe(1);
+      expect(malformedSelected.stderr).toContain(
+        'Invalid Regrade history audit plan'
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -4831,6 +5261,7 @@ describe('trails regrade', () => {
     ).toEqual([
       ['regrade', 'adjust'],
       ['regrade', 'apply'],
+      ['regrade', 'audit'],
       ['regrade', 'check'],
       ['regrade', 'plan'],
       ['regrade', 'plans'],
