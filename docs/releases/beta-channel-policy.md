@@ -57,8 +57,9 @@ The built-in release flow follows that source. The package scripts below are com
   Actions, `--trusted-publishing` requires npm's OIDC credentials instead of a
   long-lived registry token.
 - `bun run publish:registry-check:published` verifies the expected dist-tag
-  after publication and requires every public package to exist at the repo
-  target version.
+  after publication and requires every public package to expose the repo target
+  through exact-version metadata or an equivalent consumer package fetch. A
+  visible access record or dist-tag alone is not publication proof.
 
 During the beta line, `latest` may intentionally lag behind `beta`. Operators should not advance `latest` after every beta publication. Move `latest` only when leaving prerelease mode for the stable 1.x line, or after a separate explicit release decision that says a beta should become the unqualified default.
 
@@ -84,7 +85,7 @@ After publishing, use the strict equality gate:
 bun run publish:registry-check:published
 ```
 
-That check requires every public workspace package to exist at the repo target version and the expected dist-tag to point at that version.
+That check requires every public workspace package to resolve at the repo target version through exact-version metadata or an equivalent consumer package fetch, and the expected dist-tag to point at that version. Its diagnostics distinguish a visible package and tag from pending consumer proof.
 
 For a small representative spot check:
 

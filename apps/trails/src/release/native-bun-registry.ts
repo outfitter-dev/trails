@@ -43,6 +43,7 @@ export type RegistryResult =
       readonly status: 'published';
       readonly version: string;
       readonly versionPublished: boolean | undefined;
+      readonly versionProof?: RegistryVersionProof | undefined;
       readonly workspaceVersion: string;
     }
   | {
@@ -82,18 +83,20 @@ export interface PackageRegistryFacts {
   readonly error?: string | undefined;
 }
 
+/** Consumer-facing evidence for an exact package version. */
+export type RegistryVersionProof =
+  | { readonly kind: 'consumer-pack'; readonly published: true }
+  | { readonly kind: 'exact-metadata'; readonly published: true }
+  | { readonly kind: 'unavailable'; readonly published: false };
+
 /**
  * Classify a package's registry state from two orthogonal facts — whether the
  * target version is published, and where the dist-tag points relative to it —
  * plus reachability. Members are mutually exclusive by construction.
  *
- * `versionPublished` is read strictly only in the behind-tag case: a behind tag
- * becomes a `needs-tag-repair` only when the target is known published (`true`);
- * `undefined` or `false` route to `needs-publish`, preserving the conservative
- * release-policy behavior. When the tag already points at the target, an
- * unprobed (`undefined`) state counts as published and yields `complete`, which
- * matches the policy `versionPublished ?? true` default. `undefined` means the
- * exact-version probe was not run, including policy inputs and compatibility
+ * `complete` requires affirmative consumer proof. A matching dist-tag cannot
+ * substitute for exact-version metadata or an equivalent package fetch.
+ * `undefined` means the consumer probe was not run, including compatibility
  * callers that supply an injected registry view without a version probe.
  */
 export const classifyPackageRegistryState = (
@@ -120,9 +123,9 @@ export const classifyPackageRegistryState = (
     return { currentTagVersion: expectedTagVersion, kind: 'tag-points-ahead' };
   }
   if (tagAtTarget) {
-    return versionPublished === false
-      ? { kind: 'needs-publish' }
-      : { kind: 'complete' };
+    return versionPublished === true
+      ? { kind: 'complete' }
+      : { kind: 'needs-publish' };
   }
   if (versionPublished === true) {
     return { currentTagVersion: expectedTagVersion, kind: 'needs-tag-repair' };
@@ -139,7 +142,8 @@ export const factsFromRegistryResult = (
       expectedTagVersion: result.expectedTagVersion,
       status: 'published',
       targetVersion: result.workspaceVersion,
-      versionPublished: result.versionPublished,
+      versionPublished:
+        result.versionProof?.published ?? result.versionPublished,
     };
   }
   if (result.status === 'inaccessible') {
@@ -167,7 +171,8 @@ Options:
   --tag <tag>            Expected npm dist-tag. Defaults to .changeset/pre.json
                          tag while in prerelease mode, otherwise "latest".
   --require-published    Fail when any workspace package is missing from npm.
-                         Use after publication to verify every package exists.
+                         Use after publication to require exact metadata or
+                         equivalent consumer package-fetch proof.
   -h, --help             Show this help and exit.
 
 Exit codes: 0 success, 1 registry posture failure, 2 arg-parse error.`;
@@ -461,12 +466,23 @@ export type RegistryVersionView = (
   version: string
 ) => Promise<boolean | undefined>;
 
+/** Probe with evidence that distinguishes metadata from package fetch proof. */
+export type RegistryVersionProofView = (
+  name: string,
+  version: string
+) => Promise<RegistryVersionProof>;
+
+export type RegistryVersionProbeView = (
+  name: string,
+  version: string
+) => Promise<boolean | RegistryVersionProof | undefined>;
+
 const UNKNOWN_REGISTRY_VERSION_STATE: { readonly published?: boolean } = {};
 const unknownRegistryVersionView: RegistryVersionView = async () =>
   UNKNOWN_REGISTRY_VERSION_STATE.published;
 
-export const createNpmRegistryVersionView =
-  (runNpm: NpmCommandRunner = runNpmCommand): RegistryVersionView =>
+export const createNpmRegistryVersionProofView =
+  (runNpm: NpmCommandRunner = runNpmCommand): RegistryVersionProofView =>
   async (name, version) => {
     const { exitCode, stderr, stdout } = await runNpm([
       'view',
@@ -476,12 +492,14 @@ export const createNpmRegistryVersionView =
     ]);
 
     if (exitCode === 0) {
-      return JSON.parse(stdout.trim()) === version;
+      return JSON.parse(stdout.trim()) === version
+        ? { kind: 'exact-metadata', published: true }
+        : { kind: 'unavailable', published: false };
     }
-    if (isNpmExactVersionMissingOutput(stdout, stderr)) {
-      return false;
-    }
-    if (!isNpmNotFoundOutput(stdout, stderr)) {
+    if (
+      !isNpmExactVersionMissingOutput(stdout, stderr) &&
+      !isNpmNotFoundOutput(stdout, stderr)
+    ) {
       throw new Error(
         stderr.trim() || `npm view failed for ${name}@${version}`
       );
@@ -498,21 +516,35 @@ export const createNpmRegistryVersionView =
         packResult.stdout,
         name,
         version
-      );
+      )
+        ? { kind: 'consumer-pack', published: true }
+        : { kind: 'unavailable', published: false };
     }
     if (isNpmExactVersionMissingOutput(packResult.stdout, packResult.stderr)) {
-      return false;
+      return { kind: 'unavailable', published: false };
     }
     if (isNpmNotFoundOutput(packResult.stdout, packResult.stderr)) {
-      return false;
+      return { kind: 'unavailable', published: false };
     }
     throw new Error(
       packResult.stderr.trim() || `npm pack failed for ${name}@${version}`
     );
   };
 
+export const createNpmRegistryVersionView = (
+  runNpm: NpmCommandRunner = runNpmCommand
+): RegistryVersionView => {
+  const proofView = createNpmRegistryVersionProofView(runNpm);
+  return async (name, version) => {
+    const proof = await proofView(name, version);
+    return proof.published;
+  };
+};
+
 export const npmRegistryVersionView: RegistryVersionView =
   createNpmRegistryVersionView();
+export const npmRegistryVersionProofView: RegistryVersionProofView =
+  createNpmRegistryVersionProofView();
 
 /** Run async tasks with a bounded number in flight, preserving input order. */
 const mapBounded = async <T, R>(
@@ -538,7 +570,7 @@ const mapBounded = async <T, R>(
 const checkWorkspaceRegistryPosture = async (
   workspace: RegistryWorkspace,
   view: RegistryView,
-  versionView: RegistryVersionView,
+  versionView: RegistryVersionProbeView,
   expectedTag: string
 ): Promise<RegistryResult> => {
   try {
@@ -551,13 +583,19 @@ const checkWorkspaceRegistryPosture = async (
       };
     }
     const distTags = registry['dist-tags'] ?? {};
+    const versionProbe = await versionView(workspace.name, workspace.version);
+    const versionProof =
+      typeof versionProbe === 'object' ? versionProbe : undefined;
+    const versionPublished =
+      typeof versionProbe === 'object' ? versionProbe.published : versionProbe;
     return {
       distTags,
       expectedTagVersion: distTags[expectedTag],
       name: workspace.name,
       status: 'published',
       version: registry.version ?? '(unknown)',
-      versionPublished: await versionView(workspace.name, workspace.version),
+      ...(versionProof === undefined ? {} : { versionProof }),
+      versionPublished,
       workspaceVersion: workspace.version,
     };
   } catch (error) {
@@ -571,14 +609,14 @@ const checkWorkspaceRegistryPosture = async (
 };
 
 type CheckRegistryPostureArgs =
-  | readonly [versionView: RegistryVersionView, expectedTag: string]
+  | readonly [versionView: RegistryVersionProbeView, expectedTag: string]
   | readonly [expectedTag: string];
 
 const normalizeCheckRegistryPostureArgs = (
   args: CheckRegistryPostureArgs
 ): {
   readonly expectedTag: string;
-  readonly versionView: RegistryVersionView;
+  readonly versionView: RegistryVersionProbeView;
 } => {
   if (args.length === 1) {
     return { expectedTag: args[0], versionView: unknownRegistryVersionView };
@@ -594,7 +632,7 @@ export function checkRegistryPosture(
 export function checkRegistryPosture(
   workspaces: readonly RegistryWorkspace[],
   view: RegistryView,
-  versionView: RegistryVersionView,
+  versionView: RegistryVersionProbeView,
   expectedTag: string
 ): Promise<RegistryResult[]>;
 export async function checkRegistryPosture(
@@ -626,6 +664,19 @@ const normalizeRegistryCheckPhase = (
   return phaseOrRequirePublished ? 'published' : 'ready';
 };
 
+const targetVersionFailure = (result: RegistryResult): string => {
+  if (result.status !== 'published') {
+    return 'is not published';
+  }
+  if (result.versionProof?.kind === 'unavailable') {
+    return 'lacks exact-version metadata and consumer pack proof';
+  }
+  if (result.versionPublished === undefined) {
+    return 'publish state was not probed';
+  }
+  return 'is not published';
+};
+
 export const registryPostureErrors = (
   results: readonly RegistryResult[],
   expectedTag: string,
@@ -651,12 +702,8 @@ export const registryPostureErrors = (
     if (state.kind === 'first-time-package') {
       errors.push(`${result.name}: package is missing from the registry`);
     } else if (state.kind === 'needs-publish') {
-      const targetState =
-        result.status === 'published' && result.versionPublished === undefined
-          ? 'publish state was not probed'
-          : 'is not published';
       errors.push(
-        `${result.name}: target version ${result.workspaceVersion} ${targetState}`
+        `${result.name}: target version ${result.workspaceVersion} ${targetVersionFailure(result)}`
       );
     } else if (state.kind === 'needs-tag-repair') {
       errors.push(
@@ -675,8 +722,18 @@ export const formatDistTagSummary = (
   );
 
 const formatTargetVersionStatus = (
+  proof: RegistryVersionProof | undefined,
   versionPublished: boolean | undefined
 ): string => {
+  if (proof?.kind === 'exact-metadata') {
+    return 'exact-version metadata available';
+  }
+  if (proof?.kind === 'consumer-pack') {
+    return 'exact-version metadata unavailable, consumer pack available';
+  }
+  if (proof?.kind === 'unavailable') {
+    return 'exact-version metadata and consumer pack unavailable';
+  }
   if (versionPublished === true) {
     return 'target version published';
   }
@@ -693,7 +750,10 @@ const printResults = (
   console.log(`Registry preflight for dist-tag "${expectedTag}"`);
   for (const result of results) {
     if (result.status === 'published') {
-      const targetStatus = formatTargetVersionStatus(result.versionPublished);
+      const targetStatus = formatTargetVersionStatus(
+        result.versionProof,
+        result.versionPublished
+      );
       console.log(
         `✓ ${result.name}@${result.workspaceVersion}: package exists, ${targetStatus} (registry version ${result.version}, expected ${expectedTag}=${result.expectedTagVersion ?? 'missing'}, tags ${formatDistTagSummary(result.distTags)})`
       );
@@ -711,11 +771,14 @@ const normalizeRegistryPreflightViews = (
   view: RegistryView | undefined,
   versionView: RegistryVersionView | undefined
 ): {
-  readonly versionView: RegistryVersionView;
+  readonly versionView: RegistryVersionProbeView;
   readonly view: RegistryView;
 } => {
   if (view === undefined) {
-    return { versionView: npmRegistryVersionView, view: npmRegistryView };
+    return {
+      versionView: npmRegistryVersionProofView,
+      view: npmRegistryView,
+    };
   }
   return { versionView: versionView ?? unknownRegistryVersionView, view };
 };

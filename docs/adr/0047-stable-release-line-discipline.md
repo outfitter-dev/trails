@@ -40,7 +40,9 @@ The repo already has a workable release mechanism:
   mutating the registry. The first command is the pre-publish readiness check:
   it proves the registry is reachable and the expected tag is not ahead of the
   repo target, but it may pass while the target version is still unpublished.
-  The `:published` variant is the post-publish equality gate.
+  The `:published` variant is the post-publish equality gate: it requires
+  exact-version metadata or equivalent consumer package-fetch proof in addition
+  to the expected dist-tag.
 
 What was missing was the stable-line decision those tools enforce. Without an ADR, release docs can drift back toward operator memory: "run the right thing, publish the right packages, recover carefully." Stable needs that memory turned into a contract.
 

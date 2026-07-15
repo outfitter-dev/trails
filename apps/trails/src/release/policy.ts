@@ -999,13 +999,13 @@ const registryPackagesFromResults = (
 const readRegistryPackages = async (
   distTag: string
 ): Promise<readonly ReleasePolicyRegistryPackage[]> => {
-  const { checkRegistryPosture, npmRegistryView, npmRegistryVersionView } =
+  const { checkRegistryPosture, npmRegistryView, npmRegistryVersionProofView } =
     await import('./native-bun-registry.js');
   const workspaces = await discoverRegistryWorkspaces(repoRoot);
   const results = await checkRegistryPosture(
     workspaces,
     npmRegistryView,
-    npmRegistryVersionView,
+    npmRegistryVersionProofView,
     distTag
   );
   return registryPackagesFromResults(results);

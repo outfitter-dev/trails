@@ -83,8 +83,9 @@ Before creating the version PR:
    and the expected dist-tag is not ahead of the repo target. It can pass while
    the tag still points at the previous published version, and first-time public
    packages can be reported as first-time package candidates. After publishing,
-   use `bun run publish:registry-check:published` to require every package and
-   dist-tag to match the repo target.
+   use `bun run publish:registry-check:published` to require every package to
+   expose exact-version metadata or equivalent consumer package-fetch proof and
+   every dist-tag to match the repo target.
 
 7. The local package tarballs are clean:
 
@@ -330,11 +331,13 @@ The trusted-publisher record deliberately omits a GitHub environment because npm
 
 ## Post-Publish Verification
 
-After publish, require every public package and expected dist-tag to be visible:
+After publish, require every public package to have consumer-facing proof and every expected dist-tag to match:
 
 ```bash
 bun run publish:registry-check:published
 ```
+
+Package access and dist-tag visibility are not sufficient. The strict check requires exact-version metadata or an equivalent consumer package fetch before it reports a package complete.
 
 Spot-check representative packages directly when debugging:
 

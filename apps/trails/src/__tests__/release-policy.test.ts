@@ -227,6 +227,7 @@ describe('evaluateReleasePolicy', () => {
             name: '@ontrails/core',
             status: 'published',
             version: '1.0.0-beta.19',
+            versionPublished: true,
           },
         ],
       })
@@ -238,6 +239,24 @@ describe('evaluateReleasePolicy', () => {
     expect(report.reasons).toContain(
       'Registry package state already matches this release; npm publish will be skipped'
     );
+  });
+
+  test('does not skip publish when the tag matches without consumer proof', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        registryPackages: [
+          {
+            expectedTagVersion: '1.0.0-beta.19',
+            name: '@ontrails/core',
+            status: 'published',
+            version: '1.0.0-beta.19',
+          },
+        ],
+      })
+    );
+
+    expect(report.decision).toBe('auto');
+    expect(report.shouldPublish).toBe(true);
   });
 
   test('blocks registry drift before publication routing', () => {

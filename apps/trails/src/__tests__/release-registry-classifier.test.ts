@@ -3,8 +3,10 @@ import { describe, expect, test } from 'bun:test';
 import {
   checkRegistryPosture,
   classifyPackageRegistryState,
+  createNpmRegistryVersionProofView,
   createNpmRegistryVersionView,
   createNpmRegistryView,
+  factsFromRegistryResult,
   parseNpmDistTagListOutput,
   parseNpmPackDryRunPublishedVersion,
   registryPostureErrors,
@@ -47,13 +49,12 @@ describe('classifyPackageRegistryState', () => {
     );
   });
 
-  test('complete when publish state is unknown but the tag is at target', () => {
-    // Preserves the policy `versionPublished ?? true` default.
+  test('needs-publish when consumer proof is unknown but the tag is at target', () => {
     expect(
       classifyPackageRegistryState(
         publishedFacts({ versionPublished: undefined })
       ).kind
-    ).toBe('complete');
+    ).toBe('needs-publish');
   });
 
   test('first-time-package when the package is missing entirely', () => {
@@ -168,6 +169,11 @@ const unauthorizedNpmRunner: NpmCommandRunner = async () => ({
   stderr: 'npm error code E401\nnpm error 401 Unauthorized',
   stdout: '',
 });
+const exactMetadataRunner: NpmCommandRunner = async () => ({
+  exitCode: 0,
+  stderr: '',
+  stdout: JSON.stringify('1.0.0-beta.39'),
+});
 
 describe('registryPostureErrors — live beta.28 incident', () => {
   test('ready phase passes (publish pending); published phase fails', async () => {
@@ -259,6 +265,93 @@ describe('registryPostureErrors — phase behavior', () => {
     );
 
     expect(registryPostureErrors(results, 'beta', 'published')).toEqual([]);
+  });
+
+  test('beta.39 split-brain fails until consumer metadata or pack proof is available', async () => {
+    const commands: string[][] = [];
+    const runNpm: NpmCommandRunner = async (args) => {
+      commands.push([...args]);
+      if (args[0] === 'view' && args[1] === '@ontrails/cloudflare') {
+        return {
+          exitCode: 0,
+          stderr: '',
+          stdout: JSON.stringify({
+            'dist-tags': { beta: '1.0.0-beta.39' },
+            name: '@ontrails/cloudflare',
+            version: '1.0.0-beta.39',
+          }),
+        };
+      }
+      if (args[0] === 'view') {
+        return {
+          exitCode: 1,
+          stderr:
+            'npm error code ETARGET\nnpm error notarget No matching version found for @ontrails/cloudflare@1.0.0-beta.39.',
+          stdout: '',
+        };
+      }
+      if (args[0] === 'pack') {
+        return {
+          exitCode: 1,
+          stderr:
+            'npm ERR! 404 Not Found - GET https://registry.npmjs.org/@ontrails%2fcloudflare - Not found',
+          stdout: '',
+        };
+      }
+      throw new Error(`unexpected npm command: ${args.join(' ')}`);
+    };
+    const results = await checkRegistryPosture(
+      [
+        {
+          name: '@ontrails/cloudflare',
+          path: 'adapters/cloudflare',
+          version: '1.0.0-beta.39',
+        },
+      ],
+      createNpmRegistryView(runNpm),
+      createNpmRegistryVersionProofView(runNpm),
+      'beta'
+    );
+
+    expect(registryPostureErrors(results, 'beta', 'ready')).toEqual([]);
+    expect(registryPostureErrors(results, 'beta', 'published')).toEqual([
+      '@ontrails/cloudflare: target version 1.0.0-beta.39 lacks exact-version metadata and consumer pack proof',
+    ]);
+    expect(results[0]).toMatchObject({
+      versionProof: { kind: 'unavailable', published: false },
+    });
+    expect(commands).toEqual([
+      [
+        'view',
+        '@ontrails/cloudflare',
+        'name',
+        'version',
+        'dist-tags',
+        '--json',
+      ],
+      ['view', '@ontrails/cloudflare@1.0.0-beta.39', 'version', '--json'],
+      ['pack', '@ontrails/cloudflare@1.0.0-beta.39', '--dry-run', '--json'],
+    ]);
+  });
+
+  test('consumer proof overrides contradictory legacy publication state', () => {
+    const result: RegistryResult = {
+      distTags: { beta: '1.0.0-beta.39' },
+      expectedTagVersion: '1.0.0-beta.39',
+      name: '@ontrails/cloudflare',
+      status: 'published',
+      version: '1.0.0-beta.39',
+      versionProof: { kind: 'unavailable', published: false },
+      versionPublished: true,
+      workspaceVersion: '1.0.0-beta.39',
+    };
+
+    expect(
+      classifyPackageRegistryState(factsFromRegistryResult(result))
+    ).toEqual({ kind: 'needs-publish' });
+    expect(registryPostureErrors([result], 'beta', 'published')).toEqual([
+      '@ontrails/cloudflare: target version 1.0.0-beta.39 lacks exact-version metadata and consumer pack proof',
+    ]);
   });
 });
 
@@ -415,6 +508,35 @@ describe('npm registry fallback wiring', () => {
       ['view', '@ontrails/regrade@1.0.0-beta.29', 'version', '--json'],
       ['pack', '@ontrails/regrade@1.0.0-beta.29', '--dry-run', '--json'],
     ]);
+
+    commands.length = 0;
+    await expect(
+      createNpmRegistryVersionProofView(runNpm)(
+        '@ontrails/regrade',
+        '1.0.0-beta.29'
+      )
+    ).resolves.toEqual({ kind: 'consumer-pack', published: true });
+    expect(commands).toEqual([
+      ['view', '@ontrails/regrade@1.0.0-beta.29', 'version', '--json'],
+      ['pack', '@ontrails/regrade@1.0.0-beta.29', '--dry-run', '--json'],
+    ]);
+  });
+
+  test('reports whether exact metadata or consumer pack proved the target', async () => {
+    const splitBrainRunner: NpmCommandRunner = async () => notFoundResult;
+
+    await expect(
+      createNpmRegistryVersionProofView(exactMetadataRunner)(
+        '@ontrails/cloudflare',
+        '1.0.0-beta.39'
+      )
+    ).resolves.toEqual({ kind: 'exact-metadata', published: true });
+    await expect(
+      createNpmRegistryVersionProofView(splitBrainRunner)(
+        '@ontrails/cloudflare',
+        '1.0.0-beta.39'
+      )
+    ).resolves.toEqual({ kind: 'unavailable', published: false });
   });
 
   test('treats npm exact-version ETARGET as an unpublished target', async () => {
@@ -422,6 +544,9 @@ describe('npm registry fallback wiring', () => {
     const runNpm: NpmCommandRunner = async (args) => {
       commands.push([...args]);
       if (args[0] === 'view') {
+        return noMatchingVersionResult;
+      }
+      if (args[0] === 'pack') {
         return noMatchingVersionResult;
       }
       throw new Error(`unexpected npm command: ${args.join(' ')}`);
@@ -432,6 +557,7 @@ describe('npm registry fallback wiring', () => {
     ).resolves.toBe(false);
     expect(commands).toEqual([
       ['view', '@ontrails/core@1.0.0-beta.30', 'version', '--json'],
+      ['pack', '@ontrails/core@1.0.0-beta.30', '--dry-run', '--json'],
     ]);
   });
 });

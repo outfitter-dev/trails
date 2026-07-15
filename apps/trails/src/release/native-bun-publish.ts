@@ -18,7 +18,7 @@ import {
   checkRegistryPosture,
   classifyPackageRegistryState,
   factsFromRegistryResult,
-  npmRegistryVersionView,
+  npmRegistryVersionProofView,
   npmRegistryView,
 } from './native-bun-registry.js';
 import type { PackageRegistryState } from './native-bun-registry.js';
@@ -820,7 +820,7 @@ const runPublish = async (
   const registryResults = await checkRegistryPosture(
     publicWorkspaces,
     npmRegistryView,
-    npmRegistryVersionView,
+    npmRegistryVersionProofView,
     tag
   );
   const registryStates = new Map<string, PackageRegistryState>();
