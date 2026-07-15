@@ -66,6 +66,8 @@ export type {
   VocabularyRegradePlan,
   VocabularyRegradeScope,
   VocabularyRegradeRun,
+  VocabularyScopePolicy,
+  VocabularyScopeTier,
   VocabularyRunGate,
   VocabularyRunLedger,
   VocabularyRunReport,

@@ -43,7 +43,7 @@ Record:
 - skip reasons;
 - whether the gate is open and why.
 
-If the first plan scans historical release notes, memory, archive plans, generated output, or local scratch space, fix the transition scope or project config before applying. Do not wave it through as "just noisy."
+If the first plan scans generated output or local scratch space, fix the hard-exclude scope or project config before applying. Historical release notes, changelogs, changesets, accepted ADRs, archive plans, and authored decision or agent memory should remain visible as policy-classified evidence: confirm they are counted as `historical-by-policy` and cannot be rewritten by default. Do not wave either class through as "just noisy."
 
 When the conservative plan needs wider discovery, rerun `trails regrade plan <from> <to> --expand --root-dir . --json` for the same transition and review the plan's `expansion.candidates` section. Use `trails regrade check --plan "$PLAN_PATH"`, `trails regrade preview --plan "$PLAN_PATH"`, and `trails regrade apply --plan "$PLAN_PATH"` after the plan exists. Expansion candidates are durable review inventory with kind, value, evidence, suggested classification, and status. Rejected candidates stay in the plan as suppression memory; adopted candidates move into the primary authored plan sections before apply. Pending expansion candidates are never applied by themselves.
 
@@ -63,7 +63,7 @@ Classify each occurrence as one of:
 | preserved | The old form intentionally remains because it is transition machinery, a fixture, or current historical truth. |
 | deferred | Regrade routed it to review or the executor left it for a later family. |
 | skipped | Regrade skipped the file or occurrence with a recorded reason. |
-| historical | The occurrence lives in a changelog, old release note, archived plan, memory, branch reference, or other historical namespace. |
+| historical | The occurrence lives in a changelog, old release note, archived plan, decision memory, branch reference, or other typed policy namespace. It is reported as `historical-by-policy` and never rewritten by default. |
 | out of family | The match is a different word or substring and not part of the transition. |
 
 The census must name the commands used and the exact paths where old public identifiers remain. A family branch cannot leave draft with a hand-waved "grep looked clean."
@@ -117,7 +117,8 @@ Every family PR body and retro must include an "Execution Gate Evidence" block:
 - Regrade check/preview: `<commands>` -> `<saved-json-paths>`
 - Regrade apply dry-run: `<command>` -> `<saved-json-path>`
 - Regrade apply: `<command>` -> `<saved-json-path>`, `history.path <path>`
-- Counts: changed N, preserved N, deferred N, skipped N, historical N
+- Counts: changed N, preserved N, deferred N, skipped N, policy-classified N (`historical-by-policy` N)
+- Teaching surfaces: touched N of N census-expected paths; missing 0
 - Census: product identifiers 0 unexpected, registry/test fixtures N expected, historical N preserved
 - CLI/MCP evidence: `<commands>`
 - Review: local P2+ clear, remote P2+ clear or explicitly unavailable

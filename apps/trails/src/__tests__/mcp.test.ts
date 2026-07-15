@@ -50,26 +50,9 @@ const parseJson = (text: string | undefined): unknown => {
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-mcp-regrade-test-${Date.now()}-`));
 const facetTrailheadRegistryExcludes = [
-  '.agents/goals/**',
-  '**/.agents/goals/**',
-  '.agents/memory/**',
-  '**/.agents/memory/**',
-  '.agents/notes/**',
-  '**/.agents/notes/**',
-  '.claude/agent-memory/**',
-  '**/.claude/agent-memory/**',
-  '.agents/plans/archive/**',
-  '**/.agents/plans/archive/**',
-  '.changeset/**',
-  '**/.changeset/**',
   '.scratch/**',
   '**/.scratch/**',
-  '.trails/regrade/history/**',
-  '**/.trails/regrade/history/**',
-  '**/CHANGELOG.md',
   '**/.tmp-tests/**',
-  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
-  'packages/warden/src/rules/retired-vocabulary.ts',
 ];
 
 const writeFile = (root: string, path: string, value: string): void => {
@@ -213,6 +196,8 @@ describe('Trails MCP surface shaping', () => {
           type: 'array',
         }),
         from: expect.objectContaining({ type: 'string' }),
+        policyClassified: expect.objectContaining({ type: 'array' }),
+        teachingSurfaces: expect.objectContaining({ type: 'array' }),
         to: expect.objectContaining({ type: 'string' }),
       },
       type: 'object',
@@ -339,26 +324,30 @@ describe('Trails MCP surface shaping', () => {
         run: {
           plan: { from: 'facet', to: 'trailhead' },
           report: {
+            dispositions: {
+              'code-context-out-of-engine': 1,
+              'historical-by-policy': 7,
+            },
             gate: {
               remaining: 1,
               status: 'open',
             },
             modified: 1,
             open: 1,
+            scopeTiers: { 'in-scope': 1, 'policy-classified': 7 },
           },
         },
         scan: {
           byDirectory: [{ files: 1, path: 'src' }],
           byExtension: [{ extension: '.ts', files: 1 }],
-          files: { matched: 1, scanned: 1, skipped: 2 },
+          files: { matched: 1, scanned: 2, skipped: 1 },
         },
       });
       expect(result.structuredContent).toMatchObject({
         scan: {
-          files: { skipped: 2 },
+          files: { skipped: 1 },
           skippedByReason: {
             'ignored-directory': 1,
-            'unsupported-extension': 1,
           },
         },
       });
@@ -368,7 +357,16 @@ describe('Trails MCP surface shaping', () => {
       expect(structured.selectedClassIds).toContain(
         'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId'
       );
-      expect(structured.run?.ledger?.occurrences).toEqual([]);
+      expect(structured.run?.ledger?.occurrences).toHaveLength(7);
+      expect(structured.run?.ledger?.occurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: '.trails/regrade/facet-to-trailhead.json',
+            scopeTier: 'policy-classified',
+            verdict: 'skipped',
+          }),
+        ])
+      );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facetId'
       );
@@ -381,6 +379,12 @@ describe('Trails MCP surface shaping', () => {
     const dir = makeTempDir();
     try {
       writeFile(dir, 'docs/surface.md', 'Trailhead docs are already clean.\n');
+      writeFile(dir, 'CHANGELOG.md', 'The facet API shipped in beta.\n');
+      writeFile(
+        dir,
+        'scripts/vocab-cutover-fixture.ts',
+        'export const facet = "facet";\n'
+      );
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const planRegrade = requireTool(tools, 'trails_plan_regrade');
       const listRegrades = requireTool(tools, 'trails_list_regrades');
@@ -433,7 +437,35 @@ describe('Trails MCP surface shaping', () => {
           path: '.trails/regrade/facet-to-trailhead.json',
           status: 'active',
         },
+        run: {
+          report: {
+            dispositions: { 'historical-by-policy': 10 },
+            scopeTiers: { 'in-scope': 0, 'policy-classified': 10 },
+          },
+        },
       });
+      const previewOccurrences = (
+        previewed.structuredContent as {
+          readonly run?: {
+            readonly ledger?: {
+              readonly occurrences?: readonly {
+                readonly path?: string;
+                readonly scopeTier?: string;
+                readonly verdict?: string;
+              }[];
+            };
+          };
+        }
+      ).run?.ledger?.occurrences;
+      expect(previewOccurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'scripts/vocab-cutover-fixture.ts',
+            scopeTier: 'policy-classified',
+            verdict: 'skipped',
+          }),
+        ])
+      );
 
       const applied = await applyRegrade.handler({ rootDir: dir }, {});
       expect(applied.isError).toBeUndefined();
@@ -459,6 +491,12 @@ describe('Trails MCP surface shaping', () => {
       expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
         'Trailhead docs are already clean.\n'
       );
+      expect(readFileSync(join(dir, 'CHANGELOG.md'), 'utf8')).toBe(
+        'The facet API shipped in beta.\n'
+      );
+      expect(
+        readFileSync(join(dir, 'scripts', 'vocab-cutover-fixture.ts'), 'utf8')
+      ).toBe('export const facet = "facet";\n');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -601,7 +639,7 @@ describe('Trails MCP surface shaping', () => {
         from: 'facet',
         id: 'v1-facet-trailhead',
         scope: {
-          exclude: facetTrailheadRegistryExcludes,
+          exclude: [...facetTrailheadRegistryExcludes, '.agents/notes/**'],
         },
         to: 'trailhead',
       });

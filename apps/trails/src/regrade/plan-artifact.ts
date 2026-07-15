@@ -245,9 +245,33 @@ const canonicalizeJsonValue = (value: unknown): unknown => {
 export const canonicalJsonStringify = (value: unknown): string =>
   JSON.stringify(canonicalizeJsonValue(value));
 
+export const isGeneratedRegradeArtifactPath = (path: string): boolean =>
+  /(?:^|\/)\.trails\/regrade\/.+\.json$/u.test(path);
+
+const sourceHashLedgerFacts = (report: RegradeReport): unknown => {
+  const ledger = report.run?.ledger;
+  if (ledger === undefined) {
+    return undefined;
+  }
+  // The active plan is written after its source hash and must not stale itself.
+  const occurrences = ledger.occurrences.filter(
+    (occurrence) =>
+      occurrence.scopeTier !== 'policy-classified' ||
+      !isGeneratedRegradeArtifactPath(occurrence.path)
+  );
+  const forms = new Set(occurrences.map((occurrence) => occurrence.form));
+  return {
+    cycle: ledger.cycle,
+    forms: Object.fromEntries(
+      Object.entries(ledger.forms).filter(([form]) => forms.has(form))
+    ),
+    occurrences,
+  };
+};
+
 const regradeSourceHashFacts = (report: RegradeReport): unknown => ({
   entries: sourceHashEntryFacts(report.entries),
-  ledger: report.run?.ledger,
+  ledger: sourceHashLedgerFacts(report),
   selectedClassIds: report.selectedClassIds,
 });
 

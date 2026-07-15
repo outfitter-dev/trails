@@ -134,16 +134,23 @@ describe('governed vocabulary registry', () => {
     });
   });
 
-  test('keeps v1 vocabulary transitions from rewriting the registry itself', () => {
+  test('classifies the governed registry as protected evidence', () => {
     const v1Transitions = listGovernedVocabularyTransitions().filter(
       (transition) => transition.id.startsWith('v1-')
     );
 
     expect(v1Transitions.length).toBeGreaterThan(0);
     for (const transition of v1Transitions) {
-      expect(transition.scope?.exclude).toContain(
+      expect(transition.scope?.exclude).not.toContain(
         'packages/warden/src/rules/retired-vocabulary.ts'
       );
+      expect(
+        transition.scope?.policyClassified?.some((policy) =>
+          policy.paths.includes(
+            'packages/warden/src/rules/retired-vocabulary.ts'
+          )
+        )
+      ).toBe(true);
     }
   });
 
@@ -153,43 +160,66 @@ describe('governed vocabulary registry', () => {
     );
 
     for (const transition of v1Transitions) {
-      expect(transition.scope?.exclude).toContain('.scratch/**');
-      expect(transition.scope?.exclude).toContain('.agents/goals/**');
-      expect(transition.scope?.exclude).toContain('**/.agents/goals/**');
-      expect(transition.scope?.exclude).toContain('.agents/notes/**');
-      expect(transition.scope?.exclude).toContain('**/.agents/notes/**');
-      expect(transition.scope?.exclude).toContain('.claude/agent-memory/**');
-      expect(transition.scope?.exclude).toContain('**/.claude/agent-memory/**');
-      expect(transition.scope?.exclude).toContain('**/.tmp-tests/**');
+      const { scope } = transition;
+      expect(scope).toBeDefined();
+      if (scope === undefined) {
+        throw new Error(`Expected scope for ${transition.id}.`);
+      }
+      expect(scope.exclude).toEqual(
+        expect.arrayContaining(['.scratch/**', '**/.tmp-tests/**'])
+      );
+      expect(scope.exclude).not.toContain('.agents/goals/**');
+      expect(scope.exclude).not.toContain('.agents/memory/**');
+      expect(scope.exclude).not.toContain('.agents/notes/**');
+      expect(scope.exclude).not.toContain('.claude/agent-memory/**');
+      expect(scope.exclude).not.toContain('**/CHANGELOG.md');
+      expect(scope.exclude).not.toContain('.changeset/**');
 
-      const historical = transition.preserve.find((rule) =>
-        rule.paths?.includes('docs/adr/0*.md')
+      const historical = scope.policyClassified?.find(
+        (policy) => policy.disposition === 'historical-by-policy'
       );
       expect(historical?.paths).toContain('.agents/plans/**');
+      expect(historical?.paths).toContain('.agents/goals/**');
+      expect(historical?.paths).toContain('.agents/memory/**');
+      expect(historical?.paths).toContain('.agents/notes/**');
+      expect(historical?.paths).toContain('.claude/agent-memory/**');
       expect(historical?.paths).toContain('**/.agents/plans/**');
       expect(historical?.paths).toContain('docs/adr/decision-map.json');
       expect(historical?.paths).toContain('docs/migration/**');
       expect(historical?.paths).toContain('docs/releases/beta*.md');
       expect(historical?.paths).toContain('scripts/vocab-cutover-*.ts');
-      expect(historical?.pattern).toBeDefined();
+      expect(historical?.paths).toContain('**/CHANGELOG.md');
+      expect(historical?.paths).toContain('.changeset/**');
+      expect(historical?.reason).toBeDefined();
     }
   });
 
-  test('preserves historical compounds with escaped old-form patterns', () => {
+  test('records the planned family teaching and historical census expectations', () => {
+    const projection = getGovernedVocabularyTransition(
+      'v1-projection-derive-render'
+    );
+    expect(projection?.scope?.teachingSurfaces).toEqual(['docs/**']);
+    expect(
+      projection?.scope?.policyClassified?.some(
+        (policy) =>
+          policy.expectMatches === true &&
+          policy.paths.includes('docs/adr/0*.md')
+      )
+    ).toBe(true);
+  });
+
+  test('classifies historical paths without encoding transition forms twice', () => {
     const implementation = getGovernedVocabularyTransition(
       'v1-blaze-implementation'
     );
 
-    const implementationHistorical = implementation?.preserve.find((rule) =>
-      rule.paths?.includes('.agents/plans/**')
-    );
+    const implementationHistorical =
+      implementation?.scope?.policyClassified?.find(
+        (policy) => policy.disposition === 'historical-by-policy'
+      );
 
-    expect(implementationHistorical?.pattern).toBe(
-      '(?:blaze|blazes|Blaze|blazing|blazed|trailblaze)'
-    );
-    expect('blazeBody').toMatch(
-      new RegExp(implementationHistorical?.pattern ?? '')
-    );
+    expect(implementationHistorical?.paths).toContain('.agents/plans/**');
+    expect(implementationHistorical).not.toHaveProperty('pattern');
   });
 
   test('governs exact blaze string literals without inflected literal rewrites', () => {
@@ -382,24 +412,23 @@ describe('governed vocabulary registry', () => {
       'v1-topographer-topography'
     );
 
-    expect(topography?.scope?.exclude).toContain(
+    expect(topography?.scope?.exclude).toContain('.scratch/**');
+    expect(topography?.scope?.exclude).not.toContain('.agents/memory/**');
+
+    const historical = topography?.scope?.policyClassified?.find(
+      (policy) => policy.disposition === 'historical-by-policy'
+    );
+    expect(historical?.paths).toContain(
       'packages/warden/src/rules/retired-vocabulary.ts'
     );
-    expect(topography?.scope?.exclude).toContain(
+    expect(historical?.paths).toContain(
       'packages/warden/src/__tests__/retired-vocabulary.test.ts'
     );
-    expect(topography?.scope?.exclude).toContain('.scratch/**');
-    expect(topography?.scope?.exclude).toContain('.agents/memory/**');
-    expect(topography?.scope?.exclude).toContain('**/.agents/memory/**');
-
-    const historical = topography?.preserve.find((rule) =>
-      rule.paths?.includes('docs/adr/0*.md')
-    );
+    expect(historical?.paths).toContain('.agents/memory/**');
+    expect(historical?.paths).toContain('**/.agents/memory/**');
     expect(historical?.paths).toContain('.agents/plans/**');
     expect(historical?.paths).toContain('docs/releases/v1-vocabulary-reset.md');
-    expect(historical?.pattern).toBe(
-      '(?:@ontrails/topographer|@ontrails/topographer/backend-support|0042-core-topographer-boundary-doctrine|core-topographer-boundary-doctrine|Topographer-owned|packages/topographer|topographer|topographers|Topographer)'
-    );
+    expect(historical).not.toHaveProperty('pattern');
   });
 
   test('governs the warden ast package route as an exact code string only', () => {

@@ -3,6 +3,7 @@ import {
   Result,
   ValidationError,
   escapeRegExp,
+  isPlainObject,
   matchesAnyPathGlob,
 } from '@ontrails/core';
 import { createHash } from 'node:crypto';
@@ -17,7 +18,10 @@ import {
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
-import { collectDownstreamSources } from './collect.js';
+import {
+  DEFAULT_IGNORED_DIRECTORIES,
+  collectDownstreamSources,
+} from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import type {
   RegradeApplySummary,
@@ -26,13 +30,14 @@ import type {
 } from './report.js';
 import { buildRegradeScanSummary } from './scan-summary.js';
 
-export type VocabularyVerdict = 'deferred' | 'modified' | 'skipped';
+export type VocabularyVerdict = 'applied' | 'deferred' | 'modified' | 'skipped';
 
 export const vocabularyDispositionValues = [
   'code-context-out-of-engine',
   'docs-only',
   'explicit-preserve',
   'forward-pointer',
+  'historical-by-policy',
   'ignored-by-scope',
   'in-family-modified',
   'in-family-unresolved',
@@ -58,6 +63,15 @@ export interface VocabularyPreserveInventoryEntry extends VocabularyPreserveRule
   readonly source: 'derived-live-api';
 }
 
+export interface VocabularyScopePolicy {
+  readonly disposition: VocabularyDisposition;
+  readonly expectMatches?: boolean | undefined;
+  readonly paths: readonly string[];
+  readonly reason: string;
+}
+
+export type VocabularyScopeTier = 'in-scope' | 'policy-classified';
+
 export interface VocabularyRegradeScope {
   readonly exclude?: readonly string[];
   readonly extensions?: readonly string[];
@@ -68,6 +82,8 @@ export interface VocabularyRegradeScope {
    */
   readonly ignoredDirectories?: readonly string[];
   readonly include?: readonly string[];
+  readonly policyClassified?: readonly VocabularyScopePolicy[];
+  readonly teachingSurfaces?: readonly string[];
 }
 
 export interface VocabularyRegradePlan {
@@ -94,6 +110,7 @@ export interface VocabularyOccurrence {
   readonly reason: string;
   readonly replacement?: string;
   readonly start: number;
+  readonly scopeTier: VocabularyScopeTier;
   readonly verdict: VocabularyVerdict;
 }
 
@@ -123,6 +140,12 @@ export interface VocabularyRunReport {
   readonly modified: number;
   readonly open: number;
   readonly skipped: number;
+  readonly scopeTiers: Readonly<Record<VocabularyScopeTier, number>>;
+  readonly teachingSurfaces: {
+    readonly expected: readonly string[];
+    readonly missing: readonly string[];
+    readonly touched: readonly string[];
+  };
 }
 
 export interface VocabularyRegradeRun {
@@ -172,7 +195,7 @@ interface SourceOccurrence extends VocabularyOccurrence {
 
 interface SourceOccurrenceDraft extends Omit<
   SourceOccurrence,
-  'disposition' | 'reason' | 'verdict'
+  'disposition' | 'reason' | 'scopeTier' | 'verdict'
 > {
   readonly contextColumn: number;
 }
@@ -218,6 +241,81 @@ const vocabularyDispositionCounts = (
       left.localeCompare(right)
     )
   );
+};
+
+const vocabularyFormVerdicts = (
+  occurrences: readonly VocabularyOccurrence[]
+): Readonly<Record<string, VocabularyVerdict>> => {
+  const priority: Readonly<Record<VocabularyVerdict, number>> = {
+    applied: 1,
+    deferred: 3,
+    modified: 2,
+    skipped: 0,
+  };
+  const forms: Record<string, VocabularyVerdict> = {};
+  for (const occurrence of occurrences) {
+    if (occurrence.verdict === 'applied') {
+      continue;
+    }
+    const current = forms[occurrence.form];
+    if (
+      current === undefined ||
+      priority[occurrence.verdict] > priority[current]
+    ) {
+      forms[occurrence.form] = occurrence.verdict;
+    }
+  }
+  return forms;
+};
+
+const vocabularyScopeTierCounts = (
+  occurrences: readonly VocabularyOccurrence[]
+): Readonly<Record<VocabularyScopeTier, number>> => ({
+  'in-scope': occurrences.filter(
+    (occurrence) => occurrence.scopeTier === 'in-scope'
+  ).length,
+  'policy-classified': occurrences.filter(
+    (occurrence) => occurrence.scopeTier === 'policy-classified'
+  ).length,
+});
+
+const vocabularyScopeEvidence = (
+  plan: VocabularyRegradePlan,
+  occurrences: readonly VocabularyOccurrence[]
+): {
+  readonly gateReasons: readonly string[];
+  readonly scopeTiers: Readonly<Record<VocabularyScopeTier, number>>;
+  readonly teachingSurfaces: VocabularyRunReport['teachingSurfaces'];
+} => {
+  const expected = uniqueSorted(plan.scope?.teachingSurfaces ?? []);
+  const touched = expected.filter((pattern) =>
+    occurrences.some(
+      (occurrence) =>
+        occurrence.scopeTier === 'in-scope' &&
+        matchesAnyPathGlob(occurrence.path, [pattern])
+    )
+  );
+  const missing = expected.filter((pattern) => !touched.includes(pattern));
+  const expectedPolicyMissing =
+    plan.scope?.policyClassified?.some(
+      (policy) =>
+        policy.expectMatches === true &&
+        !occurrences.some(
+          (occurrence) =>
+            occurrence.scopeTier === 'policy-classified' &&
+            matchesAnyPathGlob(occurrence.path, policy.paths)
+        )
+    ) ?? false;
+  return {
+    gateReasons: [
+      ...(expectedPolicyMissing
+        ? ['expected-policy-classified-evidence-missing']
+        : []),
+      ...(missing.length === 0 ? [] : ['expected-teaching-surfaces-missing']),
+    ],
+    scopeTiers: vocabularyScopeTierCounts(occurrences),
+    teachingSurfaces: { expected, missing, touched },
+  };
 };
 
 const isVocabularyTokenCharacter = (
@@ -573,6 +671,49 @@ const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] => {
   ]);
 };
 
+const validateVocabularyScope = (
+  scope: VocabularyRegradeScope | undefined
+): Result<void, ValidationError> => {
+  const excludedDocsPattern = scope?.exclude?.find(
+    (pattern) =>
+      /(^|\/)docs(?:\/|$)/.test(pattern) ||
+      matchesAnyPathGlob('docs/regrade-teaching.md', [pattern]) ||
+      matchesAnyPathGlob('docs/regrade-teaching.mdx', [pattern])
+  );
+  if (excludedDocsPattern !== undefined) {
+    return Result.err(
+      new ValidationError(
+        `Vocabulary Regrade plans cannot hard-exclude docs with "${excludedDocsPattern}"; use a policyClassified rule with a reason.`
+      )
+    );
+  }
+  for (const policy of scope?.policyClassified ?? []) {
+    if (policy.paths.length === 0 || policy.reason.trim().length === 0) {
+      return Result.err(
+        new ValidationError(
+          'Vocabulary Regrade policyClassified rules require paths and a reason.'
+        )
+      );
+    }
+    const excludedPolicyPath = policy.paths.find((policyPath) =>
+      scope?.exclude?.some(
+        (excludedPath) =>
+          excludedPath === policyPath ||
+          matchesAnyPathGlob(policyPath, [excludedPath]) ||
+          matchesAnyPathGlob(excludedPath, [policyPath])
+      )
+    );
+    if (excludedPolicyPath !== undefined) {
+      return Result.err(
+        new ValidationError(
+          `Vocabulary Regrade scope cannot both exclude and policy-classify "${excludedPolicyPath}".`
+        )
+      );
+    }
+  }
+  return Result.ok();
+};
+
 const validateVocabularyPlan = (
   plan: VocabularyRegradePlan
 ): Result<void, ValidationError> => {
@@ -637,7 +778,7 @@ const validateVocabularyPlan = (
       );
     }
   }
-  return Result.ok();
+  return validateVocabularyScope(plan.scope);
 };
 
 const validatePreserveInventory = (
@@ -768,6 +909,43 @@ const preserveRuleForOccurrence = (
     return rule.forms === undefined && pattern.test(occurrence.context);
   });
 
+const scopePolicyForPath = (
+  path: string,
+  scope: VocabularyRegradeScope | undefined
+): VocabularyScopePolicy | undefined =>
+  scope?.policyClassified?.find((policy) =>
+    matchesAnyPathGlob(path, policy.paths)
+  );
+
+const scopePolicyForOccurrence = (
+  occurrence: SourceOccurrenceDraft,
+  plan: VocabularyRegradePlan
+): VocabularyScopePolicy | undefined =>
+  scopePolicyForPath(occurrence.path, plan.scope);
+
+const occurrenceClassification = (
+  occurrence: SourceOccurrenceDraft,
+  plan: VocabularyRegradePlan
+): {
+  readonly preserveRule: VocabularyPreserveRule | undefined;
+  readonly scopeTier: VocabularyScopeTier;
+} => {
+  const policy = scopePolicyForOccurrence(occurrence, plan);
+  const preserveRule = preserveRuleForOccurrence(occurrence, plan);
+  return {
+    preserveRule:
+      preserveRule ??
+      (policy === undefined
+        ? undefined
+        : {
+            disposition: policy.disposition,
+            pattern: occurrence.form,
+            reason: policy.reason,
+          }),
+    scopeTier: policy === undefined ? 'in-scope' : 'policy-classified',
+  };
+};
+
 const occurrenceOverlaps = (
   occurrences: readonly {
     readonly end: number;
@@ -807,7 +985,10 @@ const deferredOccurrenceFromDraft = (
   baseOccurrence: SourceOccurrenceDraft,
   reason = 'unclassified-neighbor'
 ): SourceOccurrence => {
-  const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
+  const { preserveRule, scopeTier } = occurrenceClassification(
+    baseOccurrence,
+    plan
+  );
   const markdownCodeContext = isMarkdownCodeContext(
     file,
     baseOccurrence.start,
@@ -832,6 +1013,7 @@ const deferredOccurrenceFromDraft = (
       markdownCodeContext,
       reason
     ),
+    scopeTier,
     start: baseOccurrence.start,
     verdict,
   };
@@ -940,7 +1122,10 @@ const occurrencesForFile = (
         path: file.path,
         start,
       };
-      const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
+      const { preserveRule, scopeTier } = occurrenceClassification(
+        baseOccurrence,
+        plan
+      );
       const markdownCodeContext = isMarkdownCodeContext(file, start, end);
       const packageRouteCodeContext = isPackageRouteCodeOccurrence(
         file.path,
@@ -981,6 +1166,7 @@ const occurrencesForFile = (
           markdownCodeContext,
           capturedReason
         ),
+        scopeTier,
         ...(preserveRule === undefined &&
         !markdownCodeContext &&
         !packageRouteCodeContext &&
@@ -1246,21 +1432,7 @@ const buildVocabularyEvaluation = (params: {
     (occurrence) =>
       occurrence.verdict === 'modified' || occurrence.verdict === 'deferred'
   );
-  const forms: Record<string, VocabularyVerdict> = {};
-  for (const occurrence of occurrences) {
-    const current = forms[occurrence.form];
-    if (occurrence.verdict === 'deferred') {
-      forms[occurrence.form] = 'deferred';
-      continue;
-    }
-    if (occurrence.verdict === 'modified' && current !== 'deferred') {
-      forms[occurrence.form] = 'modified';
-      continue;
-    }
-    if (current === undefined) {
-      forms[occurrence.form] = 'skipped';
-    }
-  }
+  const forms = vocabularyFormVerdicts(occurrences);
   const gateReasons: string[] = [];
   if (modifiedOccurrences.length > 0) {
     gateReasons.push(
@@ -1273,6 +1445,8 @@ const buildVocabularyEvaluation = (params: {
     gateReasons.push('deferred-forms-or-occurrences');
   }
   const open = unresolvedOccurrences.length;
+  const scopeEvidence = vocabularyScopeEvidence(effectivePlan, occurrences);
+  gateReasons.push(...scopeEvidence.gateReasons);
 
   return {
     entries: [
@@ -1317,7 +1491,9 @@ const buildVocabularyEvaluation = (params: {
         },
         modified: modifiedOccurrences.length,
         open,
+        scopeTiers: scopeEvidence.scopeTiers,
         skipped: skippedOccurrences.length,
+        teachingSurfaces: scopeEvidence.teachingSurfaces,
       },
     },
     scanned: scopedFiles.length,
@@ -1346,6 +1522,63 @@ const withApplySummary = (
   ...report,
   apply,
 });
+
+const appliedVocabularyRunReport = (
+  postApply: VocabularyRegradeRun,
+  occurrences: readonly VocabularyOccurrence[],
+  apply: RegradeApplySummary
+): VocabularyRunReport => {
+  const scopeEvidence = vocabularyScopeEvidence(postApply.plan, occurrences);
+  const reasons = uniqueSorted([
+    ...postApply.report.gate.reasons.filter(
+      (reason) =>
+        reason !== 'expected-policy-classified-evidence-missing' &&
+        reason !== 'expected-teaching-surfaces-missing'
+    ),
+    ...scopeEvidence.gateReasons,
+  ]);
+  return {
+    ...postApply.report,
+    applied: apply.applied,
+    dispositions: vocabularyDispositionCounts(occurrences),
+    filesChanged: apply.filesChanged,
+    gate: {
+      ...postApply.report.gate,
+      reasons,
+      status: reasons.length === 0 ? 'green' : 'open',
+    },
+    scopeTiers: scopeEvidence.scopeTiers,
+    teachingSurfaces: scopeEvidence.teachingSurfaces,
+  };
+};
+
+const vocabularyRunWithAppliedOccurrences = (
+  postApply: VocabularyRegradeRun,
+  dryRun: VocabularyRegradeRun,
+  apply: RegradeApplySummary
+): VocabularyRegradeRun => {
+  const appliedOccurrences = dryRun.ledger.occurrences
+    .filter((occurrence) => occurrence.verdict === 'modified')
+    .map((occurrence) => ({ ...occurrence, verdict: 'applied' as const }));
+  const occurrences = [
+    ...postApply.ledger.occurrences,
+    ...appliedOccurrences,
+  ].toSorted(
+    (left, right) =>
+      left.path.localeCompare(right.path) ||
+      left.start - right.start ||
+      left.verdict.localeCompare(right.verdict)
+  );
+  return {
+    ...postApply,
+    ledger: {
+      ...postApply.ledger,
+      forms: vocabularyFormVerdicts(occurrences),
+      occurrences,
+    },
+    report: appliedVocabularyRunReport(postApply, occurrences, apply),
+  };
+};
 
 const applyVocabularyEvaluation = (
   files: readonly SourceFile[],
@@ -1449,12 +1682,69 @@ const buildRunVocabularyEvaluation = (params: {
     skipped: params.skipped,
   });
 
+const ignoredDirectoriesOpenedByPolicy = (
+  scope: VocabularyRegradeScope | undefined
+): readonly string[] =>
+  (scope?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES).filter(
+    (directory) =>
+      scope?.policyClassified?.some((policy) =>
+        policy.paths.some((pattern) => pattern.split('/').includes(directory))
+      )
+  );
+
+const vocabularyIgnoredDirectories = (
+  scope: VocabularyRegradeScope | undefined
+): readonly string[] => {
+  const opened = ignoredDirectoriesOpenedByPolicy(scope);
+  return (scope?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES).filter(
+    (directory) => !opened.includes(directory)
+  );
+};
+
+const filterVocabularyCollection = (
+  files: readonly { readonly absolutePath: string; readonly path: string }[],
+  scope: VocabularyRegradeScope | undefined,
+  sourceFilter: ((path: string) => boolean) | undefined
+): {
+  readonly files: readonly {
+    readonly absolutePath: string;
+    readonly path: string;
+  }[];
+  readonly skipped: readonly SkippedSource[];
+} => {
+  const opened = ignoredDirectoriesOpenedByPolicy(scope);
+  const selected = files.filter((file) => {
+    const openedDirectory = file.path
+      .split('/')
+      .some((segment) => opened.includes(segment));
+    return (
+      (!openedDirectory ||
+        scopePolicyForPath(file.path, scope) !== undefined) &&
+      (sourceFilter?.(file.path) ?? true)
+    );
+  });
+  const selectedPaths = new Set(selected.map((file) => file.path));
+  return {
+    files: selected,
+    skipped: files
+      .filter((file) => !selectedPaths.has(file.path))
+      .map((file) => ({
+        path: file.path,
+        reason:
+          sourceFilter?.(file.path) === false
+            ? 'not-selected-source'
+            : 'ignored-directory',
+      })),
+  };
+};
+
 export const runVocabularyRegrade = (params: {
   readonly apply?: boolean;
   readonly includeEntries?: 'actionable' | 'all';
   readonly plan: VocabularyRegradePlan;
   readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
   readonly root: string;
+  readonly sourceFilter?: (path: string) => boolean;
 }): Result<RegradeReport | null, InternalError | ValidationError> => {
   const planValidation = validateVocabularyPlan(params.plan);
   if (planValidation.isErr()) {
@@ -1480,15 +1770,23 @@ export const runVocabularyRegrade = (params: {
     ...(effectivePlan.scope?.include === undefined
       ? {}
       : { include: effectivePlan.scope.include }),
-    ...(effectivePlan.scope?.ignoredDirectories === undefined
-      ? {}
-      : { ignoredDirectories: effectivePlan.scope.ignoredDirectories }),
+    ignoredDirectories: vocabularyIgnoredDirectories(effectivePlan.scope),
   } satisfies DownstreamCollectionOptions);
   if (collected === null) {
     return Result.ok(null);
   }
 
-  const { files, skipped } = readVocabularySourceFiles(collected);
+  const filtered = filterVocabularyCollection(
+    collected.files,
+    effectivePlan.scope,
+    params.sourceFilter
+  );
+  const { files, skipped: readSkipped } = readVocabularySourceFiles({
+    ...collected,
+    files: filtered.files,
+    skipped: [...collected.skipped, ...filtered.skipped],
+  });
+  const skipped = readSkipped;
 
   const dryRunEffectiveEvaluation = buildRunVocabularyEvaluation({
     apply: false,
@@ -1543,14 +1841,11 @@ export const runVocabularyRegrade = (params: {
     run:
       applySummary === undefined
         ? reportEvaluation.run
-        : {
-            ...reportEvaluation.run,
-            report: {
-              ...reportEvaluation.run.report,
-              applied: applySummary.applied,
-              filesChanged: applySummary.filesChanged,
-            },
-          },
+        : vocabularyRunWithAppliedOccurrences(
+            reportEvaluation.run,
+            dryRunEffectiveEvaluation.run,
+            applySummary
+          ),
     scan: buildRegradeScanSummary({
       matchedPaths: actionableEntries.map((entry) => entry.path),
       occurrencePaths: reportEvaluation.occurrences.map(
@@ -1591,6 +1886,21 @@ const vocabularyPreserveRuleSchema = z.object({
   reason: z.string().optional().describe('Why this form is preserved'),
 });
 
+const vocabularyScopePolicySchema = z.object({
+  disposition: z
+    .enum(vocabularyDispositionValues)
+    .describe('Occurrence disposition assigned within this protected scope'),
+  expectMatches: z
+    .boolean()
+    .optional()
+    .describe('Require this policy scope to contribute occurrence evidence'),
+  paths: z
+    .array(z.string().min(1))
+    .min(1)
+    .describe('Root-relative protected path patterns'),
+  reason: z.string().min(1).describe('Why matching files are classified'),
+});
+
 const vocabularyPreserveInventoryEntrySchema =
   vocabularyPreserveRuleSchema.extend({
     evidence: z
@@ -1627,6 +1937,16 @@ const vocabularyRegradeScopeSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Root-relative path patterns to include in this regrade'),
+  policyClassified: z
+    .array(vocabularyScopePolicySchema)
+    .optional()
+    .describe(
+      'Protected paths that remain scanned and counted but are never rewritten by default'
+    ),
+  teachingSurfaces: z
+    .array(z.string().min(1))
+    .optional()
+    .describe('Expected current teaching-surface path patterns'),
 });
 
 export const vocabularyRegradePlanSchema = z.object({
@@ -1661,7 +1981,10 @@ export const vocabularyRegradeRunOutput = z.object({
     .object({
       cycle: z.number().describe('Observed regrade run cycle'),
       forms: z
-        .record(z.string(), z.enum(['deferred', 'modified', 'skipped']))
+        .record(
+          z.string(),
+          z.enum(['applied', 'deferred', 'modified', 'skipped'])
+        )
         .describe('Observed per-form triage verdicts for this run'),
       occurrences: z
         .array(
@@ -1680,9 +2003,12 @@ export const vocabularyRegradeRunOutput = z.object({
               .string()
               .optional()
               .describe('Replacement text for modified verdicts'),
+            scopeTier: z
+              .enum(['in-scope', 'policy-classified'])
+              .describe('Three-tier scope classification for this occurrence'),
             start: z.number().describe('Source start offset'),
             verdict: z
-              .enum(['deferred', 'modified', 'skipped'])
+              .enum(['applied', 'deferred', 'modified', 'skipped'])
               .describe('Occurrence-level verdict'),
           })
         )
@@ -1722,7 +2048,20 @@ export const vocabularyRegradeRunOutput = z.object({
         .describe(
           'Deferred or unapplied modified occurrences holding the gate open'
         ),
+      scopeTiers: z
+        .object({
+          'in-scope': z.number(),
+          'policy-classified': z.number(),
+        })
+        .describe('Occurrence counts grouped by scope tier'),
       skipped: z.number().describe('Skipped occurrence count'),
+      teachingSurfaces: z
+        .object({
+          expected: z.array(z.string()),
+          missing: z.array(z.string()),
+          touched: z.array(z.string()),
+        })
+        .describe('Expected and observed current teaching surfaces'),
     })
     .describe('Projected run report'),
 });
@@ -1783,6 +2122,81 @@ export const vocabularyTransitionRecordSchema = z
       .strict(),
   })
   .strict();
+
+const normalizeLegacyTransitionRecordScopeEvidence = (
+  value: unknown
+): unknown => {
+  if (
+    !isPlainObject(value) ||
+    value['schemaVersion'] !== VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION
+  ) {
+    return value;
+  }
+  const { report } = value;
+  if (!isPlainObject(report)) {
+    return value;
+  }
+  const { run } = report;
+  if (!isPlainObject(run)) {
+    return value;
+  }
+  const { ledger, report: runReport } = run;
+  if (
+    !isPlainObject(ledger) ||
+    !Array.isArray(ledger['occurrences']) ||
+    !isPlainObject(runReport)
+  ) {
+    return value;
+  }
+  const plan = vocabularyRegradePlanSchema.safeParse(run['plan']);
+  if (!plan.success) {
+    return value;
+  }
+  const vocabularyPlan = plan.data as VocabularyRegradePlan;
+  const occurrences = ledger['occurrences'].map((occurrence) =>
+    isPlainObject(occurrence) &&
+    typeof occurrence['path'] === 'string' &&
+    occurrence['scopeTier'] === undefined
+      ? {
+          ...occurrence,
+          scopeTier:
+            scopePolicyForPath(occurrence['path'], vocabularyPlan.scope) ===
+            undefined
+              ? 'in-scope'
+              : 'policy-classified',
+        }
+      : occurrence
+  );
+  const scopeEvidence = vocabularyScopeEvidence(
+    vocabularyPlan,
+    occurrences.filter(
+      (occurrence) =>
+        isPlainObject(occurrence) &&
+        typeof occurrence['path'] === 'string' &&
+        (occurrence['scopeTier'] === 'in-scope' ||
+          occurrence['scopeTier'] === 'policy-classified')
+    ) as unknown as readonly VocabularyOccurrence[]
+  );
+  return {
+    ...value,
+    report: {
+      ...report,
+      run: {
+        ...run,
+        ledger: { ...ledger, occurrences },
+        report: {
+          ...runReport,
+          ...(runReport['scopeTiers'] === undefined
+            ? { scopeTiers: scopeEvidence.scopeTiers }
+            : {}),
+          ...(runReport['teachingSurfaces'] === undefined
+            ? { teachingSurfaces: scopeEvidence.teachingSurfaces }
+            : {}),
+        },
+      },
+    },
+  };
+};
 
 const transitionRecordSlug = (run: VocabularyRegradeRun): string =>
   `${run.plan.from}-to-${run.plan.to}`
@@ -1990,7 +2404,9 @@ export const readVocabularyTransitionRecord = (
       })
     );
   }
-  const parsed = vocabularyTransitionRecordSchema.safeParse(parsedJson);
+  const parsed = vocabularyTransitionRecordSchema.safeParse(
+    normalizeLegacyTransitionRecordScopeEvidence(parsedJson)
+  );
   if (!parsed.success) {
     return Result.err(
       new ValidationError('Invalid vocabulary transition record.', {

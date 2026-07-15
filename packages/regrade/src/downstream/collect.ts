@@ -24,8 +24,8 @@ import { z } from 'zod';
 /** Directory names never descended into during collection. */
 export const DEFAULT_IGNORED_DIRECTORIES: readonly string[] = Object.freeze([
   '.git',
-  '.turbo',
   '.trails',
+  '.turbo',
   'dist',
   'node_modules',
 ]);

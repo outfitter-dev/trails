@@ -28,43 +28,10 @@ const trailsBinPath = fileURLToPath(
 const cliTimeoutMs = 30_000;
 setDefaultTimeout(cliTimeoutMs);
 const facetTrailheadRegistryExcludes = [
-  '.agents/goals/**',
-  '**/.agents/goals/**',
-  '.agents/memory/**',
-  '**/.agents/memory/**',
-  '.agents/notes/**',
-  '**/.agents/notes/**',
-  '.claude/agent-memory/**',
-  '**/.claude/agent-memory/**',
-  '.agents/plans/archive/**',
-  '**/.agents/plans/archive/**',
-  '.changeset/**',
-  '**/.changeset/**',
   '.scratch/**',
   '**/.scratch/**',
-  '.trails/regrade/history/**',
-  '**/.trails/regrade/history/**',
-  '**/CHANGELOG.md',
   '**/.tmp-tests/**',
-  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
-  'packages/warden/src/rules/retired-vocabulary.ts',
 ];
-const facetTrailheadRegistryHistoricalPreserve = {
-  paths: [
-    '.agents/plans/**',
-    '**/.agents/plans/**',
-    'docs/adr/0*.md',
-    'docs/adr/decision-map.json',
-    'docs/migration/**',
-    'docs/releases/beta*.md',
-    'docs/releases/v1-vocabulary-reset.md',
-    'docs/releases/v1-vocabulary-transition-workflow.md',
-    'scripts/vocab-cutover-*.ts',
-  ],
-  pattern: '(?:facet|facets|Facet)',
-  reason:
-    'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
-};
 
 interface RawCliRun {
   readonly exitCode: number;
@@ -155,17 +122,28 @@ interface RegradeSchemaCommand {
 const expectRegradeSchemaFields = (
   command: RegradeSchemaCommand | undefined
 ) => {
-  expect(command?.input?.properties).toHaveProperty('configPath');
-  expect(command?.input?.properties).toHaveProperty('exclude');
-  expect(command?.input?.properties).toHaveProperty('from');
-  expect(command?.input?.properties).toHaveProperty('to');
-  expect(command?.output?.properties).toHaveProperty('path');
-  expect(command?.output?.properties).toHaveProperty('plan');
-  expect(command?.output?.properties).toHaveProperty('provenance');
-  expect(JSON.stringify(command?.input)).toContain('disposition');
-  expect(JSON.stringify(command?.input)).toContain('preserve-current-live-api');
-  expect(JSON.stringify(command?.output)).toContain('regrade-plan');
-  expect(JSON.stringify(command?.output)).toContain('schemaVersion');
+  if (command === undefined) {
+    throw new Error('Expected Regrade schema command.');
+  }
+  const { input } = command;
+  const { output } = command;
+  expect(input?.properties).toMatchObject({
+    configPath: expect.any(Object),
+    exclude: expect.any(Object),
+    from: expect.any(Object),
+    policyClassified: expect.any(Object),
+    teachingSurfaces: expect.any(Object),
+    to: expect.any(Object),
+  });
+  expect(output?.properties).toMatchObject({
+    path: expect.any(Object),
+    plan: expect.any(Object),
+    provenance: expect.any(Object),
+  });
+  expect(JSON.stringify(input)).toContain('disposition');
+  expect(JSON.stringify(input)).toContain('preserve-current-live-api');
+  expect(JSON.stringify(output)).toContain('regrade-plan');
+  expect(JSON.stringify(output)).toContain('schemaVersion');
 };
 
 const expectRegradeSchemaFlags = (
@@ -2171,17 +2149,57 @@ describe('trails regrade', () => {
             };
             readonly open?: number;
             readonly review?: number;
+            readonly scopeTiers?: Readonly<Record<string, number>>;
           };
         };
       }>(plan);
       expect(parsed.review).toBe(2);
       expect(parsed.run?.report?.gate?.status).toBe('open');
       expect(parsed.run?.report?.open).toBe(2);
+      expect(parsed.run?.report?.scopeTiers).toEqual({
+        'in-scope': 2,
+        'policy-classified': 0,
+      });
       expect(parsed.run?.report?.dispositions).toMatchObject({
         'code-context-out-of-engine': 2,
       });
       expect(parsed.run?.report?.gate?.remainingByDisposition).toMatchObject({
         'code-context-out-of-engine': 2,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI keeps source gate reasons open after merging an empty symbol report', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const current = true;\n');
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--json',
+        '--input-json',
+        JSON.stringify({
+          rootDir: dir,
+          teachingSurfaces: ['docs/missing.md'],
+        }),
+      ]);
+      expect(result.exitCode).toBe(0);
+      expect(parseCliJson(result)).toMatchObject({
+        run: {
+          report: {
+            gate: {
+              reasons: expect.arrayContaining([
+                'expected-teaching-surfaces-missing',
+              ]),
+              remaining: 0,
+              status: 'open',
+            },
+          },
+        },
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -2233,6 +2251,151 @@ describe('trails regrade', () => {
         readonly plan?: { readonly status?: string };
       }>(preview);
       expect(parsed.plan?.status).toBe('stale');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects plans when expected policy evidence changes', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/current.md', 'Replace alpha here.\n');
+      writeFile(dir, 'CHANGELOG.md', 'Previously documented alpha.\n');
+      const input = {
+        from: 'alpha',
+        policyClassified: [
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['CHANGELOG.md'],
+            reason: 'Published history is immutable.',
+          },
+        ],
+        rootDir: dir,
+        to: 'omega',
+      };
+      const plan = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify(input),
+      ]);
+      expect(plan.exitCode).toBe(0);
+      const artifact = parseCliJson<{ readonly path?: string }>(plan);
+      if (artifact.path === undefined) {
+        throw new Error('Expected Regrade plan path.');
+      }
+
+      writeFile(dir, 'CHANGELOG.md', 'Published history remains immutable.\n');
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+      expect(parseCliJson(preview)).toMatchObject({
+        plan: { status: 'stale' },
+      });
+
+      for (const command of ['check', 'apply']) {
+        const result = runRawCli([
+          'regrade',
+          command,
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain('stale');
+      }
+      expect(existsSync(join(dir, artifact.path))).toBe(true);
+      expect(readFileSync(join(dir, 'docs/current.md'), 'utf8')).toBe(
+        'Replace alpha here.\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects caller policy paths that are also excluded', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'CHANGELOG.md', 'Previously documented alpha.\n');
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          exclude: ['CHANGELOG.md'],
+          from: 'alpha',
+          policyClassified: [
+            {
+              disposition: 'historical-by-policy',
+              paths: ['CHANGELOG.md'],
+              reason: 'Published history is immutable.',
+            },
+          ],
+          to: 'omega',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain(
+        'cannot both exclude and policy-classify'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI ignores nested generated Regrade artifacts in saved-plan source hashes', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/current.md', 'Replace alpha here.\n');
+      const input = {
+        from: 'alpha',
+        policyClassified: [
+          {
+            disposition: 'historical-by-policy',
+            paths: ['**/.trails/regrade/**'],
+            reason: 'Generated Regrade state is not source evidence.',
+          },
+        ],
+        rootDir: dir,
+        to: 'omega',
+      };
+      const plan = runRawCli([
+        'regrade',
+        'plan',
+        '--json',
+        '--input-json',
+        JSON.stringify(input),
+      ]);
+      expect(plan.exitCode).toBe(0);
+
+      writeFile(
+        dir,
+        'packages/app/.trails/regrade/nested/alpha-to-omega.json',
+        '{"from":"alpha","to":"omega"}\n'
+      );
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+      expect(parseCliJson(preview)).toMatchObject({
+        plan: { status: 'active' },
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -2796,7 +2959,7 @@ describe('trails regrade', () => {
         from: 'facet',
         id: 'v1-facet-trailhead',
         scope: {
-          exclude: facetTrailheadRegistryExcludes,
+          exclude: [...facetTrailheadRegistryExcludes, '.agents/notes/**'],
         },
         to: 'trailhead',
       });
@@ -3211,6 +3374,52 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI does not report symbol-only source files as prose skips', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/old.ts', 'export const blaze = 1;\n');
+      const recordPath = writeVocabularyTransitionRecord([
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          extensions: ['.ts'],
+          from: 'blaze',
+          to: 'implementation',
+        }),
+      ]);
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          apply: true,
+          planRecord: recordPath,
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly apply?: { readonly skipped?: number };
+        readonly scan?: {
+          readonly files?: { readonly skipped?: number };
+          readonly skippedByReason?: Readonly<Record<string, number>>;
+        };
+        readonly skipped?: number;
+        readonly skipsByReason?: Readonly<Record<string, number>>;
+      };
+      expect(parsed.apply?.skipped).toBe(parsed.skipped);
+      expect(parsed.skipsByReason).not.toHaveProperty('not-selected-source');
+      expect(parsed.scan?.skippedByReason).not.toHaveProperty(
+        'not-selected-source'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI keeps path-scoped symbol preserves local to matching occurrences', () => {
     const dir = makeTempDir();
     try {
@@ -3298,7 +3507,7 @@ describe('trails regrade', () => {
     const dir = makeTempDir();
     try {
       writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
-      writeFile(dir, 'docs/ignored/history.md', 'facet\n');
+      writeFile(dir, 'test/ignored/history.md', 'facet\n');
       writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
       writeFile(dir, 'private/history.md', 'facet\n');
 
@@ -3311,7 +3520,7 @@ describe('trails regrade', () => {
         '--exclude',
         'private/**',
         '--exclude',
-        'docs/ignored/**',
+        'test/ignored/**',
         '--json',
       ]);
 
@@ -3319,9 +3528,17 @@ describe('trails regrade', () => {
       const parsed = JSON.parse(result.stdout) as {
         readonly run?: {
           readonly ledger?: {
-            readonly occurrences?: readonly { readonly path: string }[];
+            readonly occurrences?: readonly {
+              readonly disposition: string;
+              readonly path: string;
+              readonly scopeTier: string;
+            }[];
           };
           readonly plan?: { readonly scope?: { readonly exclude?: string[] } };
+          readonly report?: {
+            readonly dispositions?: Readonly<Record<string, number>>;
+            readonly scopeTiers?: Readonly<Record<string, number>>;
+          };
         };
         readonly scan?: {
           readonly byDirectory?: readonly {
@@ -3345,7 +3562,7 @@ describe('trails regrade', () => {
       expect(parsed.run?.plan?.scope?.exclude).toEqual([
         ...facetTrailheadRegistryExcludes,
         'private/**',
-        'docs/ignored/**',
+        'test/ignored/**',
       ]);
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
         '.agents/skills/trails/SKILL.md',
@@ -3402,10 +3619,27 @@ describe('trails regrade', () => {
         facetTrailheadRegistryExcludes
       );
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
+        '.agents/memory/decisions.md',
+        '.agents/plans/archive/old/PLAN.md',
+        '.changeset/historical.md',
         'docs/current.md',
+        'packages/core/CHANGELOG.md',
         'plugin/skills/trails/SKILL.md',
       ]);
-      expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 4 });
+      expect(
+        parsed.run?.ledger?.occurrences
+          ?.filter((occurrence) => occurrence.scopeTier === 'policy-classified')
+          .map((occurrence) => occurrence.disposition)
+      ).toEqual([
+        'historical-by-policy',
+        'historical-by-policy',
+        'historical-by-policy',
+        'historical-by-policy',
+      ]);
+      expect(parsed.run?.report).toMatchObject({
+        dispositions: { 'historical-by-policy': 4 },
+        scopeTiers: { 'in-scope': 2, 'policy-classified': 4 },
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -3475,7 +3709,6 @@ describe('trails regrade', () => {
         };
       };
       expect(parsed.run?.plan?.preserve).toEqual([
-        facetTrailheadRegistryHistoricalPreserve,
         {
           disposition: 'preserve-current-live-api',
           paths: ['src/**'],
@@ -3883,12 +4116,12 @@ describe('trails regrade', () => {
         'trails.config.json',
         JSON.stringify({
           regrade: {
-            scope: { exclude: ['private/**', 'docs/ignored/**'] },
+            scope: { exclude: ['private/**', 'test/ignored/**'] },
           },
         })
       );
       writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
-      writeFile(dir, 'docs/ignored/history.md', 'facet\n');
+      writeFile(dir, 'test/ignored/history.md', 'facet\n');
       writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
       writeFile(dir, 'private/history.md', 'facet\n');
 
@@ -3914,7 +4147,7 @@ describe('trails regrade', () => {
       expect(parsed.run?.plan?.scope?.exclude).toEqual([
         ...facetTrailheadRegistryExcludes,
         'private/**',
-        'docs/ignored/**',
+        'test/ignored/**',
       ]);
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
         '.agents/skills/trails/SKILL.md',
@@ -3938,13 +4171,13 @@ describe('trails regrade', () => {
           },
         })
       );
-      writeFile(dir, 'docs/ignored/history.md', 'facet\n');
+      writeFile(dir, 'test/ignored/history.md', 'facet\n');
       writeFile(dir, 'docs/keep.md', 'facet\n');
       writeFile(dir, 'private/history.md', 'facet\n');
 
       const result = await regradeTrail.implementation(
         {
-          exclude: ['docs/ignored/**'],
+          exclude: ['test/ignored/**'],
           from: 'facet',
           rootDir: dir,
           to: 'trailhead',
@@ -3958,7 +4191,7 @@ describe('trails regrade', () => {
       }
       expect(result.value.run?.plan.scope?.exclude).toEqual([
         ...facetTrailheadRegistryExcludes,
-        'docs/ignored/**',
+        'test/ignored/**',
       ]);
       expect(result.value.run?.ledger.occurrences.map((o) => o.path)).toEqual([
         'docs/keep.md',

@@ -31,12 +31,25 @@ const scopeFromTransition = (
     return undefined;
   }
   return {
-    ...(scope.exclude === undefined ? {} : { exclude: scope.exclude }),
-    ...(scope.extensions === undefined ? {} : { extensions: scope.extensions }),
+    ...(scope.exclude === undefined ? {} : { exclude: [...scope.exclude] }),
+    ...(scope.extensions === undefined
+      ? {}
+      : { extensions: [...scope.extensions] }),
     ...(scope.ignoredDirectories === undefined
       ? {}
-      : { ignoredDirectories: scope.ignoredDirectories }),
-    ...(scope.include === undefined ? {} : { include: scope.include }),
+      : { ignoredDirectories: [...scope.ignoredDirectories] }),
+    ...(scope.include === undefined ? {} : { include: [...scope.include] }),
+    ...(scope.policyClassified === undefined
+      ? {}
+      : {
+          policyClassified: scope.policyClassified.map((policy) => ({
+            ...policy,
+            paths: [...policy.paths],
+          })),
+        }),
+    ...(scope.teachingSurfaces === undefined
+      ? {}
+      : { teachingSurfaces: [...scope.teachingSurfaces] }),
   };
 };
 

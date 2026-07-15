@@ -47,7 +47,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import type { Dirent } from 'node:fs';
-import { basename, dirname, isAbsolute, join } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { z } from 'zod';
 
 import { loadRegradeConfig } from '../regrade/config.js';
@@ -88,6 +88,21 @@ const regradePathScopeInputSchema = pathScopeSchema.extend({
   include: pathScopeSchema.shape.include.describe(
     'Root-relative path patterns to include in vocabulary regrade mode'
   ),
+  policyClassified: z
+    .array(
+      z.object({
+        disposition: z.enum(vocabularyDispositionValues),
+        expectMatches: z.boolean().optional(),
+        paths: z.array(z.string().min(1)).min(1),
+        reason: z.string().min(1),
+      })
+    )
+    .optional()
+    .describe('Protected paths scanned and counted without default rewrites'),
+  teachingSurfaces: z
+    .array(z.string().min(1))
+    .optional()
+    .describe('Expected current teaching-surface path patterns'),
 });
 
 const regradePreserveRuleInputSchema = z.object({
@@ -315,6 +330,8 @@ const hasVocabularyInput = (input: RegradeInput) =>
   input.overrides !== undefined ||
   input.planRecord !== undefined ||
   input.preserve !== undefined ||
+  input.policyClassified !== undefined ||
+  input.teachingSurfaces !== undefined ||
   input.to !== undefined;
 
 const classModeCollection = (
@@ -374,6 +391,15 @@ const vocabularyProseExtensions: readonly string[] = [
   '.md',
   '.mdx',
   '.txt',
+] as const;
+
+const vocabularyEvidenceExtensions: readonly string[] = [
+  ...symbolSourceExtensions,
+  ...vocabularyProseExtensions,
+  '.json',
+  '.jsonc',
+  '.yaml',
+  '.yml',
 ] as const;
 
 const normalizeExtension = (extension: string): string =>
@@ -457,6 +483,14 @@ const symbolOccurrenceIsPreserved = (
     preserveRuleMatchesSymbolOccurrence(rule, occurrence)
   ) ?? false;
 
+const symbolOccurrenceIsPolicyClassified = (
+  scope: VocabularyRegradePlan['scope'] | undefined,
+  path: string
+): boolean =>
+  scope?.policyClassified?.some((policy) =>
+    matchesAnyPathGlob(path, policy.paths)
+  ) ?? false;
+
 const vocabularyScopeFromConfig = (
   scope: RegradeConfigScope | undefined
 ): VocabularyRegradePlan['scope'] | undefined =>
@@ -511,10 +545,22 @@ const mergeScopeList = (
   return merged.length === 0 ? undefined : merged;
 };
 
+const scopePathsOverlap = (left: string, right: string): boolean =>
+  left === right ||
+  matchesAnyPathGlob(left, [right]) ||
+  matchesAnyPathGlob(right, [left]);
+
 const mergeVocabularyScope = (
   registryScope: VocabularyRegradePlan['scope'] | undefined,
   configScope: VocabularyRegradePlan['scope'] | undefined,
-  input: Pick<RegradeInput, 'exclude' | 'extensions' | 'include'>
+  input: Pick<
+    RegradeInput,
+    | 'exclude'
+    | 'extensions'
+    | 'include'
+    | 'policyClassified'
+    | 'teachingSurfaces'
+  >
 ): VocabularyRegradePlan['scope'] | undefined => {
   const callerExclude = input.exclude ?? configScope?.exclude;
   const callerInclude = input.include ?? configScope?.include;
@@ -522,20 +568,37 @@ const mergeVocabularyScope = (
     input.extensions ?? configScope?.extensions ?? registryScope?.extensions;
   const exclude = mergeScopeList(registryScope?.exclude, callerExclude);
   const include = mergeScopeList(registryScope?.include, callerInclude);
+  const policyClassified = [
+    ...(registryScope?.policyClassified ?? [])
+      .map((policy) => ({
+        ...policy,
+        paths: policy.paths.filter(
+          (path) =>
+            !callerExclude?.some((excludedPath) =>
+              scopePathsOverlap(path, excludedPath)
+            )
+        ),
+      }))
+      .filter((policy) => policy.paths.length > 0),
+    ...(input.policyClassified ?? []),
+  ];
+  const teachingSurfaces = mergeScopeList(
+    registryScope?.teachingSurfaces,
+    input.teachingSurfaces
+  );
 
-  if (
-    exclude === undefined &&
-    extensions === undefined &&
-    include === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...(exclude === undefined ? {} : { exclude }),
-    ...(extensions === undefined ? {} : { extensions }),
-    ...(include === undefined ? {} : { include }),
+  const fields = {
+    exclude,
+    extensions,
+    include,
+    policyClassified:
+      policyClassified.length === 0 ? undefined : policyClassified,
+    teachingSurfaces,
   };
+  const scope = Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined)
+  ) as NonNullable<VocabularyRegradePlan['scope']>;
+  return Object.keys(scope).length === 0 ? undefined : scope;
 };
 
 const mergeNumericRecords = (
@@ -723,11 +786,16 @@ const transitionRunReportForRegradeReport = (
       reasons,
       remaining: open,
       remainingByDisposition,
-      status: open === 0 ? 'green' : 'open',
+      status: open === 0 && reasons.length === 0 ? 'green' : 'open',
     },
     modified,
     open,
+    scopeTiers: {
+      'in-scope': report.rewritten + report.review,
+      'policy-classified': 0,
+    },
     skipped: report.skipped,
+    teachingSurfaces: { expected: [], missing: [], touched: [] },
   };
 };
 
@@ -760,11 +828,20 @@ const mergeTransitionRunReportWithSymbol = (
       reasons,
       remaining: open,
       remainingByDisposition,
-      status: open === 0 ? 'green' : 'open',
+      status: open === 0 && reasons.length === 0 ? 'green' : 'open',
     },
     modified,
     open,
+    scopeTiers: {
+      'in-scope':
+        vocabularyReport.scopeTiers['in-scope'] +
+        symbolRunReport.scopeTiers['in-scope'],
+      'policy-classified':
+        vocabularyReport.scopeTiers['policy-classified'] +
+        symbolRunReport.scopeTiers['policy-classified'],
+    },
     skipped: vocabularyReport.skipped + symbolRunReport.skipped,
+    teachingSurfaces: vocabularyReport.teachingSurfaces,
   };
 };
 
@@ -877,18 +954,18 @@ const vocabularySymbolCollection = (
   };
 };
 
-const vocabularyProseScope = (
+const vocabularyEvidenceScope = (
   scope: VocabularyRegradePlan['scope'] | undefined
 ): NonNullable<VocabularyRegradePlan['scope']> | null => {
   const explicitExtensions = scope?.extensions !== undefined;
   const extensions =
     scope?.extensions === undefined
-      ? vocabularyProseExtensions
+      ? vocabularyEvidenceExtensions
       : uniqueSorted(
           scope.extensions
             .map(normalizeExtension)
             .filter((extension) =>
-              vocabularyProseExtensions.includes(extension)
+              vocabularyEvidenceExtensions.includes(extension)
             )
         );
 
@@ -903,19 +980,84 @@ const vocabularyProseScope = (
       ? {}
       : { ignoredDirectories: scope.ignoredDirectories }),
     ...(scope?.include === undefined ? {} : { include: scope.include }),
+    ...(scope?.policyClassified === undefined
+      ? {}
+      : { policyClassified: scope.policyClassified }),
+    ...(scope?.teachingSurfaces === undefined
+      ? {}
+      : { teachingSurfaces: scope.teachingSurfaces }),
   };
 };
 
-const vocabularyProsePlan = (
+const vocabularyEvidencePlan = (
   plan: VocabularyRegradePlan
 ): VocabularyRegradePlan | null => {
-  const scope = vocabularyProseScope(plan.scope);
+  const scope = vocabularyEvidenceScope(plan.scope);
   if (scope === null) {
     return null;
   }
 
   return { ...plan, scope };
 };
+
+const withoutNotSelectedSourceCount = (
+  counts: Readonly<Record<string, number>>
+): Readonly<Record<string, number>> =>
+  Object.fromEntries(
+    Object.entries(counts).filter(
+      ([reason]) => reason !== 'not-selected-source'
+    )
+  );
+
+const withoutVocabularySourceFilterSkips = (
+  report: RegradeReport | null
+): RegradeReport | null => {
+  const rejected = report?.skipsByReason['not-selected-source'] ?? 0;
+  if (report === null || rejected === 0) {
+    return report;
+  }
+  return {
+    ...report,
+    ...(report.apply === undefined
+      ? {}
+      : {
+          apply: {
+            ...report.apply,
+            skipped: Math.max(0, report.apply.skipped - rejected),
+          },
+        }),
+    entries: report.entries.filter(
+      (entry) => entry.reason !== 'not-selected-source'
+    ),
+    scan: {
+      ...report.scan,
+      files: {
+        ...report.scan.files,
+        skipped: Math.max(0, report.scan.files.skipped - rejected),
+      },
+      skippedByReason: withoutNotSelectedSourceCount(
+        report.scan.skippedByReason
+      ),
+    },
+    skipped: Math.max(0, report.skipped - rejected),
+    skipsByReason: withoutNotSelectedSourceCount(report.skipsByReason),
+  };
+};
+
+const vocabularyEvidenceSource = (
+  path: string,
+  scope: VocabularyRegradePlan['scope'] | undefined
+): boolean =>
+  vocabularyProseExtensions.includes(extname(path)) ||
+  symbolOccurrenceIsPolicyClassified(scope, path);
+
+const vocabularyProseEngineApplies = (
+  scope: VocabularyRegradePlan['scope'] | undefined
+): boolean =>
+  scope?.extensions === undefined ||
+  scope.extensions.some((extension) =>
+    vocabularyProseExtensions.includes(normalizeExtension(extension))
+  );
 
 const mergeVocabularyOverrides = (
   registryPlan: VocabularyRegradePlan | undefined,
@@ -1078,6 +1220,10 @@ const runGovernedSymbolRegrade = (params: {
       },
       {
         shouldPreserve: (occurrence) =>
+          symbolOccurrenceIsPolicyClassified(
+            params.plan.scope,
+            occurrence.path
+          ) ||
           symbolOccurrenceIsPreserved(params.plan.preserve, {
             end: occurrence.end,
             form: occurrence.from,
@@ -1187,7 +1333,9 @@ const isAuthoredPlanField = (
       return (
         input.exclude !== undefined ||
         input.extensions !== undefined ||
-        input.include !== undefined
+        input.include !== undefined ||
+        input.policyClassified !== undefined ||
+        input.teachingSurfaces !== undefined
       );
     }
     default: {
@@ -1536,18 +1684,20 @@ const runResolvedVocabularyPlan = (params: {
   readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
   readonly rootDir: string;
 }): TrailsResult<RegradeReport, Error> => {
-  const prosePlan = vocabularyProsePlan(params.plan);
+  const evidencePlan = vocabularyEvidencePlan(params.plan);
   const reportResult: TrailsResult<RegradeReport | null, Error> =
-    prosePlan === null
+    evidencePlan === null
       ? Result.ok(null)
       : runVocabularyRegrade({
           apply: params.apply,
           includeEntries: params.includeEntries,
-          plan: prosePlan,
+          plan: evidencePlan,
           ...(params.preserveInventory.length === 0
             ? {}
             : { preserveInventory: params.preserveInventory }),
           root: params.rootDir,
+          sourceFilter: (path) =>
+            vocabularyEvidenceSource(path, evidencePlan.scope),
         });
   if (reportResult.isErr()) {
     return reportResult;
@@ -1564,8 +1714,15 @@ const runResolvedVocabularyPlan = (params: {
     return symbolReportResult;
   }
 
-  const report = reportResult.value;
+  const report = withoutVocabularySourceFilterSkips(reportResult.value);
   const symbolReport = symbolReportResult.value;
+  if (
+    report?.scanned === 0 &&
+    symbolReport === null &&
+    !vocabularyProseEngineApplies(params.plan.scope)
+  ) {
+    return regradeNoEngineForScope();
+  }
   if (report === null) {
     if (symbolReport === null) {
       return regradeNoEngineForScope();

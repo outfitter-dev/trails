@@ -44,14 +44,13 @@ Every family run must include:
 - Warden rule names, rule guidance, and generated Warden guide output;
 - Wayfinder and surface facts that expose the family through CLI or MCP.
 
-Every family run must exclude or preserve:
+Every family run uses three scope tiers:
 
-- package changelogs and old release notes when they describe historical published behavior;
-- old ADR decision records unless the execution issue explicitly owns an ADR rewrite;
-- branch names, PR names, Linear issue titles, and commit references quoted as history;
-- generated outputs unless the owning command regenerates them.
+- **Hard exclude:** mechanical noise such as dependency trees, build output, caches, local scratch state, and lockfiles is never scanned.
+- **Policy-classified:** package changelogs, changesets, old release notes, accepted ADR history, archived plans, and quoted branch/PR/issue references remain scanned and counted as `historical-by-policy`, but are never rewritten by default.
+- **In scope:** current source, docs, skills, plugin guidance, examples, generated guides, and release guidance are scanned normally. Docs stay here unless a typed policy with a reason moves a path into the policy-classified tier.
 
-Use `PathScope` include, exclude, and extension controls rather than ad hoc ignore terminology.
+Use `PathScope` include, exclude, and extension controls for collection boundaries rather than ad hoc ignore terminology. Use plan `policyClassified` rules for protected evidence that must remain visible, and `teachingSurfaces` for the census-expected docs coverage gate.
 
 ## Review Policy
 

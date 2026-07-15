@@ -44,47 +44,29 @@ describe('runVocabularyRegrade', () => {
       from: 'facet',
       id: 'v1-facet-trailhead',
       kind: 'vocabulary',
-      preserve: [
-        {
-          paths: [
-            '.agents/plans/**',
-            '**/.agents/plans/**',
-            'docs/adr/0*.md',
-            'docs/adr/decision-map.json',
-            'docs/migration/**',
-            'docs/releases/beta*.md',
-            'docs/releases/v1-vocabulary-reset.md',
-            'docs/releases/v1-vocabulary-transition-workflow.md',
-            'scripts/vocab-cutover-*.ts',
-          ],
-          pattern: '(?:facet|facets|Facet)',
-          reason:
-            'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
-        },
-      ],
+      preserve: [],
       scope: {
         exclude: expect.arrayContaining([
-          '.agents/goals/**',
-          '**/.agents/goals/**',
-          '.agents/memory/**',
-          '**/.agents/memory/**',
-          '.agents/notes/**',
-          '**/.agents/notes/**',
-          '.claude/agent-memory/**',
-          '**/.claude/agent-memory/**',
-          '.agents/plans/archive/**',
-          '**/.agents/plans/archive/**',
-          '.changeset/**',
-          '**/.changeset/**',
           '.scratch/**',
           '**/.scratch/**',
-          '.trails/regrade/history/**',
-          '**/.trails/regrade/history/**',
-          '**/CHANGELOG.md',
           '**/.tmp-tests/**',
-          'packages/warden/src/__tests__/retired-vocabulary.test.ts',
-          'packages/warden/src/rules/retired-vocabulary.ts',
         ]),
+        policyClassified: [
+          expect.objectContaining({
+            disposition: 'historical-by-policy',
+            paths: expect.arrayContaining([
+              '.agents/plans/**',
+              '.agents/goals/**',
+              '.agents/memory/**',
+              '.agents/notes/**',
+              '.changeset/**',
+              '.trails/regrade/**',
+              '**/CHANGELOG.md',
+              'docs/adr/0*.md',
+              'packages/warden/src/rules/retired-vocabulary.ts',
+            ]),
+          }),
+        ],
       },
       to: 'trailhead',
     });
@@ -136,10 +118,16 @@ describe('runVocabularyRegrade', () => {
         '@ontrails/warden/ast': '@ontrails/source',
       },
       scope: {
-        exclude: expect.arrayContaining([
-          '.changeset/**',
-          'packages/warden/src/rules/retired-vocabulary.ts',
-        ]),
+        exclude: expect.arrayContaining(['.scratch/**']),
+        policyClassified: [
+          expect.objectContaining({
+            disposition: 'historical-by-policy',
+            paths: expect.arrayContaining([
+              '.changeset/**',
+              'packages/warden/src/rules/retired-vocabulary.ts',
+            ]),
+          }),
+        ],
       },
       to: '@ontrails/source',
     });
@@ -492,9 +480,14 @@ describe('runVocabularyRegrade', () => {
       id: 'v1-blaze-implementation',
       kind: 'vocabulary',
       scope: {
-        exclude: expect.arrayContaining([
-          'packages/warden/src/rules/retired-vocabulary.ts',
-        ]),
+        exclude: expect.arrayContaining(['.scratch/**']),
+        policyClassified: [
+          expect.objectContaining({
+            paths: expect.arrayContaining([
+              'packages/warden/src/rules/retired-vocabulary.ts',
+            ]),
+          }),
+        ],
       },
       to: 'implementation',
     });
@@ -583,14 +576,18 @@ describe('runVocabularyRegrade', () => {
           path: 'docs/live.md',
           verdict: 'deferred',
         },
+        {
+          form: 'blazeBody',
+          path: 'packages/store/.agents/notes/history.md',
+          verdict: 'skipped',
+        },
       ]);
       expect(result.value.run.report).toMatchObject({
         deferred: 1,
         gate: { status: 'open' },
         open: 1,
-        skipped: 1,
+        skipped: 2,
       });
-      expect(result.value.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -762,6 +759,37 @@ describe('runVocabularyRegrade', () => {
         },
       });
       expect(readResult.value.report.record).toBeUndefined();
+
+      const recordFile = join(dir, writeResult.value.summary.path);
+      const legacyRecord = JSON.parse(readFileSync(recordFile, 'utf8')) as {
+        report: {
+          run: {
+            ledger: { occurrences: Record<string, unknown>[] };
+            report: Record<string, unknown>;
+          };
+        };
+      };
+      for (const occurrence of legacyRecord.report.run.ledger.occurrences) {
+        delete occurrence.scopeTier;
+      }
+      delete legacyRecord.report.run.report.scopeTiers;
+      delete legacyRecord.report.run.report.teachingSurfaces;
+      writeFileSync(recordFile, `${JSON.stringify(legacyRecord, null, 2)}\n`);
+
+      const legacyReadResult = readVocabularyTransitionRecord(recordFile);
+      expect(legacyReadResult.isOk()).toBe(true);
+      if (legacyReadResult.isErr()) {
+        throw legacyReadResult.error;
+      }
+      expect(legacyReadResult.value.report.run?.ledger.occurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ scopeTier: 'in-scope' }),
+        ])
+      );
+      expect(legacyReadResult.value.report.run?.report).toMatchObject({
+        scopeTiers: { 'in-scope': 3, 'policy-classified': 0 },
+        teachingSurfaces: { expected: [], missing: [], touched: [] },
+      });
 
       expect(
         transitionRecordReportWithSummary(
@@ -1037,7 +1065,11 @@ describe('runVocabularyRegrade', () => {
           form: occurrence.form,
           verdict: occurrence.verdict,
         }))
-      ).toEqual([{ form: 'blazing', verdict: 'deferred' }]);
+      ).toEqual([
+        { form: 'blaze', verdict: 'applied' },
+        { form: 'blazed', verdict: 'applied' },
+        { form: 'blazing', verdict: 'deferred' },
+      ]);
       expect(readFileSync(join(dir, 'docs', 'blaze.md'), 'utf8')).toBe(
         'implementation belongs here\nimplemented belongs here\nblazing needs review\n'
       );
@@ -1273,6 +1305,12 @@ describe('runVocabularyRegrade', () => {
       ).toEqual([
         {
           form: 'facet',
+          reason: 'captured-form',
+          replacement: 'trailhead',
+          verdict: 'applied',
+        },
+        {
+          form: 'facet',
           reason: 'markdown-code-context',
           replacement: undefined,
           verdict: 'deferred',
@@ -1415,6 +1453,223 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('scans and counts policy-classified changelog evidence without rewriting it', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'CHANGELOG.md', 'The facet API shipped in beta.\n');
+      writeFile(dir, 'docs/current.md', 'Use the facet API.\n');
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                expectMatches: true,
+                paths: ['**/CHANGELOG.md', 'CHANGELOG.md'],
+                reason: 'Published changelog entries are immutable history.',
+              },
+            ],
+            teachingSurfaces: ['docs/current.md'],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(readFileSync(join(dir, 'CHANGELOG.md'), 'utf8')).toBe(
+        'The facet API shipped in beta.\n'
+      );
+      expect(readFileSync(join(dir, 'docs/current.md'), 'utf8')).toBe(
+        'Use the trailhead API.\n'
+      );
+      expect(result.value?.run?.ledger.occurrences).toEqual([
+        expect.objectContaining({
+          disposition: 'historical-by-policy',
+          path: 'CHANGELOG.md',
+          scopeTier: 'policy-classified',
+          verdict: 'skipped',
+        }),
+        expect.objectContaining({
+          disposition: 'in-family-modified',
+          path: 'docs/current.md',
+          scopeTier: 'in-scope',
+          verdict: 'applied',
+        }),
+      ]);
+      expect(result.value?.run?.report).toMatchObject({
+        dispositions: {
+          'historical-by-policy': 1,
+          'in-family-modified': 1,
+        },
+        gate: { status: 'green' },
+        scopeTiers: { 'in-scope': 1, 'policy-classified': 1 },
+        teachingSurfaces: {
+          expected: ['docs/current.md'],
+          missing: [],
+          touched: ['docs/current.md'],
+        },
+      });
+      const occurrenceCount = result.value?.run?.ledger.occurrences.length;
+      const dispositionCount = Object.values(
+        result.value?.run?.report.dispositions ?? {}
+      ).reduce((total, count) => total + count, 0);
+      const scopeTierCount = Object.values(
+        result.value?.run?.report.scopeTiers ?? {}
+      ).reduce((total, count) => total + count, 0);
+      expect(dispositionCount).toBe(occurrenceCount);
+      expect(scopeTierCount).toBe(occurrenceCount);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('does not count historical policy evidence as a touched teaching surface', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/adr/0050.md', 'The facet API is historical.\n');
+
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                paths: ['docs/adr/**'],
+                reason: 'Published decisions are immutable history.',
+              },
+            ],
+            teachingSurfaces: ['docs/**'],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.run?.report).toMatchObject({
+        gate: {
+          reasons: ['expected-teaching-surfaces-missing'],
+          status: 'open',
+        },
+        teachingSurfaces: {
+          expected: ['docs/**'],
+          missing: ['docs/**'],
+          touched: [],
+        },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('keeps an explicit occurrence disposition inside a policy-classified path', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'CHANGELOG.md', 'The legacy facet API shipped.\n');
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          preserve: [
+            {
+              disposition: 'explicit-preserve',
+              paths: ['CHANGELOG.md'],
+              pattern: 'legacy facet',
+              reason: 'This occurrence is a quoted historical API name.',
+            },
+          ],
+          scope: {
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                paths: ['CHANGELOG.md'],
+                reason: 'Published changelog entries are immutable history.',
+              },
+            ],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(readFileSync(join(dir, 'CHANGELOG.md'), 'utf8')).toBe(
+        'The legacy facet API shipped.\n'
+      );
+      expect(result.value?.run?.ledger.occurrences).toEqual([
+        expect.objectContaining({
+          disposition: 'explicit-preserve',
+          path: 'CHANGELOG.md',
+          scopeTier: 'policy-classified',
+          verdict: 'skipped',
+        }),
+      ]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('fails the gate when expected policy or teaching evidence is missing', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/current.md', 'No governed term appears here.\n');
+
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                expectMatches: true,
+                paths: ['**/CHANGELOG.md'],
+                reason: 'A prior census proved historical matches exist.',
+              },
+            ],
+            teachingSurfaces: ['docs/current.md'],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.run?.report.gate).toEqual({
+        reasons: [
+          'expected-policy-classified-evidence-missing',
+          'expected-teaching-surfaces-missing',
+        ],
+        remaining: 0,
+        remainingByDisposition: {},
+        status: 'open',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('ignores path globs before reading vocabulary occurrences', () => {
     const dir = makeTempDir();
     try {
@@ -1494,6 +1749,52 @@ describe('runVocabularyRegrade', () => {
       expect(result.value?.run?.ledger.occurrences.map((o) => o.path)).toEqual([
         'dist/generated.md',
       ]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reopens explicitly ignored directories for classified policy paths', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'archive/history/record.md', 'facet history\n');
+      writeFile(dir, 'archive/generated.md', 'facet generated\n');
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            ignoredDirectories: ['archive'],
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                expectMatches: true,
+                paths: ['archive/history/**'],
+                reason: 'Retain immutable transition history.',
+              },
+            ],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run?.ledger.occurrences).toEqual([
+        expect.objectContaining({
+          path: 'archive/history/record.md',
+          scopeTier: 'policy-classified',
+        }),
+      ]);
+      expect(result.value.run?.report.gate.reasons).not.toContain(
+        'expected-policy-classified-evidence-missing'
+      );
+      expect(result.value.skipsByReason).toMatchObject({
+        'ignored-directory': 1,
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1917,6 +2218,64 @@ describe('runVocabularyRegrade', () => {
       expect(emptyPreserve.isErr()).toBe(true);
       if (emptyPreserve.isErr()) {
         expect(emptyPreserve.error.constructor.name).toBe('ValidationError');
+      }
+
+      const excludedDocs = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { exclude: ['docs/**'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+      expect(excludedDocs.isErr()).toBe(true);
+      if (excludedDocs.isErr()) {
+        expect(excludedDocs.error.constructor.name).toBe('ValidationError');
+        expect(excludedDocs.error.message).toContain(
+          'cannot hard-exclude docs'
+        );
+      }
+
+      const excludedDocsByExtension = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { exclude: ['**/*.md'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+      expect(excludedDocsByExtension.isErr()).toBe(true);
+      if (excludedDocsByExtension.isErr()) {
+        expect(excludedDocsByExtension.error.message).toContain(
+          'cannot hard-exclude docs'
+        );
+      }
+
+      const excludedPolicyPath = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            exclude: ['CHANGELOG.md'],
+            policyClassified: [
+              {
+                disposition: 'historical-by-policy',
+                paths: ['CHANGELOG.md'],
+                reason: 'Published history is immutable.',
+              },
+            ],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+      expect(excludedPolicyPath.isErr()).toBe(true);
+      if (excludedPolicyPath.isErr()) {
+        expect(excludedPolicyPath.error.message).toContain(
+          'cannot both exclude and policy-classify "CHANGELOG.md"'
+        );
       }
 
       const invalidDisposition = runVocabularyRegrade({

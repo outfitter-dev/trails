@@ -40,6 +40,17 @@ export const governedVocabularyScopeSchema = z.object({
   extensions: z.array(z.string().min(1)).optional(),
   ignoredDirectories: z.array(z.string().min(1)).optional(),
   include: z.array(z.string().min(1)).optional(),
+  policyClassified: z
+    .array(
+      z.object({
+        disposition: z.enum(['explicit-preserve', 'historical-by-policy']),
+        expectMatches: z.boolean().optional(),
+        paths: z.array(z.string().min(1)).min(1),
+        reason: z.string().min(1),
+      })
+    )
+    .optional(),
+  teachingSurfaces: z.array(z.string().min(1)).optional(),
 });
 
 export const governedVocabularySymbolRenameMatchModes = [
@@ -147,75 +158,65 @@ const reviewFunctionParamDeclarations = {
   reviewDeclarationTypes: ['FunctionParam'],
 };
 
-const v1VocabularyHistoricalExcludes = [
+const v1VocabularyHardExcludes = [
+  '.scratch/**',
+  '**/.scratch/**',
+  '**/.tmp-tests/**',
+];
+
+const v1VocabularyHistoricalPaths = [
   '.agents/goals/**',
   '**/.agents/goals/**',
   '.agents/memory/**',
   '**/.agents/memory/**',
   '.agents/notes/**',
   '**/.agents/notes/**',
-  '.claude/agent-memory/**',
-  '**/.claude/agent-memory/**',
-  '.agents/plans/archive/**',
-  '**/.agents/plans/archive/**',
-  '.changeset/**',
-  '**/.changeset/**',
-  '.scratch/**',
-  '**/.scratch/**',
-  '.trails/regrade/history/**',
-  '**/.trails/regrade/history/**',
-  '**/CHANGELOG.md',
-  '**/.tmp-tests/**',
-];
-
-const v1VocabularyHistoricalPreservePaths = [
   '.agents/plans/**',
   '**/.agents/plans/**',
+  '.claude/agent-memory/**',
+  '**/.claude/agent-memory/**',
+  '.changeset/**',
+  '**/.changeset/**',
+  '.trails/regrade/**',
+  '**/.trails/regrade/**',
+  '**/CHANGELOG.md',
   'docs/adr/0*.md',
   'docs/adr/decision-map.json',
   'docs/migration/**',
   'docs/releases/beta*.md',
   'docs/releases/v1-vocabulary-reset.md',
   'docs/releases/v1-vocabulary-transition-workflow.md',
+  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
+  'packages/warden/src/rules/retired-vocabulary.ts',
   'scripts/vocab-cutover-*.ts',
 ];
 
-const v1VocabularySelfExcludes = [
-  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
-  'packages/warden/src/rules/retired-vocabulary.ts',
-];
-
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const formsPattern = (forms: readonly string[]): string =>
-  `(?:${forms.map(escapeRegExp).join('|')})`;
 
 const defineV1Transition = (
   input: GovernedVocabularyTransitionInput
 ): GovernedVocabularyTransition =>
   defineTransition({
     ...input,
-    preserve: [
-      {
-        paths: v1VocabularyHistoricalPreservePaths,
-        pattern: formsPattern(
-          unique([...(input.oldForms ?? []), ...(input.reviewForms ?? [])])
-        ),
-        reason:
-          'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
-      },
-      ...(input.preserve ?? []),
-    ],
+    preserve: input.preserve ?? [],
     scope: {
       ...input.scope,
       exclude: unique([
-        ...v1VocabularyHistoricalExcludes,
-        ...v1VocabularySelfExcludes,
+        ...v1VocabularyHardExcludes,
         ...(input.scope?.exclude ?? []),
       ]),
+      policyClassified: [
+        {
+          disposition: 'historical-by-policy',
+          paths: v1VocabularyHistoricalPaths,
+          reason:
+            'Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.',
+        },
+        ...(input.scope?.policyClassified ?? []),
+      ],
+      ...(input.scope?.teachingSurfaces === undefined
+        ? {}
+        : { teachingSurfaces: input.scope.teachingSurfaces }),
     },
   });
 
@@ -751,6 +752,18 @@ export const governedVocabularyTransitions =
       oldForms: ['projection', 'projections', 'project', 'projected'],
       reviewForms: ['projection', 'projections', 'project', 'projected'],
       safeRewriteForms: {},
+      scope: {
+        policyClassified: [
+          {
+            disposition: 'historical-by-policy',
+            expectMatches: true,
+            paths: ['docs/adr/0*.md'],
+            reason:
+              'The Trails projection census records accepted ADR history that must remain visible during the v1 split.',
+          },
+        ],
+        teachingSurfaces: ['docs/**'],
+      },
       status: 'planned',
       target: {
         guidance:
