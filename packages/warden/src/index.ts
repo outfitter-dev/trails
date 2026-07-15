@@ -11,6 +11,7 @@
 export type {
   BuiltinWardenRuleName,
   GovernedVocabularyHistoryEvidence,
+  GovernedVocabularyHistoryFormObservation,
   GovernedVocabularyHistoryIssue,
   ProjectAwareWardenRule,
   ProjectContext,
@@ -194,7 +195,11 @@ export {
 
 // Trail layer
 export { wardenTopo } from './trails/topo.js';
-export { runTopoAwareWardenTrails, runWardenTrails } from './trails/run.js';
+export {
+  runProjectWardenRules,
+  runTopoAwareWardenTrails,
+  runWardenTrails,
+} from './trails/run.js';
 export {
   activationOrphanTrail,
   capturedKernelTrail,
@@ -216,6 +221,7 @@ export {
   firesDeclarationsTrail,
   forkWithoutPreservedImplementationTrail,
   governedSymbolResidueTrail,
+  governedVocabularyPermutationWatchTrail,
   implementationReturnsResultTrail,
   incompleteAccessorForStandardOpTrail,
   incompleteCrudTrail,

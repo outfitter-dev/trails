@@ -23,6 +23,7 @@ import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
 import { governedSymbolResidue } from './governed-symbol-residue.js';
+import { governedVocabularyPermutationWatch } from './governed-vocabulary-permutation-watch.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
@@ -109,6 +110,7 @@ export const registeredRuleNames: readonly string[] = [
   exampleValid.name,
   firesDeclarations.name,
   governedSymbolResidue.name,
+  governedVocabularyPermutationWatch.name,
   forkWithoutPreservedImplementation.name,
   implementationReturnsResult.name,
   incompleteAccessorForStandardOp.name,

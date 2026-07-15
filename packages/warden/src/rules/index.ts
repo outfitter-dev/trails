@@ -15,6 +15,7 @@ import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
 import { governedSymbolResidue } from './governed-symbol-residue.js';
+import { governedVocabularyPermutationWatch } from './governed-vocabulary-permutation-watch.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
@@ -80,6 +81,7 @@ import { webhookRouteCollision } from './webhook-route-collision.js';
 
 export type {
   GovernedVocabularyHistoryEvidence,
+  GovernedVocabularyHistoryFormObservation,
   GovernedVocabularyHistoryIssue,
   WardenFix,
   WardenFixCapability,
@@ -164,6 +166,7 @@ export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { exampleValid } from './example-valid.js';
 export { firesDeclarations } from './fires-declarations.js';
 export { governedSymbolResidue } from './governed-symbol-residue.js';
+export { governedVocabularyPermutationWatch } from './governed-vocabulary-permutation-watch.js';
 export { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
@@ -242,6 +245,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [exampleValid.name, exampleValid],
   [firesDeclarations.name, firesDeclarations],
   [governedSymbolResidue.name, governedSymbolResidue],
+  [governedVocabularyPermutationWatch.name, governedVocabularyPermutationWatch],
   [incompleteCrud.name, incompleteCrud],
   [intentPropagation.name, intentPropagation],
   [layerFieldNameDrift.name, layerFieldNameDrift],

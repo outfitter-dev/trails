@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 74
+- Rule count: 75
 
 ## Agent Instructions
 
@@ -63,6 +63,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
 - `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
 - `governed-symbol-residue` (error, source/source-static, external): Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers. Guidance: Require committed Regrade evidence before completing a governed vocabulary migration.
+- `governed-vocabulary-permutation-watch` (warn, all/project-static, advisory): Committed Regrade history keeps unknown governed-stem permutations visible until they are classified. Guidance: Classify unknown governed-stem permutations recorded by committed Regrade history.
 - `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.

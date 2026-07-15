@@ -50,4 +50,53 @@ describe('wrapRule', () => {
     });
     expect(capturedContext?.knownResourceIds).toBeUndefined();
   });
+
+  test('keeps wrapped rule trails file-scoped', async () => {
+    const rule: ProjectAwareWardenRule = {
+      check: () => [],
+      checkProject: (context) => [
+        {
+          filePath: 'project.ts',
+          line: context.governedVocabularyHistoryByTransitionId?.size ?? 0,
+          message: 'project hook',
+          rule: 'combined-rule',
+          severity: 'warn',
+        },
+      ],
+      checkWithContext: () => [
+        {
+          filePath: 'file.ts',
+          line: 2,
+          message: 'file hook',
+          rule: 'combined-rule',
+          severity: 'warn',
+        },
+      ],
+      description: 'combined rule',
+      name: 'combined-rule',
+      severity: 'warn',
+    };
+    const wrapped = wrapRule({ examples: [], rule });
+    const result = await wrapped.implementation(
+      {
+        filePath: 'entity.ts',
+        governedVocabularyHistories: [
+          {
+            caseSensitive: false,
+            id: 'history-id',
+            latestFormObservations: [],
+            path: '.trails/regrade/history/contour-to-entity.json',
+            runCount: 1,
+            transitionId: 'v1-contour-entity',
+          },
+        ],
+        sourceCode: '',
+      },
+      createTrailContext()
+    );
+
+    expect(result.unwrap()).toEqual({
+      diagnostics: [expect.objectContaining({ line: 2, message: 'file hook' })],
+    });
+  });
 });

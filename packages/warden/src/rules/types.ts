@@ -380,11 +380,24 @@ export interface ProjectContext {
 }
 
 export interface GovernedVocabularyHistoryEvidence {
+  readonly caseSensitive: boolean;
   readonly id: string;
+  readonly latestFormObservations: readonly GovernedVocabularyHistoryFormObservation[];
   readonly path: string;
   readonly provenance?: GovernedVocabularyHistoryProvenance;
   readonly runCount: number;
   readonly transitionId: string;
+}
+
+/** One vocabulary-form observation preserved in committed Regrade history. */
+export interface GovernedVocabularyHistoryFormObservation {
+  readonly disposition: string;
+  readonly form: string;
+  readonly line: number;
+  readonly path: string;
+  readonly reason: string;
+  readonly scopeTier?: 'in-scope' | 'policy-classified' | undefined;
+  readonly verdict: 'applied' | 'deferred' | 'modified' | 'skipped';
 }
 
 export interface GovernedVocabularyHistoryIssue {

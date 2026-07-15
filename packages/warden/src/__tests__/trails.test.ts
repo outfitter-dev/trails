@@ -9,8 +9,8 @@ import { wardenTopo } from '../trails/topo.js';
 testAll(wardenTopo);
 
 describe('wardenTopo', () => {
-  test('contains all 74 rule trails', () => {
-    expect(wardenTopo.count).toBe(74);
+  test('contains all 75 rule trails', () => {
+    expect(wardenTopo.count).toBe(75);
   });
 
   test('all trail IDs follow warden.rule.* naming', () => {

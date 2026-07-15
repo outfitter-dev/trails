@@ -16,6 +16,7 @@ import type {
 const planBodySchema = z.discriminatedUnion('kind', [
   z
     .object({
+      caseSensitive: z.boolean().optional(),
       from: z.string().min(1),
       id: z.string().optional(),
       kind: z.literal('vocabulary'),
@@ -80,6 +81,59 @@ const reportEntrySchema = z
   })
   .passthrough();
 
+const vocabularyDispositionSchema = z.enum([
+  'code-context-out-of-engine',
+  'docs-only',
+  'explicit-preserve',
+  'forward-pointer',
+  'historical-by-policy',
+  'ignored-by-scope',
+  'in-family-modified',
+  'in-family-unresolved',
+  'out-of-family',
+  'preserve-current-live-api',
+]);
+
+const historyOccurrenceSchema = z
+  .object({
+    disposition: vocabularyDispositionSchema.optional(),
+    form: z.string(),
+    line: z.number().int().positive().optional(),
+    path: z.string(),
+    reason: z.string().optional(),
+    scopeTier: z.string().nullish(),
+    verdict: z.enum(['applied', 'deferred', 'modified', 'skipped']).optional(),
+  })
+  .passthrough()
+  .superRefine((occurrence, ctx) => {
+    const modernOccurrence =
+      occurrence.disposition !== undefined &&
+      occurrence.line !== undefined &&
+      occurrence.reason !== undefined &&
+      occurrence.verdict !== undefined;
+    if (
+      modernOccurrence &&
+      occurrence.scopeTier !== undefined &&
+      occurrence.scopeTier !== null &&
+      occurrence.scopeTier !== 'in-scope' &&
+      occurrence.scopeTier !== 'policy-classified'
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Modern Regrade occurrences use a recognized scope tier.',
+        path: ['scopeTier'],
+      });
+    }
+  });
+
+const governedObservationSchema = historyOccurrenceSchema.safeExtend({
+  disposition: vocabularyDispositionSchema,
+  line: z.number().int().positive(),
+  reason: z.string(),
+  scopeTier: z.enum(['in-scope', 'policy-classified']).nullish(),
+  verdict: z.enum(['applied', 'deferred', 'modified', 'skipped']),
+});
+
 const reportSchema = z
   .object({
     apply: z.object({ applied: z.number() }).passthrough().optional(),
@@ -94,15 +148,7 @@ const reportSchema = z
           .object({
             cycle: z.unknown(),
             forms: z.record(z.string(), z.unknown()),
-            occurrences: z.array(
-              z
-                .object({
-                  form: z.string(),
-                  path: z.string(),
-                  scopeTier: z.string().optional(),
-                })
-                .passthrough()
-            ),
+            occurrences: z.array(historyOccurrenceSchema),
           })
           .passthrough(),
         report: z
@@ -154,6 +200,7 @@ const governedHistoryRunSchema = historyRunSchema.extend({
 });
 
 type GovernedHistoryRun = z.infer<typeof governedHistoryRunSchema>;
+type HistoryRun = z.infer<typeof historyRunSchema>;
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -302,6 +349,50 @@ export interface GovernedVocabularyHistoryIndex {
 }
 
 const normalizePath = (value: string): string => value.replaceAll('\\', '/');
+
+const latestRunFacts = (
+  run: HistoryRun | undefined
+): Pick<
+  GovernedVocabularyHistoryEvidence,
+  'caseSensitive' | 'latestFormObservations'
+> => {
+  if (run === undefined || run.plan.plan.kind !== 'vocabulary') {
+    return { caseSensitive: false, latestFormObservations: [] };
+  }
+  const report = reportSchema.safeParse(run.completionReport ?? run.report);
+  if (!report.success) {
+    return {
+      caseSensitive: run.plan.plan.caseSensitive === true,
+      latestFormObservations: [],
+    };
+  }
+  return {
+    caseSensitive: run.plan.plan.caseSensitive === true,
+    latestFormObservations: (report.data.run?.ledger.occurrences ?? []).flatMap(
+      (occurrence) => {
+        const observation = governedObservationSchema.safeParse(occurrence);
+        if (!observation.success) {
+          return [];
+        }
+        const { disposition, form, line, path, reason, scopeTier, verdict } =
+          observation.data;
+        return [
+          {
+            disposition,
+            form,
+            line,
+            path,
+            reason,
+            ...(scopeTier === undefined || scopeTier === null
+              ? {}
+              : { scopeTier }),
+            verdict,
+          },
+        ];
+      }
+    ),
+  };
+};
 
 type HistoryFileResult =
   | {
@@ -455,9 +546,11 @@ const loadHistoryFile = (rootDir: string, name: string): HistoryFileResult => {
     );
   }
   const provenance = parsed.data.runs.at(-1)?.provenance;
+  const facts = latestRunFacts(parsed.data.runs.at(-1));
   return {
     kind: 'evidence',
     value: {
+      ...facts,
       id: parsed.data.id,
       path: parsed.data.path,
       ...(provenance === undefined ? {} : { provenance }),

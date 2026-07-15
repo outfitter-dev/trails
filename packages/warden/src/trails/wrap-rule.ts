@@ -50,7 +50,47 @@ const buildRuleMeta = (rule: WardenRule | TopoAwareWardenRule) => {
   };
 };
 
-const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
+const buildGovernedHistoryContext = (
+  input: ProjectAwareRuleInput
+): Pick<
+  ProjectContext,
+  | 'governedVocabularyHistoryByTransitionId'
+  | 'governedVocabularyHistoryIssues'
+  | 'governedVocabularyHistoryRequired'
+> => ({
+  ...(input.governedVocabularyHistories
+    ? {
+        governedVocabularyHistoryByTransitionId: new Map(
+          input.governedVocabularyHistories.map((history) => [
+            history.transitionId,
+            history,
+          ])
+        ),
+      }
+    : {}),
+  ...(input.governedVocabularyHistoryIssues
+    ? {
+        governedVocabularyHistoryIssues:
+          input.governedVocabularyHistoryIssues.map((issue) => ({
+            message: issue.message,
+            path: issue.path,
+            ...(issue.transitionId === undefined
+              ? {}
+              : { transitionId: issue.transitionId }),
+          })),
+      }
+    : {}),
+  ...(input.governedVocabularyHistoryRequired === undefined
+    ? {}
+    : {
+        governedVocabularyHistoryRequired:
+          input.governedVocabularyHistoryRequired,
+      }),
+});
+
+export const buildProjectContext = (
+  input: ProjectAwareRuleInput
+): ProjectContext => ({
   ...(input.authoredMcpSurfaceBindingSets
     ? { authoredMcpSurfaceBindingSets: input.authoredMcpSurfaceBindingSets }
     : {}),
@@ -98,6 +138,7 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
         ),
       }
     : {}),
+  ...buildGovernedHistoryContext(input),
   ...(input.publicWorkspaces
     ? { publicWorkspaces: new Map(Object.entries(input.publicWorkspaces)) }
     : {}),
@@ -151,10 +192,11 @@ export function wrapRule(
         RuleOutput
       >['examples'],
       implementation: (input: ProjectAwareRuleInput) => {
+        const context = buildProjectContext(input);
         const diagnostics = projectAwareRule.checkWithContext(
           input.sourceCode,
           input.filePath,
-          buildProjectContext(input)
+          context
         );
         return Result.ok({ diagnostics: [...diagnostics] });
       },

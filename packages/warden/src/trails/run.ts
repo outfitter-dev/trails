@@ -9,12 +9,20 @@
 import type { Intent, Topo } from '@ontrails/core';
 import { run } from '@ontrails/core';
 
-import { wardenTopoRules } from '../rules/index.js';
-import type { WardenDiagnostic } from '../rules/types.js';
+import { wardenRules, wardenTopoRules } from '../rules/index.js';
+import type {
+  GovernedVocabularyHistoryEvidence,
+  GovernedVocabularyHistoryIssue,
+  ProjectAwareWardenRule,
+  WardenDiagnostic,
+  WardenRule,
+} from '../rules/types.js';
 import type { WardenImportResolution } from '../resolve.js';
 import type { WardenPublicWorkspace } from '../workspaces.js';
+import { projectAwareRuleInput } from './schema.js';
 import type { RuleOutput } from './schema.js';
 import { wardenTopo } from './topo.js';
+import { buildProjectContext } from './wrap-rule.js';
 
 /**
  * Run all file-scoped warden rule trails for a given file and collect diagnostics.
@@ -34,6 +42,9 @@ const appendDiagnostics = (
 type TrailIntentMap = Readonly<Record<string, Intent>>;
 
 interface ProjectRuleOptions {
+  readonly governedVocabularyHistories?: readonly GovernedVocabularyHistoryEvidence[];
+  readonly governedVocabularyHistoryIssues?: readonly GovernedVocabularyHistoryIssue[];
+  readonly governedVocabularyHistoryRequired?: boolean;
   readonly entityReferencesByName?: Readonly<Record<string, readonly string[]>>;
   readonly composeTargetTrailIds?: readonly string[];
   readonly crudTableIds?: readonly string[];
@@ -55,6 +66,9 @@ interface ProjectRuleOptions {
 }
 
 const PROJECT_OPTION_KEYS = [
+  'governedVocabularyHistories',
+  'governedVocabularyHistoryIssues',
+  'governedVocabularyHistoryRequired',
   'entityReferencesByName',
   'composeTargetTrailIds',
   'crudTableIds',
@@ -133,6 +147,34 @@ export const runWardenTrails = async (
   }
 
   return allDiagnostics;
+};
+
+const isProjectAwareRule = (rule: WardenRule): rule is ProjectAwareWardenRule =>
+  'checkWithContext' in rule;
+
+/**
+ * Run project-wide built-in Warden diagnostics once for one project context.
+ *
+ * @example
+ * ```ts
+ * const diagnostics = runProjectWardenRules({
+ *   governedVocabularyHistories: histories,
+ * });
+ * ```
+ */
+export const runProjectWardenRules = (
+  options?: ProjectRuleOptions
+): readonly WardenDiagnostic[] => {
+  const context = buildProjectContext(
+    projectAwareRuleInput.parse(buildRuleInput('<project>', '', options))
+  );
+  const diagnostics: WardenDiagnostic[] = [];
+  for (const rule of wardenRules.values()) {
+    if (isProjectAwareRule(rule) && rule.checkProject !== undefined) {
+      appendDiagnostics(diagnostics, rule.checkProject(context));
+    }
+  }
+  return diagnostics;
 };
 
 /**

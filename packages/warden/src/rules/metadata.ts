@@ -84,6 +84,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'fires-declarations': 'signals',
   'fork-without-preserved-implementation': 'lifecycle',
   'governed-symbol-residue': 'lifecycle',
+  'governed-vocabulary-permutation-watch': 'lifecycle',
   'implementation-returns-result': 'results',
   'intent-propagation': 'composition',
   'library-projection-coherence': 'meta',
@@ -334,6 +335,27 @@ const builtinWardenRuleMetadataInput = {
     invariant:
       'Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers.',
     tier: 'source-static',
+  },
+  'governed-vocabulary-permutation-watch': {
+    guidance: {
+      docs: [
+        {
+          label: 'Vocabulary transition workflow',
+          path: 'docs/releases/v1-vocabulary-transition-workflow.md',
+        },
+      ],
+      steps: [
+        'Add the unknown form to the governed vocabulary plan and run an incremental Regrade plan.',
+        'If the form is intentionally unrelated or preserved, classify it so later history suppresses the advisory.',
+      ],
+      summary:
+        'Classify unknown governed-stem permutations recorded by committed Regrade history.',
+    },
+    invariant:
+      'Committed Regrade history keeps unknown governed-stem permutations visible until they are classified.',
+    lifecycle: { state: 'durable' },
+    scope: 'advisory',
+    tier: 'project-static',
   },
   'implementation-returns-result': {
     ...durableExternal,

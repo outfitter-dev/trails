@@ -109,7 +109,7 @@ See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) 
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 74
+- Rule count: 75
 
 ### Rule Index
 
@@ -159,6 +159,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
 - `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
 - `governed-symbol-residue` (error, source/source-static, external): Governed vocabulary transitions carry committed Regrade provenance and do not leave or reintroduce retired identifiers.
+- `governed-vocabulary-permutation-watch` (warn, all/project-static, advisory): Committed Regrade history keeps unknown governed-stem permutations visible until they are classified.
 - `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.
@@ -220,6 +221,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `duplicate-public-contract`: Keep duplicate public contract facts from drifting into separate capabilities.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `governed-symbol-residue`: Require committed Regrade evidence before completing a governed vocabulary migration.
+- `governed-vocabulary-permutation-watch`: Classify unknown governed-stem permutations recorded by committed Regrade history.
 - `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.
 - `no-throw-in-implementation`: Convert thrown failures in implementations into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.

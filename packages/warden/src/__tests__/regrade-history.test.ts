@@ -76,9 +76,18 @@ const completionReport = {
   unknownClassIds: [],
 };
 
-const withNumericFileRenameEvidence = (
-  value: typeof report | typeof completionReport
-) => ({
+type TestReport = (typeof report | typeof completionReport) & {
+  readonly run?: {
+    readonly ledger: {
+      readonly cycle: number;
+      readonly forms: Readonly<Record<string, string>>;
+      readonly occurrences: readonly Record<string, unknown>[];
+    };
+    readonly report: Record<string, unknown>;
+  };
+};
+
+const withNumericFileRenameEvidence = (value: TestReport): TestReport => ({
   ...value,
   run: {
     ledger: { cycle: 1, forms: {}, occurrences: [] },
@@ -98,13 +107,11 @@ const withNumericFileRenameEvidence = (
   },
 });
 
-const numericEvidenceSourceHash = (
-  value: ReturnType<typeof withNumericFileRenameEvidence>
-): string =>
+const sourceHash = (value: TestReport): string =>
   hash({
     entries: value.entries,
-    fileRenames: value.run.report.fileRenames,
-    ledger: value.run.ledger,
+    fileRenames: value.run?.report.fileRenames,
+    ledger: value.run?.ledger,
     selectedClassIds: value.selectedClassIds,
   });
 
@@ -206,15 +213,6 @@ const legacyPolicyEvidenceSourceHash = (
     },
     selectedClassIds: value.selectedClassIds,
   });
-
-const sourceHash = (value: typeof report | typeof completionReport): string =>
-  hash({
-    entries: value.entries,
-    fileRenames: undefined,
-    ledger: undefined,
-    selectedClassIds: value.selectedClassIds,
-  });
-
 const withHistory = (
   run: Record<string, unknown> | readonly Record<string, unknown>[],
   exercise: (rootDir: string) => void,
@@ -245,17 +243,21 @@ const withHistory = (
   }
 };
 
-const run = (provenance = true): Record<string, unknown> => ({
-  completionReport,
-  completionReportHash: sourceHash(completionReport),
-  lockHashAtRun: sourceHash(report),
+const run = (
+  provenance = true,
+  reportValue: TestReport = report,
+  completionValue: TestReport = completionReport
+): Record<string, unknown> => ({
+  completionReport: completionValue,
+  completionReportHash: sourceHash(completionValue),
+  lockHashAtRun: sourceHash(reportValue),
   plan: {
     kind: 'regrade-plan',
     path: '.trails/regrade/projection-to-derive.json',
     plan,
     provenance: { fields: {} },
     schemaVersion: 1,
-    sourceHash: sourceHash(report),
+    sourceHash: sourceHash(reportValue),
     transitionId: 'v1-projection-derive-render',
   },
   planContentHash: hash(plan),
@@ -266,14 +268,14 @@ const run = (provenance = true): Record<string, unknown> => ({
           kind: 'governed-vocabulary',
           planContentHash: hash(plan),
           reviewPending: 0,
-          safeApplied: 3,
-          sourceHashAfter: sourceHash(completionReport),
-          sourceHashBefore: sourceHash(report),
+          safeApplied: reportValue.rewritten,
+          sourceHashAfter: sourceHash(completionValue),
+          sourceHashBefore: sourceHash(reportValue),
           transitionId: 'v1-projection-derive-render',
         },
       }
     : {}),
-  report,
+  report: reportValue,
 });
 
 const runWithNumericFileRenameEvidence = (
@@ -299,7 +301,6 @@ const runWithNumericFileRenameEvidence = (
     report: before,
   };
 };
-
 const runWithPolicyEvidence = (
   sourceHashFor = policyEvidenceSourceHash
 ): Record<string, unknown> => {
@@ -323,7 +324,6 @@ const runWithPolicyEvidence = (
     report: before,
   };
 };
-
 describe('loadGovernedVocabularyHistory', () => {
   test('indexes validated committed provenance once per transition', () => {
     withHistory(run(), (rootDir) => {
@@ -333,7 +333,9 @@ describe('loadGovernedVocabularyHistory', () => {
       expect(
         index.byTransitionId.get('v1-projection-derive-render')
       ).toMatchObject({
+        caseSensitive: false,
         id: 'history-id',
+        latestFormObservations: [],
         path: '.trails/regrade/history/projection-to-derive.json',
         runCount: 1,
         transitionId: 'v1-projection-derive-render',
@@ -394,13 +396,114 @@ describe('loadGovernedVocabularyHistory', () => {
   });
 
   test('accepts authoritative numeric file-rename evidence', () => {
-    withHistory(runWithNumericFileRenameEvidence(), (rootDir) => {
+    withHistory(
+      run(
+        true,
+        withNumericFileRenameEvidence(report),
+        withNumericFileRenameEvidence(completionReport)
+      ),
+      (rootDir) => {
+        const index = loadGovernedVocabularyHistory(rootDir);
+
+        expect(index.issues).toEqual([]);
+        expect(
+          index.byTransitionId.get('v1-projection-derive-render')
+        ).toBeDefined();
+      }
+    );
+  });
+
+  test('indexes latest-run vocabulary form observations', () => {
+    const preApplyObservation = {
+      column: 7,
+      context: 'const projectionist = true;',
+      disposition: 'in-family-unresolved',
+      end: 20,
+      form: 'projectionist',
+      line: 3,
+      path: 'src/example.ts',
+      reason: 'unclassified-neighbor',
+      scopeTier: 'in-scope',
+      start: 6,
+      verdict: 'deferred',
+    };
+    const completionObservation = {
+      ...preApplyObservation,
+      form: 'derivationist',
+      line: 5,
+    };
+    const reportWithObservation: TestReport = {
+      ...report,
+      run: {
+        ledger: {
+          cycle: 1,
+          forms: { projectionist: 'deferred' },
+          occurrences: [preApplyObservation],
+        },
+        report: {},
+      },
+    };
+    const completionWithObservation: TestReport = {
+      ...completionReport,
+      run: {
+        ledger: {
+          cycle: 2,
+          forms: { derivationist: 'deferred' },
+          occurrences: [completionObservation],
+        },
+        report: {},
+      },
+    };
+
+    withHistory(
+      run(true, reportWithObservation, completionWithObservation),
+      (rootDir) => {
+        const history = loadGovernedVocabularyHistory(
+          rootDir
+        ).byTransitionId.get('v1-projection-derive-render');
+
+        expect(history?.latestFormObservations).toEqual([
+          {
+            disposition: 'in-family-unresolved',
+            form: 'derivationist',
+            line: 5,
+            path: 'src/example.ts',
+            reason: 'unclassified-neighbor',
+            scopeTier: 'in-scope',
+            verdict: 'deferred',
+          },
+        ]);
+      }
+    );
+  });
+
+  test('accepts legacy minimal occurrences without projecting observations', () => {
+    const legacyCompletionReport: TestReport = {
+      ...completionReport,
+      run: {
+        ledger: {
+          cycle: 1,
+          forms: { projectionist: 'skipped' },
+          occurrences: [
+            {
+              form: 'projectionist',
+              path: 'docs/history.md',
+              scopeTier: 'legacy-policy',
+            },
+          ],
+        },
+        report: {},
+      },
+    };
+
+    withHistory(run(true, report, legacyCompletionReport), (rootDir) => {
       const index = loadGovernedVocabularyHistory(rootDir);
 
       expect(index.issues).toEqual([]);
       expect(
         index.byTransitionId.get('v1-projection-derive-render')
-      ).toBeDefined();
+          ?.latestFormObservations
+      ).toEqual([]);
     });
   });
 
@@ -490,6 +593,80 @@ describe('loadGovernedVocabularyHistory', () => {
     provenance.safeApplied = 99;
 
     withHistory(tampered, (rootDir) => {
+      const index = loadGovernedVocabularyHistory(rootDir);
+
+      expect(index.byTransitionId.size).toBe(0);
+      expect(index.issues[0]?.message).toBe(
+        'Committed Regrade history has invalid deterministic run evidence.'
+      );
+    });
+  });
+
+  test('rejects required history with an invented occurrence classification', () => {
+    const reportWithInvalidClassification = {
+      ...report,
+      run: {
+        ledger: {
+          cycle: 1,
+          forms: { projectionist: 'deferred' },
+          occurrences: [
+            {
+              column: 7,
+              context: 'const projectionist = true;',
+              disposition: 'invented-classification',
+              end: 20,
+              form: 'projectionist',
+              line: 3,
+              path: 'src/example.ts',
+              reason: 'unclassified-neighbor',
+              scopeTier: 'in-scope',
+              start: 6,
+              verdict: 'deferred',
+            },
+          ],
+        },
+        report: {},
+      },
+    } as TestReport;
+
+    withHistory(run(true, reportWithInvalidClassification), (rootDir) => {
+      const index = loadGovernedVocabularyHistory(rootDir);
+
+      expect(index.byTransitionId.size).toBe(0);
+      expect(index.issues[0]?.message).toBe(
+        'Committed Regrade history has invalid deterministic run evidence.'
+      );
+    });
+  });
+
+  test('rejects modern occurrences with an invented scope tier', () => {
+    const reportWithInvalidScopeTier = {
+      ...report,
+      run: {
+        ledger: {
+          cycle: 1,
+          forms: { projectionist: 'deferred' },
+          occurrences: [
+            {
+              column: 7,
+              context: 'const projectionist = true;',
+              disposition: 'in-family-unresolved',
+              end: 20,
+              form: 'projectionist',
+              line: 3,
+              path: 'src/example.ts',
+              reason: 'unclassified-neighbor',
+              scopeTier: 'legacy-policy',
+              start: 6,
+              verdict: 'deferred',
+            },
+          ],
+        },
+        report: {},
+      },
+    } as TestReport;
+
+    withHistory(run(true, reportWithInvalidScopeTier), (rootDir) => {
       const index = loadGovernedVocabularyHistory(rootDir);
 
       expect(index.byTransitionId.size).toBe(0);

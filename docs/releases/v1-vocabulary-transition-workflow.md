@@ -99,6 +99,8 @@ Regrade is the primary migration engine. Apply consumes an active plan artifact 
 
 For a registry-governed transition, apply also stamps the history run and the CLI/MCP result with governed provenance: transition identity, plan and source hashes, safely applied count, and remaining review count. Warden loads that committed evidence once per project run. A completed transition that requires Regrade provenance cannot be satisfied by an equivalent hand migration with no history entry.
 
+Warden also keeps the latest committed run's unknown stem permutations visible as advisory findings. Each transition/form pair appears once. Add the form to an incremental plan and rerun Regrade, or classify it as out-of-family or preserved; that persisted classification suppresses the advisory on later runs. Earlier history runs remain evidence, but they do not resurrect forms that the latest run has classified or cleared.
+
 Use `trails regrade check --root-dir . --plan "$PLAN_PATH"` when a family should prove the saved plan gate without writing. The check succeeds only when the plan is fresh and its completion gate is green. Use `trails regrade plans --root-dir .` when more than one active plan may exist, because commands without `--plan <path-or-name>` intentionally fail on ambiguity.
 
 Safe follow-up edits usually include:

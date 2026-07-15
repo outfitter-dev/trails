@@ -119,6 +119,27 @@ export const authoredMcpSurfaceBindingSetSchema = z.object({
     .describe('Trail ids registered in the owning app topo'),
 });
 
+const governedVocabularyHistoryObservationSchema = z.object({
+  disposition: z.string(),
+  form: z.string(),
+  line: z.number().int().positive(),
+  path: z.string(),
+  reason: z.string(),
+  scopeTier: z.enum(['in-scope', 'policy-classified']).optional(),
+  verdict: z.enum(['applied', 'deferred', 'modified', 'skipped']),
+});
+
+const governedVocabularyHistoryEvidenceSchema = z.object({
+  caseSensitive: z.boolean(),
+  id: z.string(),
+  latestFormObservations: z
+    .array(governedVocabularyHistoryObservationSchema)
+    .readonly(),
+  path: z.string(),
+  runCount: z.number().int().nonnegative(),
+  transitionId: z.string(),
+});
+
 export const projectAwareRuleInput = ruleInput.extend({
   authoredMcpSurfaceBindingSets: z
     .array(authoredMcpSurfaceBindingSetSchema)
@@ -153,6 +174,26 @@ export const projectAwareRuleInput = ruleInput.extend({
     .record(z.string(), z.array(exportedSymbolDefinitionSchema))
     .optional()
     .describe('Public exported symbol definitions grouped by exported name'),
+  governedVocabularyHistories: z
+    .array(governedVocabularyHistoryEvidenceSchema)
+    .readonly()
+    .optional()
+    .describe('Validated committed Regrade histories by governed transition'),
+  governedVocabularyHistoryIssues: z
+    .array(
+      z.object({
+        message: z.string(),
+        path: z.string(),
+        transitionId: z.string().optional(),
+      })
+    )
+    .readonly()
+    .optional()
+    .describe('Invalid committed Regrade history artifacts'),
+  governedVocabularyHistoryRequired: z
+    .boolean()
+    .optional()
+    .describe('Whether the project must prove completed governed migrations'),
   importResolutionsByFile: z
     .record(z.string(), z.array(importResolutionSchema))
     .optional()
