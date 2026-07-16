@@ -1,5 +1,11 @@
 # @ontrails/warden
 
+## 1.0.0-beta.45
+
+### Patch Changes
+
+- [`f1bd093`](https://github.com/outfitter-dev/trails/commit/f1bd09395fcf81db0bcb8657030288877c2e26e6): Recognize conditional, aliased, and parenthesized Result provenance while invalidating provenance after reassignment across the implementation-return and redundant-error-wrap rules.
+
 ## 1.0.0-beta.44
 
 ### Patch Changes

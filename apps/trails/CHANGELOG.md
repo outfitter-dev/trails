@@ -1,5 +1,12 @@
 # trails
 
+## 1.0.0-beta.45
+
+### Patch Changes
+
+- [`f1bd093`](https://github.com/outfitter-dev/trails/commit/f1bd09395fcf81db0bcb8657030288877c2e26e6): Recognize conditional, aliased, and parenthesized Result provenance while invalidating provenance after reassignment across the implementation-return and redundant-error-wrap rules.
+- [`872a815`](https://github.com/outfitter-dev/trails/commit/872a815243cae63fae5b16022f102d125bc78ac5): Require strict registry checks to prove exact-version consumer availability instead of trusting package access or dist-tags alone.
+
 ## 1.0.0-beta.44
 
 ### Patch Changes

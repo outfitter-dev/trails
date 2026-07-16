@@ -1,5 +1,7 @@
 # @ontrails/mcp
 
+## 1.0.0-beta.45
+
 ## 1.0.0-beta.44
 
 ### Patch Changes
