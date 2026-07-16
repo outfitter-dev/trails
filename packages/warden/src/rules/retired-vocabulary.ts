@@ -62,6 +62,7 @@ export const governedVocabularySymbolRenameSchema = z.object({
   from: z.string().min(1),
   match: z.enum(governedVocabularySymbolRenameMatchModes).default('exact'),
   reviewDeclarationTypes: z.array(z.string().min(1)).default([]),
+  safety: z.enum(['safe', 'review']).optional(),
   to: z.string().min(1),
 });
 
@@ -829,6 +830,9 @@ export const governedVocabularyTransitions =
         'cliProjection',
         'cliProjectionSchema',
         'collectLibraryProjection',
+        'collectionExtensionProjectionForFileRenames',
+        'extensionProjection',
+        'filterProjectedTargetExtensions',
         'projectActivationEdge',
         'projectActivationSource',
         'projectActivationSourceDeclaration',
@@ -860,6 +864,11 @@ export const governedVocabularyTransitions =
         'projectTrailVersions',
         'projectVersionDetours',
         'projectVersionRuntimeRefs',
+        'projectVocabularyText',
+        'projected',
+        'projectedEvidence',
+        'projectedFileInScopeCount',
+        'projectedTargetPaths',
         'SchemaProjector',
         'deriveShippedSurfaceProjectionInventory',
         'deriveTrailCliCommandProjection',
@@ -1190,6 +1199,15 @@ export const governedVocabularyTransitions =
           from: 'collectLibraryProjection',
           to: 'deriveTopoGraphLibrary',
         },
+        {
+          from: 'collectionExtensionProjectionForFileRenames',
+          to: 'deriveCollectionExtensionsForFileRenames',
+        },
+        { from: 'extensionProjection', to: 'derivedExtensions' },
+        {
+          from: 'filterProjectedTargetExtensions',
+          to: 'filterDerivedTargetExtensions',
+        },
         { from: 'projectActivationEdge', to: 'deriveActivationEdge' },
         { from: 'projectActivationSource', to: 'deriveActivationSource' },
         {
@@ -1233,6 +1251,18 @@ export const governedVocabularyTransitions =
           from: 'projectVersionRuntimeRefs',
           to: 'deriveVersionRuntimeRefs',
         },
+        { from: 'projectVocabularyText', to: 'deriveVocabularyText' },
+        {
+          from: 'projected',
+          safety: 'review',
+          to: 'derived',
+        },
+        { from: 'projectedEvidence', to: 'derivedEvidence' },
+        {
+          from: 'projectedFileInScopeCount',
+          to: 'derivedFileInScopeCount',
+        },
+        { from: 'projectedTargetPaths', to: 'derivedTargetPaths' },
         { from: 'SchemaProjector', to: 'SchemaDeriver' },
         {
           from: 'deriveShippedSurfaceProjectionInventory',

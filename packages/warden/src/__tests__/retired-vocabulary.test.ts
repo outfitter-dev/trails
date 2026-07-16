@@ -557,6 +557,38 @@ describe('governed vocabulary registry', () => {
     expect(wayfinder?.symbolRenames).toEqual([]);
   });
 
+  test('governs Regrade identifiers missed by the first projection census', () => {
+    const projection = getGovernedVocabularyTransition(
+      'v1-projection-derive-render'
+    );
+
+    expect(projection?.symbolRenames).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: 'collectionExtensionProjectionForFileRenames',
+          to: 'deriveCollectionExtensionsForFileRenames',
+        }),
+        expect.objectContaining({
+          from: 'projectVocabularyText',
+          to: 'deriveVocabularyText',
+        }),
+        expect.objectContaining({
+          from: 'projectedTargetPaths',
+          to: 'derivedTargetPaths',
+        }),
+        expect.objectContaining({
+          from: 'projected',
+          safety: 'review',
+          to: 'derived',
+        }),
+        expect.objectContaining({
+          from: 'projectedFileInScopeCount',
+          to: 'derivedFileInScopeCount',
+        }),
+      ])
+    );
+  });
+
   test('rejects duplicate ids and duplicate source terms', () => {
     const [transition] = governedVocabularyTransitions;
     if (transition === undefined) {

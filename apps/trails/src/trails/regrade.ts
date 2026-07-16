@@ -1897,7 +1897,7 @@ const withFileRenameEvidence = (params: {
   ]);
   const filePolicyCount = params.run.policyOccurrencePaths.length;
   const fileInScopeCount = params.run.occurrencePaths.length - filePolicyCount;
-  const projectedFileInScopeCount =
+  const derivedFileInScopeCount =
     params.run.report.rewritten + params.run.report.review;
   return {
     ...params.report,
@@ -1914,7 +1914,7 @@ const withFileRenameEvidence = (params: {
         scopeTiers: {
           'in-scope':
             params.report.run.report.scopeTiers['in-scope'] -
-            projectedFileInScopeCount +
+            derivedFileInScopeCount +
             fileInScopeCount,
           'policy-classified':
             params.report.run.report.scopeTiers['policy-classified'] +

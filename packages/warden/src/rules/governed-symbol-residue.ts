@@ -286,6 +286,10 @@ const reviewReasonFor = (
     }
   }
 
+  if (match.rename.safety === 'review') {
+    return 'requires semantic classification';
+  }
+
   if (shorthandIdentifiers.has(match.from)) {
     return 'participates in an authored shorthand property';
   }

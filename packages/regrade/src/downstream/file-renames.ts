@@ -232,16 +232,16 @@ const preserveVocabularyCase = (
     : replacement;
 };
 
-const projectVocabularyText = (
+const deriveVocabularyText = (
   source: string,
   plan: VocabularyRegradePlan
 ): string => {
-  let projected = source;
+  let derived = source;
   const safeForms = vocabularyRewriteFormsForPlan(plan).toSorted(
     ([left], [right]) => right.length - left.length
   );
   for (const [from, to] of safeForms) {
-    projected = projected.replaceAll(
+    derived = derived.replaceAll(
       new RegExp(
         `(?<![A-Za-z0-9_$-])${escapeRegExp(from)}(?![A-Za-z0-9_$-])`,
         plan.caseSensitive === true ? 'gu' : 'giu'
@@ -250,7 +250,7 @@ const projectVocabularyText = (
         plan.caseSensitive === true ? to : preserveVocabularyCase(matched, to)
     );
   }
-  return projected;
+  return derived;
 };
 
 const astReferenceMappings = (
@@ -372,7 +372,7 @@ const referenceMappingsForPath = (
       rename.from,
       ...(vocabularyPlan === undefined
         ? []
-        : [projectVocabularyText(rename.from, vocabularyPlan)]),
+        : [deriveVocabularyText(rename.from, vocabularyPlan)]),
     ].filter((value, index, values) => values.indexOf(value) === index);
     for (const sourcePath of sourcePaths) {
       mappings.push(
@@ -1121,7 +1121,7 @@ const isGeneratedRegradeArtifactPath = (path: string): boolean =>
 const filterOpenedPolicyDirectories = (
   collected: DownstreamSourceCollection,
   opened: readonly string[],
-  projectedTargetPaths: ReadonlySet<string>,
+  derivedTargetPaths: ReadonlySet<string>,
   scope: VocabularyRegradeScope | undefined,
   renames: readonly VocabularyFileRename[],
   apply: boolean
@@ -1137,7 +1137,7 @@ const filterOpenedPolicyDirectories = (
     );
     return (
       !insideOpenedDirectory ||
-      projectedTargetPaths.has(normalizeRenamePath(file.path)) ||
+      derivedTargetPaths.has(normalizeRenamePath(file.path)) ||
       policyForPath(scopePath, scope) !== undefined
     );
   });
@@ -1199,22 +1199,22 @@ const collectionExcludeForFileRenames = (params: {
 const normalizeExtension = (extension: string): string =>
   extension === '' || extension.startsWith('.') ? extension : `.${extension}`;
 
-const collectionExtensionProjectionForFileRenames = (params: {
+const deriveCollectionExtensionsForFileRenames = (params: {
   readonly apply: boolean;
   readonly extensions: readonly string[];
   readonly renames: readonly VocabularyFileRename[];
 }): {
   readonly extensions: readonly string[];
-  readonly projectedTargetPaths: ReadonlySet<string>;
+  readonly derivedTargetPaths: ReadonlySet<string>;
 } => {
   const sourceExtensions = new Set(params.extensions.map(normalizeExtension));
   if (!params.apply || sourceExtensions.size === 0) {
     return {
+      derivedTargetPaths: new Set(),
       extensions: params.extensions,
-      projectedTargetPaths: new Set(),
     };
   }
-  const projectedTargetPaths = new Set(
+  const derivedTargetPaths = new Set(
     params.renames
       .filter((rename) =>
         sourceExtensions.has(
@@ -1224,18 +1224,18 @@ const collectionExtensionProjectionForFileRenames = (params: {
       .map((rename) => normalizeRenamePath(rename.to))
   );
   return {
+    derivedTargetPaths,
     extensions: [
       ...sourceExtensions,
-      ...new Set([...projectedTargetPaths].map((path) => extname(path))),
+      ...new Set([...derivedTargetPaths].map((path) => extname(path))),
     ],
-    projectedTargetPaths,
   };
 };
 
-const filterProjectedTargetExtensions = (
+const filterDerivedTargetExtensions = (
   collected: DownstreamSourceCollection,
   sourceExtensions: readonly string[],
-  projectedTargetPaths: ReadonlySet<string>
+  derivedTargetPaths: ReadonlySet<string>
 ): DownstreamSourceCollection => {
   const normalizedSourceExtensions = new Set(
     sourceExtensions.map(normalizeExtension)
@@ -1246,7 +1246,7 @@ const filterProjectedTargetExtensions = (
   const files = collected.files.filter(
     (file) =>
       normalizedSourceExtensions.has(extname(file.path)) ||
-      projectedTargetPaths.has(normalizeRenamePath(file.path))
+      derivedTargetPaths.has(normalizeRenamePath(file.path))
   );
   const selected = new Set(files.map((file) => file.path));
   return {
@@ -1264,7 +1264,7 @@ const filterProjectedTargetExtensions = (
 const withExactMovedTargets = (params: {
   readonly apply: boolean;
   readonly collected: DownstreamSourceCollection;
-  readonly projectedTargetPaths: ReadonlySet<string>;
+  readonly derivedTargetPaths: ReadonlySet<string>;
   readonly renames: readonly VocabularyFileRename[];
   readonly resolved: readonly ResolvedFileRename[];
   readonly scope: VocabularyRegradeScope | undefined;
@@ -1279,7 +1279,7 @@ const withExactMovedTargets = (params: {
     const path = normalizeRenamePath(rename.to);
     const sourcePath = sourcePathForMovedTarget(path, params.renames);
     if (
-      !params.projectedTargetPaths.has(path) ||
+      !params.derivedTargetPaths.has(path) ||
       (params.scope?.include !== undefined &&
         !matchesAnyPathGlob(sourcePath, params.scope.include)) ||
       (params.scope?.exclude !== undefined &&
@@ -1430,13 +1430,13 @@ export const runFileRenameRegrade = (params: {
   });
   const sourceExtensions =
     params.scope?.extensions ?? fileRenameSourceExtensions;
-  const extensionProjection = collectionExtensionProjectionForFileRenames({
+  const derivedExtensions = deriveCollectionExtensionsForFileRenames({
     apply,
     extensions: sourceExtensions,
     renames: params.renames,
   });
   const rawCollection = collectDownstreamSources(params.root, {
-    extensions: extensionProjection.extensions,
+    extensions: derivedExtensions.extensions,
     ...(exclude === undefined ? {} : { exclude }),
     ...(include === undefined ? {} : { include }),
     ignoredDirectories: DEFAULT_IGNORED_DIRECTORIES.filter(
@@ -1452,20 +1452,20 @@ export const runFileRenameRegrade = (params: {
   const exactTargetCollection = withExactMovedTargets({
     apply,
     collected: rawCollection,
-    projectedTargetPaths: extensionProjection.projectedTargetPaths,
+    derivedTargetPaths: derivedExtensions.derivedTargetPaths,
     renames: params.renames,
     resolved: validated.value,
     scope: params.scope,
   });
-  const extensionScopedCollection = filterProjectedTargetExtensions(
+  const extensionScopedCollection = filterDerivedTargetExtensions(
     exactTargetCollection,
     sourceExtensions,
-    extensionProjection.projectedTargetPaths
+    derivedExtensions.derivedTargetPaths
   );
   const scopedCollection = filterOpenedPolicyDirectories(
     extensionScopedCollection,
     opened,
-    extensionProjection.projectedTargetPaths,
+    derivedExtensions.derivedTargetPaths,
     params.scope,
     params.renames,
     apply
@@ -1516,7 +1516,7 @@ export const runFileRenameRegrade = (params: {
     }
   }
 
-  const projectedEvidence = params.renames.map((rename, index) => ({
+  const derivedEvidence = params.renames.map((rename, index) => ({
     ...rename,
     ...(evidence[index] ?? emptyEvidence()),
   }));
@@ -1548,10 +1548,10 @@ export const runFileRenameRegrade = (params: {
             applied:
               validated.value.filter((rename) => !rename.alreadyApplied)
                 .length +
-              projectedEvidence.reduce((sum, item) => sum + item.rewritten, 0),
+              derivedEvidence.reduce((sum, item) => sum + item.rewritten, 0),
             filesChanged: changedFiles.size,
             review,
-            skipped: projectedEvidence.reduce(
+            skipped: derivedEvidence.reduce(
               (sum, item) => sum + item.skipped,
               0
             ),
@@ -1582,7 +1582,7 @@ export const runFileRenameRegrade = (params: {
 
   return Result.ok({
     changedPaths: [...changedFiles].toSorted(),
-    evidence: projectedEvidence,
+    evidence: derivedEvidence,
     occurrencePaths: referenceResult.value.occurrencePaths,
     policyOccurrencePaths: referenceResult.value.policyOccurrencePaths,
     report,

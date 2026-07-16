@@ -58,7 +58,7 @@ export const renderErrorDiagnostics = (
 };
 
 /**
- * Project an error through the shared public redaction policy.
+ * Render an error through the shared public redaction policy.
  *
  * @example
  * ```ts

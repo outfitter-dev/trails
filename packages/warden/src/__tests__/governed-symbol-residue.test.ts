@@ -362,6 +362,56 @@ describe('governed-symbol-residue', () => {
     ]);
   });
 
+  test('routes every lifecycle-ambiguous bare projection symbol to review', () => {
+    const diagnostics = check(
+      [
+        'export function projected() {',
+        '  return projected();',
+        '}',
+        'const value = projected;',
+        '',
+      ].join('\n')
+    );
+
+    expect(diagnostics).toHaveLength(3);
+    expect(diagnostics.map((diagnostic) => diagnostic.fix?.safety)).toEqual([
+      'review',
+      'review',
+      'review',
+    ]);
+    expect(diagnostics.map((diagnostic) => diagnostic.fix?.edits)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(
+      diagnostics.every((diagnostic) =>
+        diagnostic.fix?.reason.includes('requires semantic classification')
+      )
+    ).toBe(true);
+  });
+
+  test('routes lifecycle-ambiguous projection parameters to review', () => {
+    const diagnostics = check(
+      [
+        'function consume(projected: string) {',
+        '  return projected;',
+        '}',
+        '',
+      ].join('\n')
+    );
+
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics.map((diagnostic) => diagnostic.fix?.safety)).toEqual([
+      'review',
+      'review',
+    ]);
+    expect(diagnostics.map((diagnostic) => diagnostic.fix?.edits)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
   test('routes import and export boundary names to review', () => {
     for (const source of [
       "import { contourId } from 'external';\n",
