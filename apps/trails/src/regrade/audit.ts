@@ -20,7 +20,10 @@ import { basename, extname, join } from 'node:path';
 import { z } from 'zod';
 
 import { deriveLiveApiPreserveInventory } from './live-api-preserve.js';
-import { readRegradeHistoryArtifact } from './history.js';
+import {
+  readRegradeHistoryArtifact,
+  regradeHistoryPathForPlan,
+} from './history.js';
 import { rootRelativePath } from './plan-artifact.js';
 
 export const regradeAuditInputSchema = z.object({
@@ -94,17 +97,35 @@ interface RegradeAuditCandidate {
   readonly transitionId: string;
 }
 
-const historyTransitionId = (rawHistory: unknown): string | undefined => {
+/**
+ * Read the governed transition id from legacy history or v3 embedded intent.
+ *
+ * @internal
+ */
+export const historyTransitionId = (
+  rawHistory: unknown
+): string | undefined => {
   if (!isPlainObject(rawHistory)) {
     return undefined;
   }
   const { id, runs } = rawHistory;
-  const latestRun = Array.isArray(runs) ? runs.at(-1) : undefined;
+  const historyRuns = Array.isArray(runs) ? runs : [];
+  const latestRun = historyRuns.at(-1);
   const planArtifact = isPlainObject(latestRun) ? latestRun['plan'] : undefined;
   const plan = isPlainObject(planArtifact) ? planArtifact['plan'] : undefined;
   const planId = isPlainObject(plan) ? plan['id'] : undefined;
   if (typeof planId === 'string') {
     return planId;
+  }
+  for (const run of historyRuns.toReversed()) {
+    const intent = isPlainObject(run) ? run['intent'] : undefined;
+    const intentPlan = isPlainObject(intent) ? intent['plan'] : undefined;
+    const intentPlanId = isPlainObject(intentPlan)
+      ? intentPlan['id']
+      : undefined;
+    if (typeof intentPlanId === 'string') {
+      return intentPlanId;
+    }
   }
   return typeof id === 'string' ? id : undefined;
 };
@@ -118,7 +139,9 @@ const selectedHistoryFileNamesFor = (
       ? []
       : [...selectedTransitionIds].flatMap((transitionId) => {
           const plan = registryPlansById.get(transitionId);
-          return plan === undefined ? [] : [`${plan.from}-to-${plan.to}.json`];
+          return plan === undefined
+            ? []
+            : [basename(regradeHistoryPathForPlan('.', plan))];
         })
   );
 

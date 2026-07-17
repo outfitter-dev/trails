@@ -427,9 +427,6 @@ export const currentRegradeSourceHashMatches = (
   report: RegradeReport
 ): boolean => stampedHash === regradeSourceHash(report);
 
-export const legacyRegradeSourceHash = (report: RegradeReport): string =>
-  hashSerializedSourceFacts(JSON.stringify(regradeSourceHashFacts(report)));
-
 export const regradeSourceHashes = (
   report: RegradeReport
 ): readonly string[] => {

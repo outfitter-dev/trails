@@ -1,175 +1,69 @@
 {
+  "conversion": {
+    "convertedAt": "2026-07-16T23:02:23.000Z",
+    "fromSchemaVersion": 2,
+    "sourceContentHash": "346dc54e79a195ef8fdb1e91c6b290b9423a4dc0712177f27621649a9b03b631",
+    "toolVersion": "1.0.0-beta.45"
+  },
   "id": "6141383f251c",
   "kind": "regrade-history",
   "path": ".trails/regrade/history/ontrails-tracing-otel-to-ontrails-observability-otel.json",
   "runs": [
     {
-      "completionReport": {
-        "entries": [],
-        "matched": 0,
-        "review": 0,
-        "rewritten": 0,
-        "root": "/Users/mg/Developer/outfitter/trails",
-        "run": {
-          "ledger": {
-            "cycle": 1,
-            "forms": {
-              "@ontrails/tracing/otel": "skipped"
-            },
-            "occurrences": [
-              {
-                "column": 177,
-                "context": "`@ontrails/logging` retired before v1. On beta.19, use `@ontrails/observe` for sink contracts and built-in sinks, `@ontrails/tracing` for trace registry and SQLite dev store, `@ontrails/tracing/otel` for OpenTelemetry export, `@ontrails/logtape` for LogTape forwarding, and `@ontrails/pino` for Pino forwarding. Do not substitute the current `@ontrails/observe/logtape` or `@ontrails/observe/pino` subpaths while the app remains pinned to beta.19; those subpaths landed later.",
-                "disposition": "explicit-preserve",
-                "end": 17758,
-                "form": "@ontrails/tracing/otel",
-                "line": 207,
-                "path": "docs/releases/beta15-to-beta19.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 17736,
-                "verdict": "skipped"
-              },
-              {
-                "column": 332,
-                "context": "`@ontrails/logging` has been retired before v1. Use `@ontrails/observe` for log and trace sink contracts, built-in console/file/memory sinks, sink composition, and trace rendering. Keep `@ontrails/tracing` for intrinsic tracing compatibility, tracing query/status trails, the SQLite dev store, sampling helpers, and the supported `@ontrails/tracing/otel` adapter subpath. Use `@ontrails/logtape` when forwarding Trails log records to an existing LogTape-shaped logger.",
-                "disposition": "explicit-preserve",
-                "end": 2250,
-                "form": "@ontrails/tracing/otel",
-                "line": 46,
-                "path": "docs/releases/beta15.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 2228,
-                "verdict": "skipped"
-              },
-              {
-                "column": 6,
-                "context": "Use `@ontrails/tracing/otel` for the v1 OpenTelemetry trace adapter:",
-                "disposition": "explicit-preserve",
-                "end": 7873,
-                "form": "@ontrails/tracing/otel",
-                "line": 200,
-                "path": "docs/releases/beta15.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 7851,
-                "verdict": "skipped"
-              },
-              {
-                "column": 36,
-                "context": "import { createOtelAdapter } from '@ontrails/tracing/otel';",
-                "disposition": "explicit-preserve",
-                "end": 7979,
-                "form": "@ontrails/tracing/otel",
-                "line": 203,
-                "path": "docs/releases/beta15.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 7957,
-                "verdict": "skipped"
-              }
-            ]
-          },
-          "plan": {
-            "caseSensitive": true,
-            "deferForms": [],
-            "from": "@ontrails/tracing/otel",
-            "id": "v1-tracing-otel-observability-otel",
-            "intent": "Move the exact OTel adapter route after establishing the observability /otel export.",
-            "kind": "vocabulary",
-            "overrides": {
-              "@ontrails/tracing/otel": "@ontrails/observability/otel"
-            },
-            "preserve": [
-              {
-                "paths": [
-                  ".agents/plans/**",
-                  "**/.agents/plans/**",
-                  "docs/adr/0*.md",
-                  "docs/adr/decision-map.json",
-                  "docs/migration/**",
-                  "docs/releases/beta*.md",
-                  "docs/releases/v1-vocabulary-reset.md",
-                  "docs/releases/v1-vocabulary-transition-workflow.md",
-                  "scripts/vocab-cutover-*.ts"
-                ],
-                "pattern": "(?:@ontrails/tracing/otel)",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
-              }
-            ],
-            "scope": {
-              "exclude": [
-                ".agents/goals/**",
-                "**/.agents/goals/**",
-                ".agents/memory/**",
-                "**/.agents/memory/**",
-                ".agents/notes/**",
-                "**/.agents/notes/**",
-                ".claude/agent-memory/**",
-                "**/.claude/agent-memory/**",
-                ".agents/plans/archive/**",
-                "**/.agents/plans/archive/**",
-                ".changeset/**",
-                "**/.changeset/**",
-                ".scratch/**",
-                "**/.scratch/**",
-                ".trails/regrade/history/**",
-                "**/.trails/regrade/history/**",
-                "**/CHANGELOG.md",
-                "**/.tmp-tests/**",
-                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
-                "packages/warden/src/rules/retired-vocabulary.ts"
-              ]
-            },
-            "to": "@ontrails/observability/otel"
-          },
-          "report": {
-            "applied": 0,
-            "deferred": 0,
-            "dispositions": {
-              "explicit-preserve": 4
-            },
-            "filesChanged": 0,
-            "gate": {
-              "reasons": [],
-              "remaining": 0,
-              "remainingByDisposition": {},
-              "status": "green"
-            },
-            "modified": 0,
-            "open": 0,
-            "skipped": 648
+      "classifiedState": {
+        "caseSensitive": true,
+        "forms": [
+          {
+            "disposition": "preserved",
+            "form": "@ontrails/tracing/otel",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 207,
+              "path": "docs/releases/beta15-to-beta19.md"
+            }
           }
-        },
-        "scan": {
-          "byDirectory": [],
-          "byExtension": [],
-          "files": {
-            "matched": 0,
-            "scanned": 1446,
-            "skipped": 1480
+        ],
+        "kind": "embedded",
+        "stateHash": "51a47da8a71316a3ac8a7ae6702b2821177bb526d0e75a996b471499306ffb3e"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {
+            "explicit-preserve": 4
           },
+          "matched": 0,
+          "preserved": 1,
+          "review": 0,
+          "rewritten": 0,
           "skippedByReason": {
             "ignored-directory": 113,
             "ignored-glob": 56,
             "unsupported-extension": 1311
-          }
+          },
+          "unknown": 0
         },
-        "scanned": 1446,
-        "selectedClassIds": [
-          "ast-string-literal-rename:v1-tracing-otel-observability-otel:@ontrails/tracing/otel->@ontrails/observability/otel",
-          "v1-tracing-otel-observability-otel"
-        ],
-        "skipped": 1480,
-        "skipsByReason": {
-          "ignored-directory": 113,
-          "ignored-glob": 56,
-          "unsupported-extension": 1311
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
         },
-        "unknownClassIds": []
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
       },
-      "completionReportHash": "2e8ea68a9db6afc4ab77803b0f7da8da96b7eaf86eeddd84ec275c6ef38f1e09",
-      "lockHashAtRun": "2e8ea68a9db6afc4ab77803b0f7da8da96b7eaf86eeddd84ec275c6ef38f1e09",
-      "plan": {
-        "kind": "regrade-plan",
-        "path": ".trails/regrade/ontrails-tracing-otel-to-ontrails-observability-otel.json",
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "8c3e7b7029de6101b2da47f8b22ce7c2d3e8a7790824b5e7313034dc9c29d026",
+        "lockStateHash": "2e8ea68a9db6afc4ab77803b0f7da8da96b7eaf86eeddd84ec275c6ef38f1e09",
+        "policyHash": "105ca33a93b51f03f7fcf2079627d267b9c1d27b61e4d3b74067bc6a1ace2a3d",
+        "sourceRevision": "0938e7badc0c5470d194139d642b673658d099e0",
+        "sourceStateHash": "2e8ea68a9db6afc4ab77803b0f7da8da96b7eaf86eeddd84ec275c6ef38f1e09",
+        "toolVersion": "1.0.0-beta.45"
+      },
+      "intent": {
+        "kind": "embedded",
         "plan": {
           "caseSensitive": true,
           "deferForms": [],
@@ -223,193 +117,30 @@
           },
           "to": "@ontrails/observability/otel"
         },
+        "planContentHash": "e0f8e561716f706c89b09177312be49194d3bfc31211ef3b549e402a9fd4d16d",
         "provenance": {
           "fields": {
-            "from": "authored",
-            "kind": "derived",
-            "to": "authored",
             "caseSensitive": "derived",
             "deferForms": "derived",
+            "from": "authored",
             "id": "derived",
             "intent": "authored",
+            "kind": "derived",
             "overrides": "derived",
             "preserve": "derived",
-            "scope": "derived"
+            "scope": "derived",
+            "to": "authored"
           }
-        },
-        "schemaVersion": 1,
-        "sourceHash": "2e8ea68a9db6afc4ab77803b0f7da8da96b7eaf86eeddd84ec275c6ef38f1e09"
-      },
-      "planContentHash": "1dcfa912d040c03757202d758f80ed8a0594d3ec2e542cc0d6ed10ccb3afb6a8",
-      "report": {
-        "entries": [],
-        "matched": 0,
-        "review": 0,
-        "rewritten": 0,
-        "root": "/Users/mg/Developer/outfitter/trails",
-        "run": {
-          "ledger": {
-            "cycle": 1,
-            "forms": {
-              "@ontrails/tracing/otel": "skipped"
-            },
-            "occurrences": [
-              {
-                "column": 177,
-                "context": "`@ontrails/logging` retired before v1. On beta.19, use `@ontrails/observe` for sink contracts and built-in sinks, `@ontrails/tracing` for trace registry and SQLite dev store, `@ontrails/tracing/otel` for OpenTelemetry export, `@ontrails/logtape` for LogTape forwarding, and `@ontrails/pino` for Pino forwarding. Do not substitute the current `@ontrails/observe/logtape` or `@ontrails/observe/pino` subpaths while the app remains pinned to beta.19; those subpaths landed later.",
-                "disposition": "explicit-preserve",
-                "end": 17758,
-                "form": "@ontrails/tracing/otel",
-                "line": 207,
-                "path": "docs/releases/beta15-to-beta19.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 17736,
-                "verdict": "skipped"
-              },
-              {
-                "column": 332,
-                "context": "`@ontrails/logging` has been retired before v1. Use `@ontrails/observe` for log and trace sink contracts, built-in console/file/memory sinks, sink composition, and trace rendering. Keep `@ontrails/tracing` for intrinsic tracing compatibility, tracing query/status trails, the SQLite dev store, sampling helpers, and the supported `@ontrails/tracing/otel` adapter subpath. Use `@ontrails/logtape` when forwarding Trails log records to an existing LogTape-shaped logger.",
-                "disposition": "explicit-preserve",
-                "end": 2250,
-                "form": "@ontrails/tracing/otel",
-                "line": 46,
-                "path": "docs/releases/beta15.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 2228,
-                "verdict": "skipped"
-              },
-              {
-                "column": 6,
-                "context": "Use `@ontrails/tracing/otel` for the v1 OpenTelemetry trace adapter:",
-                "disposition": "explicit-preserve",
-                "end": 7873,
-                "form": "@ontrails/tracing/otel",
-                "line": 200,
-                "path": "docs/releases/beta15.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 7851,
-                "verdict": "skipped"
-              },
-              {
-                "column": 36,
-                "context": "import { createOtelAdapter } from '@ontrails/tracing/otel';",
-                "disposition": "explicit-preserve",
-                "end": 7979,
-                "form": "@ontrails/tracing/otel",
-                "line": 203,
-                "path": "docs/releases/beta15.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 7957,
-                "verdict": "skipped"
-              }
-            ]
-          },
-          "plan": {
-            "caseSensitive": true,
-            "deferForms": [],
-            "from": "@ontrails/tracing/otel",
-            "id": "v1-tracing-otel-observability-otel",
-            "intent": "Move the exact OTel adapter route after establishing the observability /otel export.",
-            "kind": "vocabulary",
-            "overrides": {
-              "@ontrails/tracing/otel": "@ontrails/observability/otel"
-            },
-            "preserve": [
-              {
-                "paths": [
-                  ".agents/plans/**",
-                  "**/.agents/plans/**",
-                  "docs/adr/0*.md",
-                  "docs/adr/decision-map.json",
-                  "docs/migration/**",
-                  "docs/releases/beta*.md",
-                  "docs/releases/v1-vocabulary-reset.md",
-                  "docs/releases/v1-vocabulary-transition-workflow.md",
-                  "scripts/vocab-cutover-*.ts"
-                ],
-                "pattern": "(?:@ontrails/tracing/otel)",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
-              }
-            ],
-            "scope": {
-              "exclude": [
-                ".agents/goals/**",
-                "**/.agents/goals/**",
-                ".agents/memory/**",
-                "**/.agents/memory/**",
-                ".agents/notes/**",
-                "**/.agents/notes/**",
-                ".claude/agent-memory/**",
-                "**/.claude/agent-memory/**",
-                ".agents/plans/archive/**",
-                "**/.agents/plans/archive/**",
-                ".changeset/**",
-                "**/.changeset/**",
-                ".scratch/**",
-                "**/.scratch/**",
-                ".trails/regrade/history/**",
-                "**/.trails/regrade/history/**",
-                "**/CHANGELOG.md",
-                "**/.tmp-tests/**",
-                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
-                "packages/warden/src/rules/retired-vocabulary.ts"
-              ]
-            },
-            "to": "@ontrails/observability/otel"
-          },
-          "report": {
-            "applied": 0,
-            "deferred": 0,
-            "dispositions": {
-              "explicit-preserve": 4
-            },
-            "filesChanged": 0,
-            "gate": {
-              "reasons": [],
-              "remaining": 0,
-              "remainingByDisposition": {},
-              "status": "green"
-            },
-            "modified": 0,
-            "open": 0,
-            "skipped": 648
-          }
-        },
-        "scan": {
-          "byDirectory": [],
-          "byExtension": [],
-          "files": {
-            "matched": 0,
-            "scanned": 1446,
-            "skipped": 1480
-          },
-          "skippedByReason": {
-            "ignored-directory": 113,
-            "ignored-glob": 56,
-            "unsupported-extension": 1311
-          }
-        },
-        "scanned": 1446,
-        "selectedClassIds": [
-          "ast-string-literal-rename:v1-tracing-otel-observability-otel:@ontrails/tracing/otel->@ontrails/observability/otel",
-          "v1-tracing-otel-observability-otel"
-        ],
-        "skipped": 1480,
-        "skipsByReason": {
-          "ignored-directory": 113,
-          "ignored-glob": 56,
-          "unsupported-extension": 1311
-        },
-        "unknownClassIds": [],
-        "apply": {
-          "applied": 0,
-          "filesChanged": 0,
-          "review": 0,
-          "skipped": 1484,
-          "unknown": 0
         }
-      }
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "4c357b1cca2c8b7b",
+      "runKind": "original",
+      "timestamp": "2026-07-14T02:18:30.000Z",
+      "transitionId": "6141383f251c"
     }
   ],
-  "schemaVersion": 2
+  "schemaVersion": 3
 }

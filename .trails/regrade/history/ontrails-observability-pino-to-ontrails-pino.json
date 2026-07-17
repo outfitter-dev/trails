@@ -1,139 +1,69 @@
 {
+  "conversion": {
+    "convertedAt": "2026-07-16T23:02:23.000Z",
+    "fromSchemaVersion": 2,
+    "sourceContentHash": "f7bf74fa7c89fe64d52b3de61fb264ea28b88a79040b5cc828a34fea1adeef94",
+    "toolVersion": "1.0.0-beta.45"
+  },
   "id": "685a14711ce3",
   "kind": "regrade-history",
   "path": ".trails/regrade/history/ontrails-observability-pino-to-ontrails-pino.json",
   "runs": [
     {
-      "completionReport": {
-        "entries": [],
-        "matched": 0,
-        "review": 0,
-        "rewritten": 0,
-        "root": "/Users/mg/Developer/outfitter/trails",
-        "run": {
-          "ledger": {
-            "cycle": 1,
-            "forms": {
-              "@ontrails/observability/pino": "skipped"
-            },
-            "occurrences": [
-              {
-                "column": 35,
-                "context": "- import { createPinoSink } from '@ontrails/observability/pino';",
-                "disposition": "explicit-preserve",
-                "end": 1602,
-                "form": "@ontrails/observability/pino",
-                "line": 41,
-                "path": "docs/migration/logging-to-observe.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 1574,
-                "verdict": "skipped"
-              }
-            ]
-          },
-          "plan": {
-            "caseSensitive": true,
-            "deferForms": [],
-            "from": "@ontrails/observability/pino",
-            "id": "v1-observability-pino-extraction",
-            "intent": "Extract the temporary Pino forwarding subpath into the real @ontrails/pino adapter package.",
-            "kind": "vocabulary",
-            "overrides": {
-              "@ontrails/observability/pino": "@ontrails/pino"
-            },
-            "preserve": [
-              {
-                "paths": [
-                  ".agents/plans/**",
-                  "**/.agents/plans/**",
-                  "docs/adr/0*.md",
-                  "docs/adr/decision-map.json",
-                  "docs/migration/**",
-                  "docs/releases/beta*.md",
-                  "docs/releases/v1-vocabulary-reset.md",
-                  "docs/releases/v1-vocabulary-transition-workflow.md",
-                  "scripts/vocab-cutover-*.ts"
-                ],
-                "pattern": "(?:@ontrails/observability/pino)",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
-              }
-            ],
-            "scope": {
-              "exclude": [
-                ".agents/goals/**",
-                "**/.agents/goals/**",
-                ".agents/memory/**",
-                "**/.agents/memory/**",
-                ".agents/notes/**",
-                "**/.agents/notes/**",
-                ".claude/agent-memory/**",
-                "**/.claude/agent-memory/**",
-                ".agents/plans/archive/**",
-                "**/.agents/plans/archive/**",
-                ".changeset/**",
-                "**/.changeset/**",
-                ".scratch/**",
-                "**/.scratch/**",
-                ".trails/regrade/history/**",
-                "**/.trails/regrade/history/**",
-                "**/CHANGELOG.md",
-                "**/.tmp-tests/**",
-                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
-                "packages/warden/src/rules/retired-vocabulary.ts"
-              ]
-            },
-            "to": "@ontrails/pino"
-          },
-          "report": {
-            "applied": 0,
-            "deferred": 0,
-            "dispositions": {
-              "explicit-preserve": 1
-            },
-            "filesChanged": 0,
-            "gate": {
-              "reasons": [],
-              "remaining": 0,
-              "remainingByDisposition": {},
-              "status": "green"
-            },
-            "modified": 0,
-            "open": 0,
-            "skipped": 657
+      "classifiedState": {
+        "caseSensitive": true,
+        "forms": [
+          {
+            "disposition": "preserved",
+            "form": "@ontrails/observability/pino",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 41,
+              "path": "docs/migration/logging-to-observe.md"
+            }
           }
-        },
-        "scan": {
-          "byDirectory": [],
-          "byExtension": [],
-          "files": {
-            "matched": 0,
-            "scanned": 1451,
-            "skipped": 1493
+        ],
+        "kind": "embedded",
+        "stateHash": "d5e8ae0c5d11798767667c7e73aff750cd96322bc2bd2c7d6358741675fee6c2"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {
+            "explicit-preserve": 1
           },
+          "matched": 0,
+          "preserved": 1,
+          "review": 0,
+          "rewritten": 0,
           "skippedByReason": {
             "ignored-directory": 115,
             "ignored-glob": 58,
             "unsupported-extension": 1320
-          }
+          },
+          "unknown": 0
         },
-        "scanned": 1451,
-        "selectedClassIds": [
-          "ast-string-literal-rename:v1-observability-pino-extraction:@ontrails/observability/pino->@ontrails/pino",
-          "v1-observability-pino-extraction"
-        ],
-        "skipped": 1493,
-        "skipsByReason": {
-          "ignored-directory": 115,
-          "ignored-glob": 58,
-          "unsupported-extension": 1320
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
         },
-        "unknownClassIds": []
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
       },
-      "completionReportHash": "1faed4d35c66d6d38d9d0b3a3ef7d9746f73e5c887feaaf4caf278c6a9fa1abb",
-      "lockHashAtRun": "1faed4d35c66d6d38d9d0b3a3ef7d9746f73e5c887feaaf4caf278c6a9fa1abb",
-      "plan": {
-        "kind": "regrade-plan",
-        "path": ".trails/regrade/ontrails-observability-pino-to-ontrails-pino.json",
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "c4ea6bb264ff9e805dd61370527f1eff8d639b60cbd3e48b1e34fcaac816411c",
+        "lockStateHash": "1faed4d35c66d6d38d9d0b3a3ef7d9746f73e5c887feaaf4caf278c6a9fa1abb",
+        "policyHash": "105ca33a93b51f03f7fcf2079627d267b9c1d27b61e4d3b74067bc6a1ace2a3d",
+        "sourceRevision": "50e27796d074851bccd57d7df009db749757b457",
+        "sourceStateHash": "1faed4d35c66d6d38d9d0b3a3ef7d9746f73e5c887feaaf4caf278c6a9fa1abb",
+        "toolVersion": "1.0.0-beta.45"
+      },
+      "intent": {
+        "kind": "embedded",
         "plan": {
           "caseSensitive": true,
           "deferForms": [],
@@ -187,157 +117,30 @@
           },
           "to": "@ontrails/pino"
         },
+        "planContentHash": "52ac269828418561ee7f649fb72d3c2073534ff89ae960d4b42422fe4254160d",
         "provenance": {
           "fields": {
-            "from": "authored",
-            "kind": "derived",
-            "to": "authored",
             "caseSensitive": "derived",
             "deferForms": "derived",
+            "from": "authored",
             "id": "derived",
             "intent": "authored",
+            "kind": "derived",
             "overrides": "derived",
             "preserve": "derived",
-            "scope": "derived"
+            "scope": "derived",
+            "to": "authored"
           }
-        },
-        "schemaVersion": 1,
-        "sourceHash": "1faed4d35c66d6d38d9d0b3a3ef7d9746f73e5c887feaaf4caf278c6a9fa1abb"
-      },
-      "planContentHash": "b6c494da754ce5ac69acc25882474d45fa0c477fab8337de73c310ab6c9402cd",
-      "report": {
-        "entries": [],
-        "matched": 0,
-        "review": 0,
-        "rewritten": 0,
-        "root": "/Users/mg/Developer/outfitter/trails",
-        "run": {
-          "ledger": {
-            "cycle": 1,
-            "forms": {
-              "@ontrails/observability/pino": "skipped"
-            },
-            "occurrences": [
-              {
-                "column": 35,
-                "context": "- import { createPinoSink } from '@ontrails/observability/pino';",
-                "disposition": "explicit-preserve",
-                "end": 1602,
-                "form": "@ontrails/observability/pino",
-                "line": 41,
-                "path": "docs/migration/logging-to-observe.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 1574,
-                "verdict": "skipped"
-              }
-            ]
-          },
-          "plan": {
-            "caseSensitive": true,
-            "deferForms": [],
-            "from": "@ontrails/observability/pino",
-            "id": "v1-observability-pino-extraction",
-            "intent": "Extract the temporary Pino forwarding subpath into the real @ontrails/pino adapter package.",
-            "kind": "vocabulary",
-            "overrides": {
-              "@ontrails/observability/pino": "@ontrails/pino"
-            },
-            "preserve": [
-              {
-                "paths": [
-                  ".agents/plans/**",
-                  "**/.agents/plans/**",
-                  "docs/adr/0*.md",
-                  "docs/adr/decision-map.json",
-                  "docs/migration/**",
-                  "docs/releases/beta*.md",
-                  "docs/releases/v1-vocabulary-reset.md",
-                  "docs/releases/v1-vocabulary-transition-workflow.md",
-                  "scripts/vocab-cutover-*.ts"
-                ],
-                "pattern": "(?:@ontrails/observability/pino)",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
-              }
-            ],
-            "scope": {
-              "exclude": [
-                ".agents/goals/**",
-                "**/.agents/goals/**",
-                ".agents/memory/**",
-                "**/.agents/memory/**",
-                ".agents/notes/**",
-                "**/.agents/notes/**",
-                ".claude/agent-memory/**",
-                "**/.claude/agent-memory/**",
-                ".agents/plans/archive/**",
-                "**/.agents/plans/archive/**",
-                ".changeset/**",
-                "**/.changeset/**",
-                ".scratch/**",
-                "**/.scratch/**",
-                ".trails/regrade/history/**",
-                "**/.trails/regrade/history/**",
-                "**/CHANGELOG.md",
-                "**/.tmp-tests/**",
-                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
-                "packages/warden/src/rules/retired-vocabulary.ts"
-              ]
-            },
-            "to": "@ontrails/pino"
-          },
-          "report": {
-            "applied": 0,
-            "deferred": 0,
-            "dispositions": {
-              "explicit-preserve": 1
-            },
-            "filesChanged": 0,
-            "gate": {
-              "reasons": [],
-              "remaining": 0,
-              "remainingByDisposition": {},
-              "status": "green"
-            },
-            "modified": 0,
-            "open": 0,
-            "skipped": 657
-          }
-        },
-        "scan": {
-          "byDirectory": [],
-          "byExtension": [],
-          "files": {
-            "matched": 0,
-            "scanned": 1451,
-            "skipped": 1493
-          },
-          "skippedByReason": {
-            "ignored-directory": 115,
-            "ignored-glob": 58,
-            "unsupported-extension": 1320
-          }
-        },
-        "scanned": 1451,
-        "selectedClassIds": [
-          "ast-string-literal-rename:v1-observability-pino-extraction:@ontrails/observability/pino->@ontrails/pino",
-          "v1-observability-pino-extraction"
-        ],
-        "skipped": 1493,
-        "skipsByReason": {
-          "ignored-directory": 115,
-          "ignored-glob": 58,
-          "unsupported-extension": 1320
-        },
-        "unknownClassIds": [],
-        "apply": {
-          "applied": 0,
-          "filesChanged": 0,
-          "review": 0,
-          "skipped": 1494,
-          "unknown": 0
         }
-      }
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "0ddb76cf4026d3d0",
+      "runKind": "original",
+      "timestamp": "2026-07-14T02:18:30.000Z",
+      "transitionId": "685a14711ce3"
     }
   ],
-  "schemaVersion": 2
+  "schemaVersion": 3
 }

@@ -20,6 +20,7 @@ import type { VocabularyRegradePlan } from '@ontrails/regrade';
 
 import { operatorApp } from '../app.js';
 import {
+  historyTransitionId,
   mergeAuditPlan,
   projectExcludesForMarkdownAudit,
   projectIncludesForMarkdownAudit,
@@ -2056,6 +2057,29 @@ describe('trails regrade', () => {
     ]);
   });
 
+  test('selected audit reads package-route ids from referenced v3 intent', () => {
+    expect(
+      historyTransitionId({
+        id: 'opaque-transition-id',
+        runs: [
+          {
+            intent: {
+              kind: 'embedded',
+              plan: {
+                from: '@ontrails/observe',
+                id: 'v1-observe-observability',
+                kind: 'vocabulary',
+                to: '@ontrails/observability',
+              },
+            },
+          },
+          { intent: { kind: 'reference', planContentHash: 'hash' } },
+        ],
+        schemaVersion: 3,
+      })
+    ).toBe('v1-observe-observability');
+  });
+
   test('regrade audit keeps zero-residue evidence failures open', () => {
     const dir = makeTempDir();
     try {
@@ -2323,7 +2347,7 @@ describe('trails regrade', () => {
       const malformedSelected = runRawCli(selected);
       expect(malformedSelected.exitCode).toBe(1);
       expect(malformedSelected.stderr).toContain(
-        'Invalid Regrade history artifact'
+        'Invalid Regrade history receipt'
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });

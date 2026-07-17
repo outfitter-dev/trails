@@ -52,7 +52,13 @@ export const formatStaged = async (
   }
 
   if (targets.json.length > 0) {
-    const code = await run(['bunx', 'oxfmt', '--write', ...targets.json]);
+    const code = await run([
+      'bunx',
+      'oxfmt',
+      '--write',
+      '--no-error-on-unmatched-pattern',
+      ...targets.json,
+    ]);
     if (code !== 0) {
       return code;
     }

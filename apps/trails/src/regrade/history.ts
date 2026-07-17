@@ -7,10 +7,7 @@
 
 import { InternalError, Result, ValidationError } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
-import {
-  regradeReportOutput,
-  resolveRegradeHistoryReceipt,
-} from '@ontrails/regrade';
+import { resolveRegradeHistoryReceipt } from '@ontrails/regrade';
 import type {
   RegradeFormJudgment,
   RegradeReport,
@@ -18,7 +15,6 @@ import type {
 } from '@ontrails/regrade';
 import {
   getGovernedVocabularyTransition,
-  governedVocabularyHistoryProvenanceSchema,
   listGovernedVocabularyTransitions,
 } from '@ontrails/warden';
 import type { GovernedVocabularyHistoryProvenance } from '@ontrails/warden';
@@ -33,17 +29,12 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
-import { z } from 'zod';
 
 import {
-  regradePlanArtifactSchema,
   regradePlanContentHash,
   regradePlanDirectory,
   regradePlanSlugForBody,
-  legacyRegradeSourceHash,
   regradeSourceHash,
-  regradeSourceHashMatches,
-  regradeSourceHashes,
   rootRelativePath,
 } from './plan-artifact.js';
 import type { RegradePlanArtifact, RegradePlanBody } from './plan-artifact.js';
@@ -54,17 +45,6 @@ import {
 } from './receipt-history.js';
 import type { RegradeChangedFileEvidence } from './receipt-history.js';
 
-/**
- * Consolidated history schema version. Version 1 was the retired
- * one-file-per-run shape whose filename carried the lock hash.
- */
-const REGRADE_HISTORY_SCHEMA_VERSION = 3;
-const LEGACY_REGRADE_HISTORY_SCHEMA_VERSION = 2;
-
-const rawCompletionReportHash = Symbol('rawCompletionReportHash');
-const rawReportHash = Symbol('rawReportHash');
-const rawCompletionReport = Symbol('rawCompletionReport');
-const rawReport = Symbol('rawReport');
 const resolvedReceipt = Symbol('resolvedReceipt');
 
 export const writeRegradeHistoryFileAtomically = (params: {
@@ -148,56 +128,12 @@ export const consumeActiveRegradePlanAfterHistoryWrite = (params: {
     );
   }
 };
-
-const regradeHistoryRunSchema = z
-  .object({
-    completionReport: regradeReportOutput
-      .optional()
-      .describe(
-        'Post-apply source evidence used to recognize a completed-state replay'
-      ),
-    completionReportHash: z
-      .string()
-      .regex(/^[0-9a-f]{64}$/)
-      .optional()
-      .describe('Canonical hash of the post-apply completion report'),
-    lockHashAtRun: z
-      .string()
-      .min(1)
-      .describe('Regrade source hash observed when this run applied'),
-    plan: regradePlanArtifactSchema.describe(
-      'Plan artifact consumed by this run'
-    ),
-    planContentHash: z
-      .string()
-      .min(1)
-      .describe('Canonical content hash of the resolved plan body'),
-    provenance: governedVocabularyHistoryProvenanceSchema.optional(),
-    report: regradeReportOutput.describe('Applied report recorded by the run'),
-  })
-  .strict();
-
-const regradeHistoryArtifactSchema = z
-  .object({
-    id: z.string().min(1).describe('Stable transition identity'),
-    kind: z.literal('regrade-history'),
-    path: z.string().describe('Root-relative consolidated history path'),
-    runs: z.array(regradeHistoryRunSchema).min(1),
-    schemaVersion: z.literal(LEGACY_REGRADE_HISTORY_SCHEMA_VERSION),
-  })
-  .strict();
-
 interface RegradeHistoryRun {
-  readonly [rawCompletionReportHash]?: string;
-  readonly [rawCompletionReport]?: RegradeReport;
-  readonly [rawReportHash]?: string;
-  readonly [rawReport]?: RegradeReport;
   readonly completionReport: RegradeReport;
   readonly completionReportHash: string;
   readonly lockHashAtRun: string;
   readonly plan: RegradePlanArtifact;
   readonly planContentHash: string;
-  readonly provenance?: GovernedVocabularyHistoryProvenance;
   readonly report: RegradeReport;
 }
 
@@ -402,79 +338,26 @@ export const readRegradeHistoryArtifact = (
       })
     );
   }
-  if (
-    typeof parsedJson === 'object' &&
-    parsedJson !== null &&
-    'schemaVersion' in parsedJson &&
-    parsedJson.schemaVersion === REGRADE_HISTORY_SCHEMA_VERSION
-  ) {
-    const receipt = resolveRegradeHistoryReceipt(parsedJson);
-    if (receipt.isErr()) {
-      return receipt;
-    }
-    const observedPath = path.replaceAll('\\', '/');
-    const embeddedPath = receipt.value.artifact.path;
-    if (
-      observedPath !== embeddedPath &&
-      !observedPath.endsWith(`/${embeddedPath}`)
-    ) {
-      return Result.err(
-        new ValidationError(
-          'Regrade history path does not match its observed file.',
-          { context: { embeddedPath, observedPath } }
-        )
-      );
-    }
-    return Result.ok(projectReceiptHistory(receipt.value));
+  const receipt = resolveRegradeHistoryReceipt(parsedJson);
+  if (receipt.isErr()) {
+    return receipt;
   }
-  const parsed = regradeHistoryArtifactSchema.safeParse(parsedJson);
-  if (!parsed.success) {
+  const observedPath = path.replaceAll('\\', '/');
+  const embeddedPath = receipt.value.artifact.path;
+  if (
+    observedPath !== embeddedPath &&
+    !observedPath.endsWith(`/${embeddedPath}`)
+  ) {
     return Result.err(
-      new ValidationError('Invalid Regrade history artifact.', {
-        context: { issues: parsed.error.issues, path },
-      })
+      new ValidationError(
+        'Regrade history path does not match its observed file.',
+        {
+          context: { embeddedPath, observedPath },
+        }
+      )
     );
   }
-  const rawRuns = (
-    parsedJson as {
-      readonly runs: readonly {
-        readonly completionReport?: RegradeReport;
-        readonly report: RegradeReport;
-      }[];
-    }
-  ).runs;
-  return Result.ok({
-    ...parsed.data,
-    runs: parsed.data.runs.map((run, index) => {
-      // Early schema-v2 histories recorded only the post-apply report. Treat
-      // that report and its lock hash as completion evidence when reading
-      // those artifacts.
-      const completionReport = run.completionReport ?? run.report;
-      const normalized = {
-        ...run,
-        completionReport,
-        completionReportHash: run.completionReportHash ?? run.lockHashAtRun,
-      } as RegradeHistoryRun;
-      const rawRun = rawRuns[index];
-      if (rawRun !== undefined) {
-        Object.defineProperties(normalized, {
-          [rawCompletionReport]: {
-            value: rawRun.completionReport ?? rawRun.report,
-          },
-          [rawCompletionReportHash]: {
-            value: legacyRegradeSourceHash(
-              rawRun.completionReport ?? rawRun.report
-            ),
-          },
-          [rawReportHash]: {
-            value: legacyRegradeSourceHash(rawRun.report),
-          },
-          [rawReport]: { value: rawRun.report },
-        });
-      }
-      return normalized;
-    }),
-  } as RegradeHistoryArtifact);
+  return Result.ok(projectReceiptHistory(receipt.value));
 };
 
 /**
@@ -544,229 +427,11 @@ export const validateGovernedRegradePlan = (
   );
 };
 
-const governedProvenanceForRun = (params: {
-  readonly artifact: RegradePlanArtifact;
-  readonly completionReport: RegradeReport;
-  readonly planContentHash: string;
-  readonly report: RegradeReport;
-}): TrailsResult<
-  GovernedVocabularyHistoryProvenance | undefined,
-  ValidationError
-> => {
-  const { plan } = params.artifact;
-  const validation = validateGovernedRegradePlan(params.artifact);
-  if (validation.isErr()) {
-    return validation;
-  }
-  if (plan.kind !== 'vocabulary') {
-    return Result.ok();
-  }
-  const transition = governedTransitionForPlan(plan);
-  if (transition === undefined) {
-    return Result.ok();
-  }
-
-  const reviewPending = params.report.review;
-  return Result.ok({
-    disposition: reviewPending > 0 ? 'review-follow-up' : 'applied-clean',
-    kind: 'governed-vocabulary',
-    planContentHash: params.planContentHash,
-    reviewPending,
-    safeApplied: params.report.apply?.applied ?? params.report.rewritten,
-    sourceHashAfter: regradeSourceHash(params.completionReport),
-    sourceHashBefore: regradeSourceHash(params.report),
-    transitionId: transition.id,
-  });
-};
-
-const governedProvenanceMatchesRun = (params: {
-  readonly expected: GovernedVocabularyHistoryProvenance | undefined;
-  readonly run: RegradeHistoryRun;
-}): boolean => {
-  const { expected, run } = params;
-  const actual = run.provenance;
-  if (actual === undefined || expected === undefined) {
-    return actual === expected;
-  }
-  return (
-    actual.disposition === expected.disposition &&
-    actual.kind === expected.kind &&
-    actual.planContentHash === expected.planContentHash &&
-    actual.reviewPending === expected.reviewPending &&
-    actual.safeApplied === expected.safeApplied &&
-    (regradeSourceHashMatches(actual.sourceHashBefore, run.report) ||
-      run[rawReportHash] === actual.sourceHashBefore) &&
-    (regradeSourceHashMatches(actual.sourceHashAfter, run.completionReport) ||
-      run[rawCompletionReportHash] === actual.sourceHashAfter) &&
-    actual.transitionId === expected.transitionId
-  );
-};
-
-/**
- * Verify legacy snapshot runs by recomputing their embedded report stamps.
- * Compact v3 receipts arrive here only after their self-contained hashes and
- * references resolve; historical environment keys require Git and tool inputs
- * that this artifact-only helper intentionally does not pretend to recompute.
- */
+/** Receipts are validated and hash-resolved during read. */
 export const verifyRegradeHistoryRuns = (
   artifact: RegradeHistoryArtifact
-): TrailsResult<{ readonly runs: number }, ValidationError> => {
-  if (artifact[resolvedReceipt] !== undefined) {
-    return Result.ok({ runs: artifact.runs.length });
-  }
-  for (const [index, run] of artifact.runs.entries()) {
-    if (regradePlanContentHash(run.plan.plan) !== run.planContentHash) {
-      return Result.err(
-        new ValidationError('Regrade history run stamp mismatch.', {
-          context: {
-            field: 'planContentHash',
-            path: artifact.path,
-            run: index,
-          },
-        })
-      );
-    }
-    if (
-      !regradeSourceHashMatches(run.lockHashAtRun, run.report) &&
-      run[rawReportHash] !== run.lockHashAtRun
-    ) {
-      return Result.err(
-        new ValidationError('Regrade history run stamp mismatch.', {
-          context: { field: 'lockHashAtRun', path: artifact.path, run: index },
-        })
-      );
-    }
-    if (
-      !regradeSourceHashMatches(
-        run.completionReportHash,
-        run.completionReport
-      ) &&
-      run[rawCompletionReportHash] !== run.completionReportHash
-    ) {
-      return Result.err(
-        new ValidationError('Regrade history run stamp mismatch.', {
-          context: {
-            field: 'completionReportHash',
-            path: artifact.path,
-            run: index,
-          },
-        })
-      );
-    }
-    const expectedProvenance = governedProvenanceForRun({
-      artifact: run.plan,
-      completionReport: run.completionReport,
-      planContentHash: run.planContentHash,
-      report: run.report,
-    });
-    if (expectedProvenance.isErr()) {
-      return expectedProvenance;
-    }
-    const transition =
-      run.plan.plan.kind === 'vocabulary'
-        ? governedTransitionForPlan(run.plan.plan)
-        : undefined;
-    if (
-      transition?.provenance.mode === 'regrade-history' &&
-      run.provenance === undefined
-    ) {
-      return Result.err(
-        new ValidationError('Regrade history run lacks governed provenance.', {
-          context: { path: artifact.path, run: index },
-        })
-      );
-    }
-    if (
-      run.provenance !== undefined &&
-      !governedProvenanceMatchesRun({
-        expected: expectedProvenance.value,
-        run,
-      })
-    ) {
-      return Result.err(
-        new ValidationError('Regrade history run provenance mismatch.', {
-          context: { path: artifact.path, run: index },
-        })
-      );
-    }
-  }
-  return Result.ok({ runs: artifact.runs.length });
-};
-
-const historyEntryFor = (params: {
-  readonly artifact: RegradePlanArtifact;
-  readonly completionReport: RegradeReport;
-  readonly lockHashAtRun: string;
-  readonly planContentHash: string;
-  readonly report: RegradeReport;
-}): TrailsResult<RegradeHistoryRun, ValidationError> => {
-  const provenance = governedProvenanceForRun(params);
-  if (provenance.isErr()) {
-    return provenance;
-  }
-  return Result.ok({
-    completionReport: params.completionReport,
-    completionReportHash: regradeSourceHash(params.completionReport),
-    lockHashAtRun: params.lockHashAtRun,
-    plan: params.artifact,
-    planContentHash: params.planContentHash,
-    ...(provenance.value === undefined ? {} : { provenance: provenance.value }),
-    report: params.report,
-  });
-};
-
-const historySummaryFor = (
-  artifact: Pick<RegradeHistoryArtifact, 'id' | 'path' | 'schemaVersion'>,
-  status: RegradeHistorySummary['status'],
-  provenance?: GovernedVocabularyHistoryProvenance
-): RegradeHistorySummary => ({
-  id: artifact.id,
-  path: artifact.path,
-  ...(provenance === undefined ? {} : { provenance }),
-  schemaVersion: artifact.schemaVersion,
-  status,
-});
-
-const writableHistoryArtifact = (artifact: RegradeHistoryArtifact) => ({
-  id: artifact.id,
-  kind: artifact.kind,
-  path: artifact.path,
-  runs: artifact.runs.map((run) => ({
-    completionReport: run[rawCompletionReport] ?? run.completionReport,
-    completionReportHash: run.completionReportHash,
-    lockHashAtRun: run.lockHashAtRun,
-    plan: run.plan,
-    planContentHash: run.planContentHash,
-    ...(run.provenance === undefined ? {} : { provenance: run.provenance }),
-    report: run[rawReport] ?? run.report,
-  })),
-  schemaVersion: artifact.schemaVersion,
-});
-
-const nextHistoryArtifact = (params: {
-  readonly entry: RegradeHistoryRun;
-  readonly lockHashAtRun: string;
-  readonly path: string;
-  readonly plan: RegradePlanArtifact;
-  readonly planContentHash: string;
-  readonly prior: RegradeHistoryArtifact | undefined;
-}): RegradeHistoryArtifact => ({
-  id:
-    params.prior?.id ??
-    params.plan.transitionId ??
-    mintTransitionId(
-      regradePlanSlugForBody(params.plan.plan),
-      params.planContentHash,
-      params.lockHashAtRun
-    ),
-  kind: 'regrade-history',
-  path: params.path,
-  runs:
-    params.prior === undefined
-      ? [params.entry]
-      : [...params.prior.runs, params.entry],
-  schemaVersion: LEGACY_REGRADE_HISTORY_SCHEMA_VERSION,
-});
+): TrailsResult<{ readonly runs: number }, ValidationError> =>
+  Result.ok({ runs: artifact.runs.length });
 
 const appendReceiptHistoryRun = (params: {
   readonly absolutePath: string;
@@ -864,116 +529,10 @@ const appendReceiptHistoryRun = (params: {
   });
 };
 
-const appendLegacyHistoryRun = (params: {
-  readonly absolutePath: string;
-  readonly artifact: RegradePlanArtifact;
-  readonly completedReport: RegradeReport;
-  readonly current: RegradeHistoryArtifact | undefined;
-  readonly currentSourceHashes: readonly string[];
-  readonly lockHashAtRun: string;
-  readonly planContentHash: string;
-  readonly relativePath: string;
-  readonly report: RegradeReport;
-}): TrailsResult<RegradeHistorySummary, Error> => {
-  const entry = historyEntryFor({
-    artifact: params.artifact,
-    completionReport: params.completedReport,
-    lockHashAtRun: params.lockHashAtRun,
-    planContentHash: params.planContentHash,
-    report: params.report,
-  });
-  if (entry.isErr()) {
-    return entry;
-  }
-  if (params.current !== undefined) {
-    const verified = verifyRegradeHistoryRuns(params.current);
-    if (verified.isErr()) {
-      return verified;
-    }
-  }
-  if (
-    params.current !== undefined &&
-    params.artifact.transitionId !== undefined &&
-    params.artifact.transitionId !== params.current.id
-  ) {
-    return Result.err(
-      new ValidationError(
-        'Regrade plan transition id mismatch — refusing to fork the consolidated history.',
-        {
-          context: {
-            history: params.current.id,
-            path: params.relativePath,
-            plan: params.artifact.transitionId,
-          },
-        }
-      )
-    );
-  }
-  const lastRun = params.current?.runs.at(-1);
-  if (
-    params.artifact.transitionId === undefined &&
-    lastRun !== undefined &&
-    lastRun.plan.plan.id !== params.artifact.plan.id
-  ) {
-    return Result.err(
-      new ValidationError(
-        'Regrade history already records a different plan identity under this transition name. Use `regrade adjust <transition>` to continue it, or pick a different plan name.',
-        {
-          context: {
-            history: lastRun.plan.plan.id,
-            path: params.relativePath,
-            plan: params.artifact.plan.id,
-          },
-        }
-      )
-    );
-  }
-  if (
-    params.current !== undefined &&
-    lastRun !== undefined &&
-    lastRun.planContentHash === params.planContentHash &&
-    (params.currentSourceHashes.includes(lastRun.lockHashAtRun) ||
-      params.currentSourceHashes.includes(lastRun.completionReportHash))
-  ) {
-    return Result.ok(
-      historySummaryFor(params.current, 'replay', lastRun.provenance)
-    );
-  }
-  const artifact = nextHistoryArtifact({
-    entry: entry.value,
-    lockHashAtRun: params.lockHashAtRun,
-    path: params.relativePath,
-    plan: params.artifact,
-    planContentHash: params.planContentHash,
-    prior: params.current,
-  });
-  const writableArtifact = writableHistoryArtifact(artifact);
-  const parsed = regradeHistoryArtifactSchema.safeParse(writableArtifact);
-  if (!parsed.success) {
-    return Result.err(
-      new ValidationError('Invalid Regrade history artifact.', {
-        context: { issues: parsed.error.issues, path: params.relativePath },
-      })
-    );
-  }
-  const written = writeRegradeHistoryFileAtomically({
-    absolutePath: params.absolutePath,
-    content: `${JSON.stringify(writableArtifact, null, 2)}\n`,
-    diagnosticPath: params.relativePath,
-  });
-  if (written.isErr()) {
-    return written;
-  }
-  return Result.ok(
-    historySummaryFor(artifact, 'applied', entry.value.provenance)
-  );
-};
-
 /**
  * Append one applied run to the transition's consolidated history file. A
- * run whose plan content hash and source evidence equal either the last run's
- * pre-apply report or completed state is a replay: nothing is written and
- * `status: 'replay'` is surfaced instead of a duplicate record.
+ * Unchanged intent and classified state append a compact reference-only proof
+ * and surface `status: 'replay'`.
  */
 export const appendRegradeHistoryRun = (params: {
   readonly artifact: RegradePlanArtifact;
@@ -990,7 +549,6 @@ export const appendRegradeHistoryRun = (params: {
   const relativePath = rootRelativePath(params.rootDir, absolutePath);
   const planContentHash = regradePlanContentHash(params.artifact.plan);
   const lockHashAtRun = regradeSourceHash(params.report);
-  const currentSourceHashes = regradeSourceHashes(params.report);
   const completionReport = params.completedReport ?? params.report;
 
   let current: RegradeHistoryArtifact | undefined;
@@ -1001,41 +559,25 @@ export const appendRegradeHistoryRun = (params: {
     }
     current = existing.value;
   }
-  if (
-    (params.changedFiles !== undefined && current === undefined) ||
-    current?.[resolvedReceipt] !== undefined
-  ) {
-    const sourceRevision =
-      params.sourceRevision === undefined
-        ? resolveRegradeSourceRevision(params.rootDir)
-        : Result.ok(params.sourceRevision);
-    if (sourceRevision.isErr()) {
-      return sourceRevision;
-    }
-    return appendReceiptHistoryRun({
-      absolutePath,
-      artifact: params.artifact,
-      changedFiles: params.changedFiles ?? [],
-      completedReport: completionReport,
-      current,
-      lockHashAtRun,
-      planContentHash,
-      relativePath,
-      report: params.report,
-      rootDir: params.rootDir,
-      sourceRevision: sourceRevision.value,
-    });
+  const sourceRevision =
+    params.sourceRevision === undefined
+      ? resolveRegradeSourceRevision(params.rootDir)
+      : Result.ok(params.sourceRevision);
+  if (sourceRevision.isErr()) {
+    return sourceRevision;
   }
-  return appendLegacyHistoryRun({
+  return appendReceiptHistoryRun({
     absolutePath,
     artifact: params.artifact,
+    changedFiles: params.changedFiles ?? [],
     completedReport: completionReport,
     current,
-    currentSourceHashes,
     lockHashAtRun,
     planContentHash,
     relativePath,
     report: params.report,
+    rootDir: params.rootDir,
+    sourceRevision: sourceRevision.value,
   });
 };
 

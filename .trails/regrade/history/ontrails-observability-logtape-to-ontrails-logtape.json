@@ -1,139 +1,69 @@
 {
+  "conversion": {
+    "convertedAt": "2026-07-16T23:02:23.000Z",
+    "fromSchemaVersion": 2,
+    "sourceContentHash": "53bcd2478b9eba0ebb499506a0dbdad0b497cca6413464764906715b47005dde",
+    "toolVersion": "1.0.0-beta.45"
+  },
   "id": "1a36a96c8df6",
   "kind": "regrade-history",
   "path": ".trails/regrade/history/ontrails-observability-logtape-to-ontrails-logtape.json",
   "runs": [
     {
-      "completionReport": {
-        "entries": [],
-        "matched": 0,
-        "review": 0,
-        "rewritten": 0,
-        "root": "/Users/mg/Developer/outfitter/trails",
-        "run": {
-          "ledger": {
-            "cycle": 1,
-            "forms": {
-              "@ontrails/observability/logtape": "skipped"
-            },
-            "occurrences": [
-              {
-                "column": 38,
-                "context": "- import { createLogtapeSink } from '@ontrails/observability/logtape';",
-                "disposition": "explicit-preserve",
-                "end": 1479,
-                "form": "@ontrails/observability/logtape",
-                "line": 38,
-                "path": "docs/migration/logging-to-observe.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 1448,
-                "verdict": "skipped"
-              }
-            ]
-          },
-          "plan": {
-            "caseSensitive": true,
-            "deferForms": [],
-            "from": "@ontrails/observability/logtape",
-            "id": "v1-observability-logtape-extraction",
-            "intent": "Extract the temporary LogTape forwarding subpath into the real @ontrails/logtape adapter package.",
-            "kind": "vocabulary",
-            "overrides": {
-              "@ontrails/observability/logtape": "@ontrails/logtape"
-            },
-            "preserve": [
-              {
-                "paths": [
-                  ".agents/plans/**",
-                  "**/.agents/plans/**",
-                  "docs/adr/0*.md",
-                  "docs/adr/decision-map.json",
-                  "docs/migration/**",
-                  "docs/releases/beta*.md",
-                  "docs/releases/v1-vocabulary-reset.md",
-                  "docs/releases/v1-vocabulary-transition-workflow.md",
-                  "scripts/vocab-cutover-*.ts"
-                ],
-                "pattern": "(?:@ontrails/observability/logtape)",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
-              }
-            ],
-            "scope": {
-              "exclude": [
-                ".agents/goals/**",
-                "**/.agents/goals/**",
-                ".agents/memory/**",
-                "**/.agents/memory/**",
-                ".agents/notes/**",
-                "**/.agents/notes/**",
-                ".claude/agent-memory/**",
-                "**/.claude/agent-memory/**",
-                ".agents/plans/archive/**",
-                "**/.agents/plans/archive/**",
-                ".changeset/**",
-                "**/.changeset/**",
-                ".scratch/**",
-                "**/.scratch/**",
-                ".trails/regrade/history/**",
-                "**/.trails/regrade/history/**",
-                "**/CHANGELOG.md",
-                "**/.tmp-tests/**",
-                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
-                "packages/warden/src/rules/retired-vocabulary.ts"
-              ]
-            },
-            "to": "@ontrails/logtape"
-          },
-          "report": {
-            "applied": 0,
-            "deferred": 0,
-            "dispositions": {
-              "explicit-preserve": 1
-            },
-            "filesChanged": 0,
-            "gate": {
-              "reasons": [],
-              "remaining": 0,
-              "remainingByDisposition": {},
-              "status": "green"
-            },
-            "modified": 0,
-            "open": 0,
-            "skipped": 657
+      "classifiedState": {
+        "caseSensitive": true,
+        "forms": [
+          {
+            "disposition": "preserved",
+            "form": "@ontrails/observability/logtape",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 38,
+              "path": "docs/migration/logging-to-observe.md"
+            }
           }
-        },
-        "scan": {
-          "byDirectory": [],
-          "byExtension": [],
-          "files": {
-            "matched": 0,
-            "scanned": 1451,
-            "skipped": 1493
+        ],
+        "kind": "embedded",
+        "stateHash": "77541bd5043f8e106f2184d56ff12f51182e5e395adcc29f19f4136b050e3040"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {
+            "explicit-preserve": 1
           },
+          "matched": 0,
+          "preserved": 1,
+          "review": 0,
+          "rewritten": 0,
           "skippedByReason": {
             "ignored-directory": 115,
             "ignored-glob": 58,
             "unsupported-extension": 1320
-          }
+          },
+          "unknown": 0
         },
-        "scanned": 1451,
-        "selectedClassIds": [
-          "ast-string-literal-rename:v1-observability-logtape-extraction:@ontrails/observability/logtape->@ontrails/logtape",
-          "v1-observability-logtape-extraction"
-        ],
-        "skipped": 1493,
-        "skipsByReason": {
-          "ignored-directory": 115,
-          "ignored-glob": 58,
-          "unsupported-extension": 1320
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
         },
-        "unknownClassIds": []
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
       },
-      "completionReportHash": "3a4e48718ada3f33811244909146c385f2042201cb30c4bd0952075b92f2ec4c",
-      "lockHashAtRun": "3a4e48718ada3f33811244909146c385f2042201cb30c4bd0952075b92f2ec4c",
-      "plan": {
-        "kind": "regrade-plan",
-        "path": ".trails/regrade/ontrails-observability-logtape-to-ontrails-logtape.json",
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "7bb2e73bdcdb4d63dc42bfe5b74fca89dd444dd191cd192a6b921f57994f23f1",
+        "lockStateHash": "3a4e48718ada3f33811244909146c385f2042201cb30c4bd0952075b92f2ec4c",
+        "policyHash": "105ca33a93b51f03f7fcf2079627d267b9c1d27b61e4d3b74067bc6a1ace2a3d",
+        "sourceRevision": "50e27796d074851bccd57d7df009db749757b457",
+        "sourceStateHash": "3a4e48718ada3f33811244909146c385f2042201cb30c4bd0952075b92f2ec4c",
+        "toolVersion": "1.0.0-beta.45"
+      },
+      "intent": {
+        "kind": "embedded",
         "plan": {
           "caseSensitive": true,
           "deferForms": [],
@@ -187,157 +117,30 @@
           },
           "to": "@ontrails/logtape"
         },
+        "planContentHash": "0ed30e51058d3ad20ffc11491c40571a3e0d0e553e0e273565af09af1494db76",
         "provenance": {
           "fields": {
-            "from": "authored",
-            "kind": "derived",
-            "to": "authored",
             "caseSensitive": "derived",
             "deferForms": "derived",
+            "from": "authored",
             "id": "derived",
             "intent": "authored",
+            "kind": "derived",
             "overrides": "derived",
             "preserve": "derived",
-            "scope": "derived"
+            "scope": "derived",
+            "to": "authored"
           }
-        },
-        "schemaVersion": 1,
-        "sourceHash": "3a4e48718ada3f33811244909146c385f2042201cb30c4bd0952075b92f2ec4c"
-      },
-      "planContentHash": "811e28742635b70ab0c548fc1665af8f091745ac1736aec85c8b71fd89061fc5",
-      "report": {
-        "entries": [],
-        "matched": 0,
-        "review": 0,
-        "rewritten": 0,
-        "root": "/Users/mg/Developer/outfitter/trails",
-        "run": {
-          "ledger": {
-            "cycle": 1,
-            "forms": {
-              "@ontrails/observability/logtape": "skipped"
-            },
-            "occurrences": [
-              {
-                "column": 38,
-                "context": "- import { createLogtapeSink } from '@ontrails/observability/logtape';",
-                "disposition": "explicit-preserve",
-                "end": 1479,
-                "form": "@ontrails/observability/logtape",
-                "line": 38,
-                "path": "docs/migration/logging-to-observe.md",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
-                "start": 1448,
-                "verdict": "skipped"
-              }
-            ]
-          },
-          "plan": {
-            "caseSensitive": true,
-            "deferForms": [],
-            "from": "@ontrails/observability/logtape",
-            "id": "v1-observability-logtape-extraction",
-            "intent": "Extract the temporary LogTape forwarding subpath into the real @ontrails/logtape adapter package.",
-            "kind": "vocabulary",
-            "overrides": {
-              "@ontrails/observability/logtape": "@ontrails/logtape"
-            },
-            "preserve": [
-              {
-                "paths": [
-                  ".agents/plans/**",
-                  "**/.agents/plans/**",
-                  "docs/adr/0*.md",
-                  "docs/adr/decision-map.json",
-                  "docs/migration/**",
-                  "docs/releases/beta*.md",
-                  "docs/releases/v1-vocabulary-reset.md",
-                  "docs/releases/v1-vocabulary-transition-workflow.md",
-                  "scripts/vocab-cutover-*.ts"
-                ],
-                "pattern": "(?:@ontrails/observability/logtape)",
-                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
-              }
-            ],
-            "scope": {
-              "exclude": [
-                ".agents/goals/**",
-                "**/.agents/goals/**",
-                ".agents/memory/**",
-                "**/.agents/memory/**",
-                ".agents/notes/**",
-                "**/.agents/notes/**",
-                ".claude/agent-memory/**",
-                "**/.claude/agent-memory/**",
-                ".agents/plans/archive/**",
-                "**/.agents/plans/archive/**",
-                ".changeset/**",
-                "**/.changeset/**",
-                ".scratch/**",
-                "**/.scratch/**",
-                ".trails/regrade/history/**",
-                "**/.trails/regrade/history/**",
-                "**/CHANGELOG.md",
-                "**/.tmp-tests/**",
-                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
-                "packages/warden/src/rules/retired-vocabulary.ts"
-              ]
-            },
-            "to": "@ontrails/logtape"
-          },
-          "report": {
-            "applied": 0,
-            "deferred": 0,
-            "dispositions": {
-              "explicit-preserve": 1
-            },
-            "filesChanged": 0,
-            "gate": {
-              "reasons": [],
-              "remaining": 0,
-              "remainingByDisposition": {},
-              "status": "green"
-            },
-            "modified": 0,
-            "open": 0,
-            "skipped": 657
-          }
-        },
-        "scan": {
-          "byDirectory": [],
-          "byExtension": [],
-          "files": {
-            "matched": 0,
-            "scanned": 1451,
-            "skipped": 1493
-          },
-          "skippedByReason": {
-            "ignored-directory": 115,
-            "ignored-glob": 58,
-            "unsupported-extension": 1320
-          }
-        },
-        "scanned": 1451,
-        "selectedClassIds": [
-          "ast-string-literal-rename:v1-observability-logtape-extraction:@ontrails/observability/logtape->@ontrails/logtape",
-          "v1-observability-logtape-extraction"
-        ],
-        "skipped": 1493,
-        "skipsByReason": {
-          "ignored-directory": 115,
-          "ignored-glob": 58,
-          "unsupported-extension": 1320
-        },
-        "unknownClassIds": [],
-        "apply": {
-          "applied": 0,
-          "filesChanged": 0,
-          "review": 0,
-          "skipped": 1494,
-          "unknown": 0
         }
-      }
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "781bf1085fc0d872",
+      "runKind": "original",
+      "timestamp": "2026-07-14T02:18:30.000Z",
+      "transitionId": "1a36a96c8df6"
     }
   ],
-  "schemaVersion": 2
+  "schemaVersion": 3
 }
