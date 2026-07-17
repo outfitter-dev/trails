@@ -33,6 +33,8 @@ Use the family names for the current transition. The `from`/`to` pair is the pri
 
 For a governed classified transition, choose one ratified target as the plan seed. Regrade keys the active plan and history spine by the governed transition identity, defers every governed source form, and derives no safe rewrite. The selected target records planning intent; it does not claim that every occurrence shares that successor. Use the structured review inventory for contextual follow-up edits, rerun `plan --fresh` to capture the reviewed source state, then check and apply the clean evidence. Per-form overrides cannot express two meanings of the same source word and are not the graduation path for a classified transition.
 
+Classified scans also inventory governed forms in parser-native source comments and TSDoc. These entries carry exact spans, source-line context, and a `SourceComment` or `TSDocComment` node kind through CLI and MCP, remain review-only, and keep `regrade audit` open after graduation if live comment residue returns. Preserve ordinary domain uses explicitly; comment inventory never authorizes a mechanical rewrite.
+
 Record:
 
 - command;

@@ -25,6 +25,7 @@ import {
   projectExcludesForMarkdownAudit,
   projectIncludesForMarkdownAudit,
   projectPolicyClassifiedForMarkdownAudit,
+  sourceKindForRegradeAuditPath,
 } from '../regrade/audit.js';
 import { planRegradeTrail, regradeTrail } from '../trails/regrade.js';
 
@@ -2005,6 +2006,107 @@ describe('trails regrade', () => {
     }
   });
 
+  test('regrade audit reopens a classified transition for live TSDoc residue', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'apps/trails/src/__tests__/regrade.test.ts',
+        '// projection fixture evidence\n'
+      );
+      writeFile(
+        dir,
+        'docs/adr/0001-fixture.md',
+        'Historical projection evidence.\n'
+      );
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applied.exitCode).toBe(0);
+
+      writeFile(
+        dir,
+        'src/public.ts',
+        '/** Project an error through the shared public policy. */\nexport const value = 1;\n'
+      );
+      const audit = runRawCli([
+        'regrade',
+        'audit',
+        '--root-dir',
+        dir,
+        '--include-entries',
+        'all',
+        '--json',
+      ]);
+
+      expect(audit.stderr).toBe('');
+      expect(audit.exitCode).toBe(0);
+      const report = parseCliJson<{
+        readonly gate?: { readonly open?: number; readonly status?: string };
+        readonly transitions?: readonly {
+          readonly report?: {
+            readonly entries?: readonly {
+              readonly path?: string;
+              readonly reviewDetails?: readonly {
+                readonly matchedForm?: string;
+                readonly nodeKind?: string;
+              }[];
+            }[];
+          };
+        }[];
+      }>(audit);
+      expect(report).toMatchObject({
+        gate: { open: 1, status: 'open' },
+        transitions: [
+          {
+            report: {
+              entries: [
+                expect.objectContaining({
+                  path: 'src/public.ts',
+                  reviewDetails: [
+                    expect.objectContaining({
+                      matchedForm: 'Project',
+                      nodeKind: 'TSDocComment',
+                    }),
+                  ],
+                }),
+              ],
+            },
+          },
+        ],
+      });
+
+      const checked = runRawCli([
+        'regrade',
+        'audit',
+        '--fail-on-open',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(checked.exitCode).toBe(1);
+      expect(checked.stderr).toContain(
+        'Regrade audit found current-tree residue.'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('regrade audit merges registry evidence into committed caller scope', () => {
     const latest = {
       from: 'projection',
@@ -2169,6 +2271,36 @@ describe('trails regrade', () => {
             reason: 'Markdown history evidence.',
           },
           {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: ['packages/example/src/index.ts'],
+            reason: 'Explicit source evidence.',
+          },
+          {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: ['package.json'],
+            reason: 'Package metadata evidence.',
+          },
+          {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: ['config/*.json'],
+            reason: 'Configuration evidence.',
+          },
+          {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: ['Dockerfile', '.env', 'src/**/Dockerfile'],
+            reason: 'Extensionless evidence.',
+          },
+          {
+            disposition: 'explicit-preserve',
+            expectMatches: true,
+            paths: ['????'],
+            reason: 'Fixed-width source filename evidence.',
+          },
+          {
             disposition: 'historical-by-policy',
             expectMatches: true,
             paths: ['.agents/goals/**'],
@@ -2179,11 +2311,55 @@ describe('trails regrade', () => {
       to: 'derive',
     };
     const projected = projectPolicyClassifiedForMarkdownAudit(plan);
+    const classifiedProjected = projectPolicyClassifiedForMarkdownAudit(
+      plan,
+      true
+    );
 
-    expect(projected?.[0]).not.toHaveProperty('expectMatches');
-    expect(projected?.[1]).toHaveProperty('expectMatches', true);
-    expect(projected?.[1]?.paths).toEqual(['docs/adr/0*.md']);
-    expect(projected).toHaveLength(2);
+    expect(
+      projected?.find((policy) =>
+        policy.paths.includes('packages/regrade/src/downstream/__tests__/**')
+      )
+    ).not.toHaveProperty('expectMatches');
+    expect(
+      projected?.find((policy) => policy.paths.includes('docs/adr/0*.md'))
+    ).toHaveProperty('expectMatches', true);
+    expect(projected).toHaveLength(7);
+    expect(
+      classifiedProjected?.find((policy) =>
+        policy.paths.includes('packages/regrade/src/downstream/__tests__/**')
+      )
+    ).toHaveProperty('expectMatches', true);
+    expect(
+      classifiedProjected?.find((policy) =>
+        policy.paths.includes('packages/example/src/index.ts')
+      )
+    ).toHaveProperty('expectMatches', true);
+    expect(
+      classifiedProjected?.find((policy) =>
+        policy.paths.includes('package.json')
+      )
+    ).not.toHaveProperty('expectMatches');
+    expect(
+      classifiedProjected?.find((policy) =>
+        policy.paths.includes('config/*.json')
+      )
+    ).not.toHaveProperty('expectMatches');
+    expect(
+      classifiedProjected?.find((policy) => policy.paths.includes('Dockerfile'))
+    ).not.toHaveProperty('expectMatches');
+    expect(
+      classifiedProjected?.find((policy) => policy.paths.includes('????'))
+    ).toHaveProperty('expectMatches', true);
+    expect(
+      sourceKindForRegradeAuditPath(
+        'packages/regrade/src/downstream/__tests__/fixture.test.ts',
+        classifiedProjected
+      )
+    ).toBe('all');
+    expect(
+      sourceKindForRegradeAuditPath('packages/other/src/index.ts', projected)
+    ).toBe('comments');
     expect(projectExcludesForMarkdownAudit(plan, projected)).toEqual([
       '.agents/goals/**',
     ]);
@@ -2930,6 +3106,137 @@ describe('trails regrade', () => {
       });
       expect(JSON.stringify(parseCliJson(planned))).not.toContain(
         '"safe-rewrite"'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI inventories classified TSDoc without rewriting ordinary project nouns', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/project.ts',
+        [
+          '/**',
+          ' * Project an error through the shared public policy.',
+          ' */',
+          '// Use the project root consistently.',
+          'export const project = 1;',
+          '',
+        ].join('\n')
+      );
+      const direct = runRawCli([
+        'regrade',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(direct.exitCode).toBe(0);
+      expect(
+        parseCliJson<{
+          readonly scan?: { readonly files?: { readonly scanned?: number } };
+          readonly scanned?: number;
+        }>(direct)
+      ).toMatchObject({
+        scan: { files: { scanned: 1 } },
+        scanned: 1,
+      });
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        'projection',
+        'derive',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(preview.exitCode).toBe(0);
+      const report = parseCliJson<{
+        readonly entries?: readonly {
+          readonly path?: string;
+          readonly reviewDetails?: readonly {
+            readonly context?: string;
+            readonly judgment?: string;
+            readonly matchedForm?: string;
+            readonly nodeKind?: string;
+            readonly reason?: string;
+            readonly span?: { readonly line?: number };
+          }[];
+        }[];
+        readonly scan?: { readonly files?: { readonly scanned?: number } };
+        readonly scanned?: number;
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly {
+              readonly form?: string;
+              readonly path?: string;
+              readonly sourceKind?: string;
+              readonly verdict?: string;
+            }[];
+          };
+          readonly report?: {
+            readonly gate?: {
+              readonly remaining?: number;
+              readonly status?: string;
+            };
+          };
+        };
+      }>(preview);
+
+      expect(report.entries).toEqual([
+        expect.objectContaining({
+          path: 'src/project.ts',
+          reviewDetails: [
+            expect.objectContaining({
+              context: '* Project an error through the shared public policy.',
+              judgment: 'unresolved',
+              matchedForm: 'Project',
+              nodeKind: 'TSDocComment',
+              reason: 'source-comment-requires-review',
+              span: expect.objectContaining({ line: 2 }),
+            }),
+          ],
+        }),
+      ]);
+      expect(
+        report.run?.ledger?.occurrences?.filter(
+          (occurrence) => occurrence.path === 'src/project.ts'
+        )
+      ).toEqual([
+        expect.objectContaining({
+          form: 'Project',
+          path: 'src/project.ts',
+          sourceKind: 'tsdoc',
+          verdict: 'deferred',
+        }),
+        expect.objectContaining({
+          form: 'project',
+          path: 'src/project.ts',
+          sourceKind: 'source-comment',
+          verdict: 'skipped',
+        }),
+      ]);
+      expect(report.run?.report?.gate).toMatchObject({
+        remaining: 1,
+        status: 'open',
+      });
+      expect(report.scanned).toBe(2);
+      expect(report.scan?.files?.scanned).toBe(2);
+      expect(readFileSync(join(dir, 'src', 'project.ts'), 'utf8')).toContain(
+        'export const project = 1;'
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });

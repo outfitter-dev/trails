@@ -13,6 +13,7 @@ import {
   runVocabularyRegrade,
   vocabularyDispositionValues,
   vocabularyRegradePlanForInput,
+  vocabularyRegradeTransitionForInput,
 } from '@ontrails/regrade';
 import type { VocabularyRegradePlan } from '@ontrails/regrade';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -25,6 +26,17 @@ import {
   regradeHistoryPathForPlan,
 } from './history.js';
 import { rootRelativePath } from './plan-artifact.js';
+
+const sourceCommentExtensions = [
+  '.cjs',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.mts',
+  '.ts',
+  '.tsx',
+] as const;
 
 export const regradeAuditInputSchema = z.object({
   failOnOpen: z
@@ -50,7 +62,7 @@ const regradeAuditTransitionSchema = z.object({
           z.enum(vocabularyDispositionValues),
           z.number().int().nonnegative()
         )
-        .describe('Current Markdown occurrence counts by classification'),
+        .describe('Current source occurrence counts by classification'),
       entries: regradeReportOutput.shape.entries
         .readonly()
         .describe('Actionable file-level residue details'),
@@ -58,12 +70,12 @@ const regradeAuditTransitionSchema = z.object({
         .number()
         .int()
         .nonnegative()
-        .describe('Total classified Markdown occurrences'),
+        .describe('Total classified current-source occurrences'),
       open: z
         .number()
         .int()
         .nonnegative()
-        .describe('Unresolved Markdown occurrences'),
+        .describe('Unresolved current-source occurrences'),
       scanned: z.number().int().nonnegative().describe('Files scanned'),
       status: z.enum(['green', 'open']).describe('Transition audit status'),
     })
@@ -293,10 +305,35 @@ type VocabularyPolicyClassified = NonNullable<
   NonNullable<VocabularyRegradePlan['scope']>['policyClassified']
 >;
 
+/**
+ * Select full evidence for classified paths and comments elsewhere.
+ *
+ * @internal
+ */
+export const sourceKindForRegradeAuditPath = (
+  path: string,
+  policyClassified: VocabularyPolicyClassified | undefined
+): 'all' | 'comments' => {
+  const isPolicyClassified = policyClassified?.some((policy) =>
+    matchesAnyPathGlob(path, policy.paths)
+  );
+  return sourceCommentExtensions.includes(
+    extname(path) as (typeof sourceCommentExtensions)[number]
+  ) && !isPolicyClassified
+    ? 'comments'
+    : 'all';
+};
+
 export const projectPolicyClassifiedForMarkdownAudit = (
-  plan: VocabularyRegradePlan
-): VocabularyPolicyClassified | undefined =>
-  plan.scope?.policyClassified
+  plan: VocabularyRegradePlan,
+  includeCodeComments = false
+): VocabularyPolicyClassified | undefined => {
+  const auditedExtensions = new Set<string>([
+    '.md',
+    '.mdx',
+    ...(includeCodeComments ? sourceCommentExtensions : []),
+  ]);
+  return plan.scope?.policyClassified
     ?.map((policy) => ({
       ...policy,
       paths: policy.paths.filter(
@@ -309,18 +346,40 @@ export const projectPolicyClassifiedForMarkdownAudit = (
     }))
     .filter((policy) => policy.paths.length > 0)
     .map((policy) => {
-      const hasExplicitMarkdownPath = policy.paths.some((path) => {
+      const hasAuditablePath = policy.paths.some((path) => {
         const extension = extname(path);
-        return extension === '.md' || extension === '.mdx';
+        if (auditedExtensions.has(extension)) {
+          return true;
+        }
+        const terminalPattern = basename(path);
+        const trailingWildcards = terminalPattern.match(/[*?]+$/)?.[0];
+        const canSelectAuditedExtension =
+          extension === '' &&
+          trailingWildcards !== undefined &&
+          [...auditedExtensions].some(
+            (auditedExtension) =>
+              trailingWildcards.includes('*') ||
+              (trailingWildcards.length >= auditedExtension.length &&
+                (terminalPattern.length > trailingWildcards.length ||
+                  trailingWildcards.length > auditedExtension.length))
+          );
+        return (
+          includeCodeComments &&
+          (canSelectAuditedExtension ||
+            [...auditedExtensions].some((auditedExtension) =>
+              matchesAnyPathGlob(auditedExtension, [extension])
+            ))
+        );
       });
-      if (policy.expectMatches !== true || hasExplicitMarkdownPath) {
+      if (policy.expectMatches !== true || hasAuditablePath) {
         return policy;
       }
-      // A Markdown-only audit cannot prove evidence for extensionless source
-      // globs. Markdown evidence requirements must name .md/.mdx explicitly.
+      // An extension-filtered audit cannot prove evidence for a path whose
+      // authored pattern does not identify one of the audited file families.
       const { expectMatches: _, ...markdownPolicy } = policy;
       return markdownPolicy;
     });
+};
 
 export const projectExcludesForMarkdownAudit = (
   plan: VocabularyRegradePlan,
@@ -354,8 +413,12 @@ const runRegradeAuditCandidate = async (
   input: RegradeAuditInput,
   rootDir: string
 ): Promise<TrailsResult<RegradeAuditOutput['transitions'][number], Error>> => {
+  const includeCodeComments =
+    vocabularyRegradeTransitionForInput(candidate.plan.from, candidate.plan.to)
+      ?.target.kind === 'classified';
   const policyClassified = projectPolicyClassifiedForMarkdownAudit(
-    candidate.plan
+    candidate.plan,
+    includeCodeComments
   );
   const exclude = projectExcludesForMarkdownAudit(
     candidate.plan,
@@ -369,7 +432,11 @@ const runRegradeAuditCandidate = async (
     ...candidate.plan,
     scope: {
       ...candidate.plan.scope,
-      extensions: ['.md', '.mdx'],
+      extensions: [
+        '.md',
+        '.mdx',
+        ...(includeCodeComments ? sourceCommentExtensions : []),
+      ],
       ...(exclude === undefined ? {} : { exclude }),
       ...(include === undefined ? {} : { include }),
       ...(policyClassified === undefined ? {} : { policyClassified }),
@@ -390,6 +457,12 @@ const runRegradeAuditCandidate = async (
       ? {}
       : { preserveInventory: preserveResult.value }),
     root: rootDir,
+    ...(includeCodeComments
+      ? {
+          sourceKindForPath: (path: string) =>
+            sourceKindForRegradeAuditPath(path, policyClassified),
+        }
+      : {}),
   });
   if (reportResult.isErr()) {
     return reportResult;

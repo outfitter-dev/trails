@@ -599,6 +599,190 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('surfaces classified TSDoc while preserving ordinary comment nouns', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/project.ts',
+        [
+          '/**',
+          ' * Project an error through the shared public policy.',
+          ' */',
+          '// Use the project root consistently.',
+          'export const project = 1;',
+          '',
+        ].join('\n')
+      );
+      const plan = vocabularyRegradePlanForInput('projection', 'derive');
+      if (plan === null) {
+        throw new Error('Expected classified projection plan.');
+      }
+
+      const report = runVocabularyRegrade({
+        plan: { ...plan, scope: { include: ['src/**'] } },
+        root: dir,
+        sourceKindForPath: () => 'comments',
+      });
+      expect(report.isOk()).toBe(true);
+      if (report.isErr()) {
+        throw report.error;
+      }
+
+      expect(report.value.run.ledger.occurrences).toEqual([
+        expect.objectContaining({
+          context: '* Project an error through the shared public policy.',
+          form: 'Project',
+          line: 2,
+          path: 'src/project.ts',
+          reason: 'source-comment-requires-review',
+          sourceKind: 'tsdoc',
+          verdict: 'deferred',
+        }),
+        expect.objectContaining({
+          context: '// Use the project root consistently.',
+          form: 'project',
+          line: 4,
+          path: 'src/project.ts',
+          sourceKind: 'source-comment',
+          verdict: 'skipped',
+        }),
+      ]);
+      expect(report.value.entries).toEqual([
+        expect.objectContaining({
+          outcome: 'needs-review',
+          path: 'src/project.ts',
+          reviewDetails: [
+            expect.objectContaining({
+              context: '* Project an error through the shared public policy.',
+              judgment: 'unresolved',
+              matchedForm: 'Project',
+              nodeKind: 'TSDocComment',
+              reason: 'source-comment-requires-review',
+              span: expect.objectContaining({ line: 2 }),
+            }),
+          ],
+        }),
+      ]);
+      expect(report.value.run.report.gate).toMatchObject({
+        remaining: 1,
+        status: 'open',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('keeps classified comment inventory open when parsing fails', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/project.ts',
+        '/** Project an error through policy. */\nexport const = ;\n'
+      );
+      const plan = vocabularyRegradePlanForInput('projection', 'derive');
+      if (plan === null) {
+        throw new Error('Expected classified projection plan.');
+      }
+
+      const report = runVocabularyRegrade({
+        includeEntries: 'all',
+        plan: { ...plan, scope: { include: ['src/**'] } },
+        root: dir,
+        sourceKindForPath: () => 'comments',
+      });
+      expect(report.isOk()).toBe(true);
+      if (report.isErr()) {
+        throw report.error;
+      }
+
+      expect(report.value.entries).toContainEqual({
+        outcome: 'skip',
+        path: 'src/project.ts',
+        reason: 'source-comment-parse-diagnostics',
+      });
+      expect(report.value.run.report.gate).toMatchObject({
+        reasons: expect.arrayContaining(['source-comment-parse-diagnostics']),
+        status: 'open',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('ignores unrelated source parse failures in comment-only scans', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/broken.ts', 'export const = ;\n');
+      const plan = vocabularyRegradePlanForInput('projection', 'derive');
+      if (plan === null) {
+        throw new Error('Expected classified projection plan.');
+      }
+
+      const report = runVocabularyRegrade({
+        includeEntries: 'all',
+        plan: { ...plan, scope: { include: ['src/**'] } },
+        root: dir,
+        sourceKindForPath: () => 'comments',
+      });
+      expect(report.isOk()).toBe(true);
+      if (report.isErr()) {
+        throw report.error;
+      }
+
+      expect(report.value.entries).not.toContainEqual(
+        expect.objectContaining({
+          reason: 'source-comment-parse-diagnostics',
+        })
+      );
+      expect(report.value.run.report.gate).toMatchObject({
+        reasons: [],
+        status: 'green',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports exact comment context across JavaScript line terminators', () => {
+    const plan = vocabularyRegradePlanForInput('projection', 'derive');
+    if (plan === null) {
+      throw new Error('Expected classified projection plan.');
+    }
+
+    for (const separator of ['\r\n', '\r', '\u2028', '\u2029']) {
+      const dir = makeTempDir();
+      try {
+        writeFile(
+          dir,
+          'src/project.ts',
+          `export const before = 1;${separator}/** Project an error. */`
+        );
+        const report = runVocabularyRegrade({
+          plan: { ...plan, scope: { include: ['src/**'] } },
+          root: dir,
+          sourceKindForPath: () => 'comments',
+        });
+        expect(report.isOk()).toBe(true);
+        if (report.isErr()) {
+          throw report.error;
+        }
+
+        expect(report.value.run.ledger.occurrences).toContainEqual(
+          expect.objectContaining({
+            column: 5,
+            context: '/** Project an error. */',
+            form: 'Project',
+            line: 2,
+          })
+        );
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    }
+  });
+
   test('does not turn review-only registry defaults into unsafe plans', () => {
     const transition = getGovernedVocabularyTransition('cross-compose');
     expect(transition).toBeDefined();

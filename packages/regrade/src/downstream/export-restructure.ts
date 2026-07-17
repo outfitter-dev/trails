@@ -1468,7 +1468,7 @@ const applyMcpTrailheadsClass = (
 };
 
 /**
- * Project call-site MCP trailhead maps into `surfaceOverlay({ mcp: { name:
+ * Convert call-site MCP trailhead maps into `surfaceOverlay({ mcp: { name:
  * [selectors] } })` group bindings. Because the map usually lives in a
  * different file than the app module, the default outcome is a classified
  * `needs-review` handoff naming the exact target shape; when the same file
@@ -1512,7 +1512,7 @@ export const exportRestructureClasses: readonly RegradeClass[] = Object.freeze([
 ]);
 
 /**
- * Project a Warden rule that advertises the `export-restructure` fix class
+ * Convert a Warden rule that advertises the `export-restructure` fix class
  * into its registered Regrade class. Warden owns detection and fix metadata;
  * Regrade owns the structural transform. Returns `null` for rules without an
  * `export-restructure` fix class or without a registered transform.

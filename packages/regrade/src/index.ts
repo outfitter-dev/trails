@@ -75,6 +75,7 @@ export type {
   VocabularyFileRenameEvidence,
   VocabularyFormProposal,
   VocabularyOccurrence,
+  VocabularyOccurrenceSourceKind,
   VocabularyPreserveInventoryEntry,
   VocabularyPreserveRule,
   VocabularyRegradePlan,

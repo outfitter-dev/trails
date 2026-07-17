@@ -174,6 +174,8 @@ export interface RegradeReviewDetail {
   readonly candidateReplacement?: string;
   /** Class that produced the review detail, injected by report building. */
   readonly classId?: string;
+  /** Exact source-line context containing the occurrence under review. */
+  readonly context?: string;
   /** Expected target shape when the class can describe one. */
   readonly expectedTarget?: string;
   /** Fixture or example reference that illustrates the expected migration. */
@@ -731,6 +733,12 @@ export interface RegradeReport {
   readonly unknownClassIds: readonly string[];
   /** Source files inspected. */
   readonly scanned: number;
+  /**
+   * Root-relative source paths used to deduplicate composed scans.
+   *
+   * @internal
+   */
+  readonly scannedPaths?: readonly string[];
   /** Files where a selected class produced a rewrite or review outcome. */
   readonly matched: number;
   /** Files with a rewrite outcome. */
@@ -774,6 +782,19 @@ export interface RegradeReport {
     readonly status: 'candidate' | 'applied' | 'checked';
   };
 }
+
+const withScannedPaths = (
+  report: RegradeReport,
+  paths: readonly string[]
+): RegradeReport => {
+  Object.defineProperty(report, 'scannedPaths', {
+    configurable: false,
+    enumerable: false,
+    value: Object.freeze([...paths]),
+    writable: false,
+  });
+  return report;
+};
 
 interface RegradeRewriteCandidate {
   readonly absolutePath: string;
@@ -1044,24 +1065,27 @@ const buildRegradeEvaluation = (params: {
   const skippedReasons = skipsByReason(allEntries);
 
   return {
-    report: {
-      entries,
-      matched: rewritten + review,
-      review,
-      rewritten,
-      root: params.root,
-      scan: buildRegradeScanSummary({
-        matchedPaths,
+    report: withScannedPaths(
+      {
+        entries,
+        matched: rewritten + review,
+        review,
+        rewritten,
+        root: params.root,
+        scan: buildRegradeScanSummary({
+          matchedPaths,
+          scanned: scannedEntries.length,
+          skipped,
+          skippedByReason: skippedReasons,
+        }),
         scanned: scannedEntries.length,
+        selectedClassIds: selected.map((cls) => cls.id),
         skipped,
-        skippedByReason: skippedReasons,
-      }),
-      scanned: scannedEntries.length,
-      selectedClassIds: selected.map((cls) => cls.id),
-      skipped,
-      skipsByReason: skippedReasons,
-      unknownClassIds,
-    },
+        skipsByReason: skippedReasons,
+        unknownClassIds,
+      },
+      scannedEntries.map((entry) => entry.path)
+    ),
     rewrites,
   };
 };
@@ -1131,10 +1155,16 @@ const applyRegradeEvaluation = (
 const withApplySummary = (
   report: RegradeReport,
   apply: RegradeApplySummary
-): RegradeReport => ({
-  ...report,
-  apply,
-});
+): RegradeReport => {
+  const appliedReport: RegradeReport = {
+    ...report,
+    apply,
+  };
+
+  return report.scannedPaths === undefined
+    ? appliedReport
+    : withScannedPaths(appliedReport, report.scannedPaths);
+};
 
 const canReadDownstreamRoot = (root: string): boolean => {
   try {
@@ -1392,6 +1422,10 @@ const regradeReportEntrySchema = z.object({
           .string()
           .optional()
           .describe('Class that produced the review detail'),
+        context: z
+          .string()
+          .optional()
+          .describe('Exact source-line context containing the occurrence'),
         expectedTarget: z
           .string()
           .optional()

@@ -881,6 +881,19 @@ const mergeTransitionRunReportWithSymbol = (
   };
 };
 
+const withScannedPaths = (
+  report: RegradeReport,
+  paths: readonly string[]
+): RegradeReport => {
+  Object.defineProperty(report, 'scannedPaths', {
+    configurable: false,
+    enumerable: false,
+    value: Object.freeze([...paths]),
+    writable: false,
+  });
+  return report;
+};
+
 const mergeRegradeReports = (
   vocabularyReport: RegradeReport,
   symbolReport: RegradeReport
@@ -914,7 +927,15 @@ const mergeRegradeReports = (
     symbolReport.skipsByReason
   );
   const apply = mergeApplySummary(vocabularyReport.apply, symbolReport.apply);
-  const scanned = vocabularyReport.scanned + symbolReport.scanned;
+  const scannedPaths = uniqueSorted([
+    ...(vocabularyReport.scannedPaths ?? []),
+    ...(symbolReport.scannedPaths ?? []),
+  ]);
+  const scanned =
+    vocabularyReport.scannedPaths === undefined ||
+    symbolReport.scannedPaths === undefined
+      ? vocabularyReport.scanned + symbolReport.scanned
+      : scannedPaths.length;
   const run =
     vocabularyReport.run === undefined
       ? undefined
@@ -926,36 +947,39 @@ const mergeRegradeReports = (
           ),
         };
 
-  return {
-    ...vocabularyReport,
-    ...(apply === undefined ? {} : { apply }),
-    entries,
-    matched,
-    review,
-    rewritten,
-    scan: {
-      byDirectory: mergedDirectoryBuckets(matchedPaths, occurrencePaths),
-      byExtension: mergedExtensionBuckets(matchedPaths, occurrencePaths),
-      files: {
-        matched: new Set(matchedPaths).size,
-        scanned,
-        skipped: Math.max(vocabularyReport.skipped, symbolReport.skipped),
+  return withScannedPaths(
+    {
+      ...vocabularyReport,
+      ...(apply === undefined ? {} : { apply }),
+      entries,
+      matched,
+      review,
+      rewritten,
+      scan: {
+        byDirectory: mergedDirectoryBuckets(matchedPaths, occurrencePaths),
+        byExtension: mergedExtensionBuckets(matchedPaths, occurrencePaths),
+        files: {
+          matched: new Set(matchedPaths).size,
+          scanned,
+          skipped: Math.max(vocabularyReport.skipped, symbolReport.skipped),
+        },
+        skippedByReason,
       },
-      skippedByReason,
+      ...(run === undefined ? {} : { run }),
+      scanned,
+      selectedClassIds: uniqueSorted([
+        ...vocabularyReport.selectedClassIds,
+        ...symbolReport.selectedClassIds,
+      ]),
+      skipped: Math.max(vocabularyReport.skipped, symbolReport.skipped),
+      skipsByReason: skippedByReason,
+      unknownClassIds: uniqueSorted([
+        ...vocabularyReport.unknownClassIds,
+        ...symbolReport.unknownClassIds,
+      ]),
     },
-    ...(run === undefined ? {} : { run }),
-    scanned,
-    selectedClassIds: uniqueSorted([
-      ...vocabularyReport.selectedClassIds,
-      ...symbolReport.selectedClassIds,
-    ]),
-    skipped: Math.max(vocabularyReport.skipped, symbolReport.skipped),
-    skipsByReason: skippedByReason,
-    unknownClassIds: uniqueSorted([
-      ...vocabularyReport.unknownClassIds,
-      ...symbolReport.unknownClassIds,
-    ]),
-  };
+    scannedPaths
+  );
 };
 
 const vocabularySymbolCollection = (
@@ -1052,40 +1076,61 @@ const withoutVocabularySourceFilterSkips = (
   if (report === null || rejected === 0) {
     return report;
   }
-  return {
-    ...report,
-    ...(report.apply === undefined
-      ? {}
-      : {
-          apply: {
-            ...report.apply,
-            skipped: Math.max(0, report.apply.skipped - rejected),
-          },
-        }),
-    entries: report.entries.filter(
-      (entry) => entry.reason !== 'not-selected-source'
-    ),
-    scan: {
-      ...report.scan,
-      files: {
-        ...report.scan.files,
-        skipped: Math.max(0, report.scan.files.skipped - rejected),
-      },
-      skippedByReason: withoutNotSelectedSourceCount(
-        report.scan.skippedByReason
+  return withScannedPaths(
+    {
+      ...report,
+      ...(report.apply === undefined
+        ? {}
+        : {
+            apply: {
+              ...report.apply,
+              skipped: Math.max(0, report.apply.skipped - rejected),
+            },
+          }),
+      entries: report.entries.filter(
+        (entry) => entry.reason !== 'not-selected-source'
       ),
+      scan: {
+        ...report.scan,
+        files: {
+          ...report.scan.files,
+          skipped: Math.max(0, report.scan.files.skipped - rejected),
+        },
+        skippedByReason: withoutNotSelectedSourceCount(
+          report.scan.skippedByReason
+        ),
+      },
+      skipped: Math.max(0, report.skipped - rejected),
+      skipsByReason: withoutNotSelectedSourceCount(report.skipsByReason),
     },
-    skipped: Math.max(0, report.skipped - rejected),
-    skipsByReason: withoutNotSelectedSourceCount(report.skipsByReason),
-  };
+    report.scannedPaths ?? []
+  );
 };
 
 const vocabularyEvidenceSource = (
   path: string,
-  scope: VocabularyRegradePlan['scope'] | undefined
+  scope: VocabularyRegradePlan['scope'] | undefined,
+  includeCodeComments = false
 ): boolean =>
   vocabularyProseExtensions.includes(extname(path)) ||
+  (includeCodeComments && symbolSourceExtensions.includes(extname(path))) ||
   symbolOccurrenceIsPolicyClassified(scope, path);
+
+const classifiedCommentInventoryApplies = (
+  plan: VocabularyRegradePlan
+): boolean =>
+  vocabularyRegradeTransitionForInput(plan.from, plan.to)?.target.kind ===
+  'classified';
+
+const vocabularyEvidenceSourceKind = (
+  path: string,
+  plan: VocabularyRegradePlan
+): 'all' | 'comments' =>
+  classifiedCommentInventoryApplies(plan) &&
+  symbolSourceExtensions.includes(extname(path)) &&
+  !symbolOccurrenceIsPolicyClassified(plan.scope, path)
+    ? 'comments'
+    : 'all';
 
 const vocabularyProseEngineApplies = (
   scope: VocabularyRegradePlan['scope'] | undefined
@@ -1322,18 +1367,21 @@ const reportWithVocabularyTransitionRun = (params: {
     report: transitionRunReportForRegradeReport(params.report),
   };
 
-  return {
-    ...params.report,
-    run: {
-      ...run,
-      plan: params.plan,
-      ...(preserveInventory === undefined ? {} : { preserveInventory }),
-      report:
-        params.report.run === undefined
-          ? transitionRunReportForRegradeReport(params.report)
-          : params.report.run.report,
+  return withScannedPaths(
+    {
+      ...params.report,
+      run: {
+        ...run,
+        plan: params.plan,
+        ...(preserveInventory === undefined ? {} : { preserveInventory }),
+        report:
+          params.report.run === undefined
+            ? transitionRunReportForRegradeReport(params.report)
+            : params.report.run.report,
+      },
     },
-  };
+    params.report.scannedPaths ?? []
+  );
 };
 
 const runGovernedSymbolRegrade = (params: {
@@ -2141,6 +2189,7 @@ const runResolvedVocabularyPlan = (params: {
     return fileRenamePreflight;
   }
   const evidencePlan = vocabularyEvidencePlan(params.plan);
+  const includeCodeComments = classifiedCommentInventoryApplies(params.plan);
   const runProse = (
     apply: boolean
   ): TrailsResult<RegradeReport | null, Error> =>
@@ -2155,7 +2204,13 @@ const runResolvedVocabularyPlan = (params: {
             : { preserveInventory: params.preserveInventory }),
           root: params.rootDir,
           sourceFilter: (path) =>
-            vocabularyEvidenceSource(path, evidencePlan.scope),
+            vocabularyEvidenceSource(
+              path,
+              evidencePlan.scope,
+              includeCodeComments
+            ),
+          sourceKindForPath: (path) =>
+            vocabularyEvidenceSourceKind(path, evidencePlan),
         });
   const runSymbols = (
     apply: boolean

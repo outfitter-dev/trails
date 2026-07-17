@@ -580,6 +580,8 @@ For vocabulary work, `trails regrade plan <from> <to>` treats that pair as a see
 
 The Trails app history writer persists the canonical v3 receipt contract described above.
 
+For governed classified vocabulary transitions, parser-native source comments and TSDoc are exact review-only entries. Their structured details include source-line context, exact spans, and `SourceComment` or `TSDocComment` node kinds; they never authorize a rewrite and keep lifecycle and audit completion checks open until reviewed. Preserve rules can retain ordinary domain uses, and CLI, JSON, and MCP expose the same inventory.
+
 ## `@ontrails/config`
 
 ```typescript

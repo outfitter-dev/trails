@@ -466,6 +466,77 @@ describe('Trails MCP surface shaping', () => {
     }
   });
 
+  test('MCP inventories the same structured classified TSDoc review entry', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/project.ts',
+        [
+          '/**',
+          ' * Project an error through the shared public policy.',
+          ' */',
+          '// Use the project root consistently.',
+          'export const project = 1;',
+          '',
+        ].join('\n')
+      );
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const planRegrade = requireTool(tools, 'trails_plan_regrade');
+      const previewRegrade = requireTool(tools, 'trails_preview_regrade');
+      const plan = await planRegrade.handler(
+        { from: 'projection', rootDir: dir, to: 'derive' },
+        {}
+      );
+      expect(plan.isError).toBeUndefined();
+
+      const preview = await previewRegrade.handler({ rootDir: dir }, {});
+      expect(preview.isError).toBeUndefined();
+      expect(preview.structuredContent).toMatchObject({
+        entries: [
+          {
+            outcome: 'needs-review',
+            path: 'src/project.ts',
+            reason: 'vocabulary-judgment-deferred',
+            reviewDetails: [
+              expect.objectContaining({
+                context: '* Project an error through the shared public policy.',
+                judgment: 'unresolved',
+                matchedForm: 'Project',
+                nodeKind: 'TSDocComment',
+                reason: 'source-comment-requires-review',
+                span: expect.objectContaining({ line: 2 }),
+              }),
+            ],
+          },
+        ],
+        run: {
+          ledger: {
+            occurrences: expect.arrayContaining([
+              expect.objectContaining({
+                form: 'Project',
+                path: 'src/project.ts',
+                sourceKind: 'tsdoc',
+                verdict: 'deferred',
+              }),
+              expect.objectContaining({
+                form: 'project',
+                path: 'src/project.ts',
+                sourceKind: 'source-comment',
+                verdict: 'skipped',
+              }),
+            ]),
+          },
+          report: {
+            gate: { remaining: 1, status: 'open' },
+          },
+        },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('executes governed file moves through MCP plan, preview, and apply', async () => {
     const dir = makeTempDir();
     try {

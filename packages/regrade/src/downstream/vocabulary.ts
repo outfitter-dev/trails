@@ -6,6 +6,8 @@ import {
   isPlainObject,
   matchesAnyPathGlob,
 } from '@ontrails/core';
+import { parseWithDiagnostics } from '@ontrails/source';
+import type { SourceComment } from '@ontrails/source';
 import { createHash } from 'node:crypto';
 import {
   dirname,
@@ -31,6 +33,8 @@ import type {
 import { buildRegradeScanSummary } from './scan-summary.js';
 
 export type VocabularyVerdict = 'applied' | 'deferred' | 'modified' | 'skipped';
+
+export type VocabularyOccurrenceSourceKind = 'source-comment' | 'tsdoc';
 
 export const vocabularyDispositionValues = [
   'code-context-out-of-engine',
@@ -170,6 +174,7 @@ export interface VocabularyOccurrence {
   readonly replacement?: string;
   readonly start: number;
   readonly scopeTier: VocabularyScopeTier;
+  readonly sourceKind?: VocabularyOccurrenceSourceKind;
   readonly verdict: VocabularyVerdict;
 }
 
@@ -252,6 +257,16 @@ interface SourceFile {
 interface SourceOccurrence extends VocabularyOccurrence {
   readonly absolutePath: string;
 }
+
+type VocabularySourceKind = 'all' | 'comments';
+
+const sourceCommentKind = (
+  file: SourceFile,
+  comment: SourceComment
+): VocabularyOccurrenceSourceKind =>
+  comment.type === 'Block' && file.source.startsWith('/**', comment.start)
+    ? 'tsdoc'
+    : 'source-comment';
 
 interface SourceOccurrenceDraft extends Omit<
   SourceOccurrence,
@@ -450,7 +465,16 @@ const lineColumnForOffset = (
   let line = 1;
   let column = 1;
   for (let index = 0; index < offset; index += 1) {
-    if (source.codePointAt(index) === 10) {
+    const codePoint = source.codePointAt(index);
+    if (
+      codePoint === 10 ||
+      codePoint === 13 ||
+      codePoint === 0x20_28 ||
+      codePoint === 0x20_29
+    ) {
+      if (codePoint === 13 && source.codePointAt(index + 1) === 10) {
+        index += 1;
+      }
       line += 1;
       column = 1;
     } else {
@@ -465,9 +489,32 @@ const contextDetailsForOffset = (
   start: number,
   end: number
 ): { readonly context: string; readonly contextColumn: number } => {
-  const lineStart = source.lastIndexOf('\n', start - 1) + 1;
-  const nextLine = source.indexOf('\n', end);
-  const lineEnd = nextLine === -1 ? source.length : nextLine;
+  let lineStart = start;
+  while (lineStart > 0) {
+    const codePoint = source.codePointAt(lineStart - 1);
+    if (
+      codePoint === 10 ||
+      codePoint === 13 ||
+      codePoint === 0x20_28 ||
+      codePoint === 0x20_29
+    ) {
+      break;
+    }
+    lineStart -= 1;
+  }
+  let lineEnd = end;
+  while (lineEnd < source.length) {
+    const codePoint = source.codePointAt(lineEnd);
+    if (
+      codePoint === 10 ||
+      codePoint === 13 ||
+      codePoint === 0x20_28 ||
+      codePoint === 0x20_29
+    ) {
+      break;
+    }
+    lineEnd += 1;
+  }
   const rawLine = source.slice(lineStart, lineEnd);
   const leadingTrimmed = rawLine.length - rawLine.trimStart().length;
   return {
@@ -734,6 +781,21 @@ const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] => {
     ...(plan.deferForms ?? []),
   ]);
 };
+
+const titleCaseVocabularyForm = (form: string): string => {
+  const first = form.at(0);
+  return first === undefined ? form : `${first.toUpperCase()}${form.slice(1)}`;
+};
+
+const commentReviewPlan = (
+  plan: VocabularyRegradePlan
+): VocabularyRegradePlan => ({
+  ...plan,
+  deferForms: uniqueSorted([
+    ...(plan.deferForms ?? []),
+    ...(plan.deferForms ?? []).map(titleCaseVocabularyForm),
+  ]),
+});
 
 /**
  * Synthesize the deterministic form proposal carried by a minimal plan seed.
@@ -1471,8 +1533,19 @@ const entryForOccurrences = (
       reviewDetails: occurrences
         .filter((occurrence) => occurrence.verdict === 'deferred')
         .map((occurrence) => ({
+          context: occurrence.context,
           expectedTarget:
             'Add an override or preserve rule to the regrade plan.',
+          judgment: 'unresolved' as const,
+          matchedForm: occurrence.form,
+          ...(occurrence.sourceKind === undefined
+            ? {}
+            : {
+                nodeKind:
+                  occurrence.sourceKind === 'tsdoc'
+                    ? 'TSDocComment'
+                    : 'SourceComment',
+              }),
           reason: occurrence.reason,
           span: {
             column: occurrence.column,
@@ -1528,6 +1601,9 @@ const buildVocabularyEvaluation = (params: {
   readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
   readonly root: string;
   readonly skipped: readonly SkippedSource[];
+  readonly sourceKindForPath?:
+    | ((path: string) => VocabularySourceKind)
+    | undefined;
 }): VocabularyEvaluation => {
   const effectivePlan = params.effectivePlan ?? params.plan;
   const targetForms = targetFormsForPlan(effectivePlan);
@@ -1537,21 +1613,59 @@ const buildVocabularyEvaluation = (params: {
   const scopeSkipped: SkippedSource[] = params.files
     .filter((file) => !includedByScope(file.path, effectivePlan.scope))
     .map((file) => ({ path: file.path, reason: 'excluded-by-regrade-scope' }));
+  const commentParseSkipped: SkippedSource[] = [];
   const occurrences = scopedFiles.flatMap((file) => {
+    const sourceKind = params.sourceKindForPath?.(file.path) ?? 'all';
+    const scanPlan =
+      sourceKind === 'comments'
+        ? commentReviewPlan(effectivePlan)
+        : effectivePlan;
     const deferredOccurrences = deferredOccurrencesForFile(
       file,
-      effectivePlan,
+      scanPlan,
       targetForms
     );
-    return [
-      ...occurrencesForFile(
-        file,
-        effectivePlan,
-        targetForms,
-        deferredOccurrences
-      ),
+    const fileOccurrences = [
+      ...occurrencesForFile(file, scanPlan, targetForms, deferredOccurrences),
       ...deferredOccurrences,
     ];
+    if (sourceKind === 'all') {
+      return fileOccurrences;
+    }
+    if (fileOccurrences.length === 0) {
+      return [];
+    }
+    const parsed = parseWithDiagnostics(file.path, file.source);
+    if (parsed.diagnostics.length > 0 || parsed.ast === null) {
+      commentParseSkipped.push({
+        path: file.path,
+        reason: 'source-comment-parse-diagnostics',
+      });
+      return [];
+    }
+    return fileOccurrences.flatMap((occurrence) => {
+      const comment = parsed.comments.find(
+        (candidate) =>
+          candidate.start <= occurrence.start && occurrence.end <= candidate.end
+      );
+      if (comment === undefined) {
+        return [];
+      }
+      const sourceKindForOccurrence = sourceCommentKind(file, comment);
+      if (occurrence.verdict === 'skipped') {
+        return [{ ...occurrence, sourceKind: sourceKindForOccurrence }];
+      }
+      const { replacement: _replacement, ...reviewOccurrence } = occurrence;
+      return [
+        {
+          ...reviewOccurrence,
+          disposition: 'in-family-unresolved' as const,
+          reason: 'source-comment-requires-review',
+          sourceKind: sourceKindForOccurrence,
+          verdict: 'deferred' as const,
+        },
+      ];
+    });
   });
   const occurrencesByPath = new Map<string, SourceOccurrence[]>();
   for (const occurrence of occurrences) {
@@ -1599,6 +1713,9 @@ const buildVocabularyEvaluation = (params: {
   if (deferredForms.length > 0) {
     gateReasons.push('deferred-forms-or-occurrences');
   }
+  if (commentParseSkipped.length > 0) {
+    gateReasons.push('source-comment-parse-diagnostics');
+  }
   const open = unresolvedOccurrences.length;
   const scopeEvidence = vocabularyScopeEvidence(effectivePlan, occurrences);
   gateReasons.push(...scopeEvidence.gateReasons);
@@ -1612,6 +1729,11 @@ const buildVocabularyEvaluation = (params: {
         reason: entry.reason,
       })),
       ...scopeSkipped.map((entry) => ({
+        outcome: 'skip' as const,
+        path: entry.path,
+        reason: entry.reason,
+      })),
+      ...commentParseSkipped.map((entry) => ({
         outcome: 'skip' as const,
         path: entry.path,
         reason: entry.reason,
@@ -1652,7 +1774,7 @@ const buildVocabularyEvaluation = (params: {
       },
     },
     scanned: scopedFiles.length,
-    skipped: [...params.skipped, ...scopeSkipped],
+    skipped: [...params.skipped, ...scopeSkipped, ...commentParseSkipped],
   };
 };
 
@@ -1670,13 +1792,30 @@ const skippedByReason = (
   );
 };
 
+const withScannedPaths = (
+  report: RegradeReport,
+  paths: readonly string[]
+): RegradeReport => {
+  Object.defineProperty(report, 'scannedPaths', {
+    configurable: false,
+    enumerable: false,
+    value: Object.freeze([...paths]),
+    writable: false,
+  });
+  return report;
+};
+
 const withApplySummary = (
   report: RegradeReport,
   apply: RegradeApplySummary
-): RegradeReport => ({
-  ...report,
-  apply,
-});
+): RegradeReport =>
+  withScannedPaths(
+    {
+      ...report,
+      apply,
+    },
+    report.scannedPaths ?? []
+  );
 
 const appliedVocabularyRunReport = (
   postApply: VocabularyRegradeRun,
@@ -1824,6 +1963,9 @@ const buildRunVocabularyEvaluation = (params: {
     | undefined;
   readonly root: string;
   readonly skipped: readonly SkippedSource[];
+  readonly sourceKindForPath?:
+    | ((path: string) => VocabularySourceKind)
+    | undefined;
 }): VocabularyEvaluation =>
   buildVocabularyEvaluation({
     apply: params.apply,
@@ -1835,6 +1977,7 @@ const buildRunVocabularyEvaluation = (params: {
       : { preserveInventory: params.preserveInventory }),
     root: params.root,
     skipped: params.skipped,
+    sourceKindForPath: params.sourceKindForPath,
   });
 
 const ignoredDirectoriesOpenedByPolicy = (
@@ -1900,6 +2043,7 @@ export const runVocabularyRegrade = (params: {
   readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
   readonly root: string;
   readonly sourceFilter?: (path: string) => boolean;
+  readonly sourceKindForPath?: (path: string) => VocabularySourceKind;
 }): Result<RegradeReport | null, InternalError | ValidationError> => {
   const planValidation = validateVocabularyPlan(params.plan);
   if (planValidation.isErr()) {
@@ -1951,6 +2095,7 @@ export const runVocabularyRegrade = (params: {
     preserveInventory: params.preserveInventory,
     root: params.root,
     skipped,
+    sourceKindForPath: params.sourceKindForPath,
   });
   let reportEvaluation = dryRunEffectiveEvaluation;
   let applySummary: RegradeApplySummary | undefined;
@@ -1976,6 +2121,7 @@ export const runVocabularyRegrade = (params: {
       preserveInventory: params.preserveInventory,
       root: params.root,
       skipped,
+      sourceKindForPath: params.sourceKindForPath,
     });
   }
 
@@ -1985,39 +2131,44 @@ export const runVocabularyRegrade = (params: {
     (entry) => entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
   );
   const reportSkippedByReason = skippedByReason(reportEvaluation.skipped);
-  const report: RegradeReport = {
-    entries: entrySelection === 'all' ? reportEntries : actionableEntries,
-    matched: actionableEntries.length,
-    review: reportEntries.filter((entry) => entry.outcome === 'needs-review')
-      .length,
-    rewritten: reportEntries.filter((entry) => entry.outcome === 'rewrite')
-      .length,
-    root: collected.root,
-    run:
-      applySummary === undefined
-        ? reportEvaluation.run
-        : vocabularyRunWithAppliedOccurrences(
-            reportEvaluation.run,
-            dryRunEffectiveEvaluation.run,
-            applySummary
-          ),
-    scan: buildRegradeScanSummary({
-      matchedPaths: actionableEntries.map((entry) => entry.path),
-      occurrencePaths: reportEvaluation.occurrences.map(
-        (occurrence) => occurrence.path
-      ),
+  const report: RegradeReport = withScannedPaths(
+    {
+      entries: entrySelection === 'all' ? reportEntries : actionableEntries,
+      matched: actionableEntries.length,
+      review: reportEntries.filter((entry) => entry.outcome === 'needs-review')
+        .length,
+      rewritten: reportEntries.filter((entry) => entry.outcome === 'rewrite')
+        .length,
+      root: collected.root,
+      run:
+        applySummary === undefined
+          ? reportEvaluation.run
+          : vocabularyRunWithAppliedOccurrences(
+              reportEvaluation.run,
+              dryRunEffectiveEvaluation.run,
+              applySummary
+            ),
+      scan: buildRegradeScanSummary({
+        matchedPaths: actionableEntries.map((entry) => entry.path),
+        occurrencePaths: reportEvaluation.occurrences.map(
+          (occurrence) => occurrence.path
+        ),
+        scanned: reportEvaluation.scanned,
+        skipped: reportEvaluation.skipped.length,
+        skippedByReason: reportSkippedByReason,
+      }),
       scanned: reportEvaluation.scanned,
+      selectedClassIds: [
+        params.plan.id ?? `vocabulary:${params.plan.from}->${params.plan.to}`,
+      ],
       skipped: reportEvaluation.skipped.length,
-      skippedByReason: reportSkippedByReason,
-    }),
-    scanned: reportEvaluation.scanned,
-    selectedClassIds: [
-      params.plan.id ?? `vocabulary:${params.plan.from}->${params.plan.to}`,
-    ],
-    skipped: reportEvaluation.skipped.length,
-    skipsByReason: reportSkippedByReason,
-    unknownClassIds: [],
-  };
+      skipsByReason: reportSkippedByReason,
+      unknownClassIds: [],
+    },
+    files
+      .filter((file) => includedByScope(file.path, effectivePlan.scope))
+      .map((file) => file.path)
+  );
 
   return Result.ok(
     applySummary === undefined ? report : withApplySummary(report, applySummary)
@@ -2170,6 +2321,10 @@ export const vocabularyRegradeRunOutput = z.object({
             scopeTier: z
               .enum(['in-scope', 'policy-classified'])
               .describe('Three-tier scope classification for this occurrence'),
+            sourceKind: z
+              .enum(['source-comment', 'tsdoc'])
+              .optional()
+              .describe('Exact source-comment construct for comment inventory'),
             start: z.number().describe('Source start offset'),
             verdict: z
               .enum(['applied', 'deferred', 'modified', 'skipped'])

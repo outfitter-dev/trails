@@ -1305,6 +1305,11 @@ describe('runRegrade', () => {
         skipped: 1,
         unknown: 0,
       });
+      expect(report?.scannedPaths).toEqual([
+        'src/a.ts',
+        'src/b.ts',
+        'src/c.ts',
+      ]);
       expect(readFileSync(join(root, 'src', 'a.ts'), 'utf8')).toBe(
         'export const ping = 1;\n'
       );
