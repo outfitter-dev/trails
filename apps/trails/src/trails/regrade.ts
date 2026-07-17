@@ -14,14 +14,19 @@ import {
 } from '@ontrails/core';
 import type { PathScope, Result as TrailsResult } from '@ontrails/core';
 import {
+  applyPreparedRegradeRun,
+  applyPreparedVocabularyRegradeRun,
   createGovernedAstIdentifierRenameClasses,
   loadWardenRegradeClasses,
+  prepareRegradeRun,
+  prepareVocabularyRegradeRun,
   readVocabularyTransitionRecord,
   regradeReportOutput,
   runFileRenameRegrade,
   runRegrade,
   runVocabularyRegrade,
   transitionRecordReportWithSummary,
+  validatePreparedRegradeRun,
   vocabularyRegradeTransitionForInput,
   vocabularyDispositionValues,
   vocabularyRegradePlanSchema,
@@ -30,6 +35,9 @@ import {
 } from '@ontrails/regrade';
 import type {
   FileRenameRegradeRun,
+  PreparedRegradeRun,
+  PreparedRegradeRunIdentity,
+  PreparedVocabularyRegradeRun,
   RegradeApplySummary,
   RegradeReport,
   RegradeReportEntry,
@@ -81,6 +89,10 @@ import {
 } from '../regrade/receipt-history.js';
 import type { RegradeChangedFileEvidence } from '../regrade/receipt-history.js';
 import { deriveRegradePlanDerivation } from '../regrade/plan-derivation.js';
+import {
+  preparedRegradeRunIdentity,
+  validatePreparedRegradePlanArtifact,
+} from '../regrade/prepared-run.js';
 import {
   regradeApplyErrorAfterRollback,
   snapshotRegradeSources,
@@ -1400,27 +1412,23 @@ const reportWithVocabularyTransitionRun = (params: {
   );
 };
 
-const runGovernedSymbolRegrade = (params: {
-  readonly apply: boolean;
-  readonly includeEntries: RegradeInput['includeEntries'];
+const governedSymbolRegradeConfiguration = (params: {
   readonly plan: VocabularyRegradePlan;
   readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
-  readonly rootDir: string;
-}): TrailsResult<RegradeReport | null, Error> => {
+}) => {
   const transition = vocabularyRegradeTransitionForInput(
     params.plan.from,
     params.plan.to
   );
   if (transition === undefined) {
-    return Result.ok(null);
+    return null;
   }
 
   const symbolCollection = vocabularySymbolCollection(params.plan.scope);
   if (symbolCollection === null) {
-    return Result.ok(null);
+    return null;
   }
-  return runRegrade({
-    apply: params.apply,
+  return {
     classes: createGovernedAstIdentifierRenameClasses(
       {
         ...transition,
@@ -1449,6 +1457,23 @@ const runGovernedSymbolRegrade = (params: {
       }
     ),
     ...(symbolCollection === undefined ? {} : { collection: symbolCollection }),
+  };
+};
+
+const runGovernedSymbolRegrade = (params: {
+  readonly apply: boolean;
+  readonly includeEntries: RegradeInput['includeEntries'];
+  readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
+  readonly rootDir: string;
+}): TrailsResult<RegradeReport | null, Error> => {
+  const configuration = governedSymbolRegradeConfiguration(params);
+  if (configuration === null) {
+    return Result.ok(null);
+  }
+  return runRegrade({
+    ...configuration,
+    apply: params.apply,
     includeEntries: params.includeEntries,
     root: params.rootDir,
   });
@@ -2189,18 +2214,83 @@ const runPlanFileRenames = (
         vocabularyPlan: plan,
       });
 
-const runResolvedVocabularyPlan = (params: {
+interface PreparedVocabularyPlanRun {
+  readonly fileRenamePreflight: FileRenameRegradeRun | null;
+  readonly identity: PreparedRegradeRunIdentity;
+  readonly prose: PreparedVocabularyRegradeRun | null;
+  readonly proseReport: RegradeReport | null;
+  readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
+  readonly symbol: PreparedRegradeRun | null;
+}
+
+const validatePreparedPlanIdentity = (
+  expected: PreparedRegradeRunIdentity,
+  actual: PreparedRegradeRunIdentity
+): TrailsResult<void, ValidationError> => {
+  for (const field of [
+    'planContentHash',
+    'policyHash',
+    'scopeHash',
+    'lockStateHash',
+    'toolVersion',
+  ] as const) {
+    if (expected[field] !== actual[field]) {
+      return Result.err(
+        new ValidationError(
+          `Prepared Regrade identity field \`${field}\` is stale.`,
+          {
+            context: {
+              actual: actual[field],
+              expected: expected[field],
+              field,
+            },
+          }
+        )
+      );
+    }
+  }
+  return Result.ok();
+};
+
+interface ResolvedVocabularyPlanParams {
   readonly apply: boolean;
+  readonly currentIdentity?: PreparedRegradeRunIdentity | undefined;
   readonly includeEntries: RegradeInput['includeEntries'];
   readonly plan: VocabularyRegradePlan;
+  readonly prepareIdentity?: PreparedRegradeRunIdentity | undefined;
+  readonly prepared?: PreparedVocabularyPlanRun | undefined;
+  readonly preparedResult?:
+    | { value?: PreparedVocabularyPlanRun | undefined }
+    | undefined;
   readonly preserveInventory: readonly VocabularyPreserveInventoryEntry[];
   readonly rootDir: string;
-}): TrailsResult<RegradeReport, Error> => {
-  const fileRenamePreflight = runPlanFileRenames(params.plan, {
-    apply: false,
-    includeEntries: params.includeEntries,
-    rootDir: params.rootDir,
-  });
+}
+
+interface VocabularyPlanExecution {
+  readonly fileRenamePreflight: FileRenameRegradeRun | null;
+  readonly prosePrepared: PreparedVocabularyRegradeRun | null;
+  readonly prosePreviewReport: RegradeReport | null;
+  readonly runProse: (
+    apply: boolean
+  ) => TrailsResult<RegradeReport | null, Error>;
+  readonly runSymbols: (
+    apply: boolean
+  ) => TrailsResult<RegradeReport | null, Error>;
+  readonly symbolPrepared: PreparedRegradeRun | null;
+  readonly symbolPreviewReport: RegradeReport | null;
+}
+
+const vocabularyPlanExecution = (
+  params: ResolvedVocabularyPlanParams
+): TrailsResult<VocabularyPlanExecution, Error> => {
+  const fileRenamePreflight =
+    params.prepared === undefined
+      ? runPlanFileRenames(params.plan, {
+          apply: false,
+          includeEntries: params.includeEntries,
+          rootDir: params.rootDir,
+        })
+      : Result.ok(params.prepared.fileRenamePreflight);
   if (fileRenamePreflight.isErr()) {
     return fileRenamePreflight;
   }
@@ -2238,47 +2328,244 @@ const runResolvedVocabularyPlan = (params: {
       preserveInventory: params.preserveInventory,
       rootDir: params.rootDir,
     });
-  const prosePreview = runProse(false);
+  const prosePrepared =
+    params.prepareIdentity === undefined || evidencePlan === null
+      ? Result.ok(null)
+      : prepareVocabularyRegradeRun({
+          identity: params.prepareIdentity,
+          includeEntries: params.includeEntries,
+          plan: evidencePlan,
+          ...(params.preserveInventory.length === 0
+            ? {}
+            : { preserveInventory: params.preserveInventory }),
+          root: params.rootDir,
+          sourceFilter: (path) =>
+            vocabularyEvidenceSource(
+              path,
+              evidencePlan.scope,
+              includeCodeComments
+            ),
+          sourceKindForPath: (path) =>
+            vocabularyEvidenceSourceKind(path, evidencePlan),
+        });
+  if (prosePrepared.isErr()) {
+    return prosePrepared;
+  }
+  let prosePreview: TrailsResult<RegradeReport | null, Error>;
+  if (params.prepared !== undefined) {
+    prosePreview = Result.ok(params.prepared.proseReport);
+  } else if (prosePrepared.value === null) {
+    prosePreview = runProse(false);
+  } else {
+    prosePreview = Result.ok(prosePrepared.value.report);
+  }
   if (prosePreview.isErr()) {
     return prosePreview;
   }
   const prosePreviewReport = withoutVocabularySourceFilterSkips(
     prosePreview.value
   );
-  const symbolPreview = runSymbols(false);
+  const symbolConfiguration = governedSymbolRegradeConfiguration({
+    plan: params.plan,
+    preserveInventory: params.preserveInventory,
+  });
+  const symbolPrepared =
+    params.prepareIdentity === undefined || symbolConfiguration === null
+      ? Result.ok(null)
+      : prepareRegradeRun({
+          ...symbolConfiguration,
+          identity: params.prepareIdentity,
+          includeEntries: params.includeEntries,
+          root: params.rootDir,
+        });
+  if (symbolPrepared.isErr()) {
+    return symbolPrepared;
+  }
+  // Apply reevaluates symbol work after prose because shared code comments can
+  // change source bytes and offsets. Initial preparation retains the original
+  // symbol source state solely for pre-mutation freshness validation.
+  const symbolPreview =
+    params.prepared !== undefined || symbolPrepared.value === null
+      ? runSymbols(false)
+      : Result.ok(symbolPrepared.value.report);
   if (symbolPreview.isErr()) {
     return symbolPreview;
   }
-  if (!params.apply) {
-    if (
-      prosePreviewReport?.scanned === 0 &&
-      symbolPreview.value === null &&
-      fileRenamePreflight.value === null &&
-      !vocabularyProseEngineApplies(params.plan.scope)
-    ) {
-      return regradeNoEngineForScope();
-    }
-    return combineVocabularyReports({
-      fileRenameRun: fileRenamePreflight.value,
-      plan: params.plan,
+  return Result.ok({
+    fileRenamePreflight: fileRenamePreflight.value,
+    prosePrepared: prosePrepared.value,
+    prosePreviewReport,
+    runProse,
+    runSymbols,
+    symbolPrepared: symbolPrepared.value,
+    symbolPreviewReport: symbolPreview.value,
+  });
+};
+
+const previewResolvedVocabularyPlan = (
+  params: ResolvedVocabularyPlanParams,
+  execution: VocabularyPlanExecution
+): TrailsResult<RegradeReport, Error> => {
+  if (
+    execution.prosePreviewReport?.scanned === 0 &&
+    execution.symbolPreviewReport === null &&
+    execution.fileRenamePreflight === null &&
+    !vocabularyProseEngineApplies(params.plan.scope)
+  ) {
+    return regradeNoEngineForScope();
+  }
+  const report = combineVocabularyReports({
+    fileRenameRun: execution.fileRenamePreflight,
+    plan: params.plan,
+    preserveInventory: params.preserveInventory,
+    proseReport: execution.prosePreviewReport,
+    symbolReport: execution.symbolPreviewReport,
+  });
+  if (
+    report.isOk() &&
+    params.prepareIdentity !== undefined &&
+    params.preparedResult !== undefined
+  ) {
+    params.preparedResult.value = {
+      fileRenamePreflight: execution.fileRenamePreflight,
+      identity: params.prepareIdentity,
       preserveInventory: params.preserveInventory,
-      proseReport: prosePreviewReport,
-      symbolReport: symbolPreview.value,
+      prose: execution.prosePrepared,
+      proseReport: execution.prosePreviewReport,
+      symbol: execution.symbolPrepared,
+    };
+  }
+  return report;
+};
+
+export const validatePreparedFileRenameSourceState = (params: {
+  readonly includeEntries: RegradeInput['includeEntries'];
+  readonly plan: VocabularyRegradePlan;
+  readonly prepared: FileRenameRegradeRun | null;
+  readonly rootDir: string;
+}): TrailsResult<void, Error> => {
+  if (params.prepared === null) {
+    return Result.ok();
+  }
+  const current = runPlanFileRenames(params.plan, {
+    apply: false,
+    includeEntries: params.includeEntries,
+    rootDir: params.rootDir,
+  });
+  if (current.isErr()) {
+    return current;
+  }
+  if (current.value === null) {
+    return Result.err(
+      new InternalError('Prepared Regrade file rename set changed.')
+    );
+  }
+  if (current.value.sourceStateHash !== params.prepared.sourceStateHash) {
+    return Result.err(
+      new ValidationError(
+        'Prepared Regrade file rename source state is stale.',
+        {
+          context: {
+            actual: current.value.sourceStateHash,
+            expected: params.prepared.sourceStateHash,
+          },
+        }
+      )
+    );
+  }
+  return Result.ok();
+};
+
+const validatePreparedVocabularyPlanState = (params: {
+  readonly currentIdentity: PreparedRegradeRunIdentity;
+  readonly execution: VocabularyPlanExecution;
+  readonly includeEntries: RegradeInput['includeEntries'];
+  readonly plan: VocabularyRegradePlan;
+  readonly prepared: PreparedVocabularyPlanRun;
+  readonly rootDir: string;
+}): TrailsResult<void, Error> => {
+  const identity = validatePreparedPlanIdentity(
+    params.prepared.identity,
+    params.currentIdentity
+  );
+  if (identity.isErr()) {
+    return identity;
+  }
+  const fileRenameState = validatePreparedFileRenameSourceState({
+    includeEntries: params.includeEntries,
+    plan: params.plan,
+    prepared: params.execution.fileRenamePreflight,
+    rootDir: params.rootDir,
+  });
+  if (fileRenameState.isErr() || params.prepared.symbol === null) {
+    return fileRenameState;
+  }
+  return validatePreparedRegradeRun(
+    params.prepared.symbol,
+    params.currentIdentity
+  );
+};
+
+/**
+ * Prepared vocabulary lifecycle seam for focused conformance tests.
+ *
+ * @internal
+ */
+export const runResolvedVocabularyPlan = (
+  params: ResolvedVocabularyPlanParams
+): TrailsResult<RegradeReport, Error> => {
+  const execution = vocabularyPlanExecution(params);
+  if (execution.isErr()) {
+    return execution;
+  }
+  if (!params.apply) {
+    return previewResolvedVocabularyPlan(params, execution.value);
+  }
+
+  let { currentIdentity } = params;
+  if (params.prepared !== undefined) {
+    if (currentIdentity === undefined) {
+      return Result.err(
+        new InternalError('Prepared Regrade apply is missing current identity.')
+      );
+    }
+    const preparedState = validatePreparedVocabularyPlanState({
+      currentIdentity,
+      execution: execution.value,
+      includeEntries: params.includeEntries,
+      plan: params.plan,
+      prepared: params.prepared,
+      rootDir: params.rootDir,
     });
+    if (preparedState.isErr()) {
+      return preparedState;
+    }
   }
 
   const snapshots = snapshotRegradeSources({
-    reports: [prosePreviewReport, symbolPreview.value],
+    reports: [
+      execution.value.prosePreviewReport,
+      execution.value.symbolPreviewReport,
+    ],
     rootDir: params.rootDir,
   });
   if (snapshots.isErr()) {
     return snapshots;
   }
-  const reportResult = runProse(true);
+  let reportResult: TrailsResult<RegradeReport | null, Error>;
+  if (params.prepared?.prose === undefined || params.prepared.prose === null) {
+    reportResult = execution.value.runProse(true);
+  } else {
+    currentIdentity ??= params.prepared.identity;
+    reportResult = applyPreparedVocabularyRegradeRun(
+      params.prepared.prose,
+      currentIdentity
+    );
+  }
   if (reportResult.isErr()) {
     return regradeApplyErrorAfterRollback(reportResult.error, snapshots.value);
   }
-  const symbolReportResult = runSymbols(true);
+  const symbolReportResult = execution.value.runSymbols(true);
   if (symbolReportResult.isErr()) {
     return regradeApplyErrorAfterRollback(
       symbolReportResult.error,
@@ -2424,6 +2711,131 @@ const runPlanArtifactDryRun = async (params: {
     plan: planBody,
     preserveInventory: preserveResult.value,
     rootDir: params.rootDir,
+  });
+};
+
+interface PreparedClassPlanRun {
+  readonly identity: PreparedRegradeRunIdentity;
+  readonly run: PreparedRegradeRun;
+}
+
+type PreparedPlanRun =
+  | { readonly kind: 'class'; readonly prepared: PreparedClassPlanRun }
+  | {
+      readonly kind: 'vocabulary';
+      readonly prepared: PreparedVocabularyPlanRun;
+    };
+
+const preparePlanArtifactRun = async (params: {
+  readonly artifact: RegradePlanArtifact;
+  readonly includeEntries: RegradePlanReferenceInput['includeEntries'];
+  readonly rootDir: string;
+}): Promise<
+  TrailsResult<
+    { readonly prepared: PreparedPlanRun; readonly report: RegradeReport },
+    Error
+  >
+> => {
+  const planBody = params.artifact.plan;
+  if (planBody.kind === 'class') {
+    const classSet = await loadWardenRegradeClasses(params.rootDir);
+    if (classSet.diagnostics.length > 0) {
+      return Result.err(
+        new InternalError('Failed to load Regrade project Warden rules.', {
+          context: {
+            diagnostics: classSet.diagnostics,
+            rootDir: params.rootDir,
+          },
+        })
+      );
+    }
+    const identity = preparedRegradeRunIdentity({
+      artifact: params.artifact,
+      classIds: classSet.classes.map((regradeClass) => regradeClass.id),
+      classes: classSet.classes,
+      includeEntries: params.includeEntries,
+      rootDir: params.rootDir,
+    });
+    if (identity.isErr()) {
+      return identity;
+    }
+    const prepared = prepareRegradeRun({
+      classes: classSet.classes,
+      ...(planBody.scope === undefined
+        ? {}
+        : {
+            collection: {
+              ...(planBody.scope.exclude === undefined
+                ? {}
+                : { exclude: planBody.scope.exclude }),
+              ...(planBody.scope.extensions === undefined
+                ? {}
+                : { extensions: planBody.scope.extensions }),
+              ...(planBody.scope.include === undefined
+                ? {}
+                : { include: planBody.scope.include }),
+            },
+          }),
+      identity: identity.value,
+      includeEntries: params.includeEntries,
+      root: params.rootDir,
+      selection: { classIds: planBody.classIds },
+    });
+    if (prepared.isErr()) {
+      return prepared;
+    }
+    if (prepared.value === null) {
+      return regradeRootNotFound(params.rootDir);
+    }
+    const report = validateRegradeReport(prepared.value.report);
+    if (report.isErr()) {
+      return report;
+    }
+    return Result.ok({
+      prepared: {
+        kind: 'class',
+        prepared: { identity: identity.value, run: prepared.value },
+      },
+      report: report.value,
+    });
+  }
+
+  const preserveResult = await deriveLiveApiPreserveInventory(
+    planBody,
+    params.rootDir
+  );
+  if (preserveResult.isErr()) {
+    return preserveResult;
+  }
+  const identity = preparedRegradeRunIdentity({
+    artifact: params.artifact,
+    includeEntries: params.includeEntries,
+    rootDir: params.rootDir,
+  });
+  if (identity.isErr()) {
+    return identity;
+  }
+  const preparedResult: { value?: PreparedVocabularyPlanRun } = {};
+  const report = runResolvedVocabularyPlan({
+    apply: false,
+    includeEntries: params.includeEntries,
+    plan: planBody,
+    prepareIdentity: identity.value,
+    preparedResult,
+    preserveInventory: preserveResult.value,
+    rootDir: params.rootDir,
+  });
+  if (report.isErr()) {
+    return report;
+  }
+  if (preparedResult.value === undefined) {
+    return Result.err(
+      new InternalError('Regrade vocabulary run was not prepared.')
+    );
+  }
+  return Result.ok({
+    prepared: { kind: 'vocabulary', prepared: preparedResult.value },
+    report: report.value,
   });
 };
 
@@ -3300,24 +3712,17 @@ const runCheckRegradePlan = async (
   const loaded = {
     value: { artifact: artifact.value, path: planPath.value },
   };
-  const report = await runPlanArtifactDryRun({
+  const prepared = await preparePlanArtifactRun({
     artifact: loaded.value.artifact,
     includeEntries: input.includeEntries,
     rootDir,
   });
-  if (report.isErr()) {
-    return report;
+  if (prepared.isErr()) {
+    return prepared;
   }
-  const status = planStatusForReport(
-    loaded.value.artifact,
-    report.value,
-    rootDir
-  );
-  const checked = reportWithPlanSummary(
-    report.value,
-    loaded.value.artifact,
-    status
-  );
+  const { report } = prepared.value;
+  const status = planStatusForReport(loaded.value.artifact, report, rootDir);
+  const checked = reportWithPlanSummary(report, loaded.value.artifact, status);
   if (status === 'stale') {
     return Result.err(
       new ValidationError(
@@ -3350,19 +3755,20 @@ const runPreviewRegradePlan = async (
   if (loaded.isErr()) {
     return loaded;
   }
-  const report = await runPlanArtifactDryRun({
+  const prepared = await preparePlanArtifactRun({
     artifact: loaded.value.artifact,
     includeEntries: input.includeEntries,
     rootDir,
   });
-  if (report.isErr()) {
-    return report;
+  if (prepared.isErr()) {
+    return prepared;
   }
+  const { report } = prepared.value;
   return validateRegradeReport(
     reportWithPlanSummary(
-      report.value,
+      report,
       loaded.value.artifact,
-      planStatusForReport(loaded.value.artifact, report.value, rootDir)
+      planStatusForReport(loaded.value.artifact, report, rootDir)
     )
   );
 };
@@ -3438,6 +3844,87 @@ const historyReportForAppliedPlan = (
       }),
 });
 
+/**
+ * Re-read the active plan after preparation and before mutation.
+ *
+ * @internal
+ */
+export const reloadPreparedRegradePlan = async (params: {
+  readonly input: RegradeApplyPlanInput;
+  readonly loaded: {
+    readonly artifact: RegradePlanArtifact;
+    readonly path: string;
+  };
+  readonly rootDir: string;
+}): Promise<TrailsResult<RegradePlanArtifact, Error>> => {
+  const current = await loadPlanForInput(params.input, params.rootDir);
+  if (current.isErr()) {
+    return current;
+  }
+  const unchanged = validatePreparedRegradePlanArtifact({
+    current: current.value.artifact,
+    currentPath: current.value.path,
+    expected: params.loaded.artifact,
+    expectedPath: params.loaded.path,
+  });
+  return unchanged.isErr() ? unchanged : Result.ok(current.value.artifact);
+};
+
+const applyPreparedPlanRun = async (params: {
+  readonly artifact: RegradePlanArtifact;
+  readonly includeEntries: RegradeInput['includeEntries'];
+  readonly prepared: PreparedPlanRun;
+  readonly rootDir: string;
+}): Promise<TrailsResult<RegradeReport, Error>> => {
+  if (params.artifact.plan.kind === 'class') {
+    if (params.prepared.kind !== 'class') {
+      return Result.err(new InternalError('Prepared Regrade kind changed.'));
+    }
+    const classSet = await loadWardenRegradeClasses(params.rootDir);
+    if (classSet.diagnostics.length > 0) {
+      return Result.err(
+        new InternalError('Failed to load Regrade project Warden rules.', {
+          context: {
+            diagnostics: classSet.diagnostics,
+            rootDir: params.rootDir,
+          },
+        })
+      );
+    }
+    const identity = preparedRegradeRunIdentity({
+      artifact: params.artifact,
+      classIds: classSet.classes.map((regradeClass) => regradeClass.id),
+      classes: classSet.classes,
+      includeEntries: params.includeEntries,
+      rootDir: params.rootDir,
+    });
+    return identity.isErr()
+      ? identity
+      : applyPreparedRegradeRun(params.prepared.prepared.run, identity.value);
+  }
+  if (params.prepared.kind !== 'vocabulary') {
+    return Result.err(new InternalError('Prepared Regrade kind changed.'));
+  }
+  const identity = preparedRegradeRunIdentity({
+    artifact: params.artifact,
+    includeEntries: params.includeEntries,
+    rootDir: params.rootDir,
+  });
+  if (identity.isErr()) {
+    return identity;
+  }
+  const { prepared } = params.prepared;
+  return runResolvedVocabularyPlan({
+    apply: true,
+    currentIdentity: identity.value,
+    includeEntries: params.includeEntries,
+    plan: params.artifact.plan,
+    prepared,
+    preserveInventory: prepared.preserveInventory,
+    rootDir: params.rootDir,
+  });
+};
+
 const runApplyRegradePlan = async (
   input: RegradeApplyPlanInput,
   rootDir: string,
@@ -3453,17 +3940,18 @@ const runApplyRegradePlan = async (
   if (governedPlanValidation.isErr()) {
     return governedPlanValidation;
   }
-  const dryRunReport = await runPlanArtifactDryRun({
+  const preparedRun = await preparePlanArtifactRun({
     artifact: loaded.value.artifact,
     includeEntries: input.includeEntries,
     rootDir,
   });
-  if (dryRunReport.isErr()) {
-    return dryRunReport;
+  if (preparedRun.isErr()) {
+    return preparedRun;
   }
+  const dryRunReport = preparedRun.value.report;
   const status = planStatusForReport(
     loaded.value.artifact,
-    dryRunReport.value,
+    dryRunReport,
     rootDir
   );
   if (status === 'stale') {
@@ -3478,13 +3966,23 @@ const runApplyRegradePlan = async (
   }
   if (shouldDryRun) {
     return validateRegradeReport(
-      reportWithPlanSummary(dryRunReport.value, loaded.value.artifact, status)
+      reportWithPlanSummary(dryRunReport, loaded.value.artifact, status)
     );
   }
 
+  const currentPlan = await reloadPreparedRegradePlan({
+    input,
+    loaded: loaded.value,
+    rootDir,
+  });
+  if (currentPlan.isErr()) {
+    return currentPlan;
+  }
+  const activeArtifact = currentPlan.value;
+
   // Receipt persistence is mandatory for apply. Resolve its Git-owned source
   // identity before mutating any source so failure leaves the tree untouched.
-  const receiptPlan = validateRegradeReceiptPlan(loaded.value.artifact);
+  const receiptPlan = validateRegradeReceiptPlan(activeArtifact);
   if (receiptPlan.isErr()) {
     return receiptPlan;
   }
@@ -3494,15 +3992,15 @@ const runApplyRegradePlan = async (
   }
 
   const beforeChangedFiles = captureRegradeChangedFilesBefore({
-    artifact: loaded.value.artifact,
-    report: dryRunReport.value,
+    artifact: activeArtifact,
+    report: dryRunReport,
     rootDir,
   });
   if (beforeChangedFiles.isErr()) {
     return beforeChangedFiles;
   }
 
-  const planBody = loaded.value.artifact.plan;
+  const planBody = activeArtifact.plan;
   const sourceSnapshots = snapshotRegradeSources({
     optionalPaths:
       planBody.kind === 'vocabulary'
@@ -3511,7 +4009,7 @@ const runApplyRegradePlan = async (
             rename.to,
           ])
         : [],
-    reports: [dryRunReport.value],
+    reports: [dryRunReport],
     rootDir,
   });
   if (sourceSnapshots.isErr()) {
@@ -3519,30 +4017,12 @@ const runApplyRegradePlan = async (
   }
   const rollbackApplyError = (error: Error): TrailsResult<never, Error> =>
     regradeApplyErrorAfterRollback(error, sourceSnapshots.value);
-  let applied: TrailsResult<RegradeReport, Error>;
-  if (planBody.kind === 'class') {
-    applied = await runClassPlanRegradeRun({
-      apply: true,
-      includeEntries: input.includeEntries,
-      plan: planBody,
-      rootDir,
-    });
-  } else {
-    const preserveResult = await deriveLiveApiPreserveInventory(
-      planBody,
-      rootDir
-    );
-    if (preserveResult.isErr()) {
-      return preserveResult;
-    }
-    applied = runResolvedVocabularyPlan({
-      apply: true,
-      includeEntries: input.includeEntries,
-      plan: planBody,
-      preserveInventory: preserveResult.value,
-      rootDir,
-    });
-  }
+  const applied = await applyPreparedPlanRun({
+    artifact: activeArtifact,
+    includeEntries: input.includeEntries,
+    prepared: preparedRun.value.prepared,
+    rootDir,
+  });
   if (applied.isErr()) {
     return rollbackApplyError(applied.error);
   }
@@ -3554,7 +4034,7 @@ const runApplyRegradePlan = async (
     return rollbackApplyError(changedFiles.error);
   }
   const completionReport = await runPlanArtifactDryRun({
-    artifact: loaded.value.artifact,
+    artifact: activeArtifact,
     includeEntries: input.includeEntries,
     rootDir,
   });
@@ -3565,11 +4045,11 @@ const runApplyRegradePlan = async (
   // while carrying the completed counters and a separate post-apply source
   // stamp so a later no-op apply can still be recognized as a replay.
   const history = writeRegradeHistory({
-    artifact: loaded.value.artifact,
+    artifact: activeArtifact,
     changedFiles: changedFiles.value,
     completedReport: completionReport.value,
     planPath: loaded.value.path,
-    report: historyReportForAppliedPlan(dryRunReport.value, applied.value),
+    report: historyReportForAppliedPlan(dryRunReport, applied.value),
     rootDir,
     sourceRevision: sourceRevision.value,
   });
@@ -3578,7 +4058,7 @@ const runApplyRegradePlan = async (
   }
   return validateRegradeReport(
     reportWithHistorySummary(
-      reportWithPlanSummary(applied.value, loaded.value.artifact, status),
+      reportWithPlanSummary(applied.value, activeArtifact, status),
       history.value
     )
   );

@@ -37,6 +37,32 @@ afterEach(() => {
 });
 
 describe('governed file renames', () => {
+  test('hashes exact preflight source bytes deterministically', () => {
+    const root = createRoot();
+    write(root, 'docs/old.md', '# Before\n');
+    write(root, 'src/reference.ts', 'export const guide = "../docs/old.md";\n');
+    const input = {
+      renames: [{ from: 'docs/old.md', to: 'docs/new.md' }],
+      root,
+      scope: { extensions: ['.ts'], include: ['src/**'] },
+    };
+
+    const prepared = runFileRenameRegrade(input);
+    expect(prepared.isOk()).toBe(true);
+    if (prepared.isErr()) {
+      throw prepared.error;
+    }
+    expect(prepared.value.sourceStateHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(runFileRenameRegrade(input).unwrap().sourceStateHash).toBe(
+      prepared.value.sourceStateHash
+    );
+
+    write(root, 'docs/old.md', '# Changed after preflight\n');
+    expect(runFileRenameRegrade(input).unwrap().sourceStateHash).not.toBe(
+      prepared.value.sourceStateHash
+    );
+  });
+
   test('derives review-only filename candidates outside policy paths', () => {
     const root = createRoot();
     write(root, 'docs/surface-facets.md', '# Surface facets\n');

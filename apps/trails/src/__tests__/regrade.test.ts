@@ -1,4 +1,5 @@
 import { deriveCliCommands } from '@ontrails/cli';
+import { ValidationError } from '@ontrails/core';
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import {
   chmodSync,
@@ -16,7 +17,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
-import type { VocabularyRegradePlan } from '@ontrails/regrade';
+import { vocabularyRegradePlanForInput } from '@ontrails/regrade';
+import type {
+  PreparedRegradeRunIdentity,
+  VocabularyRegradePlan,
+} from '@ontrails/regrade';
 
 import { operatorApp } from '../app.js';
 import {
@@ -27,7 +32,11 @@ import {
   projectPolicyClassifiedForMarkdownAudit,
   sourceKindForRegradeAuditPath,
 } from '../regrade/audit.js';
-import { planRegradeTrail, regradeTrail } from '../trails/regrade.js';
+import {
+  planRegradeTrail,
+  regradeTrail,
+  runResolvedVocabularyPlan,
+} from '../trails/regrade.js';
 
 const makeTempDir = (): string => {
   const dir = mkdtempSync(join(tmpdir(), `trails-regrade-test-${Date.now()}-`));
@@ -4137,6 +4146,70 @@ describe('trails regrade', () => {
     }
   });
 
+  test.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'check, preview, and dry-run apply all reject unreadable plan sources',
+    () => {
+      const dir = makeTempDir();
+      const lockedDir = join(dir, 'docs/locked');
+      try {
+        writeFile(dir, 'docs/locked/old.md', '# Old guide\n');
+        const planned = runRawCli([
+          'regrade',
+          'plan',
+          '--json',
+          '--input-json',
+          JSON.stringify({
+            fileRenames: [
+              { from: 'docs/locked/old.md', to: 'docs/locked/new.md' },
+            ],
+            from: 'old',
+            rootDir: dir,
+            to: 'new',
+          }),
+        ]);
+        expect(planned.exitCode).toBe(0);
+
+        chmodSync(lockedDir, 0o000);
+        const errors: unknown[] = [];
+        for (const command of ['check', 'preview', 'apply']) {
+          const result = runRawCli([
+            'regrade',
+            command,
+            '--root-dir',
+            dir,
+            ...(command === 'apply' ? ['--dry-run'] : []),
+            '--json',
+          ]);
+          expect(result.exitCode).not.toBe(0);
+          errors.push(JSON.parse(result.stderr));
+        }
+        expect(errors).toEqual([
+          expect.objectContaining({
+            error: expect.objectContaining({ category: 'internal' }),
+            ok: false,
+          }),
+          expect.objectContaining({
+            error: expect.objectContaining({ category: 'internal' }),
+            ok: false,
+          }),
+          expect.objectContaining({
+            error: expect.objectContaining({ category: 'internal' }),
+            ok: false,
+          }),
+        ]);
+        chmodSync(lockedDir, 0o755);
+        expect(readFileSync(join(lockedDir, 'old.md'), 'utf8')).toBe(
+          '# Old guide\n'
+        );
+      } finally {
+        if (existsSync(lockedDir)) {
+          chmodSync(lockedDir, 0o755);
+        }
+        rmSync(dir, { force: true, recursive: true });
+      }
+    }
+  );
+
   test('CLI rejects plans when expected policy evidence changes', () => {
     const dir = makeTempDir();
     try {
@@ -4685,6 +4758,73 @@ describe('trails regrade', () => {
       expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toContain(
         'facet'
       );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('prepared governed symbols reject source changes before mutation', () => {
+    const dir = makeTempDir();
+    try {
+      const path = join(dir, 'src', 'surface.ts');
+      writeFile(
+        dir,
+        'src/surface.ts',
+        'export const facet = 1;\nexport const current = facet;\n'
+      );
+      const registryPlan = vocabularyRegradePlanForInput('facet', 'trailhead');
+      if (registryPlan === null) {
+        throw new Error('Expected governed facet transition.');
+      }
+      const plan: VocabularyRegradePlan = {
+        ...registryPlan,
+        scope: { ...registryPlan.scope, include: ['src/**/*.ts'] },
+      };
+      const identity: PreparedRegradeRunIdentity = {
+        lockStateHash: 'lock',
+        planContentHash: 'plan',
+        policyHash: 'policy',
+        scopeHash: 'scope',
+        toolVersion: 'test',
+      };
+      const preparedResult: NonNullable<
+        Parameters<typeof runResolvedVocabularyPlan>[0]['preparedResult']
+      > = {};
+      const preview = runResolvedVocabularyPlan({
+        apply: false,
+        includeEntries: 'all',
+        plan,
+        prepareIdentity: identity,
+        preparedResult,
+        preserveInventory: [],
+        rootDir: dir,
+      });
+      expect(preview.isOk()).toBe(true);
+      if (preparedResult.value === undefined) {
+        throw new Error('Expected prepared governed symbol run.');
+      }
+
+      writeFileSync(
+        path,
+        'export const facet = 2;\nexport const current = facet;\n'
+      );
+      const applied = runResolvedVocabularyPlan({
+        apply: true,
+        currentIdentity: identity,
+        includeEntries: 'all',
+        plan,
+        prepared: preparedResult.value,
+        preserveInventory: [],
+        rootDir: dir,
+      });
+
+      expect(applied.isErr()).toBe(true);
+      if (applied.isErr()) {
+        expect(applied.error).toBeInstanceOf(ValidationError);
+        expect(applied.error.message).toContain('source state is stale');
+      }
+      expect(readFileSync(path, 'utf8')).toContain('const facet = 2');
+      expect(readFileSync(path, 'utf8')).not.toContain('trailhead');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

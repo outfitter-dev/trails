@@ -1,6 +1,7 @@
 import {
   InternalError,
   Result,
+  ValidationError,
   escapeRegExp,
   includedByPathScope,
 } from '@ontrails/core';
@@ -19,6 +20,7 @@ import {
   loadProjectWardenRules,
   wardenRules,
 } from '@ontrails/warden';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { z } from 'zod';
@@ -147,6 +149,45 @@ export interface RegradeApplySummary {
   readonly review: number;
   /** Unknown selected class ids; apply mode writes nothing when non-zero. */
   readonly unknown: number;
+}
+
+/**
+ * Caller-authored identity for one prepared Regrade evaluation.
+ *
+ * @example
+ * ```ts
+ * const identity: PreparedRegradeRunIdentity = {
+ *   lockStateHash: 'lock-sha256',
+ *   planContentHash: 'plan-sha256',
+ *   policyHash: 'policy-sha256',
+ *   scopeHash: 'scope-sha256',
+ *   toolVersion: '1.0.0',
+ * };
+ * ```
+ */
+export interface PreparedRegradeRunIdentity {
+  readonly lockStateHash: string;
+  readonly planContentHash: string;
+  readonly policyHash: string;
+  readonly scopeHash: string;
+  readonly toolVersion: string;
+}
+
+/**
+ * In-memory class/symbol Regrade evaluation ready for freshness-checked apply.
+ *
+ * @example
+ * ```ts
+ * const prepared = prepareRegradeRun({ classes, identity, root });
+ * if (prepared.isOk() && prepared.value !== null) {
+ *   console.log(prepared.value.sourceStateHash);
+ * }
+ * ```
+ */
+export interface PreparedRegradeRun {
+  readonly identity: PreparedRegradeRunIdentity;
+  readonly report: RegradeReport;
+  readonly sourceStateHash: string;
 }
 
 /** Source location for a review-required match. */
@@ -796,6 +837,13 @@ const withScannedPaths = (
   return report;
 };
 
+const cloneRegradeReport = (report: RegradeReport): RegradeReport => {
+  const clone = structuredClone(report);
+  return report.scannedPaths === undefined
+    ? clone
+    : withScannedPaths(clone, report.scannedPaths);
+};
+
 interface RegradeRewriteCandidate {
   readonly absolutePath: string;
   readonly classId: string;
@@ -1290,13 +1338,109 @@ const packageContextFor = (
   return undefined;
 };
 
-const runRegradeEvaluation = (params: {
+interface RegradeSourceState {
+  readonly hash: string;
+  readonly unreadable: readonly string[];
+}
+
+interface CollectedRegradeEvaluation {
+  readonly evaluation: RegradeEvaluation;
+  readonly sourceState: RegradeSourceState;
+}
+
+interface PrepareRegradeRunParams {
   readonly root: string;
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
   readonly collection?: DownstreamCollectionOptions;
   readonly includeEntries?: RegradeReportEntrySelection;
-}): RegradeEvaluation | null => {
+}
+
+const snapshotPrepareRegradeRunParams = (
+  params: PrepareRegradeRunParams
+): PrepareRegradeRunParams => ({
+  classes: params.classes.map((regradeClass) => ({
+    ...regradeClass,
+    ...(regradeClass.scanTargets === undefined
+      ? {}
+      : {
+          scanTargets: {
+            ...regradeClass.scanTargets,
+            ...(regradeClass.scanTargets.exclude === undefined
+              ? {}
+              : { exclude: [...regradeClass.scanTargets.exclude] }),
+            ...(regradeClass.scanTargets.extensions === undefined
+              ? {}
+              : { extensions: [...regradeClass.scanTargets.extensions] }),
+            ...(regradeClass.scanTargets.ignoredDirectories === undefined
+              ? {}
+              : {
+                  ignoredDirectories: [
+                    ...regradeClass.scanTargets.ignoredDirectories,
+                  ],
+                }),
+          },
+        }),
+  })),
+  ...(params.collection === undefined
+    ? {}
+    : {
+        collection: {
+          ...params.collection,
+          ...(params.collection.exclude === undefined
+            ? {}
+            : { exclude: [...params.collection.exclude] }),
+          ...(params.collection.extensions === undefined
+            ? {}
+            : { extensions: [...params.collection.extensions] }),
+          ...(params.collection.ignoredDirectories === undefined
+            ? {}
+            : {
+                ignoredDirectories: [...params.collection.ignoredDirectories],
+              }),
+          ...(params.collection.include === undefined
+            ? {}
+            : { include: [...params.collection.include] }),
+        },
+      }),
+  ...(params.includeEntries === undefined
+    ? {}
+    : { includeEntries: params.includeEntries }),
+  root: params.root,
+  ...(params.selection === undefined
+    ? {}
+    : {
+        selection:
+          params.selection.classIds === undefined
+            ? {}
+            : { classIds: [...params.selection.classIds] },
+      }),
+});
+
+const compareRegradeCodeUnits = (left: string, right: string): number => {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+};
+
+const regradeSourceStateHash = (state: {
+  readonly manifests: readonly {
+    readonly bytes: string;
+    readonly path: string;
+  }[];
+  readonly sources: readonly {
+    readonly bytes: string;
+    readonly path: string;
+  }[];
+}): string => createHash('sha256').update(JSON.stringify(state)).digest('hex');
+
+const collectRegradeEvaluation = (
+  params: PrepareRegradeRunParams
+): CollectedRegradeEvaluation | null => {
   const { selected, unknownClassIds } = selectRegradeClasses(
     params.classes,
     params.selection
@@ -1305,21 +1449,27 @@ const runRegradeEvaluation = (params: {
     if (!canReadDownstreamRoot(params.root)) {
       return null;
     }
-    return buildRegradeEvaluation({
-      classes: params.classes,
-      ...(params.collection === undefined
-        ? {}
-        : { collection: params.collection }),
-      files: [],
-      root: params.root,
-      skipped: [],
-      ...(params.includeEntries === undefined
-        ? {}
-        : { includeEntries: params.includeEntries }),
-      ...(params.selection === undefined
-        ? {}
-        : { selection: params.selection }),
-    });
+    return {
+      evaluation: buildRegradeEvaluation({
+        classes: params.classes,
+        ...(params.collection === undefined
+          ? {}
+          : { collection: params.collection }),
+        files: [],
+        root: params.root,
+        skipped: [],
+        ...(params.includeEntries === undefined
+          ? {}
+          : { includeEntries: params.includeEntries }),
+        ...(params.selection === undefined
+          ? {}
+          : { selection: params.selection }),
+      }),
+      sourceState: {
+        hash: regradeSourceStateHash({ manifests: [], sources: [] }),
+        unreadable: [],
+      },
+    };
   }
 
   const collected = collectDownstreamSources(
@@ -1332,41 +1482,327 @@ const runRegradeEvaluation = (params: {
 
   const files: { absolutePath: string; path: string; source: string }[] = [];
   const skipped: SkippedSource[] = [...collected.skipped];
+  const sourceBytes: { readonly bytes: string; readonly path: string }[] = [];
+  const unreadable = new Set(
+    collected.skipped
+      .filter((entry) => entry.reason === 'unreadable-directory')
+      .map((entry) => entry.path)
+  );
+  const manifestPaths = new Set<string>();
   const packageContextCache = new Map<
     string,
     RegradeClassContext['package'] | undefined
   >();
   for (const file of collected.files) {
     try {
+      const bytes = readFileSync(file.absolutePath);
       const packageContext = packageContextFor(
         params.root,
         file.absolutePath,
         packageContextCache
       );
+      if (packageContext !== undefined) {
+        manifestPaths.add(packageContext.path);
+      }
       files.push({
         absolutePath: file.absolutePath,
         ...(packageContext === undefined ? {} : { package: packageContext }),
         path: file.path,
-        source: readFileSync(file.absolutePath, 'utf8'),
+        source: bytes.toString('utf8'),
       });
+      sourceBytes.push({ bytes: bytes.toString('base64'), path: file.path });
     } catch {
       skipped.push({ path: file.path, reason: 'unreadable-file' });
+      unreadable.add(file.path);
     }
   }
 
-  return buildRegradeEvaluation({
-    classes: params.classes,
-    ...(params.collection === undefined
-      ? {}
-      : { collection: params.collection }),
-    files,
-    root: params.root,
-    skipped,
-    ...(params.includeEntries === undefined
-      ? {}
-      : { includeEntries: params.includeEntries }),
-    ...(params.selection === undefined ? {} : { selection: params.selection }),
+  const manifestBytes = [...manifestPaths].toSorted().flatMap((path) => {
+    try {
+      return [
+        {
+          bytes: readFileSync(join(resolve(params.root), path)).toString(
+            'base64'
+          ),
+          path,
+        },
+      ];
+    } catch {
+      unreadable.add(path);
+      return [];
+    }
   });
+
+  return {
+    evaluation: buildRegradeEvaluation({
+      classes: params.classes,
+      ...(params.collection === undefined
+        ? {}
+        : { collection: params.collection }),
+      files,
+      root: params.root,
+      skipped,
+      ...(params.includeEntries === undefined
+        ? {}
+        : { includeEntries: params.includeEntries }),
+      ...(params.selection === undefined
+        ? {}
+        : { selection: params.selection }),
+    }),
+    sourceState: {
+      hash: regradeSourceStateHash({
+        manifests: manifestBytes,
+        sources: sourceBytes.toSorted((left, right) =>
+          compareRegradeCodeUnits(left.path, right.path)
+        ),
+      }),
+      unreadable: [...unreadable].toSorted(),
+    },
+  };
+};
+
+const collectRegradeSourceState = (
+  params: PrepareRegradeRunParams
+): RegradeSourceState | null => {
+  const { selected, unknownClassIds } = selectRegradeClasses(
+    params.classes,
+    params.selection
+  );
+  if (selected.length === 0 && unknownClassIds.length > 0) {
+    return canReadDownstreamRoot(params.root)
+      ? {
+          hash: regradeSourceStateHash({ manifests: [], sources: [] }),
+          unreadable: [],
+        }
+      : null;
+  }
+  const collected = collectDownstreamSources(
+    params.root,
+    deriveCollectionOptions(selected, params.collection)
+  );
+  if (collected === null) {
+    return null;
+  }
+  const sourceBytes: { readonly bytes: string; readonly path: string }[] = [];
+  const unreadable = new Set(
+    collected.skipped
+      .filter((entry) => entry.reason === 'unreadable-directory')
+      .map((entry) => entry.path)
+  );
+  const manifestPaths = new Set<string>();
+  const packageContextCache = new Map<
+    string,
+    RegradeClassContext['package'] | undefined
+  >();
+  for (const file of collected.files) {
+    try {
+      const bytes = readFileSync(file.absolutePath);
+      sourceBytes.push({ bytes: bytes.toString('base64'), path: file.path });
+      const packageContext = packageContextFor(
+        params.root,
+        file.absolutePath,
+        packageContextCache
+      );
+      if (packageContext !== undefined) {
+        manifestPaths.add(packageContext.path);
+      }
+    } catch {
+      unreadable.add(file.path);
+    }
+  }
+  const manifestBytes = [...manifestPaths]
+    .toSorted(compareRegradeCodeUnits)
+    .flatMap((path) => {
+      try {
+        return [
+          {
+            bytes: readFileSync(join(resolve(params.root), path)).toString(
+              'base64'
+            ),
+            path,
+          },
+        ];
+      } catch {
+        unreadable.add(path);
+        return [];
+      }
+    });
+  return {
+    hash: regradeSourceStateHash({
+      manifests: manifestBytes,
+      sources: sourceBytes.toSorted((left, right) =>
+        compareRegradeCodeUnits(left.path, right.path)
+      ),
+    }),
+    unreadable: [...unreadable].toSorted(compareRegradeCodeUnits),
+  };
+};
+
+interface PreparedRegradeRunState {
+  readonly evaluation: RegradeEvaluation;
+  readonly identity: PreparedRegradeRunIdentity;
+  readonly params: PrepareRegradeRunParams;
+  readonly report: RegradeReport;
+  readonly sourceStateHash: string;
+}
+
+const preparedRegradeRunStates = new WeakMap<
+  PreparedRegradeRun,
+  PreparedRegradeRunState
+>();
+
+const validatePreparedIdentity = (
+  expected: PreparedRegradeRunIdentity,
+  actual: PreparedRegradeRunIdentity
+): Result<void, ValidationError> => {
+  for (const field of [
+    'planContentHash',
+    'policyHash',
+    'scopeHash',
+    'lockStateHash',
+    'toolVersion',
+  ] as const) {
+    if (expected[field] !== actual[field]) {
+      return Result.err(
+        new ValidationError(
+          `Prepared Regrade identity field \`${field}\` is stale.`,
+          {
+            context: {
+              actual: actual[field],
+              expected: expected[field],
+              field,
+            },
+          }
+        )
+      );
+    }
+  }
+  return Result.ok();
+};
+
+/**
+ * Classify a class/symbol Regrade run once and retain it for checked apply.
+ *
+ * @example
+ * ```ts
+ * const prepared = prepareRegradeRun({ classes, identity, root });
+ * if (prepared.isErr()) throw prepared.error;
+ * ```
+ */
+export const prepareRegradeRun = (
+  params: PrepareRegradeRunParams & {
+    readonly identity: PreparedRegradeRunIdentity;
+  }
+): Result<PreparedRegradeRun | null, ValidationError> => {
+  const preparedParams = snapshotPrepareRegradeRunParams(params);
+  const collected = collectRegradeEvaluation(preparedParams);
+  if (collected === null) {
+    return Result.ok(null);
+  }
+  if (collected.sourceState.unreadable.length > 0) {
+    return Result.err(
+      new ValidationError('Prepared Regrade sources must all be readable.', {
+        context: { paths: collected.sourceState.unreadable },
+      })
+    );
+  }
+  const prepared: PreparedRegradeRun = {
+    identity: { ...params.identity },
+    report: cloneRegradeReport(collected.evaluation.report),
+    sourceStateHash: collected.sourceState.hash,
+  };
+  preparedRegradeRunStates.set(prepared, {
+    evaluation: collected.evaluation,
+    identity: { ...params.identity },
+    params: preparedParams,
+    report: collected.evaluation.report,
+    sourceStateHash: collected.sourceState.hash,
+  });
+  return Result.ok(prepared);
+};
+
+/**
+ * Validate that an in-memory class/symbol evaluation still matches its
+ * authored identity and source bytes without applying it.
+ *
+ * @example
+ * ```ts
+ * const current = validatePreparedRegradeRun(prepared, identity);
+ * if (current.isErr()) throw current.error;
+ * ```
+ */
+export const validatePreparedRegradeRun = (
+  prepared: PreparedRegradeRun,
+  identity: PreparedRegradeRunIdentity
+): Result<void, ValidationError> => {
+  const state = preparedRegradeRunStates.get(prepared);
+  if (state === undefined) {
+    return Result.err(
+      new ValidationError(
+        'Prepared Regrade run is not the original in-memory evaluation.'
+      )
+    );
+  }
+  const identityValidation = validatePreparedIdentity(state.identity, identity);
+  if (identityValidation.isErr()) {
+    return identityValidation;
+  }
+  const current = collectRegradeSourceState(state.params);
+  if (current === null) {
+    return Result.err(
+      new ValidationError('Prepared Regrade root is no longer readable.')
+    );
+  }
+  if (current.unreadable.length > 0) {
+    return Result.err(
+      new ValidationError('Prepared Regrade sources are no longer readable.', {
+        context: { paths: current.unreadable },
+      })
+    );
+  }
+  if (current.hash !== state.sourceStateHash) {
+    return Result.err(
+      new ValidationError('Prepared Regrade source state is stale.', {
+        context: {
+          actual: current.hash,
+          expected: state.sourceStateHash,
+        },
+      })
+    );
+  }
+  return Result.ok();
+};
+
+/**
+ * Apply an in-memory class/symbol evaluation after identity and source checks.
+ *
+ * @example
+ * ```ts
+ * const applied = applyPreparedRegradeRun(prepared, identity);
+ * if (applied.isErr()) throw applied.error;
+ * ```
+ */
+export const applyPreparedRegradeRun = (
+  prepared: PreparedRegradeRun,
+  identity: PreparedRegradeRunIdentity
+): Result<RegradeReport, InternalError | ValidationError> => {
+  const state = preparedRegradeRunStates.get(prepared);
+  const validation = validatePreparedRegradeRun(prepared, identity);
+  if (validation.isErr()) {
+    return validation;
+  }
+  if (state === undefined) {
+    return Result.err(
+      new ValidationError(
+        'Prepared Regrade run is not the original in-memory evaluation.'
+      )
+    );
+  }
+  const applyResult = applyRegradeEvaluation(state.evaluation);
+  if (applyResult.isErr()) {
+    return applyResult;
+  }
+  return Result.ok(withApplySummary(state.report, applyResult.value));
 };
 
 /**
@@ -1384,10 +1820,11 @@ export const runRegrade = (params: {
   readonly apply?: boolean;
   readonly includeEntries?: RegradeReportEntrySelection;
 }): Result<RegradeReport | null, InternalError> => {
-  const evaluation = runRegradeEvaluation(params);
-  if (evaluation === null) {
+  const collected = collectRegradeEvaluation(params);
+  if (collected === null) {
     return Result.ok(null);
   }
+  const { evaluation } = collected;
 
   if (params.apply !== true) {
     return Result.ok(evaluation.report);

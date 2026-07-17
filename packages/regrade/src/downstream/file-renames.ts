@@ -7,6 +7,7 @@ import {
   matchesAnyPathGlob,
 } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
+import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
@@ -146,6 +147,7 @@ export interface FileRenameRegradeRun {
   readonly occurrencePaths: readonly string[];
   readonly policyOccurrencePaths: readonly string[];
   readonly report: RegradeReport;
+  readonly sourceStateHash: string;
 }
 
 const asError = (error: unknown): Error =>
@@ -153,6 +155,79 @@ const asError = (error: unknown): Error =>
 
 const normalizeRenamePath = (path: string): string =>
   posix.normalize(path.replaceAll('\\', '/'));
+
+const compareFileRenameCodeUnits = (left: string, right: string): number => {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+};
+
+const fileRenameSourceStateHash = (params: {
+  readonly apply: boolean;
+  readonly collected: DownstreamSourceCollection;
+  readonly renames: readonly VocabularyFileRename[];
+  readonly resolved: readonly ResolvedFileRename[];
+}): TrailsResult<string, Error> => {
+  const unreadable = params.collected.skipped
+    .filter(
+      (entry) =>
+        entry.reason === 'unreadable-file' ||
+        entry.reason === 'unreadable-directory'
+    )
+    .map((entry) => entry.path);
+  if (unreadable.length > 0) {
+    return Result.err(
+      new ValidationError('File rename Regrade sources must all be readable.', {
+        context: { paths: unreadable },
+      })
+    );
+  }
+  const sourceFiles = new Map(
+    params.collected.files.map((file) => [file.path, file])
+  );
+  for (const [index, rename] of params.renames.entries()) {
+    const resolved = params.resolved[index];
+    if (resolved === undefined) {
+      return Result.err(
+        new InternalError('File rename Regrade endpoint was not resolved.')
+      );
+    }
+    const useTarget = params.apply || resolved.alreadyApplied;
+    const path = normalizeRenamePath(useTarget ? rename.to : rename.from);
+    sourceFiles.set(path, {
+      absolutePath: useTarget ? resolved.to : resolved.from,
+      path,
+    });
+  }
+  const sources: { readonly bytes: string; readonly path: string }[] = [];
+  for (const file of [...sourceFiles.values()].toSorted((left, right) =>
+    compareFileRenameCodeUnits(left.path, right.path)
+  )) {
+    try {
+      sources.push({
+        bytes: readFileSync(file.absolutePath).toString('base64'),
+        path: file.path,
+      });
+    } catch (error) {
+      return Result.err(
+        new ValidationError(
+          'File rename Regrade sources must all be readable.',
+          {
+            ...(error instanceof Error ? { cause: error } : {}),
+            context: { paths: [file.path] },
+          }
+        )
+      );
+    }
+  }
+  return Result.ok(
+    createHash('sha256').update(JSON.stringify({ sources })).digest('hex')
+  );
+};
 
 const openedPolicyDirectories = (
   scope: VocabularyRegradeScope | undefined
@@ -1480,6 +1555,17 @@ export const runFileRenameRegrade = (params: {
         }
       : scopedCollection;
 
+  const sourceStateHash = fileRenameSourceStateHash({
+    apply,
+    collected,
+    renames: params.renames,
+    resolved: validated.value,
+  });
+  if (sourceStateHash.isErr()) {
+    rollbackResolvedRenames(moved.value);
+    return sourceStateHash;
+  }
+
   const evidence = params.renames.map(() => emptyEvidence());
   const targetPaths = new Set(
     params.renames.map((rename) => normalizeRenamePath(rename.to))
@@ -1586,5 +1672,6 @@ export const runFileRenameRegrade = (params: {
     occurrencePaths: referenceResult.value.occurrencePaths,
     policyOccurrencePaths: referenceResult.value.policyOccurrencePaths,
     report,
+    sourceStateHash: sourceStateHash.value,
   });
 };

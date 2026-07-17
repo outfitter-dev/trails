@@ -5,12 +5,15 @@ export {
 } from './literal-transform.js';
 export {
   buildRegradeReport,
+  applyPreparedRegradeRun,
   createTermRewriteClass,
   createWardenTermRewriteClass,
   loadWardenTermRewriteClasses,
+  prepareRegradeRun,
   regradeReportOutput,
   runRegrade,
   selectRegradeClasses,
+  validatePreparedRegradeRun,
   wardenTermRewriteClasses,
 } from './downstream/report.js';
 export {
@@ -32,6 +35,8 @@ export {
   VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION,
   buildVocabularyTransitionRecord,
   deriveVocabularyFormProposals,
+  applyPreparedVocabularyRegradeRun,
+  prepareVocabularyRegradeRun,
   readVocabularyTransitionRecord,
   runVocabularyRegrade,
   transitionRecordReportWithSummary,
@@ -51,6 +56,8 @@ export {
 } from './downstream/vocabulary-registry.js';
 export type {
   RegradeApplySummary,
+  PreparedRegradeRun,
+  PreparedRegradeRunIdentity,
   RegradeClass,
   RegradeClassContext,
   RegradeClassResult,
@@ -71,6 +78,7 @@ export type {
 } from './downstream/scan-summary.js';
 export type {
   VocabularyDisposition,
+  PreparedVocabularyRegradeRun,
   VocabularyFileRename,
   VocabularyFileRenameEvidence,
   VocabularyFormProposal,

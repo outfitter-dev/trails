@@ -26,6 +26,7 @@ import {
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import type {
+  PreparedRegradeRunIdentity,
   RegradeApplySummary,
   RegradeReport,
   RegradeReportEntry,
@@ -252,6 +253,7 @@ interface SourceFile {
   readonly absolutePath: string;
   readonly path: string;
   readonly source: string;
+  readonly sourceBytes: string;
 }
 
 interface SourceOccurrence extends VocabularyOccurrence {
@@ -1805,6 +1807,13 @@ const withScannedPaths = (
   return report;
 };
 
+const cloneVocabularyReport = (report: RegradeReport): RegradeReport => {
+  const clone = structuredClone(report);
+  return report.scannedPaths === undefined
+    ? clone
+    : withScannedPaths(clone, report.scannedPaths);
+};
+
 const withApplySummary = (
   report: RegradeReport,
   apply: RegradeApplySummary
@@ -1941,10 +1950,12 @@ const readVocabularySourceFiles = (
   const skipped: SkippedSource[] = [...collected.skipped];
   for (const file of collected.files) {
     try {
+      const bytes = readFileSync(file.absolutePath);
       files.push({
         absolutePath: file.absolutePath,
         path: file.path,
-        source: readFileSync(file.absolutePath, 'utf8'),
+        source: bytes.toString('utf8'),
+        sourceBytes: bytes.toString('base64'),
       });
     } catch {
       skipped.push({ path: file.path, reason: 'unreadable-file' });
@@ -2036,6 +2047,393 @@ const filterVocabularyCollection = (
   };
 };
 
+interface VocabularyRunInputs {
+  readonly collectedRoot: string;
+  readonly effectivePlan: VocabularyRegradePlan;
+  readonly files: readonly SourceFile[];
+  readonly skipped: readonly SkippedSource[];
+}
+
+interface PrepareVocabularyRegradeRunParams {
+  readonly includeEntries?: 'actionable' | 'all';
+  readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
+  readonly root: string;
+  readonly sourceFilter?: (path: string) => boolean;
+  readonly sourceKindForPath?: (path: string) => VocabularySourceKind;
+}
+
+const snapshotPrepareVocabularyRegradeRunParams = (
+  params: PrepareVocabularyRegradeRunParams
+): PrepareVocabularyRegradeRunParams => ({
+  ...(params.includeEntries === undefined
+    ? {}
+    : { includeEntries: params.includeEntries }),
+  plan: structuredClone(params.plan),
+  ...(params.preserveInventory === undefined
+    ? {}
+    : { preserveInventory: structuredClone(params.preserveInventory) }),
+  root: params.root,
+  ...(params.sourceFilter === undefined
+    ? {}
+    : { sourceFilter: params.sourceFilter }),
+  ...(params.sourceKindForPath === undefined
+    ? {}
+    : { sourceKindForPath: params.sourceKindForPath }),
+});
+
+const collectVocabularyRunInputs = (
+  params: PrepareVocabularyRegradeRunParams
+): VocabularyRunInputs | null => {
+  const effectivePlan = effectivePlanForRun(
+    params.plan,
+    params.preserveInventory
+  );
+  const collected = collectDownstreamSources(params.root, {
+    extensions: effectivePlan.scope?.extensions ?? VOCABULARY_SOURCE_EXTENSIONS,
+    ...(effectivePlan.scope?.exclude === undefined
+      ? {}
+      : { exclude: effectivePlan.scope.exclude }),
+    ...(effectivePlan.scope?.include === undefined
+      ? {}
+      : { include: effectivePlan.scope.include }),
+    ignoredDirectories: vocabularyIgnoredDirectories(effectivePlan.scope),
+  } satisfies DownstreamCollectionOptions);
+  if (collected === null) {
+    return null;
+  }
+  const filtered = filterVocabularyCollection(
+    collected.files,
+    effectivePlan.scope,
+    params.sourceFilter
+  );
+  const { files, skipped } = readVocabularySourceFiles({
+    ...collected,
+    files: filtered.files,
+    skipped: [...collected.skipped, ...filtered.skipped],
+  });
+  return { collectedRoot: collected.root, effectivePlan, files, skipped };
+};
+
+const vocabularyReportFromEvaluation = (params: {
+  readonly applySummary?: RegradeApplySummary;
+  readonly collectedRoot: string;
+  readonly dryRunEvaluation: VocabularyEvaluation;
+  readonly effectivePlan: VocabularyRegradePlan;
+  readonly entrySelection: 'actionable' | 'all';
+  readonly files: readonly SourceFile[];
+  readonly plan: VocabularyRegradePlan;
+  readonly reportEvaluation: VocabularyEvaluation;
+  readonly skipped: readonly SkippedSource[];
+}): RegradeReport => {
+  const reportEntries = params.reportEvaluation.entries;
+  const actionableEntries = reportEntries.filter(
+    (entry) => entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
+  );
+  const reportSkippedByReason = skippedByReason(
+    params.reportEvaluation.skipped
+  );
+  const report: RegradeReport = withScannedPaths(
+    {
+      entries:
+        params.entrySelection === 'all' ? reportEntries : actionableEntries,
+      matched: actionableEntries.length,
+      review: reportEntries.filter((entry) => entry.outcome === 'needs-review')
+        .length,
+      rewritten: reportEntries.filter((entry) => entry.outcome === 'rewrite')
+        .length,
+      root: params.collectedRoot,
+      run:
+        params.applySummary === undefined
+          ? params.reportEvaluation.run
+          : vocabularyRunWithAppliedOccurrences(
+              params.reportEvaluation.run,
+              params.dryRunEvaluation.run,
+              params.applySummary
+            ),
+      scan: buildRegradeScanSummary({
+        matchedPaths: actionableEntries.map((entry) => entry.path),
+        occurrencePaths: params.reportEvaluation.occurrences.map(
+          (occurrence) => occurrence.path
+        ),
+        scanned: params.reportEvaluation.scanned,
+        skipped: params.reportEvaluation.skipped.length,
+        skippedByReason: reportSkippedByReason,
+      }),
+      scanned: params.reportEvaluation.scanned,
+      selectedClassIds: [
+        params.plan.id ?? `vocabulary:${params.plan.from}->${params.plan.to}`,
+      ],
+      skipped: params.reportEvaluation.skipped.length,
+      skipsByReason: reportSkippedByReason,
+      unknownClassIds: [],
+    },
+    params.files
+      .filter((file) => includedByScope(file.path, params.effectivePlan.scope))
+      .map((file) => file.path)
+  );
+  return params.applySummary === undefined
+    ? report
+    : withApplySummary(report, params.applySummary);
+};
+
+/**
+ * In-memory vocabulary evaluation ready for freshness-checked apply.
+ *
+ * @example
+ * ```ts
+ * const prepared = prepareVocabularyRegradeRun({ identity, plan, root });
+ * if (prepared.isOk() && prepared.value !== null) {
+ *   console.log(prepared.value.report.run?.gate.status);
+ * }
+ * ```
+ */
+export interface PreparedVocabularyRegradeRun {
+  readonly identity: PreparedRegradeRunIdentity;
+  readonly report: RegradeReport;
+  readonly sourceStateHash: string;
+}
+
+interface PreparedVocabularyRegradeRunState {
+  readonly dryRunEvaluation: VocabularyEvaluation;
+  readonly identity: PreparedRegradeRunIdentity;
+  readonly inputs: VocabularyRunInputs;
+  readonly params: PrepareVocabularyRegradeRunParams;
+  readonly sourceStateHash: string;
+}
+
+const preparedVocabularyRunStates = new WeakMap<
+  PreparedVocabularyRegradeRun,
+  PreparedVocabularyRegradeRunState
+>();
+
+const vocabularySourceStateHash = (files: readonly SourceFile[]): string =>
+  createHash('sha256')
+    .update(
+      JSON.stringify({
+        sources: files
+          .map((file) => ({ bytes: file.sourceBytes, path: file.path }))
+          .toSorted((left, right) => {
+            if (left.path < right.path) {
+              return -1;
+            }
+            if (left.path > right.path) {
+              return 1;
+            }
+            return 0;
+          }),
+      })
+    )
+    .digest('hex');
+
+const unreadableVocabularyPaths = (
+  skipped: readonly SkippedSource[]
+): readonly string[] =>
+  skipped
+    .filter(
+      (entry) =>
+        entry.reason === 'unreadable-file' ||
+        entry.reason === 'unreadable-directory'
+    )
+    .map((entry) => entry.path);
+
+const validateVocabularyPreparedIdentity = (
+  expected: PreparedRegradeRunIdentity,
+  actual: PreparedRegradeRunIdentity
+): Result<void, ValidationError> => {
+  for (const field of [
+    'planContentHash',
+    'policyHash',
+    'scopeHash',
+    'lockStateHash',
+    'toolVersion',
+  ] as const) {
+    if (expected[field] !== actual[field]) {
+      return Result.err(
+        new ValidationError(
+          `Prepared vocabulary Regrade identity field \`${field}\` is stale.`,
+          {
+            context: {
+              actual: actual[field],
+              expected: expected[field],
+              field,
+            },
+          }
+        )
+      );
+    }
+  }
+  return Result.ok();
+};
+
+/**
+ * Classify a vocabulary Regrade run once and retain it for checked apply.
+ *
+ * @example
+ * ```ts
+ * const prepared = prepareVocabularyRegradeRun({ identity, plan, root });
+ * if (prepared.isErr()) throw prepared.error;
+ * ```
+ */
+export const prepareVocabularyRegradeRun = (
+  params: PrepareVocabularyRegradeRunParams & {
+    readonly identity: PreparedRegradeRunIdentity;
+  }
+): Result<PreparedVocabularyRegradeRun | null, ValidationError> => {
+  const preparedParams = snapshotPrepareVocabularyRegradeRunParams(params);
+  const planValidation = validateVocabularyPlan(preparedParams.plan);
+  if (planValidation.isErr()) {
+    return planValidation;
+  }
+  const inventoryValidation = validatePreserveInventory(
+    preparedParams.preserveInventory
+  );
+  if (inventoryValidation.isErr()) {
+    return inventoryValidation;
+  }
+  const inputs = collectVocabularyRunInputs(preparedParams);
+  if (inputs === null) {
+    return Result.ok(null);
+  }
+  const unreadable = unreadableVocabularyPaths(inputs.skipped);
+  if (unreadable.length > 0) {
+    return Result.err(
+      new ValidationError(
+        'Prepared vocabulary Regrade sources must all be readable.',
+        { context: { paths: unreadable } }
+      )
+    );
+  }
+  const dryRunEvaluation = buildRunVocabularyEvaluation({
+    apply: false,
+    effectivePlan: inputs.effectivePlan,
+    files: inputs.files,
+    plan: preparedParams.plan,
+    preserveInventory: preparedParams.preserveInventory,
+    root: preparedParams.root,
+    skipped: inputs.skipped,
+    sourceKindForPath: preparedParams.sourceKindForPath,
+  });
+  const report = vocabularyReportFromEvaluation({
+    collectedRoot: inputs.collectedRoot,
+    dryRunEvaluation,
+    effectivePlan: inputs.effectivePlan,
+    entrySelection: preparedParams.includeEntries ?? 'actionable',
+    files: inputs.files,
+    plan: preparedParams.plan,
+    reportEvaluation: dryRunEvaluation,
+    skipped: inputs.skipped,
+  });
+  const prepared: PreparedVocabularyRegradeRun = {
+    identity: { ...params.identity },
+    report: cloneVocabularyReport(report),
+    sourceStateHash: vocabularySourceStateHash(inputs.files),
+  };
+  preparedVocabularyRunStates.set(prepared, {
+    dryRunEvaluation,
+    identity: { ...params.identity },
+    inputs,
+    params: preparedParams,
+    sourceStateHash: prepared.sourceStateHash,
+  });
+  return Result.ok(prepared);
+};
+
+/**
+ * Apply an in-memory vocabulary evaluation after identity and source checks.
+ *
+ * @example
+ * ```ts
+ * const applied = applyPreparedVocabularyRegradeRun(prepared, identity);
+ * if (applied.isErr()) throw applied.error;
+ * ```
+ */
+export const applyPreparedVocabularyRegradeRun = (
+  prepared: PreparedVocabularyRegradeRun,
+  identity: PreparedRegradeRunIdentity
+): Result<RegradeReport, InternalError | ValidationError> => {
+  const state = preparedVocabularyRunStates.get(prepared);
+  if (state === undefined) {
+    return Result.err(
+      new ValidationError(
+        'Prepared vocabulary Regrade run is not the original in-memory evaluation.'
+      )
+    );
+  }
+  const identityValidation = validateVocabularyPreparedIdentity(
+    state.identity,
+    identity
+  );
+  if (identityValidation.isErr()) {
+    return identityValidation;
+  }
+  const current = collectVocabularyRunInputs(state.params);
+  if (current === null) {
+    return Result.err(
+      new ValidationError(
+        'Prepared vocabulary Regrade root is no longer readable.'
+      )
+    );
+  }
+  const unreadable = unreadableVocabularyPaths(current.skipped);
+  if (unreadable.length > 0) {
+    return Result.err(
+      new ValidationError(
+        'Prepared vocabulary Regrade sources are no longer readable.',
+        { context: { paths: unreadable } }
+      )
+    );
+  }
+  const currentSourceStateHash = vocabularySourceStateHash(current.files);
+  if (currentSourceStateHash !== state.sourceStateHash) {
+    return Result.err(
+      new ValidationError(
+        'Prepared vocabulary Regrade source state is stale.',
+        {
+          context: {
+            actual: currentSourceStateHash,
+            expected: state.sourceStateHash,
+          },
+        }
+      )
+    );
+  }
+  const applyResult = applyVocabularyEvaluation(
+    state.inputs.files,
+    state.dryRunEvaluation
+  );
+  if (applyResult.isErr()) {
+    return applyResult;
+  }
+  const appliedFiles = state.inputs.files.map((file) => ({
+    ...file,
+    source: readFileSync(file.absolutePath, 'utf8'),
+  }));
+  const postApplyEvaluation = buildRunVocabularyEvaluation({
+    apply: true,
+    effectivePlan: state.inputs.effectivePlan,
+    files: appliedFiles,
+    plan: state.params.plan,
+    preserveInventory: state.params.preserveInventory,
+    root: state.params.root,
+    skipped: state.inputs.skipped,
+    sourceKindForPath: state.params.sourceKindForPath,
+  });
+  return Result.ok(
+    vocabularyReportFromEvaluation({
+      applySummary: applyResult.value,
+      collectedRoot: state.inputs.collectedRoot,
+      dryRunEvaluation: state.dryRunEvaluation,
+      effectivePlan: state.inputs.effectivePlan,
+      entrySelection: state.params.includeEntries ?? 'actionable',
+      files: appliedFiles,
+      plan: state.params.plan,
+      reportEvaluation: postApplyEvaluation,
+      skipped: state.inputs.skipped,
+    })
+  );
+};
+
 export const runVocabularyRegrade = (params: {
   readonly apply?: boolean;
   readonly includeEntries?: 'actionable' | 'all';
@@ -2056,36 +2454,11 @@ export const runVocabularyRegrade = (params: {
     return inventoryValidation;
   }
 
-  const effectivePlan = effectivePlanForRun(
-    params.plan,
-    params.preserveInventory
-  );
-
-  const collected = collectDownstreamSources(params.root, {
-    extensions: effectivePlan.scope?.extensions ?? VOCABULARY_SOURCE_EXTENSIONS,
-    ...(effectivePlan.scope?.exclude === undefined
-      ? {}
-      : { exclude: effectivePlan.scope.exclude }),
-    ...(effectivePlan.scope?.include === undefined
-      ? {}
-      : { include: effectivePlan.scope.include }),
-    ignoredDirectories: vocabularyIgnoredDirectories(effectivePlan.scope),
-  } satisfies DownstreamCollectionOptions);
-  if (collected === null) {
+  const inputs = collectVocabularyRunInputs(params);
+  if (inputs === null) {
     return Result.ok(null);
   }
-
-  const filtered = filterVocabularyCollection(
-    collected.files,
-    effectivePlan.scope,
-    params.sourceFilter
-  );
-  const { files, skipped: readSkipped } = readVocabularySourceFiles({
-    ...collected,
-    files: filtered.files,
-    skipped: [...collected.skipped, ...filtered.skipped],
-  });
-  const skipped = readSkipped;
+  const { collectedRoot, effectivePlan, files, skipped } = inputs;
 
   const dryRunEffectiveEvaluation = buildRunVocabularyEvaluation({
     apply: false,
@@ -2125,53 +2498,18 @@ export const runVocabularyRegrade = (params: {
     });
   }
 
-  const entrySelection = params.includeEntries ?? 'actionable';
-  const reportEntries = reportEvaluation.entries;
-  const actionableEntries = reportEntries.filter(
-    (entry) => entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
-  );
-  const reportSkippedByReason = skippedByReason(reportEvaluation.skipped);
-  const report: RegradeReport = withScannedPaths(
-    {
-      entries: entrySelection === 'all' ? reportEntries : actionableEntries,
-      matched: actionableEntries.length,
-      review: reportEntries.filter((entry) => entry.outcome === 'needs-review')
-        .length,
-      rewritten: reportEntries.filter((entry) => entry.outcome === 'rewrite')
-        .length,
-      root: collected.root,
-      run:
-        applySummary === undefined
-          ? reportEvaluation.run
-          : vocabularyRunWithAppliedOccurrences(
-              reportEvaluation.run,
-              dryRunEffectiveEvaluation.run,
-              applySummary
-            ),
-      scan: buildRegradeScanSummary({
-        matchedPaths: actionableEntries.map((entry) => entry.path),
-        occurrencePaths: reportEvaluation.occurrences.map(
-          (occurrence) => occurrence.path
-        ),
-        scanned: reportEvaluation.scanned,
-        skipped: reportEvaluation.skipped.length,
-        skippedByReason: reportSkippedByReason,
-      }),
-      scanned: reportEvaluation.scanned,
-      selectedClassIds: [
-        params.plan.id ?? `vocabulary:${params.plan.from}->${params.plan.to}`,
-      ],
-      skipped: reportEvaluation.skipped.length,
-      skipsByReason: reportSkippedByReason,
-      unknownClassIds: [],
-    },
-    files
-      .filter((file) => includedByScope(file.path, effectivePlan.scope))
-      .map((file) => file.path)
-  );
-
   return Result.ok(
-    applySummary === undefined ? report : withApplySummary(report, applySummary)
+    vocabularyReportFromEvaluation({
+      ...(applySummary === undefined ? {} : { applySummary }),
+      collectedRoot,
+      dryRunEvaluation: dryRunEffectiveEvaluation,
+      effectivePlan,
+      entrySelection: params.includeEntries ?? 'actionable',
+      files,
+      plan: params.plan,
+      reportEvaluation,
+      skipped,
+    })
   );
 };
 
