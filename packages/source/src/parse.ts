@@ -25,22 +25,25 @@ export const parseWithDiagnostics = (
 ): AstParseResult => {
   try {
     const result = parseSync(filePath, sourceCode, { sourceType: 'module' });
+    const diagnostics = result.errors.map((error) => ({
+      helpMessage: error.helpMessage,
+      labels: error.labels.map((label) => ({
+        end: label.end,
+        message: label.message,
+        start: label.start,
+      })),
+      message: error.message,
+      severity: error.severity,
+    }));
     return {
       ast: result.program as unknown as AstNode,
-      diagnostics: result.errors.map((error) => ({
-        helpMessage: error.helpMessage,
-        labels: error.labels.map((label) => ({
-          end: label.end,
-          message: label.message,
-          start: label.start,
-        })),
-        message: error.message,
-        severity: error.severity,
-      })),
+      comments: diagnostics.length === 0 ? result.comments : [],
+      diagnostics,
     };
   } catch (error) {
     return {
       ast: null,
+      comments: [],
       diagnostics: [
         {
           helpMessage: null,

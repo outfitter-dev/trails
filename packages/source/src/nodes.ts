@@ -245,8 +245,19 @@ export interface AstParseDiagnostic {
   readonly severity: string;
 }
 
+/** Parser-native source comment span. Offsets include the comment delimiters. */
+export interface SourceComment {
+  readonly end: number;
+  readonly start: number;
+  readonly type: 'Block' | 'Line';
+  /** Comment text without the line or block delimiters. */
+  readonly value: string;
+}
+
 export interface AstParseResult {
   readonly ast: AstNode | null;
+  /** Exact parser-native comments for a diagnostic-free parse; empty on errors. */
+  readonly comments: readonly SourceComment[];
   readonly diagnostics: readonly AstParseDiagnostic[];
 }
 

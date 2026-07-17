@@ -35,6 +35,7 @@ import type {
   RestElementNode,
   ReturnStatementNode,
   SourceEdit,
+  SourceComment,
   SourceLocation,
   StringLiteralMatch,
   StringLiteralNode,
@@ -192,6 +193,7 @@ interface SourceTypeExportContract {
   readonly RestElementNode: RestElementNode;
   readonly ReturnStatementNode: ReturnStatementNode;
   readonly SourceEdit: SourceEdit;
+  readonly SourceComment: SourceComment;
   readonly SourceLocation: SourceLocation;
   readonly StringLiteralMatch: StringLiteralMatch;
   readonly StringLiteralNode: StringLiteralNode;
@@ -244,5 +246,48 @@ describe('@ontrails/source public API', () => {
       sawImplementationCall ||= source.isImplementationCall(node);
     });
     expect(sawImplementationCall).toBe(true);
+  });
+
+  test('returns exact parser-native comment spans with parse diagnostics', () => {
+    const sourceCode = [
+      '/** Project an error. */',
+      'export const project = 1; // ordinary project noun',
+      '',
+    ].join('\n');
+    const result = source.parseWithDiagnostics('example.ts', sourceCode);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(
+      result.comments.map((comment) => ({
+        ...comment,
+        source: sourceCode.slice(comment.start, comment.end),
+      }))
+    ).toEqual([
+      {
+        end: 24,
+        source: '/** Project an error. */',
+        start: 0,
+        type: 'Block',
+        value: '* Project an error. ',
+      },
+      {
+        end: 75,
+        source: '// ordinary project noun',
+        start: 51,
+        type: 'Line',
+        value: ' ordinary project noun',
+      },
+    ]);
+  });
+
+  test('fails comment recovery closed when the parser reports diagnostics', () => {
+    const result = source.parseWithDiagnostics(
+      'broken.ts',
+      '/** Project an error. */\nexport const = ;\n'
+    );
+
+    expect(result.ast).not.toBeNull();
+    expect(result.comments).toEqual([]);
+    expect(result.diagnostics.length).toBeGreaterThan(0);
   });
 });

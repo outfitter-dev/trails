@@ -9,7 +9,8 @@ Shared source-code machinery for Trails packages and repo tooling.
 `@ontrails/source` owns reusable source-code mechanics:
 
 - AST node guards and accessors for the OXC node shapes Trails tooling uses.
-- `parse` and `parseWithDiagnostics` wrappers over `oxc-parser`.
+- `parse` and `parseWithDiagnostics` wrappers over `oxc-parser`, including
+  parser-native comment spans for tools that must distinguish source trivia.
 - `walk`, parent-aware walking, and scope-aware walking over `oxc-walker`.
 - Source locations, source edits, literal extraction, and generic Trails syntax recognition.
 - Generic trail/entity discovery helpers such as `findTrailDefinitions`, `findImplementationBodies`, `findEntityDefinitions`, and `isImplementationCall`.
@@ -43,6 +44,21 @@ const ast = parse(
 
 const trailIds = ast ? findTrailDefinitions(ast).map((trail) => trail.id) : [];
 ```
+
+Inspect exact comment spans without rebuilding a JavaScript or TypeScript lexer:
+
+```ts
+import { parseWithDiagnostics } from '@ontrails/source';
+
+const sourceCode = '/** Describe a trail. */\nexport const show = 1;\n';
+const parsed = parseWithDiagnostics('example.ts', sourceCode);
+const comments = parsed.comments.map((comment) => ({
+  ...comment,
+  source: sourceCode.slice(comment.start, comment.end),
+}));
+```
+
+Comment spans are returned only when the parser reports no diagnostics. Tools must treat an empty comment inventory on a recovered parse as unknown rather than as proof that the source contains no comments.
 
 Walk source with parent context:
 

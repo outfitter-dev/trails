@@ -44,8 +44,9 @@ import {
   getNodeValue,
   offsetToLine,
   parse,
+  parseWithDiagnostics,
 } from '@ontrails/source';
-import type { AstNode } from '@ontrails/source';
+import type { AstNode, SourceComment } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'public-export-example-coverage';
@@ -379,44 +380,19 @@ const declarationNameMatches = (
   return false;
 };
 
-/**
- * Comment texts found in an inter-statement trivia gap. The gap between two
- * top-level statements contains only whitespace and comments, so a small
- * line/block comment scan recovers the same comment set TypeScript's
- * `getLeadingCommentRanges` returns for the statement's full start.
- */
-const collectCommentTexts = (gapText: string): readonly string[] => {
-  const comments: string[] = [];
-  let index = 0;
-  while (index < gapText.length - 1) {
-    if (gapText[index] === '/' && gapText[index + 1] === '/') {
-      const lineEnd = gapText.indexOf('\n', index);
-      const stop = lineEnd === -1 ? gapText.length : lineEnd;
-      comments.push(gapText.slice(index, stop));
-      index = stop + 1;
-    } else if (gapText[index] === '/' && gapText[index + 1] === '*') {
-      const blockEnd = gapText.indexOf('*/', index + 2);
-      const stop = blockEnd === -1 ? gapText.length : blockEnd + 2;
-      comments.push(gapText.slice(index, stop));
-      index = stop;
-    } else {
-      index += 1;
-    }
-  }
-  return comments;
-};
-
 const EXAMPLE_TAG_PATTERN = /@example\b/;
+const LINE_TERMINATOR_PATTERN = /[\n\r\u2028\u2029]/u;
 
 /**
  * True when the exported declaration named `importedName` in `sourceText`
- * carries a leading comment containing `@example`. Leading comments are
- * recovered from the trivia gap between the preceding top-level statement's
- * end (or file start) and the matching export statement's start.
+ * carries a leading comment containing `@example`. Parser-native comments in
+ * the trivia gap between the preceding top-level statement's end (or file
+ * start) and the matching export statement are considered leading.
  */
 const hasLeadingExampleForExport = (
   sourceText: string,
   ast: AstNode,
+  comments: readonly SourceComment[],
   importedName: string
 ): boolean => {
   const body = programBody(ast);
@@ -429,9 +405,16 @@ const hasLeadingExampleForExport = (
       continue;
     }
     const previous = body[statementIndex - 1];
-    const gapText = sourceText.slice(previous?.end ?? 0, statement.start);
-    return collectCommentTexts(gapText).some((comment) =>
-      EXAMPLE_TAG_PATTERN.test(comment)
+    const gapStart = previous?.end ?? 0;
+    return comments.some(
+      (comment) =>
+        gapStart <= comment.start &&
+        comment.end <= statement.start &&
+        (previous === undefined ||
+          LINE_TERMINATOR_PATTERN.test(
+            sourceText.slice(gapStart, comment.start)
+          )) &&
+        EXAMPLE_TAG_PATTERN.test(comment.value)
     );
   }
   return false;
@@ -468,8 +451,8 @@ const coverageDiagnosticsForSpecifier = (
       ),
     ];
   }
-  const sourceAst = parse(sourcePath, sourceText);
-  if (!sourceAst) {
+  const parsedSource = parseWithDiagnostics(sourcePath, sourceText);
+  if (!parsedSource.ast || parsedSource.diagnostics.length > 0) {
     return [
       diagnostic(
         sourceCode,
@@ -481,7 +464,12 @@ const coverageDiagnosticsForSpecifier = (
     ];
   }
   if (
-    hasLeadingExampleForExport(sourceText, sourceAst, specifier.importedName)
+    hasLeadingExampleForExport(
+      sourceText,
+      parsedSource.ast,
+      parsedSource.comments,
+      specifier.importedName
+    )
   ) {
     return [];
   }

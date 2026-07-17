@@ -202,6 +202,7 @@ export const NotFoundError: any;
 export const output: any;
 export const outputModePreset: any;
 export const parse: any;
+export const parseWithDiagnostics: any;
 export const passthroughResolver: any;
 export const permitPreset: any;
 export const pruneUnpinnedSnapshots: any;

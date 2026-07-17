@@ -135,6 +135,37 @@ describe('public-export-example-coverage', () => {
       expect(diagnostics).toEqual([]);
     });
 
+    test('a comment trailing the previous statement does not cover the export', () => {
+      const barrel = `export { alpha } from './alpha.js';\n`;
+      const fixture = buildFixture(barrel, {
+        'alpha.ts':
+          'const prior = 1; /** @example belongs to prior */\nexport const alpha = (): number => 1;\n',
+      });
+      const diagnostics = checkPublicExportExampleCoverage(
+        barrel,
+        fixture.barrelPath,
+        fixture.targets
+      );
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('missing a leading @example');
+    });
+
+    test('a leading comment after a carriage return covers the export', () => {
+      const barrel = `export { alpha } from './alpha.js';\n`;
+      const fixture = buildFixture(barrel, {
+        'alpha.ts':
+          'const prior = 1;\r/** @example alpha() */\rexport const alpha = (): number => 1;\r',
+      });
+      const diagnostics = checkPublicExportExampleCoverage(
+        barrel,
+        fixture.barrelPath,
+        fixture.targets
+      );
+
+      expect(diagnostics).toEqual([]);
+    });
+
     test('missing @example on a minimum export is an error', () => {
       const barrel = `export { alpha } from './alpha.js';\n`;
       const fixture = buildFixture(barrel, { 'alpha.ts': UNCOVERED_ALPHA });
@@ -306,6 +337,22 @@ export const alphaImpl = (): number => 1;
       expect(diagnostics[0]?.severity).toBe('error');
       expect(diagnostics[0]?.message).toContain('unreadable source');
       expect(diagnostics[0]?.message).toContain('ghost.ts');
+    });
+
+    test('recovered source parses fail closed instead of claiming coverage', () => {
+      const barrel = `export { alpha } from './alpha.js';\n`;
+      const fixture = buildFixture(barrel, {
+        'alpha.ts': '/** @example alpha() */\nexport const alpha = ;\n',
+      });
+      const diagnostics = checkPublicExportExampleCoverage(
+        barrel,
+        fixture.barrelPath,
+        fixture.targets
+      );
+
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain('unparseable source');
     });
   });
 });
