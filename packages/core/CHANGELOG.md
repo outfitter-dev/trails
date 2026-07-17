@@ -1,5 +1,14 @@
 # @ontrails/core
 
+## 1.0.0-beta.46
+
+### Patch Changes
+
+- [`768cc79`](https://github.com/outfitter-dev/trails/commit/768cc79ca10947b8808b376e281e1a81131b4acc): Close missed projection vocabulary residue in Regrade internals and public
+  error-rendering guidance, and keep lifecycle-ambiguous governed identifiers in
+  the Warden review inventory instead of assigning them an unsafe automatic
+  target.
+
 ## 1.0.0-beta.45
 
 ### Patch Changes

@@ -1,5 +1,7 @@
 # @ontrails/store
 
+## 1.0.0-beta.46
+
 ## 1.0.0-beta.45
 
 ## 1.0.0-beta.44

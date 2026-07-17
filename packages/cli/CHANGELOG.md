@@ -1,5 +1,14 @@
 # @ontrails/cli
 
+## 1.0.0-beta.46
+
+### Patch Changes
+
+- [`93757ba`](https://github.com/outfitter-dev/trails/commit/93757ba102ae7ba8d9a7a6c17f119cda47d342a7): Expose ordered Regrade lifecycle phases and wall-clock timings across CLI and
+  MCP completion results, with concise human CLI progress isolated on stderr.
+  Keep topo-scoped JSON and JSONL environment selectors effective when the
+  operator does not explicitly choose an output mode.
+
 ## 1.0.0-beta.45
 
 ## 1.0.0-beta.44

@@ -1,5 +1,16 @@
 # @ontrails/source
 
+## 1.0.0-beta.46
+
+### Minor Changes
+
+- [`54d259b`](https://github.com/outfitter-dev/trails/commit/54d259be81fb6c41d85be48a6cb2100c746a7126): Expose parser-native comment spans from `parseWithDiagnostics` so source-aware
+  tooling can distinguish exact JavaScript and TypeScript comment trivia without
+  reimplementing a lexer.
+
+  Use the shared spans in Warden's public-example rule while keeping leading
+  comment ownership fail-closed across JavaScript line terminators.
+
 ## 1.0.0-beta.45
 
 ## 1.0.0-beta.44
