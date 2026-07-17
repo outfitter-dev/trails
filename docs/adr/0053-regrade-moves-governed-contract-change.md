@@ -4,7 +4,7 @@ slug: regrade-moves-governed-contract-change
 title: Regrade Moves Governed Contract Change
 status: accepted
 created: 2026-07-15
-updated: 2026-07-15
+updated: 2026-07-16
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 7, 23, 37]
 ---
@@ -49,8 +49,8 @@ No second database owns framework truth.
 | Warden | Durable rules, reusable detection, severity, and structured fix metadata. |
 | Regrade plan | Authored, transient migration intent and reviewed scope. |
 | Regrade execution | Collection, check, preview, conservative apply, validation, and review routing. |
-| Regrade history | Immutable committed evidence for applied runs. |
-| Regrade report and audit | Derived views of observed occurrence state and current residue. |
+| Regrade history | Compact immutable run receipts: intent, reproducibility keys, durable judgments, and completion facts. |
+| Regrade report and audit | Derived views of detailed occurrence state and current residue. |
 
 Warden governs what must remain true after a migration. Regrade moves the contract toward that truth. Regrade may consume Warden diagnostics selected by structured rule and fix fields, but it does not scrape diagnostic messages to decide what migration to run or whether an edit is safe. Message text may remain human-facing context; it is not the integration protocol.
 
@@ -117,7 +117,7 @@ Ambiguous or unsupported work stays in structured review inventory. It does not 
 
 CLI and MCP render the same five lifecycle trails: plan, list, check, preview, and apply. Surface parity is part of the contract because an agent must see the same plan, gate, report, and history facts regardless of how it reaches the trail.
 
-### Applied plans become immutable history
+### Applied plans become compact immutable receipts
 
 The lifecycle is:
 
@@ -127,9 +127,19 @@ active plan -> check -> preview -> apply -> immutable committed history
                                       +-> derived report and audit
 ```
 
-Apply removes the active plan and appends a run to its consolidated history artifact. The run binds plan content, source state, completion evidence, and governed provenance with hashes. Warden validates governed histories through a dedicated loader instead of trusting provenance-shaped JSON.
+Apply removes the active plan and appends a compact run receipt to its consolidated history artifact. Git owns the changed content; the receipt owns what Git cannot reconstruct: authored intent, reproducibility keys, durable form judgments, counts, changed-file identity, and one completion-facts block. Full occurrence ledgers and rendered reports are derived observations, not committed primary truth.
 
-An adjustment is explicit. It copies a graduated transition back into an active plan without mutating prior runs. A later apply appends evidence to the same history spine. Immutable history is excluded from later source collection, preventing recursive evidence growth, while remaining available to Warden and audit through its owned reader.
+Each receipt records the authored plan and its canonical content hash, normalized project identity, tool and policy identity, source and lock state hashes, a content address for regenerable detailed evidence, and Git-resolvable before/after blob hashes for changed files. The classified form state is one row per distinct form. A changed form state is embedded; an unchanged state is hash-referenced to an earlier run and resolved by the loader without a cache. Proof runs likewise reference prior intent and classified state, so proving that nothing changed stays small.
+
+`@ontrails/regrade` owns the strict receipt schema, content hashes, reference resolution, and deterministic canonical serializer. Filesystem persistence may remain with an application surface, and Warden may validate a narrow consumer projection, but Warden must not import Regrade while Regrade depends on Warden. Readers always receive resolved form state. Broken references, mismatched transitions, duplicate form identities, stale hashes, malformed receipts, and invalid evidence fail loudly.
+
+There is one generator-owned history file per stable transition, selected by transition identity rather than an operator-provided path. Runs append inside that file. The serializer recursively stabilizes object keys and normalizes receipt-owned sets before writing, and repository formatters exclude generated history. A successful apply therefore emits repository-canonical bytes without a formatter rewrite pass.
+
+Every path-bearing receipt field is a normalized root-relative POSIX path or glob. The invariant covers the history path, changed files, representative form locations, file moves, scope controls, and preserve paths inside embedded plans. Loader validation rejects machine-absolute, escaping, or platform-specific paths while leaving authored non-filesystem strings such as HTTP routes untouched.
+
+An adjustment is explicit. It copies a graduated transition back into an active plan without mutating prior runs. A later apply appends a receipt to the same history spine. Immutable history is excluded from later source collection, preventing recursive evidence growth, while remaining available to Warden and audit through their owned readers.
+
+The eight pre-receipt histories convert once through governed tooling. Conversion first validates the old artifact, derives the receipt as a strict subset of the snapshot facts, and records the original whole-file SHA-256 plus conversion tool identity. Old bytes remain reconstructable from Git. The conversion must preserve Warden diagnostics, produce byte-identical canonical regeneration, and leave no permanent mixed-schema reader. This governed exception changes the storage shape, not the historical judgment.
 
 ### Four vocabulary families establish the contract
 
@@ -170,9 +180,10 @@ The active plan is temporary. The rules that reject retired API shapes, validate
   evidence maintenance beyond the source edit itself.
 - Conservative runs leave more work for human or agent review than a broad
   replacement would.
-- Committed history can be large because it preserves occurrence-level proof.
-  Consolidation and history-pruning keep that cost bounded, but they do not
-  make the evidence free.
+- Detailed ledgers require regeneration when an operator needs occurrence-level
+  forensic evidence. Receipts record the source revision, plan hash, policy
+  hash, tool version, and detail-evidence hash needed to state that capability
+  honestly; no receipt depends on a local cache.
 - Regrade classes and Warden fix metadata carry compatibility obligations once
   adopters depend on them.
 
@@ -187,9 +198,10 @@ The active plan is temporary. The rules that reject retired API shapes, validate
 - **False completion.** Broad exclusions or transition-wide preserves could
   hide residue. Mitigation: occurrence-level dispositions, three-tier scope,
   expected teaching surfaces, current-source audit, and Warden history checks.
-- **Evidence recursion.** History could scan itself and grow without bound.
-  Mitigation: source collection prunes immutable history; Warden and audit load
-  it through dedicated readers.
+- **Evidence recursion or duplication.** History could scan itself or rendered
+  inventories could become primary truth again. Mitigation: source collection
+  prunes immutable history; receipts retain compact facts only; Warden and audit
+  load validated projections through dedicated readers.
 
 ## Non-goals
 
@@ -207,8 +219,8 @@ The active plan is temporary. The rules that reject retired API shapes, validate
 - Which future contract changes require first-party migration classes.
 - Whether package-distributed migrations need an additional discovery or
   compatibility protocol.
-- How long all occurrence detail remains in committed history after stable
-  release operations have their own retention evidence.
+- Whether explicitly forensic migrations should attach optional compressed
+  detailed evidence beyond the regeneration-only v1 receipt contract.
 - Any new vocabulary family after the v1 reset.
 
 ## References

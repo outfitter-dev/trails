@@ -102,3 +102,40 @@ export type {
   AstRewriteMatch,
   AstRewriteVisitResult,
 } from './downstream/ast-rewrite.js';
+
+/**
+ * Compact, canonical evidence for an applied Regrade run.
+ *
+ * @example
+ * ```ts
+ * const serialized = serializeRegradeHistoryReceipt(receipt);
+ * if (serialized.isErr()) throw serialized.error;
+ * ```
+ */
+export {
+  REGRADE_HISTORY_RECEIPT_SCHEMA_VERSION,
+  canonicalRegradeJson,
+  regradeClassifiedStateHash,
+  regradeFormJudgmentSchema,
+  regradeHistoryReceiptSchema,
+  regradeReceiptContentHash,
+  regradeReceiptPlanContentHash,
+  regradeReceiptPlanSchema,
+  resolveRegradeHistoryReceipt,
+  serializeRegradeHistoryReceipt,
+} from './history-receipt.js';
+/**
+ * Type the authored and resolved sides of compact Regrade history.
+ *
+ * @example
+ * ```ts
+ * const receipt: RegradeHistoryReceipt = parsed;
+ * ```
+ */
+export type {
+  RegradeFormJudgment,
+  RegradeHistoryReceipt,
+  RegradeReceiptPlan,
+  ResolvedRegradeHistoryReceipt,
+  ResolvedRegradeHistoryReceiptRun,
+} from './history-receipt.js';
