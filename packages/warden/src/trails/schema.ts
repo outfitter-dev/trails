@@ -119,21 +119,24 @@ export const authoredMcpSurfaceBindingSetSchema = z.object({
     .describe('Trail ids registered in the owning app topo'),
 });
 
-const governedVocabularyHistoryObservationSchema = z.object({
+const governedVocabularyHistoryFormJudgmentSchema = z.object({
   disposition: z.string(),
   form: z.string(),
-  line: z.number().int().positive(),
-  path: z.string(),
-  reason: z.string(),
-  scopeTier: z.enum(['in-scope', 'policy-classified']).optional(),
-  verdict: z.enum(['applied', 'deferred', 'modified', 'skipped']),
+  reason: z.string().optional(),
+  representative: z
+    .object({
+      line: z.number().int().positive(),
+      path: z.string(),
+    })
+    .optional(),
+  target: z.string().optional(),
 });
 
 const governedVocabularyHistoryEvidenceSchema = z.object({
   caseSensitive: z.boolean(),
   id: z.string(),
-  latestFormObservations: z
-    .array(governedVocabularyHistoryObservationSchema)
+  latestFormJudgments: z
+    .array(governedVocabularyHistoryFormJudgmentSchema)
     .readonly(),
   path: z.string(),
   runCount: z.number().int().nonnegative(),

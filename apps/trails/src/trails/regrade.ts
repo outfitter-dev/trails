@@ -46,7 +46,6 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  rmSync,
   writeFileSync,
 } from 'node:fs';
 import type { Dirent } from 'node:fs';
@@ -60,8 +59,8 @@ import {
 } from '../regrade/audit.js';
 import { loadRegradeConfig } from '../regrade/config.js';
 import {
-  REGRADE_HISTORY_SCHEMA_VERSION,
   appendRegradeHistoryRun,
+  consumeActiveRegradePlanAfterHistoryWrite,
   readRegradeHistoryArtifact,
   regradeHistoryPathForPlan,
   resolveRegradeHistoryPath,
@@ -70,6 +69,13 @@ import {
 } from '../regrade/history.js';
 import type { RegradeHistorySummary } from '../regrade/history.js';
 import { deriveLiveApiPreserveInventory } from '../regrade/live-api-preserve.js';
+import {
+  captureRegradeChangedFilesBefore,
+  completeRegradeChangedFiles,
+  resolveRegradeSourceRevision,
+  validateRegradeReceiptPlan,
+} from '../regrade/receipt-history.js';
+import type { RegradeChangedFileEvidence } from '../regrade/receipt-history.js';
 import { deriveRegradePlanDerivation } from '../regrade/plan-derivation.js';
 import {
   regradeApplyErrorAfterRollback,
@@ -1215,8 +1221,12 @@ const buildVocabularyPlan = (
   const overrides = mergeVocabularyOverrides(registryPlan, input);
   const preserveRules = mergeVocabularyPreserveRules(registryPlan, preserve);
   const scope = mergeVocabularyScope(registryPlan?.scope, configScope, input);
-  const fileRenames =
-    input.fileRenames ?? registryFileRenamesForRoot(registryPlan, rootDir);
+  const fileRenames = (
+    input.fileRenames ?? registryFileRenamesForRoot(registryPlan, rootDir)
+  )?.map((rename) => ({
+    from: posix.normalize(rename.from.replaceAll('\\', '/')),
+    to: posix.normalize(rename.to.replaceAll('\\', '/')),
+  }));
 
   return Result.ok({
     ...(registryPlan?.caseSensitive === undefined
@@ -1571,11 +1581,104 @@ const buildRegradePlanArtifact = (params: {
   };
 };
 
+const normalizeAuthoredPlanPath = (path: string): string =>
+  posix.normalize(path.replaceAll('\\', '/'));
+
+const normalizeRegradePlanBodyPaths = (
+  plan: RegradePlanBody
+): RegradePlanBody => {
+  const scope =
+    plan.scope === undefined
+      ? undefined
+      : {
+          ...plan.scope,
+          ...(plan.scope.exclude === undefined
+            ? {}
+            : {
+                exclude: plan.scope.exclude.map(normalizeAuthoredPlanPath),
+              }),
+          ...(plan.scope.include === undefined
+            ? {}
+            : {
+                include: plan.scope.include.map(normalizeAuthoredPlanPath),
+              }),
+        };
+  if (plan.kind === 'class') {
+    return {
+      ...plan,
+      ...(scope === undefined ? {} : { scope }),
+    } as RegradePlanBody;
+  }
+  return {
+    ...plan,
+    ...(plan.fileRenames === undefined
+      ? {}
+      : {
+          fileRenames: plan.fileRenames.map((rename) => ({
+            ...rename,
+            from: normalizeAuthoredPlanPath(rename.from),
+            to: normalizeAuthoredPlanPath(rename.to),
+          })),
+        }),
+    ...(plan.preserve === undefined
+      ? {}
+      : {
+          preserve: plan.preserve.map((preserve) => ({
+            ...preserve,
+            ...(preserve.paths === undefined
+              ? {}
+              : {
+                  paths: preserve.paths.map(normalizeAuthoredPlanPath),
+                }),
+          })),
+        }),
+    ...(scope === undefined
+      ? {}
+      : {
+          scope: {
+            ...scope,
+            ...(plan.scope?.ignoredDirectories === undefined
+              ? {}
+              : {
+                  ignoredDirectories: plan.scope.ignoredDirectories.map(
+                    normalizeAuthoredPlanPath
+                  ),
+                }),
+            ...(plan.scope?.policyClassified === undefined
+              ? {}
+              : {
+                  policyClassified: plan.scope.policyClassified.map(
+                    (policy) => ({
+                      ...policy,
+                      paths: policy.paths.map(normalizeAuthoredPlanPath),
+                    })
+                  ),
+                }),
+            ...(plan.scope?.teachingSurfaces === undefined
+              ? {}
+              : {
+                  teachingSurfaces: plan.scope.teachingSurfaces.map(
+                    normalizeAuthoredPlanPath
+                  ),
+                }),
+          },
+        }),
+  } as RegradePlanBody;
+};
+
+const normalizeRegradePlanArtifactPaths = (
+  artifact: RegradePlanArtifact
+): RegradePlanArtifact => ({
+  ...artifact,
+  plan: normalizeRegradePlanBodyPaths(artifact.plan),
+});
+
 const writeRegradePlanArtifact = (
   rootDir: string,
   artifact: RegradePlanArtifact
 ): TrailsResult<RegradePlanArtifact, InternalError | ValidationError> => {
-  const parsed = regradePlanArtifactSchema.safeParse(artifact);
+  const normalizedArtifact = normalizeRegradePlanArtifactPaths(artifact);
+  const parsed = regradePlanArtifactSchema.safeParse(normalizedArtifact);
   if (!parsed.success) {
     return Result.err(
       new ValidationError('Invalid Regrade plan artifact.', {
@@ -1601,7 +1704,9 @@ const writeRegradePlanArtifact = (
 const validateRegradePlanArtifact = (
   artifact: RegradePlanArtifact
 ): TrailsResult<RegradePlanArtifact, ValidationError> => {
-  const parsed = regradePlanArtifactSchema.safeParse(artifact);
+  const parsed = regradePlanArtifactSchema.safeParse(
+    normalizeRegradePlanArtifactPaths(artifact)
+  );
   if (!parsed.success) {
     return Result.err(
       new ValidationError('Invalid Regrade plan artifact.', {
@@ -1637,7 +1742,11 @@ const readRegradePlanArtifact = (
       })
     );
   }
-  return Result.ok(parsed.data as unknown as RegradePlanArtifact);
+  return Result.ok(
+    normalizeRegradePlanArtifactPaths(
+      parsed.data as unknown as RegradePlanArtifact
+    )
+  );
 };
 
 /**
@@ -3054,12 +3163,13 @@ const loadPlanForInput = async (
 
 const reportWithCheckedHistorySummary = (
   report: RegradeReport,
-  historyPath: string
+  historyPath: string,
+  schemaVersion: number
 ): RegradeReport => ({
   ...report,
   history: {
     path: historyPath,
-    schemaVersion: REGRADE_HISTORY_SCHEMA_VERSION,
+    schemaVersion,
     status: 'checked',
   },
 });
@@ -3089,7 +3199,11 @@ const checkGraduatedRegradeHistory = (
     );
   }
   return validateRegradeReport(
-    reportWithCheckedHistorySummary(lastRun.report, artifact.value.path)
+    reportWithCheckedHistorySummary(
+      lastRun.report,
+      artifact.value.path,
+      artifact.value.schemaVersion
+    )
   );
 };
 
@@ -3104,6 +3218,7 @@ const runCheckRegradePlan = async (
       if (historyPath.isOk()) {
         return checkGraduatedRegradeHistory(historyPath.value);
       }
+      return historyPath;
     }
     return planPath;
   }
@@ -3183,10 +3298,12 @@ const runPreviewRegradePlan = async (
 
 const writeRegradeHistory = (params: {
   readonly artifact: RegradePlanArtifact;
+  readonly changedFiles: readonly RegradeChangedFileEvidence[];
   readonly completedReport: RegradeReport;
   readonly planPath: string;
   readonly report: RegradeReport;
   readonly rootDir: string;
+  readonly sourceRevision: string;
 }): TrailsResult<RegradeHistorySummary, Error> => {
   const absolutePath = regradeHistoryPathForPlan(
     params.rootDir,
@@ -3207,37 +3324,27 @@ const writeRegradeHistory = (params: {
   }
   const appended = appendRegradeHistoryRun({
     artifact: params.artifact,
+    changedFiles: params.changedFiles,
     completedReport: params.completedReport,
     report: params.report,
     rootDir: params.rootDir,
+    sourceRevision: params.sourceRevision,
   });
   if (appended.isErr()) {
     return appended;
   }
-  try {
-    // Apply always consumes the active plan, replay included: the plan is a
-    // single-use apply intent, and the consolidated history already records
-    // the run the replay repeats.
-    rmSync(params.planPath, { force: true });
-  } catch (error) {
-    try {
-      if (priorHistoryBytes === undefined) {
-        rmSync(absolutePath, { force: true });
-      } else {
-        writeFileSync(absolutePath, priorHistoryBytes);
-      }
-    } catch {
-      // Best-effort rollback; the surfaced error below preserves the primary failure.
-    }
-    return Result.err(
-      new InternalError('Failed to remove active Regrade plan.', {
-        ...(error instanceof Error ? { cause: error } : {}),
-        context: {
-          history: appended.value.path,
-          plan: rootRelativePath(params.rootDir, params.planPath),
-        },
-      })
-    );
+  // Apply always consumes the active plan, replay included: the plan is a
+  // single-use apply intent, and the consolidated history already records
+  // the run the replay repeats.
+  const consumed = consumeActiveRegradePlanAfterHistoryWrite({
+    absoluteHistoryPath: absolutePath,
+    absolutePlanPath: params.planPath,
+    historyPath: appended.value.path,
+    planPath: rootRelativePath(params.rootDir, params.planPath),
+    priorHistoryBytes,
+  });
+  if (consumed.isErr()) {
+    return consumed;
   }
   return appended;
 };
@@ -3304,7 +3411,43 @@ const runApplyRegradePlan = async (
     );
   }
 
+  // Receipt persistence is mandatory for apply. Resolve its Git-owned source
+  // identity before mutating any source so failure leaves the tree untouched.
+  const receiptPlan = validateRegradeReceiptPlan(loaded.value.artifact);
+  if (receiptPlan.isErr()) {
+    return receiptPlan;
+  }
+  const sourceRevision = resolveRegradeSourceRevision(rootDir);
+  if (sourceRevision.isErr()) {
+    return sourceRevision;
+  }
+
+  const beforeChangedFiles = captureRegradeChangedFilesBefore({
+    artifact: loaded.value.artifact,
+    report: dryRunReport.value,
+    rootDir,
+  });
+  if (beforeChangedFiles.isErr()) {
+    return beforeChangedFiles;
+  }
+
   const planBody = loaded.value.artifact.plan;
+  const sourceSnapshots = snapshotRegradeSources({
+    optionalPaths:
+      planBody.kind === 'vocabulary'
+        ? (planBody.fileRenames ?? []).flatMap((rename) => [
+            rename.from,
+            rename.to,
+          ])
+        : [],
+    reports: [dryRunReport.value],
+    rootDir,
+  });
+  if (sourceSnapshots.isErr()) {
+    return sourceSnapshots;
+  }
+  const rollbackApplyError = (error: Error): TrailsResult<never, Error> =>
+    regradeApplyErrorAfterRollback(error, sourceSnapshots.value);
   let applied: TrailsResult<RegradeReport, Error>;
   if (planBody.kind === 'class') {
     applied = await runClassPlanRegradeRun({
@@ -3330,7 +3473,14 @@ const runApplyRegradePlan = async (
     });
   }
   if (applied.isErr()) {
-    return applied;
+    return rollbackApplyError(applied.error);
+  }
+  const changedFiles = completeRegradeChangedFiles({
+    before: beforeChangedFiles.value,
+    rootDir,
+  });
+  if (changedFiles.isErr()) {
+    return rollbackApplyError(changedFiles.error);
   }
   const completionReport = await runPlanArtifactDryRun({
     artifact: loaded.value.artifact,
@@ -3338,20 +3488,22 @@ const runApplyRegradePlan = async (
     rootDir,
   });
   if (completionReport.isErr()) {
-    return completionReport;
+    return rollbackApplyError(completionReport.error);
   }
   // Keep the pre-apply occurrence evidence that explains what this run changed,
   // while carrying the completed counters and a separate post-apply source
   // stamp so a later no-op apply can still be recognized as a replay.
   const history = writeRegradeHistory({
     artifact: loaded.value.artifact,
+    changedFiles: changedFiles.value,
     completedReport: completionReport.value,
     planPath: loaded.value.path,
     report: historyReportForAppliedPlan(dryRunReport.value, applied.value),
     rootDir,
+    sourceRevision: sourceRevision.value,
   });
   if (history.isErr()) {
-    return history;
+    return rollbackApplyError(history.error);
   }
   return validateRegradeReport(
     reportWithHistorySummary(

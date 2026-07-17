@@ -2,21 +2,32 @@ import type { RegradeReport } from '@ontrails/regrade';
 import { describe, expect, test } from 'bun:test';
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 import {
   appendRegradeHistoryRun,
+  consumeActiveRegradePlanAfterHistoryWrite,
   mintTransitionId,
   readRegradeHistoryArtifact,
   regradeHistoryPathForPlan,
   verifyRegradeHistoryRuns,
+  writeRegradeHistoryFileAtomically,
 } from '../regrade/history.js';
+import {
+  captureRegradeChangedFilesBefore,
+  completeRegradeChangedFiles,
+  readRegradeReceipt,
+  serializeRegradeHistoryReceipt,
+} from '../regrade/receipt-history.js';
 import {
   currentRegradeSourceHashMatches,
   legacyRegradeSourceHash,
@@ -36,6 +47,22 @@ type VocabularyPlanBody = Extract<RegradePlanBody, { kind: 'vocabulary' }>;
 const withFixtureDir = (exercise: (dir: string) => void): void => {
   const dir = mkdtempSync(join(tmpdir(), 'regrade-history-'));
   try {
+    execFileSync('git', ['init', '--quiet'], { cwd: dir });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Trails Test',
+        '-c',
+        'user.email=trails@example.test',
+        'commit',
+        '--allow-empty',
+        '--quiet',
+        '-m',
+        'fixture',
+      ],
+      { cwd: dir }
+    );
     exercise(dir);
   } finally {
     rmSync(dir, { force: true, recursive: true });
@@ -144,6 +171,95 @@ const makeReportWithFileRenameEvidence = (): RegradeReport => ({
       teachingSurfaces: { expected: [], missing: [], touched: [] },
     },
   },
+});
+
+describe('writeRegradeHistoryFileAtomically', () => {
+  test('preserves the prior receipt and removes its temp file when replacement fails', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'regrade-history-write-'));
+    const historyPath = join(dir, 'transition.json');
+    try {
+      writeFileSync(historyPath, 'prior receipt bytes\n');
+
+      const written = writeRegradeHistoryFileAtomically({
+        absolutePath: historyPath,
+        content: 'replacement receipt bytes\n',
+        diagnosticPath: '.trails/regrade/history/transition.json',
+        replace: () => {
+          throw new Error('simulated atomic replacement failure');
+        },
+      });
+
+      expect(written.isErr()).toBe(true);
+      expect(readFileSync(historyPath, 'utf8')).toBe('prior receipt bytes\n');
+      expect(readdirSync(dir)).toEqual(['transition.json']);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('leaves a new receipt absent when replacement fails', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'regrade-history-write-'));
+    const historyPath = join(dir, 'transition.json');
+    try {
+      const written = writeRegradeHistoryFileAtomically({
+        absolutePath: historyPath,
+        content: 'new receipt bytes\n',
+        diagnosticPath: '.trails/regrade/history/transition.json',
+        replace: () => {
+          throw new Error('simulated atomic replacement failure');
+        },
+      });
+
+      expect(written.isErr()).toBe(true);
+      expect(existsSync(historyPath)).toBe(false);
+      expect(readdirSync(dir)).toEqual([]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('surfaces atomic history rollback failure after plan removal fails', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'regrade-history-consume-'));
+    const historyPath = join(dir, 'transition.json');
+    const planPath = join(dir, 'plan.json');
+    try {
+      writeFileSync(historyPath, 'appended receipt bytes\n');
+      writeFileSync(planPath, 'active plan bytes\n');
+
+      const consumed = consumeActiveRegradePlanAfterHistoryWrite({
+        absoluteHistoryPath: historyPath,
+        absolutePlanPath: planPath,
+        historyPath: '.trails/regrade/history/transition.json',
+        planPath: '.trails/regrade/transition.json',
+        priorHistoryBytes: 'prior receipt bytes\n',
+        remove: () => {
+          throw new Error('simulated plan removal failure');
+        },
+        replace: () => {
+          throw new Error('simulated history rollback failure');
+        },
+      });
+
+      expect(consumed.isErr()).toBe(true);
+      if (consumed.isErr()) {
+        expect(consumed.error.context).toEqual({
+          history: '.trails/regrade/history/transition.json',
+          historyRollback: 'Failed to atomically write Regrade history.',
+          plan: '.trails/regrade/transition.json',
+        });
+      }
+      expect(readFileSync(historyPath, 'utf8')).toBe(
+        'appended receipt bytes\n'
+      );
+      expect(readFileSync(planPath, 'utf8')).toBe('active plan bytes\n');
+      expect(readdirSync(dir).toSorted()).toEqual([
+        'plan.json',
+        'transition.json',
+      ]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('regradePlanContentHash', () => {
@@ -315,6 +431,378 @@ describe('regradeSourceHash', () => {
 });
 
 describe('appendRegradeHistoryRun', () => {
+  test('persists canonical v3 receipts with exact Git blob evidence and hash references', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact(makePlanBody());
+      const relativePath = 'src/example.ts';
+      const absolutePath = join(dir, relativePath);
+      mkdirSync(join(dir, 'src'));
+      writeFileSync(absolutePath, 'const facet = true;\n');
+      const report: RegradeReport = {
+        ...makeReport([]),
+        entries: [{ outcome: 'rewrite', path: relativePath }],
+        matched: 1,
+        rewritten: 1,
+      };
+      const before = captureRegradeChangedFilesBefore({
+        artifact,
+        report,
+        rootDir: dir,
+      });
+      if (before.isErr()) {
+        throw before.error;
+      }
+      const expectedBefore = execFileSync('git', ['hash-object', '--stdin'], {
+        cwd: dir,
+        encoding: 'utf8',
+        input: 'const facet = true;\n',
+      }).trim();
+      writeFileSync(absolutePath, 'const trailhead = true;\n');
+      const changedFiles = completeRegradeChangedFiles({
+        before: before.value,
+        rootDir: dir,
+      });
+      if (changedFiles.isErr()) {
+        throw changedFiles.error;
+      }
+      const expectedAfter = execFileSync('git', ['hash-object', '--stdin'], {
+        cwd: dir,
+        encoding: 'utf8',
+        input: 'const trailhead = true;\n',
+      }).trim();
+
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        changedFiles: changedFiles.value,
+        completedReport: makeReport([]),
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+      expect(appended.value.schemaVersion).toBe(3);
+
+      const historyPath = regradeHistoryPathForPlan(dir, artifact.plan);
+      const persisted = readFileSync(historyPath, 'utf8');
+      expect(persisted).not.toContain(dir);
+      expect(persisted).not.toContain('completionReport');
+      expect(persisted).not.toContain('ledger');
+      const raw = JSON.parse(persisted) as {
+        runs: Record<string, unknown>[];
+        schemaVersion: number;
+      };
+      expect(raw.schemaVersion).toBe(3);
+      expect(raw.runs[0]?.['evidence']).toMatchObject({
+        changedFiles: [
+          {
+            afterBlobHash: expectedAfter,
+            afterPath: relativePath,
+            beforeBlobHash: expectedBefore,
+            beforePath: relativePath,
+          },
+        ],
+      });
+
+      const resolved = readRegradeReceipt(historyPath);
+      if (resolved.isErr()) {
+        throw resolved.error;
+      }
+      const serialized = serializeRegradeHistoryReceipt(
+        resolved.value.artifact
+      );
+      if (serialized.isErr()) {
+        throw serialized.error;
+      }
+      expect(serialized.value).toBe(persisted);
+      const mismatchedPath = join(
+        dir,
+        '.trails/regrade/history/unrelated.json'
+      );
+      writeFileSync(mismatchedPath, persisted);
+      const mismatched = readRegradeHistoryArtifact(mismatchedPath);
+      expect(mismatched.isErr()).toBe(true);
+      if (mismatched.isErr()) {
+        expect(mismatched.error.message).toContain(
+          'does not match its observed file'
+        );
+      }
+      const projected = readRegradeHistoryArtifact(historyPath);
+      if (projected.isErr()) {
+        throw projected.error;
+      }
+      const verified = verifyRegradeHistoryRuns(projected.value);
+      if (verified.isErr()) {
+        throw verified.error;
+      }
+      expect(verified.value).toEqual({ runs: 1 });
+
+      const replay = appendRegradeHistoryRun({
+        artifact,
+        changedFiles: [],
+        report: makeReport([]),
+        rootDir: dir,
+      });
+      if (replay.isErr()) {
+        throw replay.error;
+      }
+      expect(replay.value.status).toBe('replay');
+      const replayRaw = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        runs: {
+          classifiedState: { kind: string };
+          intent: { kind: string };
+          runKind: string;
+        }[];
+      };
+      expect(replayRaw.runs[1]).toMatchObject({
+        classifiedState: { kind: 'reference' },
+        intent: { kind: 'reference' },
+        runKind: 'proof',
+      });
+      const replayProjected = readRegradeHistoryArtifact(historyPath);
+      if (replayProjected.isErr()) {
+        throw replayProjected.error;
+      }
+      const replayVerified = verifyRegradeHistoryRuns(replayProjected.value);
+      if (replayVerified.isErr()) {
+        throw replayVerified.error;
+      }
+      expect(replayVerified.value).toEqual({ runs: 2 });
+    });
+  });
+
+  test('records changes hidden by review entries and omits unchanged reviews', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact(makePlanBody());
+      const relativePath = 'src/example.ts';
+      const absolutePath = join(dir, relativePath);
+      mkdirSync(join(dir, 'src'));
+      writeFileSync(absolutePath, 'const facet = true;\n');
+      const report: RegradeReport = {
+        ...makeReport([]),
+        entries: [{ outcome: 'needs-review', path: relativePath }],
+        matched: 1,
+        review: 1,
+      };
+      const before = captureRegradeChangedFilesBefore({
+        artifact,
+        report,
+        rootDir: dir,
+      });
+      if (before.isErr()) {
+        throw before.error;
+      }
+
+      const unchanged = completeRegradeChangedFiles({
+        before: before.value,
+        rootDir: dir,
+      });
+      if (unchanged.isErr()) {
+        throw unchanged.error;
+      }
+      expect(unchanged.value).toEqual([]);
+
+      writeFileSync(absolutePath, 'const trailhead = true;\n');
+      const changed = completeRegradeChangedFiles({
+        before: before.value,
+        rootDir: dir,
+      });
+      if (changed.isErr()) {
+        throw changed.error;
+      }
+      expect(changed.value).toHaveLength(1);
+      expect(changed.value[0]).toMatchObject({
+        afterPath: relativePath,
+        beforePath: relativePath,
+      });
+      expect(changed.value[0]?.afterBlobHash).not.toBe(
+        changed.value[0]?.beforeBlobHash
+      );
+    });
+  });
+
+  test('does not record a reason-only open completion gate as proof', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact(makePlanBody());
+      const relativePath = 'src/example.ts';
+      const absolutePath = join(dir, relativePath);
+      mkdirSync(join(dir, 'src'));
+      writeFileSync(absolutePath, 'const facet = true;\n');
+      const report: RegradeReport = {
+        ...makeReport([]),
+        entries: [{ outcome: 'rewrite', path: relativePath }],
+        matched: 1,
+        rewritten: 1,
+      };
+      const before = captureRegradeChangedFilesBefore({
+        artifact,
+        report,
+        rootDir: dir,
+      });
+      if (before.isErr()) {
+        throw before.error;
+      }
+      writeFileSync(absolutePath, 'const trailhead = true;\n');
+      const changedFiles = completeRegradeChangedFiles({
+        before: before.value,
+        rootDir: dir,
+      });
+      if (changedFiles.isErr()) {
+        throw changedFiles.error;
+      }
+      const baseline = appendRegradeHistoryRun({
+        artifact,
+        changedFiles: changedFiles.value,
+        completedReport: makeReport([]),
+        report,
+        rootDir: dir,
+        sourceRevision: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      });
+      if (baseline.isErr()) {
+        throw baseline.error;
+      }
+
+      const openCompletedReport: RegradeReport = {
+        ...makeReport([]),
+        run: {
+          ledger: { cycle: 1, forms: {}, occurrences: [] },
+          plan: {
+            from: 'facet',
+            kind: 'vocabulary',
+            to: 'trailhead',
+          },
+          report: {
+            applied: 0,
+            deferred: 0,
+            dispositions: {},
+            filesChanged: 0,
+            gate: {
+              reasons: ['expected-teaching-surfaces-missing'],
+              remaining: 0,
+              remainingByDisposition: {},
+              status: 'open',
+            },
+            modified: 0,
+            open: 0,
+            scopeTiers: { 'in-scope': 0, 'policy-classified': 0 },
+            skipped: 0,
+            teachingSurfaces: { expected: [], missing: [], touched: [] },
+          },
+        },
+      };
+      const rerun = appendRegradeHistoryRun({
+        artifact,
+        changedFiles: [],
+        completedReport: openCompletedReport,
+        report: makeReport([]),
+        rootDir: dir,
+        sourceRevision: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      });
+      if (rerun.isErr()) {
+        throw rerun.error;
+      }
+
+      expect(rerun.value.status).toBe('applied');
+      const historyPath = regradeHistoryPathForPlan(dir, artifact.plan);
+      const receipt = readRegradeReceipt(historyPath);
+      if (receipt.isErr()) {
+        throw receipt.error;
+      }
+      expect(receipt.value.artifact.runs.at(-1)).toMatchObject({
+        completion: {
+          gate: {
+            reasons: ['expected-teaching-surfaces-missing'],
+            remaining: 0,
+            status: 'open',
+          },
+        },
+        runKind: 'adjust',
+      });
+    });
+  });
+
+  test('fails closed when either side of changed-file evidence is missing', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact(makePlanBody());
+      const missingReport: RegradeReport = {
+        ...makeReport([]),
+        entries: [{ outcome: 'rewrite', path: 'src/missing.ts' }],
+        matched: 1,
+        rewritten: 1,
+      };
+      const missingBefore = captureRegradeChangedFilesBefore({
+        artifact,
+        report: missingReport,
+        rootDir: dir,
+      });
+      expect(missingBefore.isErr()).toBe(true);
+
+      mkdirSync(join(dir, 'src'));
+      writeFileSync(join(dir, 'src/existing.ts'), 'facet\n');
+      const existingReport: RegradeReport = {
+        ...missingReport,
+        entries: [{ outcome: 'rewrite', path: 'src/existing.ts' }],
+      };
+      const before = captureRegradeChangedFilesBefore({
+        artifact,
+        report: existingReport,
+        rootDir: dir,
+      });
+      if (before.isErr()) {
+        throw before.error;
+      }
+      rmSync(join(dir, 'src/existing.ts'));
+      const missingAfter = completeRegradeChangedFiles({
+        before: before.value,
+        rootDir: dir,
+      });
+      expect(missingAfter.isErr()).toBe(true);
+    });
+  });
+
+  test('embeds changed zero-action intent as an adjustment instead of a proof', () => {
+    withFixtureDir((dir) => {
+      const firstArtifact = makePlanArtifact(makePlanBody());
+      const first = appendRegradeHistoryRun({
+        artifact: firstArtifact,
+        changedFiles: [],
+        report: makeReport([]),
+        rootDir: dir,
+      });
+      if (first.isErr()) {
+        throw first.error;
+      }
+      const adjustedArtifact = makePlanArtifact({
+        ...makePlanBody(),
+        intent: 'Changed authored intent with no current matches.',
+      });
+      const pinnedAdjustedArtifact = {
+        ...adjustedArtifact,
+        transitionId: first.value.id,
+      };
+      const adjusted = appendRegradeHistoryRun({
+        artifact: pinnedAdjustedArtifact,
+        changedFiles: [],
+        report: makeReport([]),
+        rootDir: dir,
+      });
+      if (adjusted.isErr()) {
+        throw adjusted.error;
+      }
+      expect(adjusted.value.status).toBe('applied');
+      const path = regradeHistoryPathForPlan(dir, pinnedAdjustedArtifact.plan);
+      const receipt = readRegradeReceipt(path);
+      if (receipt.isErr()) {
+        throw receipt.error;
+      }
+      expect(receipt.value.artifact.runs.at(-1)).toMatchObject({
+        classifiedState: { kind: 'reference' },
+        intent: { kind: 'embedded' },
+        runKind: 'adjust',
+      });
+    });
+  });
+
   test('persists deterministic governed provenance for safe apply and review follow-up', () => {
     withFixtureDir((dir) => {
       const artifact = makePlanArtifact({

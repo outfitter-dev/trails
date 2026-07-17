@@ -7,31 +7,34 @@ import { governedVocabularyPermutationWatchTrail } from '../trails/governed-voca
 import { runProjectWardenRules, runWardenTrails } from '../trails/run.js';
 import type {
   GovernedVocabularyHistoryEvidence,
-  GovernedVocabularyHistoryFormObservation,
+  GovernedVocabularyHistoryFormJudgment,
   ProjectContext,
 } from '../rules/types.js';
 
 const observation = (
   form: string,
-  overrides: Partial<GovernedVocabularyHistoryFormObservation> = {}
-): GovernedVocabularyHistoryFormObservation => ({
-  disposition: 'in-family-unresolved',
-  form,
-  line: 4,
-  path: 'src/example.ts',
-  reason: 'unclassified-neighbor',
-  scopeTier: 'in-scope',
-  verdict: 'deferred',
-  ...overrides,
-});
+  overrides: Partial<GovernedVocabularyHistoryFormJudgment> & {
+    readonly line?: number;
+    readonly path?: string;
+  } = {}
+): GovernedVocabularyHistoryFormJudgment => {
+  const { line = 4, path = 'src/example.ts', ...judgment } = overrides;
+  return {
+    disposition: 'unresolved',
+    form,
+    reason: 'unclassified-neighbor',
+    representative: { line, path },
+    ...judgment,
+  };
+};
 
 const evidence = (
-  latestFormObservations: readonly GovernedVocabularyHistoryFormObservation[],
+  latestFormJudgments: readonly GovernedVocabularyHistoryFormJudgment[],
   overrides: Partial<GovernedVocabularyHistoryEvidence> = {}
 ): GovernedVocabularyHistoryEvidence => ({
   caseSensitive: false,
   id: 'history-id',
-  latestFormObservations,
+  latestFormJudgments,
   path: '.trails/regrade/history/contour-to-entity.json',
   runCount: 2,
   transitionId: 'v1-contour-entity',
@@ -85,6 +88,21 @@ describe('governed-vocabulary-permutation-watch', () => {
     ]);
   });
 
+  test('falls back to the receipt location when no representative was retained', () => {
+    const diagnostics = governedVocabularyPermutationWatch.checkProject?.(
+      context([
+        evidence([observation('discontour', { representative: undefined })]),
+      ])
+    );
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        filePath: '.trails/regrade/history/contour-to-entity.json',
+        line: 1,
+      }),
+    ]);
+  });
+
   test('persisted preserve and policy classifications suppress repeats', () => {
     const diagnostics = governedVocabularyPermutationWatch.checkProject?.(
       context([
@@ -92,13 +110,10 @@ describe('governed-vocabulary-permutation-watch', () => {
           observation('DISCONTOUR', {
             disposition: 'out-of-family',
             reason: 'explicit preserve',
-            verdict: 'skipped',
           }),
           observation('PRECONTOUR', {
-            disposition: 'historical-by-policy',
+            disposition: 'preserved',
             reason: 'protected history',
-            scopeTier: 'policy-classified',
-            verdict: 'skipped',
           }),
         ]),
       ])
@@ -116,11 +131,10 @@ describe('governed-vocabulary-permutation-watch', () => {
             path: 'src/live.ts',
           }),
           observation('DISCONTOUR', {
-            disposition: 'explicit-preserve',
+            disposition: 'preserved',
             line: 2,
             path: 'docs/history.md',
             reason: 'historical evidence',
-            verdict: 'skipped',
           }),
         ]),
       ])

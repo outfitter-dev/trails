@@ -8,6 +8,7 @@ import {
   governedVocabularyHistoryProvenanceSchema,
   listGovernedVocabularyTransitions,
 } from './rules/retired-vocabulary.js';
+import { resolveReceiptForWarden } from './regrade-receipt.js';
 import type {
   GovernedVocabularyHistoryEvidence,
   GovernedVocabularyHistoryIssue,
@@ -350,43 +351,58 @@ export interface GovernedVocabularyHistoryIndex {
 
 const normalizePath = (value: string): string => value.replaceAll('\\', '/');
 
+const legacyCompactDisposition = (
+  observation: z.infer<typeof governedObservationSchema>
+): 'mapped' | 'out-of-family' | 'preserved' | 'unresolved' => {
+  if (
+    observation.reason === 'unclassified-neighbor' &&
+    observation.verdict === 'deferred'
+  ) {
+    return 'unresolved';
+  }
+  if (
+    observation.disposition === 'out-of-family' ||
+    observation.disposition === 'code-context-out-of-engine'
+  ) {
+    return 'out-of-family';
+  }
+  if (observation.verdict === 'applied' || observation.verdict === 'modified') {
+    return 'mapped';
+  }
+  return 'preserved';
+};
+
 const latestRunFacts = (
   run: HistoryRun | undefined
 ): Pick<
   GovernedVocabularyHistoryEvidence,
-  'caseSensitive' | 'latestFormObservations'
+  'caseSensitive' | 'latestFormJudgments'
 > => {
   if (run === undefined || run.plan.plan.kind !== 'vocabulary') {
-    return { caseSensitive: false, latestFormObservations: [] };
+    return { caseSensitive: false, latestFormJudgments: [] };
   }
   const report = reportSchema.safeParse(run.completionReport ?? run.report);
   if (!report.success) {
     return {
       caseSensitive: run.plan.plan.caseSensitive === true,
-      latestFormObservations: [],
+      latestFormJudgments: [],
     };
   }
   return {
     caseSensitive: run.plan.plan.caseSensitive === true,
-    latestFormObservations: (report.data.run?.ledger.occurrences ?? []).flatMap(
+    latestFormJudgments: (report.data.run?.ledger.occurrences ?? []).flatMap(
       (occurrence) => {
         const observation = governedObservationSchema.safeParse(occurrence);
         if (!observation.success) {
           return [];
         }
-        const { disposition, form, line, path, reason, scopeTier, verdict } =
-          observation.data;
+        const { form, line, path, reason } = observation.data;
         return [
           {
-            disposition,
+            disposition: legacyCompactDisposition(observation.data),
             form,
-            line,
-            path,
             reason,
-            ...(scopeTier === undefined || scopeTier === null
-              ? {}
-              : { scopeTier }),
-            verdict,
+            representative: { line, path },
           },
         ];
       }
@@ -415,17 +431,14 @@ const historyIssue = (
   },
 });
 
-const governedTransitionForRun = (run: z.infer<typeof historyRunSchema>) => {
-  const { plan } = run.plan;
+const governedTransitionForPlan = (
+  plan: z.infer<typeof planBodySchema>,
+  transitionIds: readonly (string | undefined)[] = []
+) => {
   if (plan.kind !== 'vocabulary') {
     return;
   }
-  const transitionIds = [
-    plan.id,
-    run.provenance?.transitionId,
-    run.plan.transitionId,
-  ];
-  for (const transitionId of transitionIds) {
+  for (const transitionId of [plan.id, ...transitionIds]) {
     if (transitionId === undefined) {
       continue;
     }
@@ -443,6 +456,70 @@ const governedTransitionForRun = (run: z.infer<typeof historyRunSchema>) => {
   );
 };
 
+const governedTransitionForRun = (run: z.infer<typeof historyRunSchema>) =>
+  governedTransitionForPlan(run.plan.plan, [
+    run.provenance?.transitionId,
+    run.plan.transitionId,
+  ]);
+
+const loadReceiptHistoryFile = (
+  json: unknown,
+  observedPath: string
+): HistoryFileResult => {
+  const resolved = resolveReceiptForWarden(json);
+  if (resolved.value === undefined) {
+    return historyIssue(
+      observedPath,
+      `Committed Regrade receipt has invalid deterministic evidence (${resolved.error ?? 'unknown error'}).`
+    );
+  }
+  const { artifact, runs } = resolved.value;
+  if (normalizePath(artifact.path) !== observedPath) {
+    return historyIssue(
+      observedPath,
+      'Committed Regrade history path does not match its observed file.'
+    );
+  }
+  const latest = runs.at(-1);
+  const transition =
+    latest === undefined
+      ? undefined
+      : governedTransitionForPlan(latest.plan, [artifact.id]);
+  if (transition === undefined) {
+    return { kind: 'ignore' };
+  }
+  const allRunsMatchTransition = runs.every(({ plan }) => {
+    if (
+      plan.kind !== 'vocabulary' ||
+      governedTransitionForPlan(plan, [artifact.id])?.id !== transition.id ||
+      plan.from !== transition.from
+    ) {
+      return false;
+    }
+    return transition.target.kind === 'single'
+      ? transition.target.to === plan.to
+      : transition.target.options.some((option) => option.to === plan.to);
+  });
+  if (!allRunsMatchTransition) {
+    return historyIssue(
+      observedPath,
+      'Committed Regrade history does not match its governed registry transition.',
+      transition.id
+    );
+  }
+  return {
+    kind: 'evidence',
+    value: {
+      caseSensitive: latest?.caseSensitive ?? false,
+      id: artifact.id,
+      latestFormJudgments: latest?.forms ?? [],
+      path: artifact.path,
+      runCount: runs.length,
+      transitionId: transition.id,
+    },
+  };
+};
+
 const loadHistoryFile = (rootDir: string, name: string): HistoryFileResult => {
   const absolutePath = join(rootDir, '.trails', 'regrade', 'history', name);
   const observedPath = normalizePath(relative(rootDir, absolutePath));
@@ -454,6 +531,9 @@ const loadHistoryFile = (rootDir: string, name: string): HistoryFileResult => {
       observedPath,
       'Committed Regrade history is not valid JSON.'
     );
+  }
+  if (isPlainObject(json) && json['schemaVersion'] === 3) {
+    return loadReceiptHistoryFile(json, observedPath);
   }
   const parsed = historyArtifactSchema.safeParse(json);
   if (!parsed.success) {

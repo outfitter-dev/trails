@@ -228,6 +228,7 @@ const OXFMTRC_CONTENT = `{
   "arrowParens": "always",
   "proseWrap": "never",
   "printWidth": 80,
+  "ignorePatterns": ["**/.trails/regrade/history/**"],
 }
 `;
 

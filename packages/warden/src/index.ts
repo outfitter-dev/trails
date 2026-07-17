@@ -11,7 +11,7 @@
 export type {
   BuiltinWardenRuleName,
   GovernedVocabularyHistoryEvidence,
-  GovernedVocabularyHistoryFormObservation,
+  GovernedVocabularyHistoryFormJudgment,
   GovernedVocabularyHistoryIssue,
   ProjectAwareWardenRule,
   ProjectContext,

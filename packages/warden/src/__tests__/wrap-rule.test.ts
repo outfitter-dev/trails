@@ -84,7 +84,7 @@ describe('wrapRule', () => {
           {
             caseSensitive: false,
             id: 'history-id',
-            latestFormObservations: [],
+            latestFormJudgments: [],
             path: '.trails/regrade/history/contour-to-entity.json',
             runCount: 1,
             transitionId: 'v1-contour-entity',

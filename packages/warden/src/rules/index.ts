@@ -81,7 +81,7 @@ import { webhookRouteCollision } from './webhook-route-collision.js';
 
 export type {
   GovernedVocabularyHistoryEvidence,
-  GovernedVocabularyHistoryFormObservation,
+  GovernedVocabularyHistoryFormJudgment,
   GovernedVocabularyHistoryIssue,
   WardenFix,
   WardenFixCapability,

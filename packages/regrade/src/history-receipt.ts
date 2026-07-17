@@ -91,11 +91,22 @@ export const regradeReceiptPlanSchema = z.discriminatedUnion('kind', [
 
 export type RegradeReceiptPlan = z.output<typeof regradeReceiptPlanSchema>;
 
+const regradeReceiptPlanProvenanceSchema = z
+  .object({
+    fields: z.record(z.string(), z.enum(['authored', 'derived'])),
+  })
+  .strict();
+
+export type RegradeReceiptPlanProvenance = z.output<
+  typeof regradeReceiptPlanProvenanceSchema
+>;
+
 const embeddedIntentSchema = z
   .object({
     kind: z.literal('embedded'),
     plan: regradeReceiptPlanSchema,
     planContentHash: sha256Schema,
+    provenance: regradeReceiptPlanProvenanceSchema,
   })
   .strict();
 
@@ -337,6 +348,7 @@ const proofClaimsNoAction = (run: RegradeRunReceipt): boolean => {
     Object.keys(counts.dispositions).length === 0 &&
     Object.keys(counts.skippedByReason).length === 0 &&
     metrics.filesChanged === 0 &&
+    metrics.formsMapped === 0 &&
     metrics.occurrencesRewritten === 0
   );
 };
@@ -571,6 +583,7 @@ export type RegradeHistoryReceipt = z.output<
 export interface ResolvedRegradeHistoryReceiptRun {
   readonly receipt: RegradeHistoryReceipt['runs'][number];
   readonly plan: RegradeReceiptPlan;
+  readonly provenance: RegradeReceiptPlanProvenance;
   readonly classifiedState: {
     readonly caseSensitive: boolean;
     readonly forms: readonly RegradeFormJudgment[];
@@ -605,9 +618,10 @@ export const canonicalRegradeJson = (value: unknown): string =>
 export const regradeReceiptContentHash = (value: unknown): string =>
   createHash('sha256').update(canonicalRegradeJson(value)).digest('hex');
 
-export const regradeReceiptPlanContentHash = (
-  plan: RegradeReceiptPlan
-): string => regradeReceiptContentHash(plan);
+export const regradeReceiptPlanContentHash = (intent: {
+  readonly plan: RegradeReceiptPlan;
+  readonly provenance: RegradeReceiptPlanProvenance;
+}): string => regradeReceiptContentHash(intent);
 
 const compareCodeUnits = (left: string, right: string): number => {
   if (left < right) {
@@ -653,7 +667,13 @@ export const resolveRegradeHistoryReceipt = (
     });
   }
 
-  const plans = new Map<string, RegradeReceiptPlan>();
+  const plans = new Map<
+    string,
+    {
+      readonly plan: RegradeReceiptPlan;
+      readonly provenance: RegradeReceiptPlanProvenance;
+    }
+  >();
   const classifiedStates = new Map<
     string,
     {
@@ -674,9 +694,17 @@ export const resolveRegradeHistoryReceipt = (
     }
     runIds.add(run.runId);
     let plan: RegradeReceiptPlan | undefined;
+    let provenance: RegradeReceiptPlanProvenance | undefined;
     if (run.intent.kind === 'embedded') {
-      const { plan: embeddedPlan, planContentHash } = run.intent;
-      const actualHash = regradeReceiptPlanContentHash(embeddedPlan);
+      const {
+        plan: embeddedPlan,
+        planContentHash,
+        provenance: embeddedProvenance,
+      } = run.intent;
+      const actualHash = regradeReceiptPlanContentHash({
+        plan: embeddedPlan,
+        provenance: embeddedProvenance,
+      });
       if (actualHash !== planContentHash) {
         return invalidReceipt('Regrade receipt plan hash mismatch.', {
           actualHash,
@@ -685,15 +713,17 @@ export const resolveRegradeHistoryReceipt = (
         });
       }
       plan = embeddedPlan;
-      plans.set(planContentHash, plan);
+      provenance = embeddedProvenance;
+      plans.set(planContentHash, { plan, provenance });
     } else {
-      plan = plans.get(run.intent.planContentHash);
-      if (plan === undefined) {
+      const referencedIntent = plans.get(run.intent.planContentHash);
+      if (referencedIntent === undefined) {
         return invalidReceipt('Broken Regrade receipt plan reference.', {
           planContentHash: run.intent.planContentHash,
           run: index,
         });
       }
+      ({ plan, provenance } = referencedIntent);
     }
 
     let classifiedState:
@@ -743,7 +773,7 @@ export const resolveRegradeHistoryReceipt = (
       }
     }
 
-    runs.push({ classifiedState, plan, receipt: run });
+    runs.push({ classifiedState, plan, provenance, receipt: run });
   }
 
   return Result.ok({ artifact: parsed.data, runs });

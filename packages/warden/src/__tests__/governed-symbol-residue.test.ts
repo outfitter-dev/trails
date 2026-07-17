@@ -25,7 +25,7 @@ describe('governed-symbol-residue', () => {
             {
               caseSensitive: true,
               id: 'history-id',
-              latestFormObservations: [],
+              latestFormJudgments: [],
               path: '.trails/regrade/history/contour-to-entity.json',
               runCount: 2,
               transitionId: 'v1-contour-entity',

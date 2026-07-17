@@ -136,6 +136,7 @@ export type {
   RegradeFormJudgment,
   RegradeHistoryReceipt,
   RegradeReceiptPlan,
+  RegradeReceiptPlanProvenance,
   ResolvedRegradeHistoryReceipt,
   ResolvedRegradeHistoryReceiptRun,
 } from './history-receipt.js';

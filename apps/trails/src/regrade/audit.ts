@@ -20,10 +20,8 @@ import { basename, extname, join } from 'node:path';
 import { z } from 'zod';
 
 import { deriveLiveApiPreserveInventory } from './live-api-preserve.js';
-import {
-  regradePlanArtifactSchema,
-  rootRelativePath,
-} from './plan-artifact.js';
+import { readRegradeHistoryArtifact } from './history.js';
+import { rootRelativePath } from './plan-artifact.js';
 
 export const regradeAuditInputSchema = z.object({
   failOnOpen: z
@@ -85,11 +83,6 @@ export const regradeAuditOutputSchema = z.object({
   transitions: z
     .array(regradeAuditTransitionSchema)
     .describe('Applied vocabulary transitions audited against current source'),
-});
-
-const regradeAuditHistoryPlanSchema = z.object({
-  id: z.string().min(1),
-  runs: z.array(z.object({ plan: regradePlanArtifactSchema })).min(1),
 });
 
 export type RegradeAuditInput = z.output<typeof regradeAuditInputSchema>;
@@ -239,21 +232,17 @@ const readRegradeAuditCandidates = (
     ) {
       continue;
     }
-    const history = regradeAuditHistoryPlanSchema.safeParse(rawHistory);
-    if (!history.success) {
-      return Result.err(
-        new ValidationError('Invalid Regrade history audit plan.', {
-          context: { historyFile, issues: history.error.issues },
-        })
-      );
+    const history = readRegradeHistoryArtifact(historyFile);
+    if (history.isErr()) {
+      return history;
     }
-    const latestPlan = history.data.runs.at(-1)?.plan.plan as
+    const latestPlan = history.value.runs.at(-1)?.plan.plan as
       | VocabularyRegradePlan
       | undefined;
     if (latestPlan?.kind !== 'vocabulary') {
       continue;
     }
-    const transitionId = latestPlan.id ?? history.data.id;
+    const transitionId = latestPlan.id ?? history.value.id;
     if (
       selectedTransitionIds !== null &&
       !selectedTransitionIds.has(transitionId)

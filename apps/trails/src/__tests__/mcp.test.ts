@@ -10,6 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 import {
   createTrailContext,
@@ -51,8 +52,28 @@ const parseJson = (text: string | undefined): unknown => {
   return JSON.parse(text ?? 'null');
 };
 
-const makeTempDir = (): string =>
-  mkdtempSync(join(tmpdir(), `trails-mcp-regrade-test-${Date.now()}-`));
+const makeTempDir = (): string => {
+  const dir = mkdtempSync(
+    join(tmpdir(), `trails-mcp-regrade-test-${Date.now()}-`)
+  );
+  execFileSync('git', ['init', '--quiet'], { cwd: dir });
+  execFileSync(
+    'git',
+    [
+      '-c',
+      'user.name=Trails Test',
+      '-c',
+      'user.email=trails@example.test',
+      'commit',
+      '--allow-empty',
+      '--quiet',
+      '-m',
+      'fixture',
+    ],
+    { cwd: dir }
+  );
+  return dir;
+};
 const facetTrailheadRegistryExcludes = [
   '.scratch/**',
   '**/.scratch/**',
@@ -355,14 +376,14 @@ describe('Trails MCP surface shaping', () => {
         scan: {
           byDirectory: [{ files: 1, path: 'src' }],
           byExtension: [{ extension: '.ts', files: 1 }],
-          files: { matched: 1, scanned: 2, skipped: 1 },
+          files: { matched: 1, scanned: 2, skipped: 2 },
         },
       });
       expect(result.structuredContent).toMatchObject({
         scan: {
-          files: { skipped: 1 },
+          files: { skipped: 2 },
           skippedByReason: {
-            'ignored-directory': 1,
+            'ignored-directory': 2,
           },
         },
       });
@@ -508,11 +529,17 @@ describe('Trails MCP surface shaping', () => {
       );
       expect(applied.structuredContent).toMatchObject({
         history: { status: 'applied' },
-        run: { report: { fileRenames: [expect.any(Object)] } },
+        run: { plan: { fileRenames: [expect.any(Object)] } },
       });
+      const transitionId = (
+        applied.structuredContent as {
+          readonly history?: { readonly id?: string };
+        }
+      ).history?.id;
+      expect(transitionId).toBeDefined();
 
       const historyCheck = await checkRegrade.handler(
-        { plan: 'alpha-to-omega', rootDir: dir },
+        { plan: transitionId ?? 'missing', rootDir: dir },
         {}
       );
       expect(historyCheck.isError).toBeUndefined();
@@ -522,7 +549,7 @@ describe('Trails MCP surface shaping', () => {
           path: '.trails/regrade/history/alpha-to-omega.json',
           status: 'checked',
         },
-        run: { report: { fileRenames: [expect.any(Object)] } },
+        run: { plan: { fileRenames: [expect.any(Object)] } },
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -638,19 +665,22 @@ describe('Trails MCP surface shaping', () => {
       expect(applied.structuredContent).toMatchObject({
         history: {
           id: expect.stringMatching(/^[0-9a-f]{12}$/),
-          provenance: {
-            kind: 'governed-vocabulary',
-            transitionId: 'v1-facet-trailhead',
-          },
+          schemaVersion: 3,
           status: 'applied',
         },
       });
       const historyPath = (
         applied.structuredContent as {
-          readonly history?: { readonly path?: string };
+          readonly history?: { readonly id?: string; readonly path?: string };
         }
       ).history?.path;
+      const transitionId = (
+        applied.structuredContent as {
+          readonly history?: { readonly id?: string };
+        }
+      ).history?.id;
       expect(historyPath).toBeDefined();
+      expect(transitionId).toBeDefined();
       expect(existsSync(join(dir, historyPath ?? 'missing'))).toBe(true);
       expect(
         existsSync(join(dir, '.trails/regrade/facet-to-trailhead.json'))
@@ -688,18 +718,18 @@ describe('Trails MCP surface shaping', () => {
       const tampered = JSON.parse(
         readFileSync(absoluteHistoryPath, 'utf8')
       ) as {
-        runs?: { provenance?: { transitionId?: string } }[];
+        runs?: { transitionId?: string }[];
       };
-      if (tampered.runs?.[0]?.provenance === undefined) {
-        throw new Error('Expected governed MCP history provenance.');
+      if (tampered.runs?.[0] === undefined) {
+        throw new Error('Expected governed MCP receipt run.');
       }
-      tampered.runs[0].provenance.transitionId = 'v1-contour-entity';
+      tampered.runs[0].transitionId = 'v1-contour-entity';
       writeFileSync(
         absoluteHistoryPath,
         `${JSON.stringify(tampered, null, 2)}\n`
       );
       const tamperedCheck = await checkRegrade.handler(
-        { plan: 'facet-to-trailhead', rootDir: dir },
+        { plan: transitionId ?? 'missing', rootDir: dir },
         {}
       );
       expect(tamperedCheck.isError).toBe(true);

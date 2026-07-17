@@ -152,9 +152,10 @@ describe('Regrade history receipt v3', () => {
       throw new Error('Expected embedded vocabulary fixture plan.');
     }
     routeIntent.plan.intent = 'Preserve the authored HTTP route /v1/example.';
-    routeIntent.planContentHash = regradeReceiptPlanContentHash(
-      routeIntent.plan
-    );
+    routeIntent.planContentHash = regradeReceiptPlanContentHash({
+      plan: routeIntent.plan,
+      provenance: routeIntent.provenance,
+    });
     const proofIntent = runAt(authoredRoute, 1).intent;
     if (proofIntent.kind !== 'reference') {
       throw new Error('Expected referenced proof fixture plan.');
@@ -203,6 +204,12 @@ describe('Regrade history receipt v3', () => {
     const openProof = cloneFixture();
     runAt(openProof, 1).completion.gate.status = 'open';
     expect(regradeHistoryReceiptSchema.safeParse(openProof).success).toBe(
+      false
+    );
+
+    const mappedProof = cloneFixture();
+    runAt(mappedProof, 1).completion.metrics.formsMapped = 1;
+    expect(regradeHistoryReceiptSchema.safeParse(mappedProof).success).toBe(
       false
     );
   });

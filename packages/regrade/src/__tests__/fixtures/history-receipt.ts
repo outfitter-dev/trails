@@ -39,6 +39,19 @@ export const receiptPlanFixture: RegradeReceiptPlan = {
   to: 'new',
 };
 
+export const receiptPlanProvenanceFixture = {
+  fields: {
+    fileRenames: 'authored' as const,
+    from: 'authored' as const,
+    id: 'authored' as const,
+    intent: 'authored' as const,
+    kind: 'derived' as const,
+    preserve: 'authored' as const,
+    scope: 'authored' as const,
+    to: 'authored' as const,
+  },
+};
+
 export const receiptFormsFixture: RegradeFormJudgment[] = [
   { disposition: 'mapped', form: 'old', target: 'new' },
   {
@@ -49,7 +62,10 @@ export const receiptFormsFixture: RegradeFormJudgment[] = [
   },
 ];
 
-const planContentHash = regradeReceiptPlanContentHash(receiptPlanFixture);
+const planContentHash = regradeReceiptPlanContentHash({
+  plan: receiptPlanFixture,
+  provenance: receiptPlanProvenanceFixture,
+});
 const stateHash = regradeClassifiedStateHash({
   caseSensitive: false,
   forms: receiptFormsFixture,
@@ -117,6 +133,7 @@ export const historyReceiptFixture: RegradeHistoryReceipt = {
         kind: 'embedded',
         plan: receiptPlanFixture,
         planContentHash,
+        provenance: receiptPlanProvenanceFixture,
       },
       project: { root: '.' },
       runId: 'fixture-original',
@@ -139,7 +156,7 @@ export const historyReceiptFixture: RegradeHistoryReceipt = {
         gate: { reasons: [], remaining: 0, status: 'green' },
         metrics: {
           filesChanged: 0,
-          formsMapped: 1,
+          formsMapped: 0,
           occurrencesRewritten: 0,
         },
       },
