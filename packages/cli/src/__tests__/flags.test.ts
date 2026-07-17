@@ -329,7 +329,7 @@ describe('outputModePreset', () => {
 
     expect(outputFlag.short).toBe('o');
     expect(outputFlag.choices).toEqual(['text', 'json', 'jsonl']);
-    expect(outputFlag.default).toBe('text');
+    expect(outputFlag.default).toBeUndefined();
     expect(jsonFlag.type).toBe('boolean');
     expect(jsonlFlag.type).toBe('boolean');
     expect(quietFlag.type).toBe('boolean');

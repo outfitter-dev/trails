@@ -56,6 +56,7 @@ import {
   writeJsonLine,
 } from './pagination.js';
 import type { InputResolver } from './prompt.js';
+import { deriveOutputMode } from './output.js';
 import {
   STRUCTURED_INPUT_HINT,
   hasStructuredOnlyFields,
@@ -646,11 +647,6 @@ const shouldIteratePages = (
   isPaginatedOutput(t) &&
   parsedFlags['all'] === true;
 
-const isJsonlMode = (parsedFlags: Record<string, unknown>): boolean =>
-  parsedFlags['jsonl'] === true ||
-  (typeof parsedFlags['output'] === 'string' &&
-    parsedFlags['output'] === 'jsonl');
-
 interface IterationOutcome {
   readonly result: Result<unknown, Error>;
   readonly streamed: boolean;
@@ -1122,7 +1118,7 @@ const createExecute =
         ctxOverrides,
         options,
         mergedInput,
-        isJsonlMode(parsedFlags),
+        deriveOutputMode(parsedFlags, graph.name).mode === 'jsonl',
         dryRun,
         permit,
         trailVersion,

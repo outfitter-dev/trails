@@ -73,13 +73,14 @@ interface RawCliRun {
 
 const runRawCli = (
   args: readonly string[],
-  cwd: string = repoRoot
+  cwd: string = repoRoot,
+  env: Readonly<Record<string, string>> = {}
 ): RawCliRun => {
   const command = [process.execPath, trailsBinPath, ...args];
   const proc = Bun.spawnSync({
     cmd: command,
     cwd,
-    env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
+    env: { ...process.env, ...env, NO_COLOR: '1' } as Record<string, string>,
     stderr: 'pipe',
     stdout: 'pipe',
     timeout: cliTimeoutMs,
@@ -501,12 +502,134 @@ describe('trails regrade', () => {
     }
   });
 
+  test('environment structured output keeps lifecycle progress off stderr', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'facet docs mention facet.\n');
+
+      const planned = runRawCli(
+        [
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--dry-run',
+        ],
+        repoRoot,
+        { TRAILS_JSON: '', TRAILS_JSONL: '1' }
+      );
+
+      expect(planned.exitCode).toBe(0);
+      expect(planned.stderr).toBe('');
+      expect(planned.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(planned.stdout)).toMatchObject({
+        lifecycle: {
+          phases: expect.arrayContaining([
+            expect.objectContaining({ name: 'derive-plan' }),
+          ]),
+        },
+      });
+
+      const terminated = runRawCli(
+        [
+          'regrade',
+          'plan',
+          '--root-dir',
+          dir,
+          '--dry-run',
+          '--',
+          '--output',
+          'text',
+        ],
+        repoRoot,
+        { TRAILS_JSON: '', TRAILS_JSONL: '1' }
+      );
+      expect(terminated.exitCode).toBe(0);
+      expect(terminated.stderr).toBe('');
+      expect(terminated.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(terminated.stdout)).toMatchObject({
+        lifecycle: {
+          phases: expect.arrayContaining([
+            expect.objectContaining({ name: 'derive-plan' }),
+          ]),
+        },
+      });
+
+      const bareOutput = runRawCli(
+        [
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--dry-run',
+          '--output',
+        ],
+        repoRoot,
+        { TRAILS_JSON: '', TRAILS_JSONL: '1' }
+      );
+      expect(bareOutput.exitCode).toBe(0);
+      expect(bareOutput.stderr).toBe('');
+      expect(bareOutput.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(bareOutput.stdout)).toMatchObject({
+        lifecycle: {
+          phases: expect.arrayContaining([
+            expect.objectContaining({ name: 'derive-plan' }),
+          ]),
+        },
+      });
+
+      const clusteredOutput = runRawCli(
+        [
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--dry-run',
+          '-qojsonl',
+        ],
+        repoRoot,
+        { TRAILS_JSON: '', TRAILS_JSONL: '' }
+      );
+      expect(clusteredOutput.exitCode).toBe(0);
+      expect(clusteredOutput.stderr).toBe('');
+      expect(clusteredOutput.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(clusteredOutput.stdout)).toMatchObject({
+        lifecycle: {
+          phases: expect.arrayContaining([
+            expect.objectContaining({ name: 'derive-plan' }),
+          ]),
+        },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test(
     'CLI writes, previews, dry-runs, and applies Regrade plans',
     () => {
       const dir = makeTempDir();
       try {
         writeFile(dir, 'docs/surface.md', 'facet docs mention facet.\n');
+
+        const observedPlan = runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--dry-run',
+        ]);
+        expect(observedPlan.exitCode).toBe(0);
+        expect(observedPlan.stderr).toContain('Regrade: resolve root');
+        expect(observedPlan.stderr).toContain('Regrade: derive plan complete');
 
         const planResult = runRawCli([
           'regrade',
@@ -525,9 +648,27 @@ describe('trails regrade', () => {
         }>(planResult);
         expect(plan).toMatchObject({
           kind: 'regrade-plan',
+          lifecycle: {
+            durationMs: expect.any(Number),
+            phases: [
+              expect.objectContaining({
+                name: 'resolve-root',
+                status: 'completed',
+              }),
+              expect.objectContaining({
+                name: 'load-config',
+                status: 'completed',
+              }),
+              expect.objectContaining({
+                name: 'derive-plan',
+                status: 'completed',
+              }),
+            ],
+          },
           path: '.trails/regrade/facet-to-trailhead.json',
           plan: { from: 'facet', to: 'trailhead' },
         });
+        expect(planResult.stderr).toBe('');
         if (plan.path === undefined) {
           throw new Error('Expected Regrade plan path.');
         }
@@ -559,6 +700,11 @@ describe('trails regrade', () => {
         ]);
         expect(previewResult.exitCode).toBe(0);
         expect(parseCliJson(previewResult)).toMatchObject({
+          lifecycle: {
+            phases: expect.arrayContaining([
+              expect.objectContaining({ name: 'preview-plan' }),
+            ]),
+          },
           plan: {
             path: '.trails/regrade/facet-to-trailhead.json',
             status: 'active',
@@ -604,6 +750,13 @@ describe('trails regrade', () => {
           path: '.trails/regrade/history/facet-to-trailhead.json',
           schemaVersion: 3,
           status: 'applied',
+        });
+        expect(applied).toMatchObject({
+          lifecycle: {
+            phases: expect.arrayContaining([
+              expect.objectContaining({ name: 'apply-plan' }),
+            ]),
+          },
         });
         expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toContain(
           'trailhead'
@@ -797,10 +950,18 @@ describe('trails regrade', () => {
       expect(adjustResult.exitCode).toBe(0);
       const adjusted = parseCliJson<{
         readonly kind?: string;
+        readonly lifecycle?: {
+          readonly phases?: readonly { readonly name?: string }[];
+        };
         readonly transitionId?: string;
       }>(adjustResult);
       expect(adjusted.kind).toBe('regrade-plan');
       expect(adjusted.transitionId).toBe(graduated.id ?? 'missing');
+      expect(adjusted.lifecycle?.phases).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'adjust-plan' }),
+        ])
+      );
       expect(existsSync(activePlanPath)).toBe(true);
 
       // The pulled-back active plan is authored intent only: the plan body
@@ -1228,6 +1389,11 @@ describe('trails regrade', () => {
       expect(recheckResult.exitCode).toBe(0);
       expect(parseCliJson(recheckResult)).toMatchObject({
         check: { status: 'passed' },
+        lifecycle: {
+          phases: expect.arrayContaining([
+            expect.objectContaining({ name: 'check-plan' }),
+          ]),
+        },
         rewritten: 0,
       });
     } finally {
@@ -6015,7 +6181,17 @@ describe('trails regrade', () => {
           id: 'v1-warden-ast-source',
           to: '@ontrails/source',
         });
-        expect(parsed).toEqual(directResult.value);
+        const { lifecycle: directLifecycle, ...directArtifact } =
+          directResult.value;
+        const { lifecycle: cliLifecycle, ...cliArtifact } =
+          parsed as typeof directResult.value;
+        expect(cliArtifact).toEqual(directArtifact);
+        expect(cliLifecycle).toMatchObject({
+          phases: directLifecycle.phases.map((phase) => ({
+            name: phase.name,
+            status: phase.status,
+          })),
+        });
       }
     } finally {
       rmSync(dir, { force: true, recursive: true });

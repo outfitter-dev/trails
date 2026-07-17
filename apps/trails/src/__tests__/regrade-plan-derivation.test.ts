@@ -67,7 +67,12 @@ describe('Regrade plan derivation', () => {
       if (first.isErr() || second.isErr()) {
         throw new Error('Expected Regrade plan derivation to succeed.');
       }
-      expect(second.value).toEqual(first.value);
+      const { lifecycle: firstLifecycle, ...firstArtifact } = first.value;
+      const { lifecycle: secondLifecycle, ...secondArtifact } = second.value;
+      expect(secondArtifact).toEqual(firstArtifact);
+      expect(secondLifecycle.phases.map((phase) => phase.name)).toEqual(
+        firstLifecycle.phases.map((phase) => phase.name)
+      );
       expect(first.value.derivation).toMatchObject({
         fileRenames: [
           {

@@ -59,6 +59,10 @@ import {
 } from '../regrade/audit.js';
 import { loadRegradeConfig } from '../regrade/config.js';
 import {
+  RegradeLifecycleTracker,
+  regradeLifecycleSchema,
+} from '../regrade/lifecycle.js';
+import {
   appendRegradeHistoryRun,
   consumeActiveRegradePlanAfterHistoryWrite,
   readRegradeHistoryArtifact,
@@ -245,7 +249,19 @@ const regradePlansOutputSchema = z.object({
   plans: z.array(regradePlanSummarySchema),
 });
 
-const regradeCheckOutputSchema = regradeReportOutput.extend({
+const regradeLifecycleReportOutputSchema = regradeReportOutput.extend({
+  lifecycle: regradeLifecycleSchema.describe(
+    'Observed phases and wall-clock timings for this lifecycle command'
+  ),
+});
+
+const regradePlanCommandOutputSchema = regradePlanArtifactSchema.extend({
+  lifecycle: regradeLifecycleSchema.describe(
+    'Observed phases and wall-clock timings for this lifecycle command'
+  ),
+});
+
+const regradeCheckOutputSchema = regradeLifecycleReportOutputSchema.extend({
   check: z
     .object({
       plan: z
@@ -3749,30 +3765,37 @@ export const planRegradeTrail = trail('plan.regrade', {
   cli: { path: ['regrade', 'plan'] },
   description: 'Write or update a reviewed Regrade plan',
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    const lifecycle = new RegradeLifecycleTracker({ progress: ctx.progress });
+    const rootDirResult = await lifecycle.run('resolve-root', () =>
+      resolveTrailRootDir(input.rootDir, ctx.cwd)
+    );
     if (rootDirResult.isErr()) {
-      return rootDirResult;
+      return Result.err(rootDirResult.error);
     }
 
-    const configResult = await loadRegradeConfig({
-      ...(input.configPath === undefined
-        ? {}
-        : { configPath: input.configPath }),
-      env: ctx.env,
-      rootDir: rootDirResult.value,
-    });
+    const configResult = await lifecycle.run('load-config', () =>
+      loadRegradeConfig({
+        ...(input.configPath === undefined
+          ? {}
+          : { configPath: input.configPath }),
+        env: ctx.env,
+        rootDir: rootDirResult.value,
+      })
+    );
     if (configResult.isErr()) {
-      return configResult;
+      return Result.err(configResult.error);
     }
 
-    const result = await runPlanRegrade(
-      input,
-      rootDirResult.value,
-      configResult.value.config?.scope,
-      ctx.dryRun === true
+    const result = await lifecycle.run('derive-plan', () =>
+      runPlanRegrade(
+        input,
+        rootDirResult.value,
+        configResult.value.config?.scope,
+        ctx.dryRun === true
+      )
     );
     if (result.isErr()) {
-      return result;
+      return Result.err(result.error);
     }
     const output = regradePlanArtifactSchema.safeParse(result.value);
     if (!output.success) {
@@ -3782,11 +3805,11 @@ export const planRegradeTrail = trail('plan.regrade', {
         })
       );
     }
-    return Result.ok(output.data);
+    return Result.ok({ ...output.data, lifecycle: lifecycle.summary() });
   },
   input: regradePlanInputSchema,
   intent: 'write',
-  output: regradePlanArtifactSchema,
+  output: regradePlanCommandOutputSchema,
   permit: 'public',
 });
 
@@ -3857,13 +3880,18 @@ export const checkRegradeTrail = trail('check.regrade', {
   cli: { path: ['regrade', 'check'] },
   description: 'Check a saved Regrade plan gate without writing source',
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    const lifecycle = new RegradeLifecycleTracker({ progress: ctx.progress });
+    const rootDirResult = await lifecycle.run('resolve-root', () =>
+      resolveTrailRootDir(input.rootDir, ctx.cwd)
+    );
     if (rootDirResult.isErr()) {
-      return rootDirResult;
+      return Result.err(rootDirResult.error);
     }
-    const result = await runCheckRegradePlan(input, rootDirResult.value);
+    const result = await lifecycle.run('check-plan', () =>
+      runCheckRegradePlan(input, rootDirResult.value)
+    );
     if (result.isErr()) {
-      return result;
+      return Result.err(result.error);
     }
     const checked = {
       ...result.value,
@@ -3875,6 +3903,7 @@ export const checkRegradeTrail = trail('check.regrade', {
           '',
         status: 'passed' as const,
       },
+      lifecycle: lifecycle.summary(),
     };
     const output = validateOutput(regradeCheckOutputSchema, checked);
     if (output.isErr()) {
@@ -3892,15 +3921,23 @@ export const previewRegradeTrail = trail('preview.regrade', {
   cli: { path: ['regrade', 'preview'] },
   description: 'Preview a saved Regrade plan without writing source',
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    const lifecycle = new RegradeLifecycleTracker({ progress: ctx.progress });
+    const rootDirResult = await lifecycle.run('resolve-root', () =>
+      resolveTrailRootDir(input.rootDir, ctx.cwd)
+    );
     if (rootDirResult.isErr()) {
-      return rootDirResult;
+      return Result.err(rootDirResult.error);
     }
-    const result = await runPreviewRegradePlan(input, rootDirResult.value);
+    const result = await lifecycle.run('preview-plan', () =>
+      runPreviewRegradePlan(input, rootDirResult.value)
+    );
     if (result.isErr()) {
-      return result;
+      return Result.err(result.error);
     }
-    const output = validateOutput(regradeReportOutput, result.value);
+    const output = validateOutput(regradeLifecycleReportOutputSchema, {
+      ...result.value,
+      lifecycle: lifecycle.summary(),
+    });
     if (output.isErr()) {
       return Result.err(output.error);
     }
@@ -3908,7 +3945,7 @@ export const previewRegradeTrail = trail('preview.regrade', {
   },
   input: regradePlanReferenceInputSchema,
   intent: 'read',
-  output: regradeReportOutput,
+  output: regradeLifecycleReportOutputSchema,
   permit: 'public',
 });
 
@@ -3916,19 +3953,23 @@ export const applyRegradeTrail = trail('apply.regrade', {
   cli: { path: ['regrade', 'apply'] },
   description: 'Apply a saved Regrade plan and move it to history',
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    const lifecycle = new RegradeLifecycleTracker({ progress: ctx.progress });
+    const rootDirResult = await lifecycle.run('resolve-root', () =>
+      resolveTrailRootDir(input.rootDir, ctx.cwd)
+    );
     if (rootDirResult.isErr()) {
-      return rootDirResult;
+      return Result.err(rootDirResult.error);
     }
-    const result = await runApplyRegradePlan(
-      input,
-      rootDirResult.value,
-      ctx.dryRun === true
+    const result = await lifecycle.run('apply-plan', () =>
+      runApplyRegradePlan(input, rootDirResult.value, ctx.dryRun === true)
     );
     if (result.isErr()) {
-      return result;
+      return Result.err(result.error);
     }
-    const output = validateOutput(regradeReportOutput, result.value);
+    const output = validateOutput(regradeLifecycleReportOutputSchema, {
+      ...result.value,
+      lifecycle: lifecycle.summary(),
+    });
     if (output.isErr()) {
       return Result.err(output.error);
     }
@@ -3936,7 +3977,7 @@ export const applyRegradeTrail = trail('apply.regrade', {
   },
   input: regradeApplyPlanInputSchema,
   intent: 'write',
-  output: regradeReportOutput,
+  output: regradeLifecycleReportOutputSchema,
   permit: 'public',
 });
 
@@ -3946,17 +3987,18 @@ export const adjustRegradeTrail = trail('adjust.regrade', {
   description:
     'Pull a graduated Regrade transition back to an active plan for adjustment',
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    const lifecycle = new RegradeLifecycleTracker({ progress: ctx.progress });
+    const rootDirResult = await lifecycle.run('resolve-root', () =>
+      resolveTrailRootDir(input.rootDir, ctx.cwd)
+    );
     if (rootDirResult.isErr()) {
-      return rootDirResult;
+      return Result.err(rootDirResult.error);
     }
-    const result = await runAdjustRegrade(
-      input,
-      rootDirResult.value,
-      ctx.dryRun === true
+    const result = await lifecycle.run('adjust-plan', () =>
+      runAdjustRegrade(input, rootDirResult.value, ctx.dryRun === true)
     );
     if (result.isErr()) {
-      return result;
+      return Result.err(result.error);
     }
     const output = regradePlanArtifactSchema.safeParse(result.value);
     if (!output.success) {
@@ -3966,10 +4008,10 @@ export const adjustRegradeTrail = trail('adjust.regrade', {
         })
       );
     }
-    return Result.ok(output.data);
+    return Result.ok({ ...output.data, lifecycle: lifecycle.summary() });
   },
   input: regradeAdjustInputSchema,
   intent: 'write',
-  output: regradePlanArtifactSchema,
+  output: regradePlanCommandOutputSchema,
   permit: 'public',
 });

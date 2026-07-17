@@ -274,7 +274,6 @@ export const applyCliFlagValueAliases = (
 export const outputModePreset = (): CliFlag[] => [
   {
     choices: ['text', 'json', 'jsonl'],
-    default: 'text',
     description: 'Output format',
     name: 'output',
     required: false,

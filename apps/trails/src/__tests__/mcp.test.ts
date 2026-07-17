@@ -424,10 +424,17 @@ describe('Trails MCP surface shaping', () => {
       }
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const planRegrade = requireTool(tools, 'trails_plan_regrade');
+      const progress: { readonly current: number; readonly total: number }[] =
+        [];
 
       const result = await planRegrade.handler(
         { from: 'projection', rootDir: dir, to: 'render' },
-        {}
+        {
+          progressToken: 'regrade-plan',
+          sendProgress: async (current, total) => {
+            progress.push({ current, total });
+          },
+        }
       );
 
       expect(result.isError).toBeUndefined();
@@ -440,6 +447,14 @@ describe('Trails MCP surface shaping', () => {
               source: 'plan-defer',
             }),
           ]),
+        },
+        lifecycle: {
+          durationMs: expect.any(Number),
+          phases: [
+            expect.objectContaining({ name: 'resolve-root' }),
+            expect.objectContaining({ name: 'load-config' }),
+            expect.objectContaining({ name: 'derive-plan' }),
+          ],
         },
         path: '.trails/regrade/v1-projection-derive-render.json',
         plan: {
@@ -461,6 +476,8 @@ describe('Trails MCP surface shaping', () => {
       expect(JSON.stringify(result.structuredContent)).not.toContain(
         '"safe-rewrite"'
       );
+      expect(progress).toContainEqual({ current: 0, total: 1 });
+      expect(progress).toContainEqual({ current: 1, total: 1 });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1233,7 +1250,16 @@ describe('Trails MCP surface shaping', () => {
       }
       const planResult = await planRegrade.handler(input, {});
       expect(planResult.isError).toBeUndefined();
-      expect(planResult.structuredContent).toEqual(direct.value);
+      const { lifecycle: directLifecycle, ...directArtifact } = direct.value;
+      const { lifecycle: mcpLifecycle, ...mcpArtifact } =
+        planResult.structuredContent as typeof direct.value;
+      expect(mcpArtifact).toEqual(directArtifact);
+      expect(mcpLifecycle).toMatchObject({
+        phases: directLifecycle.phases.map((phase) => ({
+          name: phase.name,
+          status: phase.status,
+        })),
+      });
       const result = await previewRegrade.handler({ rootDir: dir }, {});
 
       expect(result.isError).toBeUndefined();

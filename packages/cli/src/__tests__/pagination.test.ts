@@ -387,6 +387,91 @@ describe('CLI surface absorbs pagination — --all --jsonl streaming', () => {
     expect(captured?.streamed).toBe(true);
   });
 
+  test('streams when JSONL is selected by the topo environment', async () => {
+    const { t } = makePaginatedTrail([
+      { hasMore: true, items: ['a'], nextCursor: 'p2' },
+      { hasMore: false, items: ['b'] },
+    ]);
+    const app = topo('test-app', { [t.id]: t });
+    const originalJsonl = process.env['TEST_APP_JSONL'];
+    const writes: string[] = [];
+    const originalWrite = process.stdout.write.bind(process.stdout);
+    process.env['TEST_APP_JSONL'] = '1';
+    process.stdout.write = ((chunk: unknown): boolean => {
+      writes.push(typeof chunk === 'string' ? chunk : String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+
+    let captured: ActionResultContext | undefined;
+    try {
+      const command = requireCommand(
+        buildCommands(app, {
+          onResult: (ctx) => {
+            captured = ctx;
+            return Promise.resolve();
+          },
+        })
+      );
+
+      const result = await command.execute({}, { all: true });
+      expect(result.isOk()).toBe(true);
+    } finally {
+      process.stdout.write = originalWrite;
+      if (originalJsonl === undefined) {
+        delete process.env['TEST_APP_JSONL'];
+      } else {
+        process.env['TEST_APP_JSONL'] = originalJsonl;
+      }
+    }
+
+    expect(writes).toEqual([
+      `${JSON.stringify('a')}\n`,
+      `${JSON.stringify('b')}\n`,
+    ]);
+    expect(captured?.streamed).toBe(true);
+  });
+
+  test('explicit text output overrides environment JSONL streaming', async () => {
+    const { t } = makePaginatedTrail([
+      { hasMore: true, items: ['a'], nextCursor: 'p2' },
+      { hasMore: false, items: ['b'] },
+    ]);
+    const app = topo('test-app', { [t.id]: t });
+    const originalJsonl = process.env['TEST_APP_JSONL'];
+    const writes: string[] = [];
+    const originalWrite = process.stdout.write.bind(process.stdout);
+    process.env['TEST_APP_JSONL'] = '1';
+    process.stdout.write = ((chunk: unknown): boolean => {
+      writes.push(typeof chunk === 'string' ? chunk : String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+
+    let captured: ActionResultContext | undefined;
+    try {
+      const command = requireCommand(
+        buildCommands(app, {
+          onResult: (ctx) => {
+            captured = ctx;
+            return Promise.resolve();
+          },
+        })
+      );
+
+      const result = await command.execute({}, { all: true, output: 'text' });
+      expect(result.isOk()).toBe(true);
+    } finally {
+      process.stdout.write = originalWrite;
+      if (originalJsonl === undefined) {
+        delete process.env['TEST_APP_JSONL'];
+      } else {
+        process.env['TEST_APP_JSONL'] = originalJsonl;
+      }
+    }
+
+    expect(writes).toEqual([]);
+    expect(captured?.streamed).toBe(false);
+  });
+
   test('streams a terminal non-page value when runtime pagination drifts', async () => {
     let calls = 0;
     const t = trail('items.list', {

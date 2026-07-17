@@ -18,6 +18,7 @@ import type {
 } from '@ontrails/cli';
 import { createProgram } from '@ontrails/commander';
 import type { CreateProgramOptions } from '@ontrails/commander';
+import { createTrailContext } from '@ontrails/core';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
 import { deriveTopoGraph } from '@ontrails/topography';
 
@@ -25,6 +26,7 @@ import { app, trailsCliIncludedTrails, trailsOverlays } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 import { getRetiredTopoCommandDiagnostic } from './retired-topo-command.js';
 import { attachCompletionsInstallCommand } from './run-completions-install.js';
+import { usesStructuredCliOutput } from './run-regrade-progress.js';
 import { attachSchemaCommand } from './run-schema.js';
 import {
   applyAdapterCheckExitCode,
@@ -302,6 +304,17 @@ const runSurfaceOnce = async (): Promise<void> => {
   const session = maybeInstallTraceSession();
   try {
     const surfaceOptions = {
+      createContext: () =>
+        createTrailContext({
+          progress: (event) => {
+            if (
+              !usesStructuredCliOutput(process.argv, process.env) &&
+              event.message?.startsWith('Regrade:') === true
+            ) {
+              process.stderr.write(`${event.message}\n`);
+            }
+          },
+        }),
       description: 'Agent-native, contract-first TypeScript framework',
       include: trailsCliIncludedTrails,
       name: 'trails',
