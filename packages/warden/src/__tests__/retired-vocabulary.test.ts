@@ -512,6 +512,16 @@ describe('governed vocabulary registry', () => {
         pattern: '^@ontrails/warden/ast$',
       })
     );
+    expect(source?.preserve).toContainEqual(
+      expect.objectContaining({
+        paths: [
+          'apps/trails/src/__tests__/regrade.test.ts',
+          'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
+          'packages/regrade/src/downstream/__tests__/vocabulary.test.ts',
+        ],
+        pattern: '^@ontrails/warden/ast(?:\\.js|\\.utils|/utils)$',
+      })
+    );
     expect(source?.preserve).not.toContainEqual(
       expect.objectContaining({
         paths: expect.arrayContaining([

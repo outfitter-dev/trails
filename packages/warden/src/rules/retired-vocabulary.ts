@@ -744,6 +744,16 @@ export const governedVocabularyTransitions =
           reason:
             'Preserve transition regression fixtures and the intentional negative resolver assertion after the public route is retired.',
         },
+        {
+          paths: [
+            'apps/trails/src/__tests__/regrade.test.ts',
+            'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
+            'packages/regrade/src/downstream/__tests__/vocabulary.test.ts',
+          ],
+          pattern: '^@ontrails/warden/ast(?:\\.js|\\.utils|/utils)$',
+          reason:
+            'Preserve the adjacent package-route variants used by the authored Warden AST transition regression fixtures.',
+        },
       ],
       reviewForms: [],
       safeRewriteForms: {

@@ -6344,6 +6344,41 @@ describe('trails regrade', () => {
     }
   });
 
+  test('v1 warden AST regression fixtures classify adjacent negative routes as preserved', () => {
+    const run = runRawCli([
+      'regrade',
+      '@ontrails/warden/ast',
+      '@ontrails/source',
+      '--root-dir',
+      repoRoot,
+      '--include-entries',
+      'all',
+      '--json',
+    ]);
+    expect(run.exitCode).toBe(0);
+    const parsed = parseCliJson<
+      {
+        readonly entries?: readonly { readonly outcome?: string }[];
+      } & Record<string, unknown>
+    >(run);
+    expect(parsed).toMatchObject({
+      review: 0,
+      rewritten: 0,
+      run: {
+        report: {
+          deferred: 0,
+          dispositions: { 'explicit-preserve': 6 },
+          gate: { remaining: 0, status: 'green' },
+          modified: 0,
+          open: 0,
+        },
+      },
+    });
+    expect(
+      parsed.entries?.filter((entry) => entry.outcome === 'needs-review')
+    ).toEqual([]);
+  });
+
   test('CLI regrade observes and applies governed package route source strings', () => {
     const dir = makeTempDir();
     const input = {
