@@ -1,0 +1,221 @@
+{
+  "id": "ce71df29c346",
+  "kind": "regrade-history",
+  "path": ".trails/regrade/history/ontrails-warden-ast-to-ontrails-source.json",
+  "runs": [
+    {
+      "classifiedState": {
+        "caseSensitive": true,
+        "forms": [
+          {
+            "disposition": "preserved",
+            "form": "@ontrails/warden/ast",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 7,
+              "path": ".changeset/trl-1254-warden-ast-source-route.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "@ontrails/warden/ast$",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 64,
+              "path": ".trails/regrade/ontrails-warden-ast-to-ontrails-source.json"
+            }
+          }
+        ],
+        "kind": "embedded",
+        "stateHash": "6336ce54f4886bcaf7aea3b85a6571ee2a59848c68d7e3603b0773576087d7aa"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {
+            "explicit-preserve": 6,
+            "historical-by-policy": 21
+          },
+          "matched": 0,
+          "preserved": 2,
+          "review": 0,
+          "rewritten": 0,
+          "skippedByReason": {
+            "ignored-directory": 34,
+            "ignored-glob": 1,
+            "immutable-regrade-history": 1,
+            "unsupported-extension": 901
+          },
+          "unknown": 0
+        },
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
+        },
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
+      },
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "3dd72b06a2282dcf3dfe9282e09060f167f7e1d8fdb23b19da26877297a1e88c",
+        "lockStateHash": "0588465e70f6ebe359242ae2a95e55c61678dec35aa3e7b338268ae0460f0428",
+        "policyHash": "dbf2b0cdcda6a172ed62ff76f8823d3fa66d845c27add1448395ed5ed80d6c2a",
+        "sourceRevision": "c2136dcc57067b9e4bd72fa53fedb10faecf6503",
+        "sourceStateHash": "0588465e70f6ebe359242ae2a95e55c61678dec35aa3e7b338268ae0460f0428",
+        "toolVersion": "1.0.0-beta.45"
+      },
+      "intent": {
+        "kind": "embedded",
+        "plan": {
+          "caseSensitive": true,
+          "deferForms": [],
+          "from": "@ontrails/warden/ast",
+          "id": "v1-warden-ast-source",
+          "intent": "Move reusable AST helper imports from @ontrails/warden/ast to @ontrails/source for v1.",
+          "kind": "vocabulary",
+          "overrides": {
+            "@ontrails/warden/ast": "@ontrails/source"
+          },
+          "preserve": [
+            {
+              "paths": [
+                "adapters/commander/src/__tests__/to-commander.test.ts",
+                "apps/trails/src/__tests__/mcp.test.ts",
+                "apps/trails/src/__tests__/regrade.test.ts",
+                "packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts",
+                "packages/regrade/src/downstream/__tests__/vocabulary.test.ts",
+                "packages/warden/src/__tests__/retired-vocabulary.test.ts",
+                "scripts/verify-oxc-resolver-published.ts"
+              ],
+              "pattern": "^@ontrails/warden/ast$",
+              "reason": "Preserve transition regression fixtures and the intentional negative resolver assertion after the public route is retired."
+            },
+            {
+              "paths": [
+                "apps/trails/src/__tests__/regrade.test.ts",
+                "packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts",
+                "packages/regrade/src/downstream/__tests__/vocabulary.test.ts"
+              ],
+              "pattern": "^@ontrails/warden/ast(?:\\.js|\\.utils|/utils)$",
+              "reason": "Preserve the adjacent package-route variants used by the authored Warden AST transition regression fixtures."
+            }
+          ],
+          "scope": {
+            "exclude": [
+              ".scratch/**",
+              "**/.scratch/**",
+              "**/.tmp-tests/**"
+            ],
+            "policyClassified": [
+              {
+                "disposition": "historical-by-policy",
+                "paths": [
+                  ".agents/goals/**",
+                  "**/.agents/goals/**",
+                  ".agents/memory/**",
+                  "**/.agents/memory/**",
+                  ".agents/notes/**",
+                  "**/.agents/notes/**",
+                  ".agents/plans/**",
+                  "**/.agents/plans/**",
+                  ".claude/agent-memory/**",
+                  "**/.claude/agent-memory/**",
+                  ".changeset/**",
+                  "**/.changeset/**",
+                  ".trails/regrade/*.json",
+                  "**/.trails/regrade/*.json",
+                  "**/CHANGELOG.md",
+                  "docs/adr/0*.md",
+                  "docs/adr/decision-map.json",
+                  "docs/migration/*-to-adapter.md",
+                  "docs/migration/*-to-compose.md",
+                  "docs/migration/trailhead-to-surface.md",
+                  "docs/releases/beta*.md",
+                  "docs/releases/v1-vocabulary-reset.md",
+                  "docs/releases/v1-vocabulary-transition-workflow.md",
+                  "packages/warden/src/__tests__/retired-vocabulary.test.ts",
+                  "packages/warden/src/rules/retired-vocabulary.ts"
+                ],
+                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
+              }
+            ]
+          },
+          "to": "@ontrails/source"
+        },
+        "planContentHash": "4f9b24385aa7c872e811539c7c2b3d26205ff9d1a5190c01ca0db28e32709a83",
+        "provenance": {
+          "fields": {
+            "caseSensitive": "derived",
+            "deferForms": "derived",
+            "from": "authored",
+            "id": "derived",
+            "intent": "derived",
+            "kind": "derived",
+            "overrides": "derived",
+            "preserve": "derived",
+            "scope": "derived",
+            "to": "authored"
+          }
+        }
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "dcbce65ad86638d3",
+      "runKind": "original",
+      "timestamp": "2026-07-18T16:22:31.690Z",
+      "transitionId": "ce71df29c346"
+    },
+    {
+      "classifiedState": {
+        "kind": "reference",
+        "stateHash": "6336ce54f4886bcaf7aea3b85a6571ee2a59848c68d7e3603b0773576087d7aa"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {},
+          "matched": 0,
+          "preserved": 0,
+          "review": 0,
+          "rewritten": 0,
+          "skippedByReason": {},
+          "unknown": 0
+        },
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
+        },
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
+      },
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "3dd72b06a2282dcf3dfe9282e09060f167f7e1d8fdb23b19da26877297a1e88c",
+        "lockStateHash": "0588465e70f6ebe359242ae2a95e55c61678dec35aa3e7b338268ae0460f0428",
+        "policyHash": "dbf2b0cdcda6a172ed62ff76f8823d3fa66d845c27add1448395ed5ed80d6c2a",
+        "sourceRevision": "c2136dcc57067b9e4bd72fa53fedb10faecf6503",
+        "sourceStateHash": "0588465e70f6ebe359242ae2a95e55c61678dec35aa3e7b338268ae0460f0428",
+        "toolVersion": "1.0.0-beta.45"
+      },
+      "intent": {
+        "kind": "reference",
+        "planContentHash": "4f9b24385aa7c872e811539c7c2b3d26205ff9d1a5190c01ca0db28e32709a83"
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "23691588562905eb",
+      "runKind": "proof",
+      "timestamp": "2026-07-18T16:22:40.020Z",
+      "transitionId": "ce71df29c346"
+    }
+  ],
+  "schemaVersion": 3
+}
