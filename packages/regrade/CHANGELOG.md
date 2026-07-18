@@ -1,5 +1,13 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.47
+
+### Patch Changes
+
+- [`90d394c`](https://github.com/outfitter-dev/trails/commit/90d394c005fdf6b898ba7052d0b56755af0f4954): Derive nested worktree, repository, and submodule collection boundaries in the
+  shared Source walker. Regrade and Warden now observe one directly targeted
+  working tree per run, and Regrade audit summaries expose boundary skip counts.
+
 ## 1.0.0-beta.46
 
 ### Minor Changes
