@@ -4,8 +4,7 @@ import {
   matchesAnyPathGlob,
   trail,
 } from '@ontrails/core';
-import { readdirSync } from 'node:fs';
-import { join, posix, relative, resolve, sep } from 'node:path';
+import { collectSourceTree } from '@ontrails/source';
 import { z } from 'zod';
 
 /**
@@ -124,45 +123,9 @@ export const classifyDownstreamEntry = (
     : { action: 'skip', reason: 'unsupported-extension' };
 };
 
-const toPosixRelative = (root: string, absolutePath: string): string => {
-  const rel = relative(root, absolutePath);
-  return sep === posix.sep ? rel : rel.split(sep).join(posix.sep);
-};
-
 const isImmutableRegradeHistoryDirectory = (path: string): boolean =>
   path === '.trails/regrade/history' ||
   path.endsWith('/.trails/regrade/history');
-
-const direntKind = (dirent: {
-  isDirectory(): boolean;
-  isFile(): boolean;
-}): DownstreamEntryKind => {
-  if (dirent.isDirectory()) {
-    return 'directory';
-  }
-  return dirent.isFile() ? 'file' : 'other';
-};
-
-type DirectoryRead =
-  | {
-      readonly ok: true;
-      readonly entries: readonly {
-        readonly name: string;
-        readonly kind: DownstreamEntryKind;
-      }[];
-    }
-  | { readonly ok: false };
-
-const readDirectory = (absoluteDir: string): DirectoryRead => {
-  try {
-    const entries = readdirSync(absoluteDir, { withFileTypes: true }).map(
-      (dirent) => ({ kind: direntKind(dirent), name: dirent.name })
-    );
-    return { entries, ok: true };
-  } catch {
-    return { ok: false };
-  }
-};
 
 /**
  * Walk an explicit downstream root and collect candidate source files.
@@ -175,69 +138,27 @@ const readDirectory = (absoluteDir: string): DirectoryRead => {
 export const collectDownstreamSources = (
   root: string,
   options: DownstreamCollectionOptions = {}
-): DownstreamSourceCollection | null => {
-  const absoluteRoot = resolve(root);
-  const rootRead = readDirectory(absoluteRoot);
-  if (!rootRead.ok) {
-    return null;
-  }
-
-  const files: CollectedSource[] = [];
-  const skipped: SkippedSource[] = [];
-  const queue: string[] = [absoluteRoot];
-
-  while (queue.length > 0) {
-    const current = queue.shift() as string;
-    const read = current === absoluteRoot ? rootRead : readDirectory(current);
-    if (!read.ok) {
-      skipped.push({
-        path: toPosixRelative(absoluteRoot, current),
-        reason: 'unreadable-directory',
-      });
-      continue;
-    }
-
-    for (const entry of read.entries) {
-      const absolutePath = join(current, entry.name);
-      const path = toPosixRelative(absoluteRoot, absolutePath);
+): DownstreamSourceCollection | null =>
+  collectSourceTree(root, {
+    classify: ({ kind, name, path }) => {
       if (matchesAnyPathGlob(path, options.exclude)) {
-        skipped.push({ path, reason: 'ignored-glob' });
-        continue;
+        return { action: 'skip', reason: 'ignored-glob' };
       }
+      if (kind === 'directory' && isImmutableRegradeHistoryDirectory(path)) {
+        return { action: 'skip', reason: 'immutable-regrade-history' };
+      }
+      const classification = classifyDownstreamEntry(name, kind, options);
       if (
-        entry.kind === 'directory' &&
-        isImmutableRegradeHistoryDirectory(path)
+        classification.action === 'collect' &&
+        options.include !== undefined &&
+        options.include.length > 0 &&
+        !matchesAnyPathGlob(path, options.include)
       ) {
-        skipped.push({ path, reason: 'immutable-regrade-history' });
-        continue;
+        return { action: 'skip', reason: 'not-included-glob' };
       }
-      const classification = classifyDownstreamEntry(
-        entry.name,
-        entry.kind,
-        options
-      );
-      if (classification.action === 'collect') {
-        if (
-          options.include !== undefined &&
-          options.include.length > 0 &&
-          !matchesAnyPathGlob(path, options.include)
-        ) {
-          skipped.push({ path, reason: 'not-included-glob' });
-        } else {
-          files.push({ absolutePath, path });
-        }
-      } else if (classification.action === 'recurse') {
-        queue.push(absolutePath);
-      } else {
-        skipped.push({ path, reason: classification.reason });
-      }
-    }
-  }
-
-  files.sort((a, b) => a.path.localeCompare(b.path));
-  skipped.sort((a, b) => a.path.localeCompare(b.path));
-  return { files, root: absoluteRoot, skipped };
-};
+      return classification;
+    },
+  });
 
 export const collectDownstreamSourcesInput = z.object({
   exclude: z

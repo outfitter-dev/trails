@@ -63,7 +63,12 @@ import {
   collectCrudTableIds as collectCrudTableIdsFromAst,
   collectReconcileTableIds as collectReconcileTableIdsFromAst,
 } from './rules/source/stores.js';
-import { findTrailDefinitions, parse } from '@ontrails/source';
+import {
+  collectSourceTree,
+  findTrailDefinitions,
+  parse,
+} from '@ontrails/source';
+import type { SourceTreeCollection } from '@ontrails/source';
 import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
 import { wardenRules, wardenTopoRules } from './rules/index.js';
 import { getWardenRuleMetadata } from './rules/metadata.js';
@@ -238,29 +243,28 @@ export interface WardenReport {
  * surfaces that should not contribute most committed-source diagnostics.
  */
 const collectFilesMatching = (
-  dir: string,
+  collection: NonNullable<ReturnType<typeof collectSourceTree>>,
   pattern: string,
   dot = false
 ): readonly string[] => {
   const glob = new Bun.Glob(pattern);
-  let matches: IterableIterator<string>;
-  try {
-    matches = glob.scanSync({ cwd: dir, dot, onlyFiles: true });
-  } catch {
-    return [];
-  }
-
   const files: string[] = [];
-  for (const match of matches) {
-    if (isWardenSourceScanTarget(match)) {
-      files.push(`${dir}/${match}`);
+  for (const file of collection.files) {
+    if (
+      (dot ||
+        !file.path.split('/').some((segment) => segment.startsWith('.'))) &&
+      glob.match(file.path) &&
+      isWardenSourceScanTarget(file.path)
+    ) {
+      files.push(file.absolutePath);
     }
   }
   return files;
 };
 
-const collectTsFiles = (dir: string): readonly string[] =>
-  collectFilesMatching(dir, '**/*.ts');
+const collectTsFiles = (
+  collection: NonNullable<ReturnType<typeof collectSourceTree>>
+): readonly string[] => collectFilesMatching(collection, '**/*.ts');
 
 const draftModeIncludesFile = (
   filePath: string,
@@ -309,41 +313,42 @@ const filterSourceFilesByScope = (
 
 const EMPTY_WARDEN_SCOPE: WardenScope = { exclude: [] };
 
-const collectDevPermitTestFiles = (dir: string): readonly string[] => {
+const collectDevPermitTestFiles = (
+  collection: NonNullable<ReturnType<typeof collectSourceTree>>
+): readonly string[] => {
   const glob = new Bun.Glob('**/*.ts');
-  let matches: IterableIterator<string>;
-  try {
-    matches = glob.scanSync({ cwd: dir, onlyFiles: true });
-  } catch {
-    return [];
-  }
-
   const files: string[] = [];
-  for (const match of matches) {
-    if (isWardenDevPermitTestScanTarget(match)) {
-      files.push(`${dir}/${match}`);
+  for (const file of collection.files) {
+    if (
+      !file.path.split('/').some((segment) => segment.startsWith('.')) &&
+      glob.match(file.path) &&
+      isWardenDevPermitTestScanTarget(file.path)
+    ) {
+      files.push(file.absolutePath);
     }
   }
   return files;
 };
 
-const collectTextScanFiles = (dir: string): readonly string[] => [
-  ...collectFilesMatching(dir, '**/*.sh', true),
-  ...collectFilesMatching(dir, '**/*.bash', true),
-  ...collectFilesMatching(dir, '**/*.zsh', true),
-  ...collectFilesMatching(dir, '**/*.yml', true),
-  ...collectFilesMatching(dir, '**/*.yaml', true),
-  ...collectFilesMatching(dir, 'plugin/**/*.json', true),
-  ...collectFilesMatching(dir, 'plugin/**/*.jsonc', true),
-  ...collectFilesMatching(dir, 'plugin/**/*.toml', true),
-  ...collectFilesMatching(dir, 'plugin/**/*.cjs', true),
-  ...collectFilesMatching(dir, 'plugin/**/*.mjs', true),
-  ...collectFilesMatching(dir, 'scripts/**/*.json', true),
-  ...collectFilesMatching(dir, 'scripts/**/*.jsonc', true),
-  ...collectFilesMatching(dir, 'scripts/**/*.toml', true),
-  ...collectFilesMatching(dir, 'scripts/**/*.cjs', true),
-  ...collectFilesMatching(dir, 'scripts/**/*.mjs', true),
-  ...collectFilesMatching(dir, '**/package.json', true),
+const collectTextScanFiles = (
+  collection: NonNullable<ReturnType<typeof collectSourceTree>>
+): readonly string[] => [
+  ...collectFilesMatching(collection, '**/*.sh', true),
+  ...collectFilesMatching(collection, '**/*.bash', true),
+  ...collectFilesMatching(collection, '**/*.zsh', true),
+  ...collectFilesMatching(collection, '**/*.yml', true),
+  ...collectFilesMatching(collection, '**/*.yaml', true),
+  ...collectFilesMatching(collection, 'plugin/**/*.json', true),
+  ...collectFilesMatching(collection, 'plugin/**/*.jsonc', true),
+  ...collectFilesMatching(collection, 'plugin/**/*.toml', true),
+  ...collectFilesMatching(collection, 'plugin/**/*.cjs', true),
+  ...collectFilesMatching(collection, 'plugin/**/*.mjs', true),
+  ...collectFilesMatching(collection, 'scripts/**/*.json', true),
+  ...collectFilesMatching(collection, 'scripts/**/*.jsonc', true),
+  ...collectFilesMatching(collection, 'scripts/**/*.toml', true),
+  ...collectFilesMatching(collection, 'scripts/**/*.cjs', true),
+  ...collectFilesMatching(collection, 'scripts/**/*.mjs', true),
+  ...collectFilesMatching(collection, '**/package.json', true),
 ];
 
 const isDocumentationScanTarget = (match: string): boolean => {
@@ -367,19 +372,19 @@ const isDocumentationScanTarget = (match: string): boolean => {
   );
 };
 
-const collectDocumentationFiles = (dir: string): readonly string[] => {
+const collectDocumentationFiles = (
+  collection: NonNullable<ReturnType<typeof collectSourceTree>>
+): readonly string[] => {
   const glob = new Bun.Glob('**/*.md');
-  let matches: IterableIterator<string>;
-  try {
-    matches = glob.scanSync({ cwd: dir, onlyFiles: true });
-  } catch {
-    return [];
-  }
-
   const files: string[] = [];
-  for (const match of matches) {
-    if (isWardenSourceScanTarget(match) && isDocumentationScanTarget(match)) {
-      files.push(`${dir}/${match}`);
+  for (const file of collection.files) {
+    if (
+      !file.path.split('/').some((segment) => segment.startsWith('.')) &&
+      glob.match(file.path) &&
+      isWardenSourceScanTarget(file.path) &&
+      isDocumentationScanTarget(file.path)
+    ) {
+      files.push(file.absolutePath);
     }
   }
   return files;
@@ -692,12 +697,34 @@ const collectReconcileTableIds = (
   }
 };
 
-const loadSourceFiles = async (
-  rootDir: string
-): Promise<readonly SourceFile[]> => {
-  const sourceFiles: SourceFile[] = [];
+interface LoadedSourceFiles {
+  readonly collection: SourceTreeCollection | null;
+  readonly sourceFiles: readonly SourceFile[];
+}
 
-  for (const filePath of collectTsFiles(rootDir)) {
+const loadSourceFiles = async (rootDir: string): Promise<LoadedSourceFiles> => {
+  const sourceFiles: SourceFile[] = [];
+  const collection = collectSourceTree(rootDir, {
+    classify: (entry) => {
+      if (
+        entry.kind === 'directory' &&
+        ['.git', 'dist', 'node_modules'].includes(entry.name)
+      ) {
+        return { action: 'skip', reason: 'ignored-directory' };
+      }
+      if (entry.kind === 'directory') {
+        return { action: 'recurse' };
+      }
+      return entry.kind === 'file'
+        ? { action: 'collect' }
+        : { action: 'skip', reason: 'unsupported-entry' };
+    },
+  });
+  if (!collection) {
+    return { collection, sourceFiles };
+  }
+
+  for (const filePath of collectTsFiles(collection)) {
     try {
       sourceFiles.push({
         filePath,
@@ -709,7 +736,7 @@ const loadSourceFiles = async (
     }
   }
 
-  for (const filePath of collectTextScanFiles(rootDir)) {
+  for (const filePath of collectTextScanFiles(collection)) {
     try {
       sourceFiles.push({
         filePath,
@@ -721,7 +748,7 @@ const loadSourceFiles = async (
     }
   }
 
-  for (const filePath of collectDocumentationFiles(rootDir)) {
+  for (const filePath of collectDocumentationFiles(collection)) {
     try {
       sourceFiles.push({
         filePath,
@@ -733,7 +760,7 @@ const loadSourceFiles = async (
     }
   }
 
-  for (const filePath of collectDevPermitTestFiles(rootDir)) {
+  for (const filePath of collectDevPermitTestFiles(collection)) {
     try {
       sourceFiles.push({
         filePath,
@@ -745,7 +772,7 @@ const loadSourceFiles = async (
     }
   }
 
-  return sourceFiles;
+  return { collection, sourceFiles };
 };
 
 const collectTopoKnownIds = (
@@ -983,6 +1010,7 @@ const collectAuthoredMcpSurfaceBindingSets = (
 
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
+  collection: SourceTreeCollection | null,
   rootDir: string,
   appTopos: readonly Topo[] = [],
   scope: WardenScope = EMPTY_WARDEN_SCOPE,
@@ -1003,6 +1031,11 @@ const buildProjectContext = (
     (sourceFile) => sourceFile.kind === 'documentation'
   );
   context.publicWorkspaces = collectPublicWorkspaces(rootDir, {
+    collectedPackageJsonPaths: new Set(
+      collection?.files
+        .filter((file) => file.path.endsWith('package.json'))
+        .map((file) => file.path)
+    ),
     exclude: scope.exclude,
   });
   context.governedVocabularyHistoryRequired =
@@ -1366,13 +1399,15 @@ const lintFiles = async (
     };
   }
 
+  const loaded = await loadSourceFiles(rootDir);
   const sourceFiles = filterSourceFilesByScope(
-    filterSourceFilesByDraftMode(await loadSourceFiles(rootDir), drafts),
+    filterSourceFilesByDraftMode(loaded.sourceFiles, drafts),
     rootDir,
     scope
   );
   const context = buildProjectContext(
     sourceFiles,
+    loaded.collection,
     rootDir,
     topoTargets.map((target) => target.topo),
     scope,

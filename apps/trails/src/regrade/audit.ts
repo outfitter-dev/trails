@@ -77,6 +77,9 @@ const regradeAuditTransitionSchema = z.object({
         .nonnegative()
         .describe('Unresolved current-source occurrences'),
       scanned: z.number().int().nonnegative().describe('Files scanned'),
+      skippedByReason: z
+        .record(z.string(), z.number().int().nonnegative())
+        .describe('Collection skips grouped by machine-readable reason'),
       status: z.enum(['green', 'open']).describe('Transition audit status'),
     })
     .describe('Concise current-tree audit of the latest applied plan'),
@@ -489,6 +492,7 @@ const runRegradeAuditCandidate = async (
       occurrences: run.ledger.occurrences.length,
       open: run.report.open,
       scanned: reportResult.value.scanned,
+      skippedByReason: reportResult.value.skipsByReason,
       status: run.report.gate.status,
     },
     source: candidate.source,

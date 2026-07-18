@@ -2127,6 +2127,11 @@ describe('trails regrade', () => {
         runRawCli(['regrade', 'apply', '--root-dir', dir, '--json']).exitCode
       ).toBe(0);
 
+      const linked = join(dir, 'linked-worktree');
+      execFileSync('git', ['worktree', 'add', '--quiet', '--detach', linked], {
+        cwd: dir,
+      });
+      writeFile(linked, 'docs/nested.md', 'A facet in another worktree.\n');
       writeFile(dir, 'docs/regression.md', 'A facet returned to the guide.\n');
       const audit = runRawCli([
         'regrade',
@@ -2154,6 +2159,7 @@ describe('trails regrade', () => {
               ],
               occurrences: 1,
               open: 1,
+              skippedByReason: { 'nested-worktree': 1 },
               status: 'open',
             },
             source: '.trails/regrade/history/facet-to-trailhead.json',

@@ -40,6 +40,20 @@ Use `trails wayfind file <file> --outline` before reading a large source file wh
 
 Missing graph artifacts are hard failures for locked graph reads and warnings for source outline context. Follow the diagnostic's `trails compile --module <app-module> --root-dir <workspace-root> --permit '{"id":"operator","scopes":["topo:write"]}'` shape when you are allowed to refresh artifacts; do not silently fall back to stale graph assumptions. Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topography does not derive, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated root `trails.lock` as evidence and clean it up unless the branch intentionally owns it. Do not treat `.trails/` as disposable compile output; it is committed control.
 
+## Source Collection Boundaries
+
+One source-collection invocation observes exactly one working tree. Project identity, working-tree identity, and the collection root are separate: a linked worktree belongs to the same project, but its checked-out commit, index, and uncommitted state must not contaminate a run rooted in another checkout.
+
+The shared Source collector derives nested Git boundaries before Warden, Regrade, or another consumer applies authored path scope:
+
+- `nested-worktree` is another checkout identified by a `.git` pointer file;
+- `nested-repository` is an independently rooted repository identified by a
+  `.git` directory;
+- `submodule-boundary` is a checkout declared by the collection root's
+  `.gitmodules` file.
+
+These are visible collection facts, not repo-specific denylists. The shared collector records each pruned boundary as a `skipped` entry with its path and reason. Regrade aggregates those entries as `skippedByReason`; Warden inherits the same pruning. The directory passed as the collection root is always first-class, so running directly inside a linked worktree scans that worktree normally.
+
 ## Symbol Navigation
 
 Trails keeps a repository-level Serena project configuration at `.serena/project.yml`. Serena is the default symbolic navigation path for agents because it provides TypeScript LSP-backed tools for symbol search, references, declarations, diagnostics, and rename support without requiring a paid IDE plugin or machine-local absolute paths.

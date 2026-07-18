@@ -17,6 +17,8 @@ import type {
   CallExpressionNode,
   ClassMemberNode,
   CuratedAstNode,
+  CollectedSourceFile,
+  CollectSourceTreeOptions,
   DeclarationWithIdNode,
   EntityDefinition,
   ExportDeclarationNode,
@@ -36,7 +38,13 @@ import type {
   ReturnStatementNode,
   SourceEdit,
   SourceComment,
+  SourceCollectionBoundaryReason,
+  SourceCollectionDecision,
+  SourceCollectionEntry,
+  SourceCollectionEntryKind,
   SourceLocation,
+  SourceTreeCollection,
+  SkippedSourceEntry,
   StringLiteralMatch,
   StringLiteralNode,
   TrailDefinition,
@@ -50,6 +58,7 @@ const expectedRuntimeExportKeys = [
   'applySourceEdits',
   'buildFrameworkNamespaceContext',
   'collectScopeFrameBindings',
+  'collectSourceTree',
   'createSourceEdit',
   'deriveConstString',
   'extractBindingName',
@@ -174,6 +183,8 @@ interface SourceTypeExportContract {
   readonly BlockStatementNode: BlockStatementNode;
   readonly CallExpressionNode: CallExpressionNode;
   readonly ClassMemberNode: ClassMemberNode;
+  readonly CollectedSourceFile: CollectedSourceFile;
+  readonly CollectSourceTreeOptions: CollectSourceTreeOptions;
   readonly CuratedAstNode: CuratedAstNode;
   readonly DeclarationWithIdNode: DeclarationWithIdNode;
   readonly EntityDefinition: EntityDefinition;
@@ -194,7 +205,13 @@ interface SourceTypeExportContract {
   readonly ReturnStatementNode: ReturnStatementNode;
   readonly SourceEdit: SourceEdit;
   readonly SourceComment: SourceComment;
+  readonly SourceCollectionBoundaryReason: SourceCollectionBoundaryReason;
+  readonly SourceCollectionDecision: SourceCollectionDecision;
+  readonly SourceCollectionEntry: SourceCollectionEntry;
+  readonly SourceCollectionEntryKind: SourceCollectionEntryKind;
   readonly SourceLocation: SourceLocation;
+  readonly SourceTreeCollection: SourceTreeCollection;
+  readonly SkippedSourceEntry: SkippedSourceEntry;
   readonly StringLiteralMatch: StringLiteralMatch;
   readonly StringLiteralNode: StringLiteralNode;
   readonly TrailDefinition: TrailDefinition;
@@ -209,7 +226,7 @@ const assertSourceTypeExportContract = <T extends SourceTypeExportContract>() =>
 describe('@ontrails/source public API', () => {
   test('keeps the exact sorted runtime export keys', () => {
     expect(Object.keys(source).toSorted()).toEqual(expectedRuntimeExportKeys);
-    expect(expectedRuntimeExportKeys).toHaveLength(111);
+    expect(expectedRuntimeExportKeys).toHaveLength(112);
   });
 
   test('keeps every public type export resolvable at compile time', () => {

@@ -5,6 +5,7 @@ export * from './scopes.js';
 export * from './locations.js';
 export * from './edits.js';
 export * from './literals.js';
+export * from './collection.js';
 export type {
   EntityDefinition,
   FindEntityDefinitionsOptions,

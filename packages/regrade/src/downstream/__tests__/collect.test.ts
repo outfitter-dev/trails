@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { executeTrail } from '@ontrails/core';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
@@ -103,6 +104,46 @@ const writeFixture = (): string => {
 };
 
 describe('collectDownstreamSources', () => {
+  test('inherits linked-worktree boundaries while direct worktree roots scan normally', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-collect-worktree-'));
+    const linked = join(root, '.worktrees', 'linked');
+    try {
+      execFileSync('git', ['init', '--quiet'], { cwd: root });
+      execFileSync('git', ['config', 'user.email', 'trails@example.test'], {
+        cwd: root,
+      });
+      execFileSync('git', ['config', 'user.name', 'Trails Test'], {
+        cwd: root,
+      });
+      writeFileSync(join(root, 'primary.ts'), 'export const primary = 1;\n');
+      execFileSync('git', ['add', 'primary.ts'], { cwd: root });
+      execFileSync('git', ['commit', '--quiet', '-m', 'test: initialize'], {
+        cwd: root,
+      });
+      execFileSync('git', ['worktree', 'add', '--quiet', '--detach', linked], {
+        cwd: root,
+      });
+      writeFileSync(join(linked, 'linked.ts'), 'export const linked = 1;\n');
+
+      const primary = collectDownstreamSources(root);
+      expect(primary?.skipped).toContainEqual({
+        path: '.worktrees/linked',
+        reason: 'nested-worktree',
+      });
+      expect(
+        primary?.files.some((file) => file.path.endsWith('linked.ts'))
+      ).toBe(false);
+
+      const direct = collectDownstreamSources(linked);
+      expect(direct?.files.map((file) => file.path)).toContain('linked.ts');
+      expect(
+        direct?.skipped.some((entry) => entry.reason === 'nested-worktree')
+      ).toBe(false);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('collects supported sources deterministically and records skips', () => {
     const root = writeFixture();
     try {
@@ -233,8 +274,8 @@ describe('collectDownstreamSources', () => {
       const result = collection as NonNullable<typeof collection>;
 
       expect(result.files.map((file) => file.path)).toEqual([
-        'src/nested/ping.ts',
         'src/README.md',
+        'src/nested/ping.ts',
         'src/signal.ts',
         'src/view.tsx',
       ]);

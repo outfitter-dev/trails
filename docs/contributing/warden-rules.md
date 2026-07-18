@@ -51,6 +51,8 @@ Project-root discovery uses committed project markers such as `trails.config.*` 
 
 Use `warden.scope.exclude` in project config, or `trails warden --scope-exclude <glob>` for a single run, when Warden should exclude local notes, scratch space, generated state, or other root-relative paths from governance. Scope is a path-scope boundary for governance, not a rule skip-list: excluded files do not feed source diagnostics or project-derived facts. Keep durable skills, plugin assets, and source-owned agent guidance in scope unless the project has a concrete reason to exclude them.
 
+Warden inherits Git-derived collection boundaries from `@ontrails/source` before applying `warden.scope.exclude`. Nested linked worktrees, independent repositories, and declared submodules are therefore pruned consistently with Regrade without Warden-specific path configuration. A directly targeted worktree remains a normal collection root.
+
 Use `.trails/rules.ts` or direct `.trails/rules/*.ts` children when the invariant is real for this project but not yet a framework promise. Promote the rule into `@ontrails/warden` only after the survival tests show it belongs to Trails users broadly. Delete it when the migration or temporary hardening window closes.
 
 ## Core Principle

@@ -2,10 +2,14 @@
  * Workspace-manifest discovery for Warden project-aware rules.
  */
 
-import { realpathSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { readFileSync, realpathSync } from 'node:fs';
+import { dirname, join, posix, relative, resolve } from 'node:path';
 
-import { listWorkspacePackages, matchesAnyPathGlob } from '@ontrails/core';
+import {
+  listWorkspacePackages,
+  listWorkspacePatterns,
+  matchesAnyPathGlob,
+} from '@ontrails/core';
 
 export interface WardenPublicWorkspace {
   readonly name: string;
@@ -18,6 +22,8 @@ export interface WardenPublicWorkspace {
 }
 
 export interface WardenWorkspaceCollectionOptions {
+  /** Root-relative package manifests observed by the owning source collection. */
+  readonly collectedPackageJsonPaths?: ReadonlySet<string> | undefined;
   readonly exclude?: readonly string[];
 }
 
@@ -27,6 +33,7 @@ interface PackageManifest {
   readonly files?: unknown;
   readonly name?: unknown;
   readonly private?: unknown;
+  readonly workspaces?: unknown;
 }
 
 const normalizePath = (path: string): string => path.replaceAll('\\', '/');
@@ -41,6 +48,60 @@ const normalizeRealPath = (path: string): string => {
 
 const rootRelativePath = (rootDir: string, path: string): string =>
   normalizePath(relative(rootDir, path));
+
+const readPackageManifest = (path: string): PackageManifest | undefined => {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as PackageManifest;
+  } catch {
+    return undefined;
+  }
+};
+
+const matchesWorkspacePattern = (
+  workspacePath: string,
+  pattern: string
+): boolean => {
+  const normalizedPattern = normalizePath(pattern).replace(/^\.\//, '');
+  return normalizedPattern.endsWith('/*')
+    ? posix.dirname(workspacePath) === normalizedPattern.slice(0, -2)
+    : workspacePath === normalizedPattern;
+};
+
+interface WorkspaceManifestCandidate {
+  readonly manifest: PackageManifest;
+  readonly packageJsonPath: string;
+}
+
+const collectedWorkspaceManifests = (
+  rootDir: string,
+  packageJsonPaths: ReadonlySet<string>
+): readonly WorkspaceManifestCandidate[] => {
+  if (!packageJsonPaths.has('package.json')) {
+    return [];
+  }
+  const rootManifest = readPackageManifest(join(rootDir, 'package.json'));
+  const patterns = listWorkspacePatterns(rootManifest);
+
+  return [...packageJsonPaths]
+    .filter((path) => path !== 'package.json' && path.endsWith('/package.json'))
+    .toSorted()
+    .flatMap((path): readonly WorkspaceManifestCandidate[] => {
+      const normalizedPath = normalizePath(path).replace(/^\.\//, '');
+      const workspacePath = posix.dirname(normalizedPath);
+      if (
+        posix.isAbsolute(normalizedPath) ||
+        normalizedPath.startsWith('../') ||
+        !patterns.some((pattern) =>
+          matchesWorkspacePattern(workspacePath, pattern)
+        )
+      ) {
+        return [];
+      }
+      const packageJsonPath = resolve(rootDir, normalizedPath);
+      const manifest = readPackageManifest(packageJsonPath);
+      return manifest ? [{ manifest, packageJsonPath }] : [];
+    });
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -172,10 +233,14 @@ export const collectPublicWorkspaces = (
 ): ReadonlyMap<string, WardenPublicWorkspace> => {
   const normalizedRoot = normalizeRealPath(rootDir);
   const workspaces = new Map<string, WardenPublicWorkspace>();
+  const candidates = options.collectedPackageJsonPaths
+    ? collectedWorkspaceManifests(
+        normalizedRoot,
+        options.collectedPackageJsonPaths
+      )
+    : listWorkspacePackages<PackageManifest>(normalizedRoot);
 
-  for (const workspacePackage of listWorkspacePackages<PackageManifest>(
-    normalizedRoot
-  )) {
+  for (const workspacePackage of candidates) {
     const workspace = publicWorkspaceFromManifest(
       workspacePackage.packageJsonPath,
       workspacePackage.manifest

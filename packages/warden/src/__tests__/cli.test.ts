@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -24,6 +25,7 @@ import {
   runWarden,
 } from '../cli.js';
 import type {
+  ProjectAwareWardenRule,
   TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
@@ -268,6 +270,107 @@ const buildSyntheticSafeSourceRule = (): WardenRule => ({
 });
 
 describe('runWarden basics', () => {
+  test('inherits worktree boundaries and scans a directly targeted worktree', async () => {
+    const dir = makeTempDir();
+    const linked = join(dir, 'packages/foreign');
+    try {
+      execFileSync('git', ['init', '--quiet'], { cwd: dir });
+      execFileSync('git', ['config', 'user.email', 'trails@example.test'], {
+        cwd: dir,
+      });
+      execFileSync('git', ['config', 'user.name', 'Trails Test'], {
+        cwd: dir,
+      });
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({ name: 'fixture-root', workspaces: ['packages/*'] })
+      );
+      writeFileSync(join(dir, 'good.ts'), 'export const good = true;\n');
+      execFileSync('git', ['add', 'good.ts', 'package.json'], { cwd: dir });
+      execFileSync('git', ['commit', '--quiet', '-m', 'test: initialize'], {
+        cwd: dir,
+      });
+      execFileSync('git', ['worktree', 'add', '--quiet', '--detach', linked], {
+        cwd: dir,
+      });
+      writeFileSync(
+        join(linked, 'bad.ts'),
+        `trail('entity.show', {
+  implementation: async () => {
+    throw new Error('nested worktree must not contaminate the parent');
+  },
+});`
+      );
+      writeFileSync(
+        join(linked, 'package.json'),
+        JSON.stringify({ exports: './bad.ts', name: '@ontrails/foreign' })
+      );
+
+      const primary = await runWarden({
+        projectRules: false,
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      expect(
+        primary.diagnostics.some((diagnostic) =>
+          diagnostic.filePath.endsWith('bad.ts')
+        )
+      ).toBe(false);
+
+      const workspaceBoundaryRule: ProjectAwareWardenRule = {
+        check: () => [],
+        checkProject: (context) =>
+          context.publicWorkspaces?.has('@ontrails/foreign')
+            ? [
+                {
+                  filePath: join(dir, 'package.json'),
+                  line: 1,
+                  message: 'Nested worktree leaked into project context.',
+                  rule: 'worktree-workspace-boundary',
+                  severity: 'error',
+                },
+              ]
+            : [],
+        checkWithContext: () => [],
+        description: 'Checks inherited workspace collection boundaries.',
+        metadata: {
+          concern: 'general',
+          depth: 'project',
+          invariant: 'one Warden run observes one working tree',
+          lifecycle: { state: 'stable' },
+          scope: 'repo-local',
+          tier: 'project-static',
+        },
+        name: 'worktree-workspace-boundary',
+        severity: 'error',
+      };
+      const project = await runWarden({
+        extraSourceRules: [workspaceBoundaryRule],
+        projectRules: false,
+        rootDir: dir,
+        tier: 'project-static',
+      });
+      expect(
+        project.diagnostics.some(
+          (diagnostic) => diagnostic.rule === 'worktree-workspace-boundary'
+        )
+      ).toBe(false);
+
+      const direct = await runWarden({
+        projectRules: false,
+        rootDir: linked,
+        tier: 'source-static',
+      });
+      expect(
+        direct.diagnostics.some((diagnostic) =>
+          diagnostic.filePath.endsWith('bad.ts')
+        )
+      ).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('produces a report with diagnostics for bad code', async () => {
     const dir = makeTempDir();
     try {
