@@ -1,5 +1,26 @@
 # @ontrails/warden
 
+## 1.0.0-beta.46
+
+### Minor Changes
+
+- [`fb0ba0a`](https://github.com/outfitter-dev/trails/commit/fb0ba0ab706bbdce470123e9a6fb2ef9f1822806): Convert the eight committed governed Regrade histories to canonical v3 receipts and remove the temporary schema-v2 compatibility path after migration.
+- [`9a8b6e4`](https://github.com/outfitter-dev/trails/commit/9a8b6e4af394c76c11e6d0007e0f5f94d0be2cb3): Persist Regrade lifecycle runs as canonical v3 receipts with exact Git blob evidence and authored field provenance, and validate their compact classified-form projection independently in Warden.
+
+### Patch Changes
+
+- [`54d259b`](https://github.com/outfitter-dev/trails/commit/54d259be81fb6c41d85be48a6cb2100c746a7126): Expose parser-native comment spans from `parseWithDiagnostics` so source-aware
+  tooling can distinguish exact JavaScript and TypeScript comment trivia without
+  reimplementing a lexer.
+
+  Use the shared spans in Warden's public-example rule while keeping leading
+  comment ownership fail-closed across JavaScript line terminators.
+
+- [`768cc79`](https://github.com/outfitter-dev/trails/commit/768cc79ca10947b8808b376e281e1a81131b4acc): Close missed projection vocabulary residue in Regrade internals and public
+  error-rendering guidance, and keep lifecycle-ambiguous governed identifiers in
+  the Warden review inventory instead of assigning them an unsafe automatic
+  target.
+
 ## 1.0.0-beta.45
 
 ### Patch Changes

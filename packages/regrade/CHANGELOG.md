@@ -1,5 +1,22 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.46
+
+### Minor Changes
+
+- [`701ab85`](https://github.com/outfitter-dev/trails/commit/701ab85bd237e5fcf03725c56b70adb3612d6c15): Expose in-memory prepared class and vocabulary evaluations with deterministic identity and source freshness checks.
+- [`c83d0b6`](https://github.com/outfitter-dev/trails/commit/c83d0b67ac928af1b44c1f2d2c4b36aa09a24a70): Inventory parser-native source comments and TSDoc as exact review-only entries
+  for governed classified vocabulary transitions across CLI, MCP, and audit.
+- [`97ccb5c`](https://github.com/outfitter-dev/trails/commit/97ccb5c168f7dc0f157f2518c78b226d67cfa008): Add the strict v3 Regrade run-receipt contract, canonical serializer, compact classified-form judgments, and cache-independent hash-reference resolution.
+- [`9a8b6e4`](https://github.com/outfitter-dev/trails/commit/9a8b6e4af394c76c11e6d0007e0f5f94d0be2cb3): Persist Regrade lifecycle runs as canonical v3 receipts with exact Git blob evidence and authored field provenance, and validate their compact classified-form projection independently in Warden.
+
+### Patch Changes
+
+- [`768cc79`](https://github.com/outfitter-dev/trails/commit/768cc79ca10947b8808b376e281e1a81131b4acc): Close missed projection vocabulary residue in Regrade internals and public
+  error-rendering guidance, and keep lifecycle-ambiguous governed identifiers in
+  the Warden review inventory instead of assigning them an unsafe automatic
+  target.
+
 ## 1.0.0-beta.45
 
 ## 1.0.0-beta.44
