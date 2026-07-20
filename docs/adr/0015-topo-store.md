@@ -4,12 +4,20 @@ slug: topo-store
 title: Topo Store
 status: accepted
 created: 2026-04-02
-updated: 2026-04-02
+updated: 2026-07-20
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [14]
 ---
 
 # ADR-0015: Topo Store
+
+> **Current-law annotation (2026-07-20):**
+> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)
+> retains the queryable topo-store and snapshot-history primitives and leaves
+> the execution hot path unchanged. The repo-local `.trails/state/trails.db`
+> placement and `.trails/topo.lock` export examples are historical: the store
+> lives in per-user state, and each lock-owning app commits one root
+> `trails.lock` graph envelope.
 
 ## Context
 

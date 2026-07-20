@@ -52,7 +52,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0043](0043-layer-evolution.md) | Layer Evolution | Accepted (amended 2026-05-04) |
 | [0044](0044-trail-versioning.md) | Trail Versioning | Superseded |
 | [0045](0045-v1-resolved-graph-error-scope.md) | v1 Resolved Graph Error Scope | Accepted |
-| [0046](0046-lock-v3-artifact-family.md) | Lock v3 Artifact Family | Accepted |
+| [0046](0046-lock-v3-artifact-family.md) | Lock v3 Artifact Family | Superseded |
 | [0047](0047-stable-release-line-discipline.md) | Stable Release Line Discipline | Accepted |
 | [0048](0048-trail-versioning-v3.md) | Trail Versioning v3 | Accepted |
 | [0049](0049-composition-is-compose-not-cross.md) | Composition is `compose`, not `cross` | Accepted |
@@ -60,3 +60,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0051](0051-package-ownership-follows-natural-altitude.md) | Package Ownership Follows Natural Altitude | Accepted |
 | [0052](0052-overlays-one-extension-mechanism.md) | Overlays Are the Lock's One Extension Mechanism | Accepted |
 | [0053](0053-regrade-moves-governed-contract-change.md) | Regrade Moves Governed Contract Change | Accepted |
+| [0054](0054-project-substrate-names-its-truth.md) | Project Substrate Names Its Truth | Accepted |
