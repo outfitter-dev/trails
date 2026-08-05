@@ -2,15 +2,23 @@
 id: 46
 slug: lock-v3-artifact-family
 title: Lock v3 Artifact Family
-status: accepted
+status: superseded
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-07-20
 accepted: 2026-05-11
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [10, 11, 15, 17, 42, 45]
+superseded_by: ['54']
 ---
 
 # ADR-0046: Lock v3 Artifact Family
+
+> **Status update (2026-07-20):** Superseded by
+> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md).
+> ADR-0046's durable-graph, Topography-ownership, and migration principles
+> remain part of the decision lineage. Its `.trails/trails.lock` plus
+> `.trails/topo.lock` container and workspace-layout decisions are no longer
+> current law.
 
 ## Context
 

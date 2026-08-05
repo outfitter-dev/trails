@@ -5,7 +5,7 @@ title: The Serialized Topo Graph
 status: partially-superseded
 superseded_by: ['46']
 created: 2026-03-31
-updated: 2026-05-11
+updated: 2026-07-20
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [7, 8]
 ---
@@ -19,6 +19,14 @@ depends_on: [7, 8]
 > container with the v1 artifact family: `.trails/trails.lock` as a compact
 > manifest and `.trails/topo.lock` as the serialized `TopoGraph` content
 > artifact.
+>
+> **Current-law update (2026-07-20):**
+> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)
+> supersedes ADR-0046's container and workspace layout while retaining this
+> ADR's durable promise: resolved graph truth remains inspectable, committed,
+> queryable, and drift-governed. V1 uses one root `trails.lock` per lock-owning
+> app and derives an app-partitioned workspace view; it does not commit one
+> merged workspace graph or a manifest/content pair.
 
 ## Context
 

@@ -140,6 +140,11 @@
           "fromPath": "docs/adr/0053-regrade-moves-governed-contract-change.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — defines authored,",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- docs/adr/0000-core-premise.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -277,6 +282,11 @@
           "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md)",
           "from": "0051",
           "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
+        },
+        {
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md) — establishes",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
         },
         {
           "context": "- docs/adr/0001-naming-conventions.md",
@@ -1010,6 +1020,11 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "- [ADR-0010: Native Infrastructure](0010-native-infrastructure.md) — contains",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- docs/adr/0010-native-infrastructure.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -1044,6 +1059,11 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "- [ADR-0011: Schema-Driven Config](0011-schema-driven-config.md) — remains the",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1056,7 +1076,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Schema-Driven Config",
-      "updated": "2026-04-01"
+      "updated": "2026-07-20"
     },
     {
       "created": "2026-03-30",
@@ -1241,6 +1261,11 @@
           "fromPath": "docs/adr/0042-core-topography-boundary-doctrine.md"
         },
         {
+          "context": "- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) and",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1258,7 +1283,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Core Database Primitive",
-      "updated": "2026-04-02"
+      "updated": "2026-07-20"
     },
     {
       "created": "2026-04-02",
@@ -1295,6 +1320,11 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "[ADR-0015: Topo Store](0015-topo-store.md) — establish the shared database",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational rendering of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1312,7 +1342,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Topo Store",
-      "updated": "2026-04-02"
+      "updated": "2026-07-20"
     },
     {
       "created": "2026-04-01",
@@ -1468,6 +1498,11 @@
           "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
         },
         {
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — its",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1488,11 +1523,6 @@
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — established the resolved graph as a serialized artifact.",
-          "from": "20260622",
-          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
-        },
-        {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1510,7 +1540,7 @@
       "status": "partially-superseded",
       "superseded_by": ["46"],
       "title": "The Serialized Topo Graph",
-      "updated": "2026-05-11"
+      "updated": "2026-07-20"
     },
     {
       "created": "2026-04-02",
@@ -2533,6 +2563,11 @@
           "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
         },
         {
+          "context": "- [ADR-0041: Unified Observability](0041-unified-observability.md) — keeps",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- docs/adr/0041-unified-observability.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -2582,6 +2617,11 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](0042-core-topography-boundary-doctrine.md)",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- docs/adr/0042-core-topography-boundary-doctrine.md",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
@@ -2590,11 +2630,6 @@
           "context": "- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) - durable graph artifacts belong to topography",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
-        },
-        {
-          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.",
-          "from": "20260622",
-          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
         },
         {
           "context": "A package needs Topography only when it crosses a process boundary or compares state across time. The runtime never reads Topography artifacts to execute trails — every `topo()` call resolves entirely",
@@ -2753,6 +2788,11 @@
           "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
         },
         {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md) — the",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -2768,11 +2808,6 @@
           "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         },
         {
-          "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family this ADR collapses into one root lock.",
-          "from": "20260622",
-          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
-        },
-        {
           "context": "Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
           "from": "topo-store-reference",
           "fromPath": "docs/topo-store-reference.md"
@@ -2782,10 +2817,10 @@
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0046-lock-v3-artifact-family.md",
       "slug": "lock-v3-artifact-family",
-      "status": "accepted",
-      "superseded_by": null,
+      "status": "superseded",
+      "superseded_by": ["54"],
       "title": "Lock v3 Artifact Family",
-      "updated": "2026-05-11"
+      "updated": "2026-07-20"
     },
     {
       "created": "2026-05-13",
@@ -2931,11 +2966,6 @@
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
         {
-          "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — preserve authored contract identity.",
-          "from": "20260622",
-          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
-        },
-        {
           "context": "CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [AD",
           "from": "cli",
           "fromPath": "docs/surfaces/cli.md"
@@ -3011,7 +3041,13 @@
     {
       "created": "2026-07-15",
       "depends_on": ["0", "7", "23", "37"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0053: Regrade Moves Governed Contract Change](0053-regrade-moves-governed-contract-change.md)",
+          "from": "0054",
+          "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        }
+      ],
       "number": "0053",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0053-regrade-moves-governed-contract-change.md",
@@ -3020,6 +3056,45 @@
       "superseded_by": null,
       "title": "Regrade Moves Governed Contract Change",
       "updated": "2026-07-16"
+    },
+    {
+      "created": "2026-06-22",
+      "depends_on": ["10", "11", "14", "15", "17", "41", "42", "46"],
+      "inbound": [
+        {
+          "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)",
+          "from": "0011",
+          "fromPath": "docs/adr/0011-schema-driven-config.md"
+        },
+        {
+          "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)",
+          "from": "0014",
+          "fromPath": "docs/adr/0014-core-database-primitive.md"
+        },
+        {
+          "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)",
+          "from": "0015",
+          "fromPath": "docs/adr/0015-topo-store.md"
+        },
+        {
+          "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)",
+          "from": "0017",
+          "fromPath": "docs/adr/0017-serialized-topo-graph.md"
+        },
+        {
+          "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md).",
+          "from": "0046",
+          "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
+        }
+      ],
+      "number": "0054",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0054-project-substrate-names-its-truth.md",
+      "slug": "project-substrate-names-its-truth",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Project Substrate Names Its Truth",
+      "updated": "2026-07-20"
     }
   ],
   "version": 1

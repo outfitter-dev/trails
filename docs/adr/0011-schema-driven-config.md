@@ -4,11 +4,20 @@ slug: schema-driven-config
 title: Schema-Driven Config
 status: accepted
 created: 2026-03-30
-updated: 2026-04-01
+updated: 2026-07-20
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0011: Schema-Driven Config
+
+> **Current-law specialization (2026-07-20):**
+> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)
+> leaves this ADR's deployment-config contract in force and separates static
+> project identity from resolved deployment values. Canonical `workspace.apps`
+> is source-static, JSON-compatible literal data that does not pass through
+> `defineConfig.resolve()`. Profiles, local overrides, and environment
+> resolution continue to govern deployment values; they never change project
+> identity.
 
 ## Context
 

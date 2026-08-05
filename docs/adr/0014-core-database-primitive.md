@@ -4,11 +4,19 @@ slug: core-database-primitive
 title: Core Database Primitive
 status: accepted
 created: 2026-04-02
-updated: 2026-04-02
+updated: 2026-07-20
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0014: Core Database Primitive
+
+> **Current-law annotation (2026-07-20):**
+> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)
+> retains this ADR's shared SQLite infrastructure, write restriction, and
+> subsystem ownership. It supersedes the repo-local `.trails/state/trails.db`
+> placement and the `.trails/trails.lock` plus `.trails/topo.lock` artifact
+> examples. Mutable Trails state now lives in the per-user state store, while
+> each lock-owning app commits one root `trails.lock`.
 
 ## Context
 
