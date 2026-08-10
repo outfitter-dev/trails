@@ -555,11 +555,11 @@ describe('appendRegradeHistoryRun', () => {
           'does not match its observed file'
         );
       }
-      const projected = readRegradeHistoryArtifact(historyPath);
-      if (projected.isErr()) {
-        throw projected.error;
+      const derived = readRegradeHistoryArtifact(historyPath);
+      if (derived.isErr()) {
+        throw derived.error;
       }
-      const verified = verifyRegradeHistoryRuns(projected.value);
+      const verified = verifyRegradeHistoryRuns(derived.value);
       if (verified.isErr()) {
         throw verified.error;
       }

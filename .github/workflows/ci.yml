@@ -105,6 +105,9 @@ jobs:
         # framework apps and examples/* stay covered from one source of truth.
         run: bun packages/warden/bin/warden.ts --ci
 
+      - name: Regrade audit
+        run: bun run regrade:audit
+
       - name: ADR check
         run: bun scripts/adr.ts check
 
