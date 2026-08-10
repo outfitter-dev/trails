@@ -405,6 +405,7 @@ export const buildRegradeHistoryReceipt = (params: {
     transitionId: params.transitionId,
   };
   const receipt = {
+    conversion: params.prior?.artifact.conversion,
     id: params.transitionId,
     kind: 'regrade-history',
     path: params.historyPath,

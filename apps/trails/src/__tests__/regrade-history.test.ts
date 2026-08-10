@@ -412,6 +412,53 @@ describe('appendRegradeHistoryRun', () => {
     });
   });
 
+  test('preserves governed conversion provenance when appending runs', () => {
+    withFixtureDir((dir) => {
+      const artifact = makePlanArtifact(makePlanBody());
+      const report = makeReport([]);
+      const first = appendRegradeHistoryRun({ artifact, report, rootDir: dir });
+      if (first.isErr()) {
+        throw first.error;
+      }
+
+      const historyPath = regradeHistoryPathForPlan(dir, artifact.plan);
+      const prior = readRegradeReceipt(historyPath);
+      if (prior.isErr()) {
+        throw prior.error;
+      }
+      const conversion = {
+        convertedAt: '2026-07-16T23:02:23.000Z',
+        fromSchemaVersion: 2 as const,
+        sourceContentHash:
+          '6a56009d0621a4ef5ad5b6c1618cfade9fe459b0e2c166b930d8d8f9dbb2a649',
+        toolVersion: '1.0.0-beta.45',
+      };
+      const converted = serializeRegradeHistoryReceipt({
+        ...prior.value.artifact,
+        conversion,
+      });
+      if (converted.isErr()) {
+        throw converted.error;
+      }
+      writeFileSync(historyPath, converted.value);
+
+      const appended = appendRegradeHistoryRun({
+        artifact,
+        report,
+        rootDir: dir,
+      });
+      if (appended.isErr()) {
+        throw appended.error;
+      }
+      const persisted = JSON.parse(readFileSync(historyPath, 'utf8')) as {
+        conversion?: typeof conversion;
+        runs: unknown[];
+      };
+      expect(persisted.conversion).toEqual(conversion);
+      expect(persisted.runs).toHaveLength(2);
+    });
+  });
+
   test('persists canonical v3 receipts with exact Git blob evidence and hash references', () => {
     withFixtureDir((dir) => {
       const artifact = makePlanArtifact(makePlanBody());
