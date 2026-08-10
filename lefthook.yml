@@ -23,12 +23,12 @@ pre-commit:
       glob: '**/*.{ts,tsx,js,jsx,json,jsonc}'
       run: bun run format:file {staged_files}
       stage_fixed: true
-    clark_agent:
+    team_skills:
       priority: 3
       env:
         GIT_PAGER: cat
-      glob: '{.claude/skills/clark/**,.agents/skills/clark-consult/scripts/render-clark-agent}'
-      run: bun run clark:sync
+      glob: '{.claude/skills/be-clark/**,.claude/skills/be-lewis/**,.claude/skills/ask-trails-crew/**,.claude/skills/trails-goal-loop/**,.claude/skills/trails-local-review/**,scripts/codex/skillset.config.toml,scripts/codex/skillset.ts}'
+      run: bun run skillset:sync
       stage_fixed: true
     markdownlint:
       priority: 4

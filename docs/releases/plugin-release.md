@@ -25,7 +25,7 @@ git status --short --branch
 bun run plugin:metadata:check
 bun run warden:skills:check
 bun run warden:agents:check
-bun run clark:check
+bun run skillset:check
 bun test scripts/__tests__/sync-plugin-metadata.test.ts
 bun test scripts/__tests__/check-installed-trails-skill.test.ts
 bun test scripts/__tests__/detect-trails-hook.test.ts

@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Trails Goal Loop'
+  short_description: 'Define and run Trails goal packets'
+  default_prompt: 'Use $trails-goal-loop to define and run this Trails goal with explicit authority, Graphite topology, verification, and settlement.'

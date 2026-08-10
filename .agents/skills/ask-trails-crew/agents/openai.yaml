@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Ask Trails Crew'
+  short_description: 'Route Trails questions to Clark and Lewis'
+  default_prompt: 'Use $ask-trails-crew to route this question to the right Trails co-architects.'

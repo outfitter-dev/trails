@@ -292,15 +292,14 @@ Use Graphite for source control operations.
 
 ## Subagent Rules
 
-Subagents must not perform `git` or `gt` write operations. Only the main agent handles source control.
+The coordinating agent assigns subagent ownership and source-control authority. Agent type alone grants no write authority.
 
-- Subagents can write and edit files.
-- Subagents can run tests and lint checks.
-- Subagents can report results.
-- Subagents do not run `gt create`, `gt add`, `gt modify`, or `gt submit`.
-- Subagents do not run `git add`, `git commit`, or `git push`.
-- Subagents do not create branches, make commits, or push anything.
-- The main agent collects subagent work and commits it.
+- Subagents may read, edit assigned files, run checks, and report results.
+- A subagent may perform Git or Graphite writes only when the coordinating agent explicitly delegates the worktree, branch or stack, scope, and permitted operations.
+- Without explicit source-control delegation, keep Git and Graphite read-only.
+- Before mutating source control, verify the active worktree, branch, stack ownership, and preserved changes. Do not cross another agent's assigned scope or undo its work.
+- Merge, publish, release, deployment, tracker or PR mutation, and external messaging still require explicit delegation within authority the user granted.
+- The coordinating agent owns conflict avoidance and integration unless it delegates those responsibilities explicitly.
 
 ### Brief Discipline
 
@@ -347,7 +346,7 @@ Anchor what you can; ground the rest. Principle 1 reduces the unknown surface ar
 Use these constraints alongside the two principles:
 
 - Do not ask subagents to create their own task lists. The main agent owns task tracking.
-- Do not let subagents run source-control write commands.
+- State whether source control is read-only or delegated. When delegated, name the exact worktree, branch or stack, scope, and permitted operations.
 - Specify exact write targets when a subagent is allowed to write findings.
 - Name known pre-existing noise upfront so subagents do not rediscover unrelated issues.
 

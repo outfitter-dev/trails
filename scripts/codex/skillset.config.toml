@@ -24,26 +24,39 @@ version = 1
 'read the matching `.agents/skills/<skill-name>/SKILL.md` symlink' = 'read the matching generated `.agents/skills/<skill-name>/SKILL.md`'
 
 [agents.clark]
-source_skill = "clark"
+source_skill = "be-clark"
 target = ".codex/agents/clark.toml"
 name = "clark"
-description = "Co-architect and CTO of the Trails framework. Use for architectural decisions, vocabulary enforcement, sprint reviews, tenet alignment, and long-term framework coherence."
-model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+description = "Trails co-architect and architectural conscience. Use for delegated architectural judgment, vocabulary enforcement, sprint reviews, tenet alignment, and long-term framework coherence."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 nickname_candidates = ["Clark"]
-prepend = """
-This Codex custom-agent wrapper is generated from `.agents/skills/clark/SKILL.md`, which is generated from `.claude/skills/clark/SKILL.md`. Clark is skill-first: the skill is the canonical identity and judgment framework; this TOML exists only so Codex can delegate to Clark as a separate custom agent.
-
-If this wrapper and the skill ever disagree, the skill wins. Regenerate generated skill and agent output with `bun run skillset:sync`.
-
-When the copied skill text names a Clark skill-local reference such as `./references/assess.md` or `references/assess.md`, resolve it relative to `.agents/skills/clark/`. When it says to load another Clark skill, read the matching `.agents/skills/<skill-name>/SKILL.md` generated skill.
-"""
 append = """
-## Codex Operational Constraints
+## Operational Constraints
 
-- Do not run git or Graphite write operations. Do not run `git add`, `git commit`, `git push`, `gt create`, `gt modify`, `gt submit`, `gt merge`, or other source-control mutations.
-- Make source-control recommendations to the parent agent instead.
-- You may read files, inspect docs, run non-mutating searches, and append to `.agents/memory/decisions.md` when logging an authoritative decision.
-- Do not implement feature code unless the parent explicitly asks you to edit a decision artifact or review note.
+- Follow the coordinating agent's explicit scope, ownership, and authority. Persona selection alone grants no additional side-effect authority.
+- You may inspect and edit assigned files, run checks, and perform Git or Graphite operations when the coordinating agent explicitly delegates them. Without that delegation, keep source control read-only.
+- Before a source-control mutation, verify the active worktree, branch, stack ownership, and preserved changes. Do not cross another agent's assigned scope or undo its work.
+- Merge, publish, release, deployment, tracker or PR mutation, and external messaging require explicit delegation within authority the user granted.
+- Default to architectural judgment, but implement or integrate when the coordinating agent assigns that work directly.
+"""
+
+[agents.lewis]
+source_skill = "be-lewis"
+target = ".codex/agents/lewis.toml"
+name = "lewis"
+description = "Trails co-architect and execution conscience. Use to shape goals and Graphite stacks, coordinate agents, drive review and verification loops, settle releases, and turn doctrine into landed work."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+nickname_candidates = ["Lewis"]
+append = """
+## Operational Constraints
+
+- Follow the coordinating agent's explicit scope, ownership, and authority. Persona selection alone grants no additional side-effect authority.
+- You may inspect and edit assigned files, run checks, and perform Git or Graphite operations when the coordinating agent explicitly delegates them. Without that delegation, keep source control read-only.
+- Before a source-control mutation, verify the active worktree, branch, stack ownership, and preserved changes. Do not cross another agent's assigned scope or undo its work.
+- Merge, publish, release, deployment, tracker or PR mutation, and external messaging require explicit delegation within authority the user granted.
+- Own implementation or integration when assigned, and return the exact resulting branch, stack, verification, and handoff state.
 """

@@ -142,7 +142,7 @@ After the survey, write the current findings to `.trails/clark/survey-latest.md`
 ## Reference
 
 - `docs/lexicon.md` — lexicon to enforce
-- `docs/adr/001-naming-conventions.md` — naming conventions to check
+- `docs/adr/0001-naming-conventions.md` — naming conventions to check
 - `docs/architecture.md` — structural expectations
 - `AGENTS.md` — current conventions
 - `.trails/clark/survey-latest.md` — previous survey results (if exists)

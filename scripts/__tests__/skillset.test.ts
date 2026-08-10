@@ -121,7 +121,37 @@ describe('skillset', () => {
       stat(join(root, '.agents/skills/demo/SKILL.md'))
     ).rejects.toThrow();
     expect(agent).toContain('prelude');
-    expect(agent).toContain(`Body uses ${pwdToken}.`);
+    expect(agent).toContain('## Important');
+    expect(agent).toContain('Invoke the `demo` skill.');
+    expect(agent).toContain(
+      'read and follow `.claude/skills/demo/SKILL.md` completely'
+    );
+    expect(agent).not.toContain('.agents/skills/demo/SKILL.md');
+    expect(agent).not.toContain(`Body uses ${pwdToken}.`);
     expect(agent).toContain('postlude');
+  });
+
+  test('keeps Lewis goal and review dependencies repository-owned', async () => {
+    const repoRoot = join(import.meta.dir, '../..');
+    const lewis = await readFile(
+      join(repoRoot, '.claude/skills/be-lewis/SKILL.md'),
+      'utf8'
+    );
+
+    for (const skillName of ['trails-goal-loop', 'trails-local-review']) {
+      const claudeSkill = await stat(
+        join(repoRoot, `.claude/skills/${skillName}/SKILL.md`)
+      );
+      const agentSkill = await stat(
+        join(repoRoot, `.agents/skills/${skillName}/SKILL.md`)
+      );
+
+      expect(lewis).toContain(`Invoke \`${skillName}\``);
+      expect(claudeSkill.isFile()).toBe(true);
+      expect(agentSkill.isFile()).toBe(true);
+    }
+
+    expect(lewis).not.toContain('$goal-loop');
+    expect(lewis).not.toContain('$local-review');
   });
 });

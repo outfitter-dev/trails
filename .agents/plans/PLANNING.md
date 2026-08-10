@@ -1,7 +1,7 @@
 ---
 created: "2026-05-12T23:55:16Z"
-updated: "2026-05-21T10:57:01Z"
-description: Tracked project guidance for preparing autonomous /goal packets in Trails. Defines the four-file packet structure (PLAN/GOAL/RETRO/REFS), planning directory layout, archive policy, Linear tracker hygiene, Graphite source-control conventions including the ban on gt absorb, subagent write-command restrictions, local/remote review protocol, progress reporting format, and validation command list.
+updated: "2026-08-04T18:23:05Z"
+description: Tracked project guidance for preparing autonomous /goal packets in Trails. Defines the four-file packet structure (PLAN/GOAL/RETRO/REFS), planning directory layout, archive policy, Linear tracker hygiene, Graphite source-control conventions including the ban on gt absorb, subagent source-control delegation, local/remote review protocol, progress reporting format, and validation command list.
 linear: []
 impl_status: unknown
 references:
@@ -51,8 +51,8 @@ Branch/PR conventions:
 
 - Use exact Linear-recommended branch names when available.
 - It is fine to create a local stack chain up front, but do not submit or push empty branches.
-- Main agent owns all `git` and `gt` write operations.
-- Subagents may edit files, run checks, and write reports, but must not run `git add`, `git commit`, `git push`, `gt create`, `gt modify`, `gt submit`, `gt restack`, merge commands, or PR mutation commands.
+- The coordinating agent assigns Git and Graphite ownership. Goal packets must say whether each subagent lane is source-control read-only or has delegated write authority.
+- When delegating source-control writes, name the exact worktree, branch or stack, file scope, and permitted commands. The subagent must verify that state before mutation and preserve unrelated work.
 - For downstack fixes, check out the owning branch directly, run `git branch --show-current`, apply the fix, `gt modify`, `gt restack`, and walk upward through affected descendants.
 - Do not use `gt absorb` as the normal review-fix workflow for goal stacks.
 - Do not add merge queue labels unless Matt explicitly asks.

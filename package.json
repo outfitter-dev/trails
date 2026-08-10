@@ -40,8 +40,6 @@
     "warden:skills:check": "bun scripts/sync-skill-warden-guide.ts --check",
     "skillset:sync": "bun scripts/codex/skillset.ts",
     "skillset:check": "bun scripts/codex/skillset.ts --check",
-    "clark:sync": "bun scripts/codex/skillset.ts --only agents",
-    "clark:check": "bun scripts/codex/skillset.ts --only agents --check",
     "dead-code": "knip --no-progress",
     "pre-push:checks": "bun scripts/pre-push-checks.ts",
     "trails": "bun apps/trails/bin/trails.ts",

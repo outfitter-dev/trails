@@ -1,5 +1,0 @@
-#!/usr/bin/env bun
-
-import { runSkillset } from "../../../../scripts/codex/skillset.ts";
-
-await runSkillset({ argv: ["--only", "agents", ...process.argv.slice(2)] });

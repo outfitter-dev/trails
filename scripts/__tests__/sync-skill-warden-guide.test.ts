@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  CLAUDE_SKILL_WARDEN_GUIDE_PATH,
   AGENTS_SKILL_WARDEN_GUIDE_PATH,
+  CLAUDE_SKILL_WARDEN_GUIDE_PATH,
   PLUGIN_SKILL_WARDEN_GUIDE_PATH,
   SKILL_WARDEN_GUIDE_PATHS,
   isSkillWardenGuideCurrent,
@@ -14,10 +14,10 @@ describe('sync-skill-warden-guide', () => {
     const guide = renderSkillWardenGuide();
 
     expect(CLAUDE_SKILL_WARDEN_GUIDE_PATH).toBe(
-      '.claude/skills/clark/references/warden-guide.md'
+      '.claude/skills/be-clark/references/warden-guide.md'
     );
     expect(AGENTS_SKILL_WARDEN_GUIDE_PATH).toBe(
-      '.agents/skills/clark/references/warden-guide.md'
+      '.agents/skills/be-clark/references/warden-guide.md'
     );
     expect(PLUGIN_SKILL_WARDEN_GUIDE_PATH).toBe(
       'plugin/skills/trails/references/warden-guide.md'
