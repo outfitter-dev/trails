@@ -27,7 +27,7 @@ pre-commit:
       priority: 3
       env:
         GIT_PAGER: cat
-      glob: '{.claude/skills/be-clark/**,.claude/skills/be-lewis/**,.claude/skills/ask-trails-crew/**,.claude/skills/trails-goal-loop/**,.claude/skills/trails-local-review/**,scripts/codex/skillset.config.toml,scripts/codex/skillset.ts}'
+      glob: '{.claude/skills/be-clark/**,.claude/skills/be-lewis/**,.claude/skills/ask-trails-crew/**,.claude/skills/building-trails/**,.claude/skills/trails-goal-loop/**,.claude/skills/trails-local-review/**,scripts/codex/skillset.config.toml,scripts/codex/skillset.ts}'
       run: bun run skillset:sync
       stage_fixed: true
     markdownlint:

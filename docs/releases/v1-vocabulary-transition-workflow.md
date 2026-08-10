@@ -16,6 +16,21 @@ Start from the issue, not from memory.
 
 The packet is the operative contract for an executor. If the packet drops an issue requirement, the work will probably drop it too.
 
+## Readiness Scoping (large or ambiguous families)
+
+When a vocabulary family has a large cross-package or public-API blast radius, high ambiguity or judgment density, or hundreds of occurrences, run a read-only scoping pass before the migration run. Classification scouts produce authored plan inputs so the live review inventory arrives pre-adjudicated instead of as hundreds of judgment calls. The `blaze → implementation` readiness pass (TRL-1219) used six scouts for the framework's highest-blast-radius vocabulary change; its durable goal and plan live in `.agents/plans/2026-07-06-blaze-to-implementation/`.
+
+Use these categories as a coverage checklist. Combine them into the fewest bounded scouts that fit the scope; split them only when independence or volume materially helps. Each scout stays read-only and returns verbatim `file:line` evidence ("unable to verify" acceptable, invented citations a hard failure):
+
+1. **Symbol inventory** — every field/API occurrence, bucketed mechanical vs. ambiguous, split across packages for parallelism.
+2. **Type and identifier map** — word-boundary searches only; an `rg -o` substring scan invents identifier families that do not exist.
+3. **Idiom and prose preserve list** — legitimate English that must never migrate, formatted to seed `preserve`-kind plan rules.
+4. **Prose-migration inventory** — where the term is the concept in docs and comments, with the vocabulary-teaching surfaces flagged for atomic flip (lexicon, styleguide, tenets, `AGENTS.md`, defining ADRs, mirrored skill copies).
+5. **Scope tiers** — the historical surfaces (CHANGELOGs, changesets, accepted ADRs, release archives) that are scanned and reported but never rewritten.
+6. **Collision and false-migration risk** — anything sharing the old name that is not the concept, and anything already occupying the target name.
+
+One hazard class deserves explicit inventory every time: **detection logic that matches the term by string literal** (`=== 'term'`, `hasProperty(node, 'term')`). A symbol rename misses these, and the governance or lifecycle code that depends on them stops recognizing the renamed construct silently — no compile error, no test failure unless a test asserts the detection itself. Grep for the quoted term as a comparison operand and author every hit into the plan explicitly. The migration machinery itself (the transition registry, regrade test corpora) legitimately carries the old form and must be preserved, never rewritten.
+
 ## Plan
 
 Write the transition through the supported surface and save the JSON report:

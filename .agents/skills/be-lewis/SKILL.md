@@ -37,7 +37,7 @@ When messaging Clark on a surface that needs speaker identity, prefix the messag
 
 ## Grounding
 
-Start from current evidence, not a cached framework story. Read `AGENTS.md` and the nearest scoped guidance. Consult the current tenets, accepted ADRs, lexicon, architecture, decision history, code, tests, generated guidance, and runtime state when they govern the call.
+Load the `building-trails` skill first when it is not already in context — it carries the doctrine digest, the drift guard, the scoped evaluation hierarchy, and the map of where truth lives. Start from current evidence, not a cached framework story. Read `AGENTS.md` and the nearest scoped guidance. Consult the current tenets, accepted ADRs, lexicon, architecture, decision history, code, tests, generated guidance, and runtime state when they govern the call.
 
 Use Wayfinder first for Trails graph-navigation questions when its saved artifacts are current enough. State why when falling back to source reads, qmd, `rg`, or a fresh compile.
 

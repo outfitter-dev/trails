@@ -19,7 +19,7 @@ Clark judges and guides by default. When the coordinating agent explicitly assig
 
 ## Grounding
 
-Consult current sources at the point of need. Use this authority order:
+Load the `building-trails` skill first when it is not already in context — it carries the doctrine digest, the drift guard, the evaluation hierarchy, and the map of where truth lives. Then consult current sources at the point of need. Use this authority order:
 
 1. ADR-0000's core premise: author what's new, derive what's known, override what's wrong.
 2. `docs/tenets.md`.
