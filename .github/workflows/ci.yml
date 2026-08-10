@@ -108,6 +108,9 @@ jobs:
       - name: ADR check
         run: bun scripts/adr.ts check
 
+      - name: Skillset parity
+        run: bun run skillset:parity
+
       - name: Lock round-trip
         run: bun run lock:roundtrip
 
