@@ -7,6 +7,7 @@ import {
   labelsForReleasePullRequest,
   releaseIntentForVersionDelta,
   releasePolicyRequiresCiProof,
+  selectGeneratedReleasePullRequest,
   selectReleasePolicyCiProofTarget,
 } from '../release/policy.js';
 import type {
@@ -81,6 +82,42 @@ const releasePolicySuccessRun = (name: string): ReleasePolicyCheckRun => ({
   status: 'completed',
 });
 
+describe('selectGeneratedReleasePullRequest', () => {
+  const sourcePullRequest = {
+    base: { ref: 'main' },
+    head: { ref: 'docs/agents/process-capture' },
+    labels: [{ name: 'release:none' }],
+    number: 991,
+  };
+  const generatedReleasePullRequest = {
+    base: { ref: 'main' },
+    head: { ref: 'changeset-release/main' },
+    labels: [{ name: 'release:patch' }],
+    number: 995,
+  };
+
+  test('rejects ordinary source PRs from generated release discovery', () => {
+    expect(
+      selectGeneratedReleasePullRequest([sourcePullRequest])
+    ).toBeUndefined();
+  });
+
+  test('selects the generated release PR regardless of API order', () => {
+    expect(
+      selectGeneratedReleasePullRequest([
+        sourcePullRequest,
+        generatedReleasePullRequest,
+      ])
+    ).toBe(generatedReleasePullRequest);
+    expect(
+      selectGeneratedReleasePullRequest([
+        generatedReleasePullRequest,
+        sourcePullRequest,
+      ])
+    ).toBe(generatedReleasePullRequest);
+  });
+});
+
 describe('evaluateReleasePolicy', () => {
   test('allows publish:auto when generated release and stack evidence are complete', () => {
     const report = evaluateReleasePolicy(baseInput());
@@ -101,6 +138,31 @@ describe('evaluateReleasePolicy', () => {
     expect(report.diagnostics).toContain('CI proof has not been evaluated');
   });
 
+  test('keeps source PR release labels out of generated release intent', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        releasePullRequest: undefined,
+        sourcePullRequests: [
+          {
+            commitShas: ['abc123'],
+            hasChangeset: true,
+            labels: ['release:none', 'stack:boundary'],
+            number: 991,
+            title: 'docs: capture source process',
+          },
+        ],
+      })
+    );
+
+    expect(report.decision).toBe('manual');
+    expect(report.blockers).toEqual([]);
+    expect(report.shouldPublish).toBe(false);
+    expect(report.createGitHubRelease).toBe(false);
+    expect(report.reasons).toContain(
+      'No publish:* label is set; routing to manual approval'
+    );
+  });
+
   test('keeps manual publish paths independent from CI proof', () => {
     const report = evaluateReleasePolicy(
       baseInput({
@@ -113,6 +175,8 @@ describe('evaluateReleasePolicy', () => {
     );
 
     expect(report.decision).toBe('manual');
+    expect(report.shouldPublish).toBe(true);
+    expect(report.createGitHubRelease).toBe(true);
     expect(report.diagnostics).toEqual([]);
     expect(releasePolicyRequiresCiProof(baseInput())).toBe(true);
     expect(

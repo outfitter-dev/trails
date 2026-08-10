@@ -407,7 +407,8 @@ const makeReport = (
   }
 ): ReleasePolicyReport => {
   const canPublish =
-    options.decision === 'auto' || options.decision === 'manual';
+    input.releasePullRequest !== undefined &&
+    (options.decision === 'auto' || options.decision === 'manual');
   const packagesPublished = registryComplete(input.registryPackages);
   const reasons = [...options.reasons];
   if (canPublish) {
@@ -1125,6 +1126,20 @@ const managedGitHubLabels = [
   },
 ] as const;
 
+export const selectGeneratedReleasePullRequest = <
+  PullRequest extends {
+    readonly base: { readonly ref: string };
+    readonly head: { readonly ref: string };
+  },
+>(
+  pulls: readonly PullRequest[]
+): PullRequest | undefined =>
+  pulls.find(
+    (candidate) =>
+      candidate.base.ref === 'main' &&
+      candidate.head.ref === 'changeset-release/main'
+  );
+
 const readReleasePullRequest = async (
   repository: string,
   sha: string
@@ -1133,7 +1148,7 @@ const readReleasePullRequest = async (
     repository,
     `/commits/${sha}/pulls`
   );
-  const pull = pulls.find((candidate) => candidate.base.ref === 'main');
+  const pull = selectGeneratedReleasePullRequest(pulls);
   if (!pull) {
     return undefined;
   }
@@ -1161,9 +1176,7 @@ const readOpenReleasePullRequest = async (
     repository,
     '/pulls?state=open&base=main&per_page=100'
   );
-  const pull = pulls.find(
-    (candidate) => candidate.head.ref === 'changeset-release/main'
-  );
+  const pull = selectGeneratedReleasePullRequest(pulls);
   if (!pull) {
     return undefined;
   }
