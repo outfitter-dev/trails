@@ -1,5 +1,12 @@
 # trails
 
+## 1.0.0-beta.48
+
+### Patch Changes
+
+- [`d8a2e7a`](https://github.com/outfitter-dev/trails/commit/d8a2e7a3e89ac06c1f594ef845ea18acaf58ea64): Preserve governed conversion provenance when Regrade appends a run to an existing v3 receipt.
+- [`7cca56b`](https://github.com/outfitter-dev/trails/commit/7cca56bdf3802826f2d4d338ee490d261cb8e52b): Keep ordinary source pull request labels out of generated release policy by requiring the canonical `changeset-release/main` head route during release PR discovery.
+
 ## 1.0.0-beta.47
 
 ### Minor Changes
