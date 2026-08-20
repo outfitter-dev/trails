@@ -1,6 +1,6 @@
 ---
 created: "2026-08-06T21:00:00Z"
-updated: "2026-08-18T18:34:00Z"
+updated: "2026-08-18T23:00:00Z"
 description: Execution plan for the dependency-honest standalone Skillset migration stack.
 linear:
   - TRL-1271
@@ -66,8 +66,9 @@ The 2026-08-08 coordinator handoff supersedes the worker-only landing boundary: 
 ### Publication gate
 
 - [x] Obtain separate approval and merge the reviewed Skillset fixes plus release PR #396.
-- [ ] Approve the waiting trusted-publication deployment. Release run `31232148006` selected `Publish to npm manually`; automatic publication was skipped.
-- [ ] Reverify npm latest and the published package behavior before updating Trails.
+- [x] Record release run `31232148006`: the approved manual trusted-publication path published `skillset@0.22.1` on 2026-08-08; automatic publication was skipped.
+- [x] Reverify the separately published `skillset@0.23.0` release from 2026-08-12 and its behavior before updating Trails.
+- [x] Hermetically audit published `skillset@0.24.0` on 2026-08-18. It still cannot render SET-506's required root marketplace plus flat `plugin/` tree, so this reviewed stack remains pinned to 0.23.0 and TRL-1274 remains blocked. Treat a 0.24 upgrade, including changed projections and locks, as separate reviewed work.
 
 ## Phase 2 — TRL-1272 canonical source and lock
 
@@ -81,7 +82,7 @@ The 2026-08-08 coordinator handoff supersedes the worker-only landing boundary: 
 - [x] Commit deterministic managed output and `skillset.lock`; retain the legacy generator only until TRL-1273 deletes the accepted oracle.
 - [x] Make standalone Skillset the only sync/check owner across package scripts, pre-commit, pre-push, and hosted Governance; TRL-1273 deleted the accepted legacy oracle.
 - [x] Keep Warden manifest interpretation in Trails, but refresh its canonical `.skillset/` guide before Skillset renders provider outputs. Run mutating Markdownlint before that projection step so staged source, outputs, and locks cannot diverge.
-- [ ] Reverify the current head, restack dependent branches, submit or update the draft PR, and obtain green hosted CI and current-head review evidence.
+- [x] Reverify final head `55d403c650b981c84cd0003ca33f5afca803650a`, restack dependent branches, update PR #999, and obtain ready/CLEAN/green hosted CI plus exact-head review evidence.
 
 ## Phase 3 — TRL-1273 standalone CLI cutover
 
@@ -90,24 +91,24 @@ The 2026-08-08 coordinator handoff supersedes the worker-only landing boundary: 
 - [x] Delete the bespoke generator, TOML config, tests, and stale guidance after accepted parity.
 - [x] Keep plugin consolidation and new Warden doctrine out of this branch. Preserve the review-required canonical Warden source seam established on TRL-1272.
 - [x] Document clean-checkout invocation, migration boundary, and branch-local `release:none`.
-- [ ] Verify, review, commit, and submit a draft PR.
+- [x] Verify, review, commit, and submit a draft PR.
 
 ## Phase 4 — sibling consolidation
 
 ### TRL-1274 plugin projection
 
-- [ ] Reverify npm latest and SET-394 state after TRL-1273.
-- [ ] Treat the published executable-mode fix as a hard gate.
-- [ ] If fixed in a published release, update the exact pin and Linear/packet, then prove plugin inventory, bytes, modes, hook command/timeout, relative references, metadata, marketplace versions, and native-only files.
-- [ ] If not fixed, do not create a workaround or falsely complete the branch; record the exact blocker in RETRO and Linear.
+- [x] Reverify released `skillset@0.23.0` and the earlier SET-394/SET-396 gates.
+- [x] Confirm that the required root marketplace plus flattened plugin manifest split remains unsupported and is tracked by SET-506.
+- [x] Keep TRL-1274 blocked without a Trails-local workaround or orphan import.
+- [ ] Resume only after a published SET-506 fix is observable and reverified.
 
 ### TRL-1275 Warden projection
 
-- [ ] Create TRL-1275 from TRL-1273, never from TRL-1274.
-- [ ] Treat the canonical Warden source seam and one-writer command composition as established by the lowest independently correct branch, TRL-1272, after PR #999 review.
-- [ ] Keep rule-manifest interpretation and guidance derivation in Trails; do not duplicate the source-seam implementation on this upper branch.
-- [ ] Narrow the branch to current accepted Regrade-loop doctrine, generated provider copies/locks, and branch-local migration/release evidence. Explicitly document the review-driven scope rehome.
-- [ ] Verify drift propagation, record `release:none`, review, commit, and submit a draft PR.
+- [x] Create TRL-1275 from TRL-1273, never from TRL-1274.
+- [x] Treat the canonical Warden source seam and one-writer command composition as established by the lowest independently correct branch, TRL-1272, after PR #999 review.
+- [x] Keep rule-manifest interpretation and guidance derivation in Trails; do not duplicate the source-seam implementation on this upper branch.
+- [x] Narrow the branch to current accepted Regrade-loop doctrine, generated provider copies/locks, and branch-local migration/release evidence. Explicitly document the review-driven scope rehome.
+- [x] Verify drift propagation, record `release:none`, review, commit, and submit a draft PR.
 
 ## Phase 5 — full readiness
 

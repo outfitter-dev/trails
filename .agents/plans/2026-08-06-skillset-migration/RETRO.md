@@ -1,6 +1,6 @@
 ---
 created: "2026-08-06T21:00:00Z"
-updated: "2026-08-18T18:34:00Z"
+updated: "2026-08-18T23:00:00Z"
 description: Running evidence log for the standalone Skillset migration goal.
 linear:
   - TRL-1271
@@ -213,3 +213,15 @@ No Skillset publication, global activation, HOME provider mutation, Trails merge
 - Plugin projection ownership remains unchanged for TRL-1274. Warden provider projection remains Skillset-owned, while its canonical source refresh now belongs to TRL-1272 as required for a working normal path. No HOME/provider activation, global mutation, publication, release, deployment, tracker mutation, PR mutation, or merge occurred.
 
 For each checkpoint append: branch/stack state; tracker/PR mutations; changed files and owner; commands/results; review findings/dispositions; blocker/next move; skipped gates with concrete reasons; and authority confirmation.
+
+## 2026-08-18 — TRL-1275 Regrade guidance projection
+
+- TRL-1275 branches directly from reviewed and submitted TRL-1273 head `19cf760e0a0cf11bf9ebba45aa42ee2fc0fe80af`, independent of the TRL-1274 sibling.
+- TRL-1274 is preserved as distinct empty lane `93e39ad` atop that same base. Hermetic review of published `skillset@0.24.0` confirmed that it still cannot render SET-506's required root marketplace plus flat `plugin/` tree, so this stack remains pinned to reviewed 0.23.0 behavior and TRL-1274 remains blocked. Historical `e879`, `e182`, and `ecba` commits are preserved under `refs/keep/trl-1274-settlement/`, and orphan `ecba1747790489df56436ac1f7646aa49a67142c` was not cherry-picked.
+- Fresh review rehomed the canonical Warden source seam, command and hook composition, and their tests to TRL-1272 so the lowest independently correct branch owns them. TRL-1275 inherits that implementation unchanged.
+- This narrowed branch owns only the accepted Regrade-loop doctrine in canonical Skillset source, its generated Claude and Agents copies and locks, and this migration evidence. It does not change Warden rendering, package scripts, hooks, ownership tests, or root `AGENTS.md`.
+- TRL-1275 consumes no TRL-1274 plugin work and adds no link from Regrade guidance to plugin skills.
+- The canonical Regrade-loop guidance now teaches accepted ADR-0053 and the saved-plan lifecycle: create and capture one plan path; preview and dry-run apply that same plan; triage its occurrence inventory before mutation; rerun the plan without `--fresh` when source changes, or with updated `--input`/`--input-json` when authored fields change, so retained authored intent carries forward; reserve `--fresh` for deliberate full replacement with every required field restated; only then apply and prove the graduated receipt with class-capable `check`. Aggregate `audit` is an additional vocabulary-history gate, not proof for class histories. Vocabulary plan examples omit the class-only `--name` flag. `adjust` restores an active plan on the same immutable history spine rather than restarting with a premature check. Provider copies and locks were regenerated only through standalone Skillset. Orphan `ecba1747790489df56436ac1f7646aa49a67142c` was not cherry-picked; no plugin-skill link, `0.4.0` claim, stale beta metadata, or direct provider-output edit was imported.
+- Verification for this narrowed head covers the focused Regrade/Skillset/Warden tests, standalone Skillset drift, ownership and parity, formatting, diff-check, and the full repository check; exact results belong in the branch handoff rather than being predeclared here.
+- TRL-1275 is `release:none`: it changes canonical contributor guidance, managed provider output, locks, and migration evidence only. It changes no publishable `@ontrails/*` package, public trail contract, schema, surface exposure, plugin distribution file, or runtime behavior.
+- No merge, queue, publication, release, deployment, global Skillset activation, HOME/provider mutation, or destructive cleanup occurred.

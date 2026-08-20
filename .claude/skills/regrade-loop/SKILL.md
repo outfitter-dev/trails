@@ -16,9 +16,10 @@ Doctrine: truth lives in the contract. Warden governs it. Regrade moves it. The 
 
 ## References
 
-- `docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md` - Regrade/Warden doctrine for governed migration facts.
+- `docs/adr/0053-regrade-moves-governed-contract-change.md` - the accepted doctrine for governed contract changes, lifecycle, and evidence.
 - `docs/api-reference.md` - committed Regrade package and CLI/MCP contract reference.
-- `packages/regrade/src/downstream/vocabulary.ts` - vocabulary plan, ledger, and report contracts.
+- `packages/regrade/src/downstream/vocabulary.ts` - vocabulary plan and report contracts.
+- `packages/regrade/src/history-receipt.ts` - the canonical compact v3 history receipt contract.
 - `apps/trails/src/trails/regrade.ts` - Trails CLI/MCP surface for Regrade.
 - `packages/warden/src/rules/retired-vocabulary.ts` - governed vocabulary transition registry.
 
@@ -31,8 +32,10 @@ Do not decide what to search for manually. Start from a Regrade plan or governed
 Keep three artifacts distinct:
 
 - **Plan:** authored migration intent. It names the source, target, scope, overrides, and preserve rules. It must not accumulate run state.
-- **Ledger:** observed run state. It records cycle number, forms seen, occurrence verdicts, paths, spans, reasons, and replacements.
+- **Ledger:** derived observed run state. It records forms, occurrence verdicts, paths, spans, reasons, and replacements, but is not committed primary truth.
 - **Report:** rendered operator output. It summarizes counts, gate status, review inventory, skipped files, and applied file counts.
+
+Committed history stores compact immutable receipts: authored intent, reproducibility keys, durable form judgments, Git blob identities, and completion facts. It does not store the full occurrence ledger or rendered report. Never hand-edit `.trails/regrade/history/`; regenerate and validate it through Regrade.
 
 For a long run, write resume state under a gitignored working directory such as `.agents/regrade/<plan-id>/`:
 
@@ -77,18 +80,59 @@ Minimal vocabulary input:
 
 Project defaults may narrow scope, but an explicit plan can override them.
 
-### 3. Dry Run First
+### 3. Use The Saved-Plan Lifecycle
 
-Run without `apply` first:
+For governed work, use the schema-first saved-plan lifecycle. Create one run-specific directory under the repository's gitignored Regrade working area before either plan mode:
 
 ```bash
-trails regrade --root-dir . --from '<from>' --to '<to>' --json
-trails regrade --root-dir . --class-ids term-rewrite:no-retired-cross-vocabulary --json
+REGRADE_SCRATCH=".agents/regrade/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$REGRADE_SCRATCH"
+CYCLE=1
 ```
 
-Save the returned ledger/report when the run is large or will cross context windows. Treat `gate.status: "open"` as real work, not success.
+A class plan follows the live form documented by the cross-to-compose migration:
 
-### 4. Triage Occurrences
+```bash
+trails regrade plan \
+  --root-dir . \
+  --type class \
+  --name '<name>' \
+  --class-ids '<id>' \
+  --include-entries all \
+  --json > "$REGRADE_SCRATCH/plan.json"
+
+PLAN_PATH="$(jq -r '.path' "$REGRADE_SCRATCH/plan.json")"
+```
+
+For vocabulary work, author the saved plan from the public positional `from` and `to` inputs, then capture the returned path the same way:
+
+```bash
+trails regrade plan '<from>' '<to>' \
+  --root-dir . \
+  --include-entries all \
+  --json > "$REGRADE_SCRATCH/plan.json"
+
+PLAN_PATH="$(jq -r '.path' "$REGRADE_SCRATCH/plan.json")"
+```
+
+Keep `PLAN_PATH` for the whole governed cycle. Do not replace saved-plan apply with the legacy direct top-level `trails regrade` mode.
+
+### 4. Preview And Dry-Run The Saved Plan
+
+Derive the no-write preview and exercise apply preflight against the same saved plan before expecting a green gate:
+
+```bash
+trails regrade preview --root-dir . --plan "$PLAN_PATH"
+trails regrade apply \
+  --root-dir . \
+  --plan "$PLAN_PATH" \
+  --include-entries all \
+  --dry-run
+```
+
+`preview` and dry-run apply do not mutate source or history. Save the returned occurrence inventory and report when the run is large or will cross context windows. A saved plan with safe rewrites or review work can make `regrade check` fail at this stage; that is real work to triage, not a reason to bypass the saved-plan lifecycle.
+
+### 5. Triage Occurrences
 
 Use the report inventory:
 
@@ -104,27 +148,53 @@ For deferred occurrences, inspect only enough source context to decide one of:
 
 Never hide uncertainty by applying a broad replacement.
 
-### 5. Apply Explicitly
+If triage changes authored plan fields, overrides, or preserve rules, rerun the plan command with the updated structured fields through `--input` or `--input-json`. Omit `--fresh` when unchanged authored fields should carry forward. If only the inventoried source changes, rerun the same plan command without `--fresh`. Use `--fresh` only for a deliberate full replacement, and then supply every authored field that must remain. Recapture `PLAN_PATH` and repeat preview and dry-run apply; never apply a stale inventory.
+
+### 6. Apply The Saved Plan Explicitly
 
 Apply only after the dry-run report is understood:
 
 ```bash
-trails regrade --root-dir . --from '<from>' --to '<to>' --apply --json
+APPLY_REPORT="$REGRADE_SCRATCH/apply-cycle-${CYCLE}.json"
+trails regrade apply \
+  --root-dir . \
+  --plan "$PLAN_PATH" \
+  --include-entries all \
+  --json > "$APPLY_REPORT"
+
+HISTORY_ID="$(jq -r '.history.id' "$APPLY_REPORT")"
 ```
 
 Safe apply may still leave the gate open when target text contains the source, when review inventory remains, or when new neighbor forms are discovered. That is expected. Continue the loop instead of calling the migration done.
 
-### 6. Verify And Repeat
+### 7. Audit, Adjust, And Repeat
 
 After each apply cycle:
 
-1. Re-run the same Regrade command without `apply`.
-2. Compare the new ledger/report with the previous cycle.
-3. Confirm changed files are expected.
-4. Run targeted tests or commands for the migrated surface.
-5. Repeat until the gate is green or all remaining entries are explicit review inventory with an issue/comment explaining the blocker.
+1. Prove the graduated receipt for either plan mode with `trails regrade check --root-dir . --plan "$HISTORY_ID"`. The history selector is the opaque ID returned by apply, not a path or display name.
+2. For a vocabulary transition, also run `trails regrade audit --root-dir . --fail-on-open`. Aggregate audit evaluates vocabulary histories; it is not class-history proof.
+3. Compare the new ledger/report with the previous cycle.
+4. Confirm changed files are expected.
+5. Run targeted tests or commands for the migrated surface.
+6. A clean active replan can also prove its gate with `trails regrade check --root-dir . --plan "$PLAN_PATH"`. Do not require check to pass before occurrence triage.
+7. If another apply cycle is needed after graduation, restore the active plan by its opaque receipt ID and recapture its path. Apply consumes the active plan, so this adjustment is required even when the authored intent is unchanged:
 
-### 7. Local Review
+   ```bash
+   ADJUST_REPORT="$REGRADE_SCRATCH/adjust-after-cycle-${CYCLE}.json"
+   trails regrade adjust "$HISTORY_ID" \
+     --root-dir . \
+     --json > "$ADJUST_REPORT"
+
+   PLAN_PATH="$(jq -r '.path' "$ADJUST_REPORT")"
+   CYCLE=$((CYCLE + 1))
+   ```
+
+   Then repeat preview, dry-run apply, triage, and apply on the same history spine. The cycle-numbered reports remain available for comparison and resume; do not overwrite them.
+8. Repeat until the gate is green. If remaining entries require a decision or capability that is not available, stop and capture the review inventory plus its issue/comment as a blocker; do not report the loop as done.
+
+`adjust` restores an active plan on the same history spine without mutating prior receipts.
+
+### 8. Local Review
 
 For repo work, run local review loops on the branch diff. P0-P2 findings must be fixed or specifically acknowledged with evidence. Relevant P3s should be fixed when they improve operator clarity or prevent later drift.
 
@@ -133,10 +203,11 @@ For repo work, run local review loops on the branch diff. P0-P2 findings must be
 A Regrade loop is done only when:
 
 - dry-run and apply behavior were both exercised when source changes were made;
-- the final report is green, or remaining review inventory is explicitly captured and not misreported as complete;
+- the final report is green; a run with remaining review inventory is stopped or blocked, not done;
 - plan, ledger, and report stayed separate;
 - CLI and MCP contract expectations remain aligned;
 - targeted verification passes;
+- graduated `trails regrade check` accepts the committed class or vocabulary receipt, and `trails regrade audit --fail-on-open` also accepts governed vocabulary histories when applicable;
 - local review has no unresolved P0-P2 findings;
 - any manual edits are labeled as review/fix-after-Regrade, not the primary migration mechanism.
 

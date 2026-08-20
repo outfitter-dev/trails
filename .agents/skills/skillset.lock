@@ -137,9 +137,9 @@
       ],
       "kind": "standalone-skill",
       "name": "regrade-loop",
-      "outputHash": "sha256:1b6c6c8bda309de029ed08ecc6a02f145ebdce8fb7a71a2bcfeeeafade5b3cc6",
+      "outputHash": "sha256:54cf4fa654093ea0ffc541c4c3231b4afcda9c15483fe3c80981191176863452",
       "outputPath": "regrade-loop/SKILL.md",
-      "sourceHash": "sha256:d7e8efc9a607f954884d1176789f8652c711f8c6a41f63af5fdb40d5715f540a",
+      "sourceHash": "sha256:d72fea072d24b5de34429e7cad5fe229911acc183429ad33f2580f1e468ac86f",
       "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
       "version": "0.1.0"
     },
