@@ -152,7 +152,7 @@ export const defaultInstalledSkillCandidates = (
   {
     label: 'codex-home',
     optional: true,
-    path: join(homeDir, '.config/codex/skills/trails'),
+    path: join(homeDir, '.codex/skills/trails'),
   },
 ];
 
