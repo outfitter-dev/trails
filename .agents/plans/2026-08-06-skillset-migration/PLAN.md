@@ -78,18 +78,18 @@ The 2026-08-08 coordinator handoff supersedes the worker-only landing boundary: 
 - [x] Author Clark/Lewis project agents deliberately and preserve provider-native fields only where parity evidence requires them.
 - [x] Preserve deliberate handling for Claude-only `context: fork` and `agent: clark` on `clark-decision` and `clark-survey`.
 - [x] Preserve dynamic `!` pre-resolution and provider-relative companion references visibly.
-- [x] Commit deterministic managed output and `skillset.lock`; keep the legacy generator only as an oracle.
-- [x] Make standalone Skillset the only normal-path sync/check owner across package scripts, pre-commit, pre-push, and hosted Governance; keep the legacy implementation oracle-only until TRL-1273 deletes it.
+- [x] Commit deterministic managed output and `skillset.lock`; retain the legacy generator only until TRL-1273 deletes the accepted oracle.
+- [x] Make standalone Skillset the only sync/check owner across package scripts, pre-commit, pre-push, and hosted Governance; TRL-1273 deleted the accepted legacy oracle.
 - [x] Keep Warden manifest interpretation in Trails, but refresh its canonical `.skillset/` guide before Skillset renders provider outputs. Run mutating Markdownlint before that projection step so staged source, outputs, and locks cannot diverge.
 - [ ] Reverify the current head, restack dependent branches, submit or update the draft PR, and obtain green hosted CI and current-head review evidence.
 
 ## Phase 3 — TRL-1273 standalone CLI cutover
 
-- [ ] Create the exact Linear-named child branch on TRL-1272.
-- [ ] Rewire `skillset:sync`, `skillset:check`, root checks, and relevant hooks to the pinned CLI.
-- [ ] Delete the bespoke generator, TOML config, tests, and stale guidance after accepted parity.
-- [ ] Keep plugin consolidation and new Warden doctrine out of this branch. Preserve the review-required canonical Warden source seam established on TRL-1272.
-- [ ] Document clean-checkout invocation, migration boundary, and branch-local `release:none`.
+- [x] Create the exact Linear-named child branch on TRL-1272.
+- [x] Inherit and confirm TRL-1272's pinned-CLI rewiring of `skillset:sync`, `skillset:check`, root checks, and relevant hooks.
+- [x] Delete the bespoke generator, TOML config, tests, and stale guidance after accepted parity.
+- [x] Keep plugin consolidation and new Warden doctrine out of this branch. Preserve the review-required canonical Warden source seam established on TRL-1272.
+- [x] Document clean-checkout invocation, migration boundary, and branch-local `release:none`.
 - [ ] Verify, review, commit, and submit a draft PR.
 
 ## Phase 4 — sibling consolidation

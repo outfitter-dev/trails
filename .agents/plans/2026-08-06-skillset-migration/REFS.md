@@ -46,9 +46,10 @@ references:
 
 - `package.json`
 - `bun.lock`
-- `scripts/codex/skillset.ts`
-- `scripts/codex/skillset.config.toml`
-- `scripts/__tests__/skillset.test.ts`
+- `skillset.yaml`
+- `.skillset/`
+- `scripts/__tests__/skillset-ownership-contract.test.ts`
+- `scripts/__tests__/standalone-skillset-parity.test.ts`
 - `.claude/skills/`
 - `.agents/skills/`
 - `.codex/agents/`
@@ -61,6 +62,6 @@ Missing or renamed anchors are evidence, not permission to invent replacements. 
 
 ## Published execution contract
 
-- Registry package: exact npm `skillset@0.22.0`, reverified as `latest` on 2026-08-06.
+- Registry package: exact npm `skillset@0.23.0`, adopted on 2026-08-18.
 - Released npm artifacts and CLI behavior are authoritative; `/Users/mg/Developer/outfitter/skillset` may be consulted only as non-authoritative orientation.
 - Hermetic executions use temporary source/output and explicit temporary HOME, XDG config, XDG cache, and XDG state paths.

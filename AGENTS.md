@@ -27,6 +27,8 @@ bun run typecheck
 bun run clean
 ```
 
+Repository agent source lives in `skillset.yaml` and `.skillset/`. Treat `.claude/skills`, `.agents/skills`, `.claude/agents`, `.codex/agents`, and their `skillset.lock` files as generated standalone Skillset output. Run `bun run skillset:sync` to render source and `bun run skillset:check` to detect content or mode drift; do not hand-edit managed output or locks.
+
 For direct local lint and format validation, prefer the repo scripts (`bun run lint`, `bun run format:check`, `bun run format:fix`) so the private Oxlint plugin is built before Oxlint or Ultracite loads it. If invoking `bunx ultracite check`, `bunx ultracite fix`, or package-local `oxlint ./src` directly on a fresh checkout, run `bun run oxlint-plugin:build` first. For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, or `bunx ultracite ...` over invoking the binary by a direct `node_modules/.bin` path. Bun sets up `node_modules/.bin` on `PATH`, which lets `ultracite` resolve sibling tools like `oxfmt` and `oxlint`.
 
 ## Project Overview

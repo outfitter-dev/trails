@@ -40,7 +40,6 @@
     "warden:skills:check": "bun scripts/sync-skill-warden-guide.ts --check",
     "skillset:sync": "bun run warden:skills:sync && skillset build --yes --root .",
     "skillset:check": "bun run warden:skills:check && skillset check --only outputs --root .",
-    "skillset:oracle:check": "bun scripts/codex/skillset.ts --check",
     "skillset:ownership": "bun test scripts/__tests__/skillset-ownership-contract.test.ts",
     "skillset:parity": "bun test scripts/__tests__/standalone-skillset-parity.test.ts",
     "dead-code": "knip --no-progress",

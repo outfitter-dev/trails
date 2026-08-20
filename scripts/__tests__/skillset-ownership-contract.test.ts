@@ -89,9 +89,6 @@ describe('Skillset ownership contract', () => {
     expect(packageJson.scripts?.['skillset:check']).toBe(
       'bun run warden:skills:check && skillset check --only outputs --root .'
     );
-    expect(packageJson.scripts?.['skillset:oracle:check']).toBe(
-      'bun scripts/codex/skillset.ts --check'
-    );
     expect(packageJson.scripts?.['skillset:ownership']).toBe(
       'bun test scripts/__tests__/skillset-ownership-contract.test.ts'
     );
@@ -109,6 +106,34 @@ describe('Skillset ownership contract', () => {
     expect(syncScript).not.toContain(
       "'.agents/skills/be-clark/references/warden-guide.md'"
     );
+  });
+
+  test('keeps Lewis orchestration on canonical Trails skills', async () => {
+    const lewis = await readRepoFile('.skillset/skills/be-lewis/SKILL.md');
+
+    expect(lewis).toContain('Invoke `trails-goal-loop`');
+    expect(lewis).toContain('Invoke `trails-local-review`');
+    expect(lewis).not.toContain('$goal-loop');
+    expect(lewis).not.toContain('$local-review');
+
+    for (const providerRoot of ['.claude/skills', '.agents/skills']) {
+      const providerLewis = await readRepoFile(
+        `${providerRoot}/be-lewis/SKILL.md`
+      );
+      expect(providerLewis).toContain('Invoke `trails-goal-loop`');
+      expect(providerLewis).toContain('Invoke `trails-local-review`');
+    }
+
+    for (const skill of ['trails-goal-loop', 'trails-local-review']) {
+      for (const skillRoot of [
+        '.skillset/skills',
+        '.claude/skills',
+        '.agents/skills',
+      ]) {
+        const skillPath = join(repoRoot, skillRoot, skill, 'SKILL.md');
+        expect(await readFile(skillPath, 'utf8')).toContain(`name: ${skill}`);
+      }
+    }
   });
 
   test('regenerates canonical and managed Skillset surfaces in pre-commit', async () => {
