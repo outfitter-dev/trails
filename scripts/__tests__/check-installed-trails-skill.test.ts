@@ -65,7 +65,7 @@ const checkOne = async (
 
 describe('check-installed-trails-skill', () => {
   test('uses the canonical Codex home for the optional installed skill', () => {
-    const codexHome = defaultInstalledSkillCandidates('/tmp/home').find(
+    const codexHome = defaultInstalledSkillCandidates('/tmp/home', '').find(
       (candidate) => candidate.label === 'codex-home'
     );
 
@@ -73,6 +73,19 @@ describe('check-installed-trails-skill', () => {
       label: 'codex-home',
       optional: true,
       path: '/tmp/home/.codex/skills/trails',
+    });
+  });
+
+  test('honors CODEX_HOME for the optional installed skill', () => {
+    const codexHome = defaultInstalledSkillCandidates(
+      '/tmp/home',
+      '/tmp/custom-codex'
+    ).find((candidate) => candidate.label === 'codex-home');
+
+    expect(codexHome).toEqual({
+      label: 'codex-home',
+      optional: true,
+      path: '/tmp/custom-codex/skills/trails',
     });
   });
 
