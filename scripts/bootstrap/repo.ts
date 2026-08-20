@@ -123,6 +123,25 @@ const installDependencies = async (
   success('Dependencies installed');
 };
 
+// The private Oxlint plugin is a source-derived artifact that oxlint loads from
+// oxlint.config.ts, so lint/format/test need its dist/ on a fresh checkout.
+// turbo's `test` task only depends on `^build`, so it never builds the plugin's
+// own dist/. Build it here (idempotent, fast) so the whole check suite is green
+// out of the box for every provider and local checkout.
+const buildOxlintPlugin = async (repoRoot: string): Promise<void> => {
+  info('Building the Oxlint plugin');
+  const code = await runInherit(
+    ['bun', 'run', 'oxlint-plugin:build'],
+    repoRoot
+  );
+  if (code !== 0) {
+    throw new Error(
+      `Oxlint plugin build failed with exit code ${String(code)}`
+    );
+  }
+  success('Oxlint plugin built');
+};
+
 export const runRepoBootstrap = async (
   options: RepoBootstrapOptions
 ): Promise<void> => {
@@ -140,6 +159,8 @@ export const runRepoBootstrap = async (
     }
     await installDependencies(options.repoRoot, options.update);
   }
+
+  await buildOxlintPlugin(options.repoRoot);
 
   if (options.config.checks.optionalTools.length > 0) {
     const statuses = collectToolStatus(
