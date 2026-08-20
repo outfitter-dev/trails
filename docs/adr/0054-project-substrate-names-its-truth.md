@@ -4,7 +4,7 @@ slug: project-substrate-names-its-truth
 title: Project Substrate Names Its Truth
 status: accepted
 created: 2026-06-22
-updated: 2026-07-20
+updated: 2026-08-20
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [10, 11, 14, 15, 17, 41, 42, 46]
 ---
@@ -142,6 +142,8 @@ Nested or overlapping Trails workspace declarations fail closed in v1. A configu
 
 Every operator command derives the same project context: collection boundary, workspace and app roots, selected extent, selection provenance, configured app identity, and binding or completeness status.
 
+For every app-aware command, `--app <configured-id>` is the shared public selection input. It is not a `run`-only accommodation or a command-specific alias. Command schemas, help, completions, structured results, and diagnostics must give it the same meaning wherever one app can be selected.
+
 The Trails operator owns the shared project-context resolver because it interprets Trails-specific flags and command cardinality. It composes static project identity and root discovery from `@ontrails/config`, collection-boundary evidence from `@ontrails/source`, and lock, graph, freshness, and completeness facts from `@ontrails/topography`. Those packages keep ownership of their facts; the operator derives command selection and renders its provenance.
 
 Selection precedence is:
@@ -153,6 +155,17 @@ Selection precedence is:
 4. `--module` is an app-local or custom-layout escape hatch. It may refine
    the selected app entry, but it never changes the lock root, bypasses
    configured binding, or downgrades a workspace-wide assertion.
+
+Representative workspace-root invocations are:
+
+```bash
+trails compile --app trails
+trails validate --app trails
+trails run entity.get --app trails --input '{"id":"example"}'
+trails wayfind --overview --app trails
+```
+
+An unknown app ID fails with a typed error that names the configured IDs and shows the corrective `--app` form. Machine-readable output always records the selected project root, selected extent, and selection provenance so agents do not have to infer what a successful command inspected. A one-app result additionally records that app's ID, root, module source, and artifact path. A workspace-wide result instead records the configured app set and each app's ID, root, module source, artifact path, binding verdict, freshness, and completeness evidence; it never invents one selected app for a workspace observation.
 
 The v1 command cardinality is deliberately small:
 
@@ -224,7 +237,8 @@ The implementation cutover must move owners together rather than teaching an int
 
 1. Keep compatibility readers for the previous `.trails/trails.lock` plus
    `.trails/topo.lock` family long enough to produce a specific regeneration
-   path. New writes remain root `trails.lock` only.
+   path. New writes remain the selected app root's `trails.lock` only; a
+   configured workspace does not receive a root aggregate artifact.
 2. Add the static workspace predicate and shared project-context derivation
    before routing commands through them.
 3. Normalize the current `warden.apps` values into configured apps,
