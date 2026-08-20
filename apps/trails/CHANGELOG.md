@@ -1,5 +1,11 @@
 # trails
 
+## 1.0.0-beta.50
+
+### Patch Changes
+
+- [`533f1f9`](https://github.com/outfitter-dev/trails/commit/533f1f9318e7e81feba7ff52096472598577c723): Render concrete release versions in Homebrew formula URLs without a redundant explicit version declaration.
+
 ## 1.0.0-beta.49
 
 ### Patch Changes

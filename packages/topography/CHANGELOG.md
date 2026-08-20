@@ -1,5 +1,7 @@
 # @ontrails/topography
 
+## 1.0.0-beta.50
+
 ## 1.0.0-beta.49
 
 ## 1.0.0-beta.48

@@ -87,6 +87,7 @@
     "error-taxonomy-docs-registry",
     "export-restructure-class",
     "fair-surface-parity",
+    "fix-homebrew-formula-version",
     "fix-publish-bugs",
     "fix-workspace-publish",
     "graph-rename-harness",
