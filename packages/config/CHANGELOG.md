@@ -1,5 +1,7 @@
 # @ontrails/config
 
+## 1.0.0-beta.49
+
 ## 1.0.0-beta.48
 
 ## 1.0.0-beta.47

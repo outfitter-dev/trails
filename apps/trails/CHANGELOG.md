@@ -1,5 +1,11 @@
 # trails
 
+## 1.0.0-beta.49
+
+### Patch Changes
+
+- [`822b403`](https://github.com/outfitter-dev/trails/commit/822b40375cc2947f0824d5f4e291b370b5062866): Ship deterministic macOS and Linux CLI bundles for the GitHub release and hand published releases to the Outfitter Homebrew tap through a reviewable formula PR.
+
 ## 1.0.0-beta.48
 
 ### Patch Changes

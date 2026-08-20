@@ -309,6 +309,7 @@
     "trl-1269-compact-regrade-receipts",
     "trl-1269-governed-history-conversion",
     "trl-1269-receipt-runtime-cutover",
+    "trl-1291-homebrew-cli",
     "trl-398-trails-run-trail",
     "trl-399-stdin-input-file",
     "trl-400-quiet-flag",
