@@ -4,6 +4,7 @@
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
 2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open CLI/MCP/HTTP surfaces, test it
+   - **[Install the Trails CLI](./getting-started.md#installation)** — Homebrew install, update, uninstall, Bun requirement, and optional tap cleanup
 3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, implementation, topo, entity, surface, compose, resource, signal, execution layers, tracing
 
 ## Release Notes

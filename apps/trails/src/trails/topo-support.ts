@@ -35,7 +35,15 @@ export const topoSnapshotOutput = z.object({
 
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = 'trails.lock';
-const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
+const sourceExampleAppModule = fileURLToPath(
+  new URL('../app.ts', import.meta.url)
+);
+const bundledExampleAppModule = fileURLToPath(
+  new URL('app.js', import.meta.url)
+);
+const EXAMPLE_APP_MODULE = existsSync(sourceExampleAppModule)
+  ? sourceExampleAppModule
+  : bundledExampleAppModule;
 
 const uniqueExampleRootName = (name: string): string =>
   `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;

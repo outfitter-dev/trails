@@ -1,0 +1,88 @@
+name: Publish Homebrew
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published GitHub release tag to hand to Homebrew'
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Published GitHub release tag to hand to Homebrew'
+        required: true
+        type: string
+    secrets:
+      HOMEBREW_TAP_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  homebrew:
+    name: Open tap update PR
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          tag="${EVENT_TAG:-$INPUT_TAG}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: $tag" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - name: Read published release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: gh api "repos/${{ github.repository }}/releases/tags/$TAG" > "$RUNNER_TEMP/release.json"
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+      - uses: ./.github/actions/setup
+      - name: Verify tag matches package version
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: test "$(jq -r .version apps/trails/package.json)" = "$VERSION"
+      - name: Download expected release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-assets"
+          gh release download "$TAG" \
+            --pattern "trails-v$VERSION-*.tar.gz" \
+            --pattern "trails-v$VERSION-SHA256SUMS" \
+            --dir "$RUNNER_TEMP/release-assets"
+      - name: Validate published release assets
+        run: bun run release:homebrew -- validate --version "${{ steps.release.outputs.version }}" --release-json "$RUNNER_TEMP/release.json" --assets-dir "$RUNNER_TEMP/release-assets"
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          repository: outfitter-dev/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+      - name: Render Trails formula
+        run: bun run release:homebrew -- render --version "${{ steps.release.outputs.version }}" --checksums "$RUNNER_TEMP/release-assets/trails-v${{ steps.release.outputs.version }}-SHA256SUMS" --output homebrew-tap/Formula/trails.rb
+      - name: Open or update tap PR
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+          branch: release/trails-${{ steps.release.outputs.version }}
+          commit-message: 'trails ${{ steps.release.outputs.version }}'
+          title: 'chore: update Trails to ${{ steps.release.outputs.version }}'
+          body: |
+            Update the Trails formula from the published [v${{ steps.release.outputs.version }}](https://github.com/outfitter-dev/trails/releases/tag/v${{ steps.release.outputs.version }}) assets.
+
+            This pull request was opened by the Trails release workflow and is intentionally not merged automatically.

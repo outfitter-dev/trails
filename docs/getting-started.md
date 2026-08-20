@@ -6,9 +6,29 @@ This guide demonstrates CLI and MCP first because they are the shortest path to 
 
 ## Installation
 
-```bash
-# Requires Bun (https://bun.sh)
+The canonical CLI install uses the Outfitter Homebrew tap. The formula requires [Bun](https://bun.sh) at runtime and installs the CLI's bundled JavaScript plus its platform-specific native parser and resolver dependencies.
 
+```bash
+brew install outfitter-dev/tap/trails
+trails --version
+
+# Upgrade later
+brew update
+brew upgrade trails
+
+# Remove the CLI
+brew uninstall trails
+```
+
+If Trails was the only formula you used from the tap, you may also remove the tap after uninstalling. Leave it configured when other installed formulae share it.
+
+```bash
+brew untap outfitter-dev/tap
+```
+
+For project dependencies and scaffolding, use Bun:
+
+```bash
 # Recommended: scaffold a new project
 # (create writes a project, so it needs an explicit project:write permit)
 bunx @ontrails/trails create --permit '{"id":"local-dev","scopes":["project:write"]}'

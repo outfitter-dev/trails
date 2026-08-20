@@ -290,6 +290,8 @@ Only publish after the version PR has merged.
 
 The normal publication path is the GitHub release workflow after the generated version PR merges. `publish:auto` uses the `npm-auto` environment when release evidence is complete. `publish:manual` pauses on the protected `npm` environment for approval. Both jobs publish through npm trusted publishing and produce the repository deployment record.
 
+After the GitHub release assets are published and validated, the release workflow dispatches **Publish Homebrew**. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR. The tap PR is deliberately not auto-merged: completion requires review, merge, and a clean install or upgrade verification from the tap.
+
 Use clean, synced `main` for final read-only verification:
 
 ```bash
@@ -416,5 +418,10 @@ The stable release is complete only when:
 - `bun run publish:registry-check:published` passes;
 - fresh generated-app install, typecheck, and tests pass from a clean cache;
 - release notes and package changelogs reflect the stable release;
+- the Homebrew tap PR has been reviewed and merged, and a clean `brew install outfitter-dev/tap/trails` or `brew upgrade trails` followed by `trails --version` reports the released version;
 - no generated `.trails` or `.trails-tmp` runtime state is staged;
 - the release issue or project update links to the final evidence.
+
+### Homebrew Handoff Recovery Boundary
+
+Treat GitHub release assets, checksums, and the generated tap formula as one handoff. Do not hand-edit a release asset or `Formula/trails.rb` to recover a failed handoff. If the tag is already published, first validate that every expected platform archive and the checksum manifest are present and correct; then rerun **Publish Homebrew** for that existing tag so the formula and tap PR are regenerated from reviewed release evidence. If asset validation fails, repair the release incident before rerunning the Homebrew workflow.

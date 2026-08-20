@@ -29,6 +29,8 @@ The skill gives your agent the full Trails reference: lexicon, patterns, error t
 
 ### With code
 
+Install or update the standalone `trails` CLI with Homebrew by following the canonical [installation guide](./docs/getting-started.md#installation). The formula requires Bun at runtime.
+
 ```bash
 bunx @ontrails/trails create --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```

@@ -2,6 +2,8 @@
 
 Command-line tools for working with Trails projects.
 
+Install, update, or uninstall the standalone CLI with Homebrew using the canonical [installation guide](../../docs/getting-started.md#installation). The formula requires Bun at runtime.
+
 Use the CLI to scaffold a Trails app, add surfaces, inspect the current topo, run warden checks, manage draft state, and keep local Trails project state tidy.
 
 ```bash

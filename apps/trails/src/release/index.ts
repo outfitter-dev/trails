@@ -57,6 +57,32 @@ export {
   type ReleaseRuleInput,
 } from './config.js';
 export {
+  buildTrailsCliReleaseArtifact,
+  createDeterministicTarGzip,
+  currentTrailsCliReleasePlatform,
+  expectedTrailsCliReleaseAssetNames,
+  runTrailsCliReleaseCli,
+  trailsCliArchiveName,
+  trailsCliChecksumName,
+  trailsCliReleasePlatforms,
+  trailsCliReleasePlatformValues,
+  verifyTrailsCliArchive,
+  type BuildTrailsCliReleaseOptions,
+  type TrailsCliReleaseArtifact,
+  type TrailsCliReleasePlatform,
+  type TrailsCliReleasePlatformDescriptor,
+} from './cli-bundle.js';
+export {
+  parseTrailsCliChecksums,
+  renderTrailsHomebrewFormula,
+  runTrailsHomebrewCli,
+  validateTrailsHomebrewRelease,
+  verifyTrailsHomebrewAssetDirectory,
+  type GitHubReleaseAsset,
+  type GitHubReleaseMetadata,
+  type TrailsCliReleaseChecksums,
+} from './homebrew.js';
+export {
   createNpmPublishCommand,
   findPackedFirstPartyDependencyMismatches,
   publicationActionForRegistryState,

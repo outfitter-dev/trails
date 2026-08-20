@@ -155,29 +155,87 @@ jobs:
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 
+  release-assets:
+    name: Build CLI asset (${{ matrix.platform }})
+    needs: [publish-policy, publish-auto, publish]
+    if: always() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success' || needs.publish.result == 'success')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: darwin-arm64
+            runner: macos-15
+          - platform: darwin-x64
+            runner: macos-15-intel
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+          - platform: linux-x64
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+      - name: Check out exact release target
+        env:
+          VERSION: ${{ needs.publish-policy.outputs.version }}
+        run: |
+          version_target="$(git log -n 1 --format=%H -S "\"version\": \"$VERSION\"" -- apps/trails/package.json)"
+          if [ -z "$version_target" ]; then
+            echo "Could not resolve commit that introduced apps/trails/package.json version $VERSION" >&2
+            exit 1
+          fi
+          git checkout --detach "$version_target"
+      - uses: ./.github/actions/setup
+      - name: Build and cold-verify CLI release asset
+        run: bun run release:cli:build -- --out-dir dist --platform "${{ matrix.platform }}" --version "${{ needs.publish-policy.outputs.version }}"
+      - name: Upload CLI release asset
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: trails-cli-${{ matrix.platform }}
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+
   github-release:
     name: Create GitHub Release
-    needs: [publish-policy, publish-auto, publish]
+    needs: [publish-policy, publish-auto, publish, release-assets]
     if: always() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success' || needs.publish.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - name: Create GitHub release
+      - name: Download CLI release assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: trails-cli-*
+          path: release-assets
+          merge-multiple: true
+      - name: Assemble CLI checksum manifest
+        env:
+          VERSION: ${{ needs.publish-policy.outputs.version }}
+        run: |
+          cat release-assets/*.sha256 | LC_ALL=C sort > "release-assets/trails-v$VERSION-SHA256SUMS"
+          test "$(wc -l < "release-assets/trails-v$VERSION-SHA256SUMS")" -eq 4
+      - name: Stage, populate, and publish GitHub release
+        id: release
         env:
           DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.publish-policy.outputs.version }}
         run: |
-          create_args=()
+          create_args=(--draft --latest=false)
           if [ "$DIST_TAG" != "latest" ]; then
-            create_args+=(--prerelease --latest=false)
-          else
-            create_args+=(--latest)
+            create_args+=(--prerelease)
           fi
 
           tag="v$VERSION"
@@ -213,3 +271,27 @@ jobs:
               --notes-file "$notes_file" \
               "${create_args[@]}"
           fi
+
+          gh release upload "$tag" \
+            release-assets/*.tar.gz \
+            "release-assets/trails-v$VERSION-SHA256SUMS" \
+            --clobber
+
+          if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = "true" ]; then
+            if [ "$DIST_TAG" = "latest" ]; then
+              gh release edit "$tag" --draft=false --latest
+            else
+              gh release edit "$tag" --draft=false --prerelease --latest=false
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  homebrew:
+    name: Open Homebrew tap PR
+    needs: github-release
+    if: needs.github-release.result == 'success'
+    uses: ./.github/workflows/publish-homebrew.yml
+    with:
+      tag: ${{ needs.github-release.outputs.tag }}
+    secrets:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
