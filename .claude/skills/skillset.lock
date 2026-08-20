@@ -1,0 +1,910 @@
+{
+  "buildMode": "all",
+  "features": {
+    "promptArguments": true
+  },
+  "generatedBy": "skillset@0.1.0",
+  "items": [
+    {
+      "fileModes": {
+        "ask-trails-crew/SKILL.md": "0644",
+        "ask-trails-crew/agents/openai.yaml": "0644",
+        "ask-trails-crew/references/claude-subagents.md": "0644",
+        "ask-trails-crew/references/codex-subagents.md": "0644"
+      },
+      "files": [
+        "ask-trails-crew/SKILL.md",
+        "ask-trails-crew/agents/openai.yaml",
+        "ask-trails-crew/references/claude-subagents.md",
+        "ask-trails-crew/references/codex-subagents.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "ask-trails-crew",
+      "outputHash": "sha256:ace9c2996ae8a266b82821707d431c076f9f15388d31a4f0c3d388daa16b54bc",
+      "outputPath": "ask-trails-crew/SKILL.md",
+      "sourceHash": "sha256:f1c244eced2cedbcead02485f0e5f917012bf5ded1ad1b489313bee75b2f1439",
+      "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "be-clark/SKILL.md": "0644",
+        "be-clark/agents/openai.yaml": "0644",
+        "be-clark/references/assess.md": "0644",
+        "be-clark/references/calibrate.md": "0644",
+        "be-clark/references/debrief.md": "0644",
+        "be-clark/references/warden-guide.md": "0644"
+      },
+      "files": [
+        "be-clark/SKILL.md",
+        "be-clark/agents/openai.yaml",
+        "be-clark/references/assess.md",
+        "be-clark/references/calibrate.md",
+        "be-clark/references/debrief.md",
+        "be-clark/references/warden-guide.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "be-clark",
+      "outputHash": "sha256:5abc5d3857bcf7856534e329ce471c324760b27733ab7533f8d9d201529cbf37",
+      "outputPath": "be-clark/SKILL.md",
+      "sourceHash": "sha256:495bd30393df14859763508cfe629b695eeec77d4005d82ef6fd922a6973cc74",
+      "sourcePath": ".skillset/skills/be-clark/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "be-lewis/SKILL.md": "0644",
+        "be-lewis/agents/openai.yaml": "0644"
+      },
+      "files": [
+        "be-lewis/SKILL.md",
+        "be-lewis/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "be-lewis",
+      "outputHash": "sha256:63643968f341e47d0aed3cf22d7af82b92ebcafb18bfa602a0c96474ba979275",
+      "outputPath": "be-lewis/SKILL.md",
+      "sourceHash": "sha256:ef02924e8b6f6f19d7aeaf1cb747aa57b1c002857610cae852840847d03b5b09",
+      "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "building-trails/SKILL.md": "0644"
+      },
+      "files": [
+        "building-trails/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "building-trails",
+      "outputHash": "sha256:a0c7a2ed866cdae2e5ed487a65ccf5f7125d886d9aa2cb3e85f0324985abfc78",
+      "outputPath": "building-trails/SKILL.md",
+      "sourceHash": "sha256:b0014a47f1ed8c3fe17aab91f4af6542f8879421924f389cf18846b6ed8a6dcb",
+      "sourcePath": ".skillset/skills/building-trails/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "clark-decision/SKILL.md": "0644"
+      },
+      "files": [
+        "clark-decision/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "clark-decision",
+      "outputHash": "sha256:47db53974a5865b316747fc8221481a08c85e2e792126a505d174cbf95bbb8ad",
+      "outputPath": "clark-decision/SKILL.md",
+      "sourceHash": "sha256:45d13641f6e2fe36414643737dc4d2b8442d569de1d8fd595e6fc7d90c4c2695",
+      "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "clark-pathfinding/SKILL.md": "0644"
+      },
+      "files": [
+        "clark-pathfinding/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "clark-pathfinding",
+      "outputHash": "sha256:c171cbaab8cc90498a40bf677068d2b192fd9d3b292a49c6ea3c2e05c441f8f6",
+      "outputPath": "clark-pathfinding/SKILL.md",
+      "sourceHash": "sha256:10954c87a4c25c7f64d98917c6ae1dc6ce03542810f9437f80fa31904c852382",
+      "sourcePath": ".skillset/skills/clark-pathfinding/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "clark-survey/SKILL.md": "0644"
+      },
+      "files": [
+        "clark-survey/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "clark-survey",
+      "outputHash": "sha256:7a8682aa89e7455b95f5c4d824a4d341d89dd862afb83ead276804b1d87aa0d8",
+      "outputPath": "clark-survey/SKILL.md",
+      "sourceHash": "sha256:d4130a7551e044126a8adff2d72ab498b2d8a14e3071f706451c769f20fbbf58",
+      "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "regrade-loop/SKILL.md": "0644"
+      },
+      "files": [
+        "regrade-loop/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "regrade-loop",
+      "outputHash": "sha256:1b6c6c8bda309de029ed08ecc6a02f145ebdce8fb7a71a2bcfeeeafade5b3cc6",
+      "outputPath": "regrade-loop/SKILL.md",
+      "sourceHash": "sha256:d7e8efc9a607f954884d1176789f8652c711f8c6a41f63af5fdb40d5715f540a",
+      "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "tenets/SKILL.md": "0644"
+      },
+      "files": [
+        "tenets/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "tenets",
+      "outputHash": "sha256:3f9f91a008df0628b0fce7417721688b560daab2a826a479b4921c8e24fe49c8",
+      "outputPath": "tenets/SKILL.md",
+      "sourceHash": "sha256:ac2d1428925ccd8a307fa15ed4df29285bc0ff18b7f6be09f728dfdffbc16dfd",
+      "sourcePath": ".skillset/skills/tenets/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-adrs/SKILL.md": "0644",
+        "trails-adrs/assets/adr-management.md": "0644",
+        "trails-adrs/scripts/__tests__/promote-rewrite.test.ts": "0644",
+        "trails-adrs/scripts/adr.ts": "0644",
+        "trails-adrs/scripts/lib/cli.ts": "0644",
+        "trails-adrs/scripts/lib/decision-map.ts": "0644",
+        "trails-adrs/scripts/lib/discovery.ts": "0644",
+        "trails-adrs/scripts/lib/frontmatter.ts": "0644",
+        "trails-adrs/scripts/lib/git.ts": "0644",
+        "trails-adrs/scripts/lib/index.ts": "0644",
+        "trails-adrs/scripts/lib/paths.ts": "0644",
+        "trails-adrs/scripts/lib/references.ts": "0644"
+      },
+      "files": [
+        "trails-adrs/SKILL.md",
+        "trails-adrs/assets/adr-management.md",
+        "trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+        "trails-adrs/scripts/adr.ts",
+        "trails-adrs/scripts/lib/cli.ts",
+        "trails-adrs/scripts/lib/decision-map.ts",
+        "trails-adrs/scripts/lib/discovery.ts",
+        "trails-adrs/scripts/lib/frontmatter.ts",
+        "trails-adrs/scripts/lib/git.ts",
+        "trails-adrs/scripts/lib/index.ts",
+        "trails-adrs/scripts/lib/paths.ts",
+        "trails-adrs/scripts/lib/references.ts"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-adrs",
+      "outputHash": "sha256:383c1a5b98de9589e5a1580d5028362370255b1806fe14f893cac7005ab5c70d",
+      "outputPath": "trails-adrs/SKILL.md",
+      "sourceHash": "sha256:8c794f03bd523afc9926cfdb5165067939818da52102280fba957467be130a68",
+      "sourcePath": ".skillset/skills/trails-adrs/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-editorial/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-editorial/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-editorial",
+      "outputHash": "sha256:717e4a2cb25e609376c02e220828485e3ddb51a3db86e2c9f2d9c6c4ca7b6477",
+      "outputPath": "trails-editorial/SKILL.md",
+      "sourceHash": "sha256:f0f93536d8d1aa61fe2736c3355637d4ff870ed439b2e6ca88b2a39da2ec557c",
+      "sourcePath": ".skillset/skills/trails-editorial/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-goal-loop/SKILL.md": "0644",
+        "trails-goal-loop/agents/openai.yaml": "0644"
+      },
+      "files": [
+        "trails-goal-loop/SKILL.md",
+        "trails-goal-loop/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-goal-loop",
+      "outputHash": "sha256:4a9305c2940cdb367832059fe84be605f4e72f224aaee34fb2036c36c643df2a",
+      "outputPath": "trails-goal-loop/SKILL.md",
+      "sourceHash": "sha256:2c699420cb9f4b9843b220a115e5e9addd021b982d1dfc3998ba22040372105b",
+      "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-local-review/SKILL.md": "0644",
+        "trails-local-review/agents/openai.yaml": "0644"
+      },
+      "files": [
+        "trails-local-review/SKILL.md",
+        "trails-local-review/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-local-review",
+      "outputHash": "sha256:be8f6d6cfa8c60656c1989c47d11fa20ab2cca2e285be2edc2f3ce2a2c5d49cb",
+      "outputPath": "trails-local-review/SKILL.md",
+      "sourceHash": "sha256:2d688da3a36f9d93859b55b5f76a580cbb248b33a9cdc07fd907079de0a5086d",
+      "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-writing-docs/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-writing-docs/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-writing-docs",
+      "outputHash": "sha256:e0230155579e38adbb8e64ae47bd5d6cd7cbad63277e65630af14626786dd308",
+      "outputPath": "trails-writing-docs/SKILL.md",
+      "sourceHash": "sha256:9b423f8f893b56bdd9a89dc1f35fa9410d48c6bcdf31b613211def3e121c7288",
+      "sourcePath": ".skillset/skills/trails-writing-docs/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-writing-style/SKILL.md": "0644",
+        "trails-writing-style/assets/SAMPLES.md": "0644"
+      },
+      "files": [
+        "trails-writing-style/SKILL.md",
+        "trails-writing-style/assets/SAMPLES.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-writing-style",
+      "outputHash": "sha256:77608259ece2735b57ca5a2f2427df36ff4e630c0d87341621405f777c01ad47",
+      "outputPath": "trails-writing-style/SKILL.md",
+      "sourceHash": "sha256:ce4bef69894d6e52f0c940d129fbc27c548dadd6e4a54fa767d639f4b080a2de",
+      "sourcePath": ".skillset/skills/trails-writing-style/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        "trails-writing-voice/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-writing-voice/SKILL.md"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-writing-voice",
+      "outputHash": "sha256:19381fc4fabd10b3c10c3926a9d43f77d1db9ed8e87fdcb8409205ba1f0609d8",
+      "outputPath": "trails-writing-voice/SKILL.md",
+      "sourceHash": "sha256:12e7dc3079181f34b8ac27e0c3c79e603d14b16ac6c2146f1e2dfa3dc22fd913",
+      "sourcePath": ".skillset/skills/trails-writing-voice/SKILL.md",
+      "version": "0.1.0"
+    }
+  ],
+  "outputRoot": ".claude/skills",
+  "renderResults": [
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/ask-trails-crew/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/ask-trails-crew/agents/openai.yaml"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/ask-trails-crew/references/claude-subagents.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/ask-trails-crew/references/codex-subagents.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
+      "sourceUnit": "skill:ask-trails-crew",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-clark/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-clark/agents/openai.yaml"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-clark/references/assess.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-clark/references/calibrate.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-clark/references/debrief.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-clark/references/warden-guide.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/be-clark/SKILL.md",
+      "sourceUnit": "skill:be-clark",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-lewis/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/be-lewis/agents/openai.yaml"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
+      "sourceUnit": "skill:be-lewis",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/building-trails/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/building-trails/SKILL.md",
+      "sourceUnit": "skill:building-trails",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/clark-decision/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
+      "sourceUnit": "skill:clark-decision",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/clark-pathfinding/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/clark-pathfinding/SKILL.md",
+      "sourceUnit": "skill:clark-pathfinding",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/clark-survey/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
+      "sourceUnit": "skill:clark-survey",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/regrade-loop/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
+      "sourceUnit": "skill:regrade-loop",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/tenets/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/tenets/SKILL.md",
+      "sourceUnit": "skill:tenets",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/assets/adr-management.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/adr.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/cli.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/decision-map.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/discovery.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/frontmatter.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/git.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/index.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/paths.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-adrs/scripts/lib/references.ts"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-adrs/SKILL.md",
+      "sourceUnit": "skill:trails-adrs",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-editorial/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-editorial/SKILL.md",
+      "sourceUnit": "skill:trails-editorial",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-goal-loop/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-goal-loop/agents/openai.yaml"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
+      "sourceUnit": "skill:trails-goal-loop",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-local-review/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-local-review/agents/openai.yaml"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
+      "sourceUnit": "skill:trails-local-review",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-writing-docs/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-writing-docs/SKILL.md",
+      "sourceUnit": "skill:trails-writing-docs",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-writing-style/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-writing-style/assets/SAMPLES.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-writing-style/SKILL.md",
+      "sourceUnit": "skill:trails-writing-style",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/skills.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-skill-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
+          "ref": "claude-skill",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".claude/skills/trails-writing-voice/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/skills/trails-writing-voice/SKILL.md",
+      "sourceUnit": "skill:trails-writing-voice",
+      "status": "rendered",
+      "target": "claude"
+    }
+  ],
+  "schemaVersion": 2,
+  "selectedTargets": [
+    "claude",
+    "codex"
+  ],
+  "skillsetMetadata": true,
+  "sourceRoot": ".skillset",
+  "target": "workspace"
+}

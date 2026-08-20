@@ -1,4 +1,4 @@
 interface:
-  display_name: 'Be Lewis'
-  short_description: 'Embody Trails execution conscience'
-  default_prompt: 'Use $be-lewis to shape and carry this Trails work as Lewis.'
+  default_prompt: Use $be-lewis to shape and carry this Trails work as Lewis.
+  display_name: Be Lewis
+  short_description: Embody Trails execution conscience

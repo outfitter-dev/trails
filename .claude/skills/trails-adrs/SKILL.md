@@ -1,6 +1,9 @@
 ---
+description: Author, update, and manage Trails ADRs. Use when creating new ADRs, promoting drafts to accepted, updating the ADR index, renaming or renumbering ADRs, or when the user mentions ADR, architecture decision, or decision record.
+metadata:
+  generated: skillset@0.1.0
+  version: 0.1.0
 name: trails-adrs
-description: "Author, update, and manage Trails ADRs. Use when creating new ADRs, promoting drafts to accepted, updating the ADR index, renaming or renumbering ADRs, or when the user mentions ADR, architecture decision, or decision record."
 ---
 
 # Trails ADR Authoring

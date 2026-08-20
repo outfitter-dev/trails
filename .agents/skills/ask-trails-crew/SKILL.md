@@ -1,13 +1,9 @@
 ---
-name: ask-trails-crew
-description: "Route a Trails question to native Clark and/or Lewis subagents and synthesize their distinct judgments. Use when the user asks the Trails crew, asks Clark or Lewis, requests an architectural or execution second opinion, wants both co-architects to review a question, or delegates a Trails judgment to the appropriate persona. Do not use when the current agent should embody Clark or Lewis inline; use be-clark or be-lewis instead."
+description: Route a Trails question to native Clark and/or Lewis subagents and synthesize their distinct judgments. Use when the user asks the Trails crew, asks Clark or Lewis, requests an architectural or execution second opinion, wants both co-architects to review a question, or delegates a Trails judgment to the appropriate persona. Do not use when the current agent should embody Clark or Lewis inline; use be-clark or be-lewis instead.
 metadata:
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/ask-trails-crew
-    source-file: .claude/skills/ask-trails-crew/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: ask-trails-crew
 ---
 
 # Ask Trails Crew

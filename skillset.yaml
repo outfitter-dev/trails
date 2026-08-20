@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/outfitter-dev/skillset/main/docs/reference/schemas/0.1.0/workspace-config.schema.json
+skillset:
+  name: trails
+workspace:
+  cacheKey: trails
+compile:
+  build: all
+  targets:
+    - claude
+    - codex

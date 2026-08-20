@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "scopes": {
+    "claude.gitkeep:.gitkeep": {
+      "sourceHash": "sha256:c05ccf30aff2691cc1587783d9a540a39c87a801d8fc6491700d669408c579d6",
+      "updatedAt": "2026-08-18T16:41:39.434Z",
+      "version": "0.1.0"
+    },
+    "codex.gitkeep:.gitkeep": {
+      "sourceHash": "sha256:677a3b1d0c497ba0590be06e26892435af1d40a80987b3cc8c65c2f6622ec59b",
+      "updatedAt": "2026-08-18T16:41:39.434Z",
+      "version": "0.1.0"
+    },
+    "config:root": {
+      "sourceHash": "sha256:441d40452cb47bb115fdc53d6244abdbce88be73e51df744c806dc82b5de8648",
+      "updatedAt": "2026-08-18T16:41:39.434Z",
+      "version": "0.1.0"
+    },
+    "skill:ask-trails-crew": {
+      "sourceHash": "sha256:69188c5c903821d4b8b01ab9d7f3816609d6785fa38d247534cf9dd69ae59772",
+      "updatedAt": "2026-08-18T16:41:45.198Z",
+      "version": "0.1.0"
+    },
+    "skill:be-clark": {
+      "sourceHash": "sha256:3c33d8402d2f78919b764a3bbb91dbd042e5fee28089a09d5b43a9fd75c321cf",
+      "updatedAt": "2026-08-18T16:41:45.207Z",
+      "version": "0.1.0"
+    },
+    "skill:be-lewis": {
+      "sourceHash": "sha256:b028defec782a380259c4c176c7663fd0c18bcbfa6461ee8d2ac09773dd9336b",
+      "updatedAt": "2026-08-18T16:41:45.214Z",
+      "version": "0.1.0"
+    },
+    "skill:building-trails": {
+      "sourceHash": "sha256:67378001468d582f06ebab5ef2f1e0e10484a869e4aae67154b3a7c388b768e0",
+      "updatedAt": "2026-08-18T16:41:45.223Z",
+      "version": "0.1.0"
+    },
+    "skill:clark-decision": {
+      "sourceHash": "sha256:f1f0ee57418fb3a70da250ec5fb36e6e589c6a21bad4bca85886d40441da080a",
+      "updatedAt": "2026-08-18T16:41:45.231Z",
+      "version": "0.1.0"
+    },
+    "skill:clark-pathfinding": {
+      "sourceHash": "sha256:026644290111b1e178d61fd463f1cae79389784104d12da1155e692c54bd8d11",
+      "updatedAt": "2026-08-18T16:41:45.239Z",
+      "version": "0.1.0"
+    },
+    "skill:clark-survey": {
+      "sourceHash": "sha256:68be4b061063ebd608fba46f90fc3aa211262ff94e90d5bcf427e95a632ba01c",
+      "updatedAt": "2026-08-18T16:41:45.247Z",
+      "version": "0.1.0"
+    },
+    "skill:regrade-loop": {
+      "sourceHash": "sha256:0384068a24752795dc34c2379f7c87057c1da4e2d5e3a9c779aa281066cdf740",
+      "updatedAt": "2026-08-18T16:41:45.255Z",
+      "version": "0.1.0"
+    },
+    "skill:tenets": {
+      "sourceHash": "sha256:75cc2fa144d6ae605eacdc90d4be9b655fcbb371dd6956f33d6daf69d428bf72",
+      "updatedAt": "2026-08-18T16:41:45.263Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-adrs": {
+      "sourceHash": "sha256:13e4274d203b2b0631ba19a4e06187be03b3e61f7a163e9925c09a2ee38a4986",
+      "updatedAt": "2026-08-18T16:41:45.276Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-editorial": {
+      "sourceHash": "sha256:42c54a1b45527866e9c0f77ed5c49d0c06a90d2e0f2dd47e49f6343d9f04b7e8",
+      "updatedAt": "2026-08-18T16:41:45.286Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-goal-loop": {
+      "sourceHash": "sha256:83199a961f04f5e0bb82affd157ddc6d01ce104bd6dd2acac21543ba1bc6f37c",
+      "updatedAt": "2026-08-18T16:41:45.297Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-local-review": {
+      "sourceHash": "sha256:9052d5b67030e75c20abd0a8d64fa5268ed4a61e098d8b717d375a90a16f86a4",
+      "updatedAt": "2026-08-18T16:41:45.309Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-writing-docs": {
+      "sourceHash": "sha256:66e1e10cb40722c24e9e49e88b2d006fc5d83305edc0eac27d9fc05eb3e90d4c",
+      "updatedAt": "2026-08-18T16:41:45.319Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-writing-style": {
+      "sourceHash": "sha256:bb12cf9cd8956e933c897619e53a67f94e762a237e052c13c4d499cf3666df78",
+      "updatedAt": "2026-08-18T16:41:45.331Z",
+      "version": "0.1.0"
+    },
+    "skill:trails-writing-voice": {
+      "sourceHash": "sha256:dcfe70548e939367b2c9ab158f51eacbd31b433ffea6a1411a1e2fb18dcbcba6",
+      "updatedAt": "2026-08-18T16:41:45.343Z",
+      "version": "0.1.0"
+    }
+  }
+}

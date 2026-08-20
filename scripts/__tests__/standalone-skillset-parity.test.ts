@@ -89,48 +89,6 @@ const asRecord = (value: unknown): Record<string, unknown> => {
   return value as Record<string, unknown>;
 };
 
-const normalizedLegacyFrontmatter = (
-  value: Record<string, unknown>
-): Record<string, unknown> => {
-  const normalized = structuredClone(value);
-  if (normalized.metadata !== undefined) {
-    const metadata = asRecord(normalized.metadata);
-    delete metadata.skillset;
-    if (Object.keys(metadata).length === 0) {
-      delete normalized.metadata;
-    }
-  }
-  return normalized;
-};
-
-const normalizedStandaloneFrontmatter = (
-  value: Record<string, unknown>,
-  expected: Record<string, unknown>
-): Record<string, unknown> => {
-  const normalized = structuredClone(value);
-  if (normalized.metadata !== undefined) {
-    const metadata = asRecord(normalized.metadata);
-    delete metadata.generated;
-    if (metadata.skillset !== undefined) {
-      const skillset = asRecord(metadata.skillset);
-      delete skillset.generated;
-      if (Object.keys(skillset).length === 0) {
-        delete metadata.skillset;
-      }
-    }
-
-    const expectedMetadata =
-      expected.metadata === undefined ? undefined : asRecord(expected.metadata);
-    if (expectedMetadata?.version === undefined) {
-      delete metadata.version;
-    }
-    if (Object.keys(metadata).length === 0) {
-      delete normalized.metadata;
-    }
-  }
-  return normalized;
-};
-
 const listFiles = async (root: string): Promise<string[]> => {
   const files: string[] = [];
 
@@ -230,67 +188,12 @@ const requireCliSuccess = (result: CliResult): void => {
 };
 
 const makeAdaptiveAgentSource = async (
-  name: 'clark' | 'lewis',
-  includeClarkClaude = false
-): Promise<string> => {
-  const claude = parseMarkdown(
-    await readFile(join(repoRoot, `.claude/agents/${name}.md`), 'utf8')
-  );
-  const codex = Bun.TOML.parse(
-    await readFile(join(repoRoot, `.codex/agents/${name}.toml`), 'utf8')
-  ) as Record<string, unknown>;
+  name: 'clark' | 'lewis'
+): Promise<string> =>
+  readFile(join(repoRoot, `.skillset/agents/${name}.md`), 'utf8');
 
-  return renderMarkdown({
-    body: claude.body,
-    frontmatter: {
-      // Clark's Claude profile preloads the external `trails` skill, which is
-      // intentionally outside this 16-skill source slice. Keep that complete
-      // provider profile as a native island while proving the portable agent
-      // renderer with Lewis and both Codex profiles.
-      claude:
-        name === 'clark' && !includeClarkClaude ? false : claude.frontmatter,
-      codex,
-      description: claude.frontmatter.description,
-      name,
-    },
-  });
-};
-
-const makeClaudeOnlyAgentSource = async (
-  name: 'maintainer'
-): Promise<string> => {
-  const claude = parseMarkdown(
-    await readFile(join(repoRoot, `.claude/agents/${name}.md`), 'utf8')
-  );
-  return renderMarkdown({
-    body: claude.body,
-    frontmatter: {
-      claude: claude.frontmatter,
-      codex: false,
-      description: claude.frontmatter.description,
-      name,
-    },
-  });
-};
-
-const moveClaudeOnlySkillFields = async (
-  workspace: string,
-  skill: 'clark-decision' | 'clark-survey'
-): Promise<void> => {
-  const path = join(workspace, `.skillset/skills/${skill}/SKILL.md`);
-  const document = parseMarkdown(await readFile(path, 'utf8'));
-  const { agent, context } = document.frontmatter;
-
-  expect(agent).toBe('clark');
-  expect(context).toBe('fork');
-  delete document.frontmatter.agent;
-  delete document.frontmatter.context;
-  document.frontmatter.claude = {
-    frontmatter: { agent, context },
-  };
-
-  await writeFile(path, renderMarkdown(document));
-};
+const makeClaudeOnlyAgentSource = async (name: 'maintainer'): Promise<string> =>
+  readFile(join(repoRoot, `.skillset/agents/${name}.md`), 'utf8');
 
 const createBareFixture = async (
   prefix = 'trails-skillset-parity-'
@@ -350,31 +253,22 @@ const createFixture = async (): Promise<ParityFixture> => {
 
   requireCliSuccess(await initializeFixture(fixture));
 
-  const importSource = join(workspace, 'import-source');
-  await cp(join(repoRoot, '.claude/skills'), importSource, {
+  await Promise.all([
+    unlink(join(workspace, '.skillset/_claude/.gitkeep')),
+    unlink(join(workspace, '.skillset/_codex/.gitkeep')),
+  ]);
+
+  await rm(join(workspace, '.skillset/skills'), {
+    force: true,
     recursive: true,
   });
-  const importResult = await runCli(fixture, [
-    'import',
-    importSource,
-    '--kind',
-    'skills',
-    '--from',
-    'claude',
-    '--root',
-    workspace,
-    '--json',
-  ]);
-  requireCliSuccess(importResult);
-
-  const importReport = asRecord(asRecord(importResult.data).result);
-  expect(importReport.files).toBe(39);
-  expect((importReport.imports as unknown[]).length).toBe(16);
-
-  await Promise.all([
-    moveClaudeOnlySkillFields(workspace, 'clark-decision'),
-    moveClaudeOnlySkillFields(workspace, 'clark-survey'),
-  ]);
+  await cp(
+    join(repoRoot, '.skillset/skills'),
+    join(workspace, '.skillset/skills'),
+    {
+      recursive: true,
+    }
+  );
 
   await Promise.all(
     (['clark', 'lewis'] as const).map(async (name) => {
@@ -385,15 +279,6 @@ const createFixture = async (): Promise<ParityFixture> => {
   await writeFile(
     join(workspace, '.skillset/agents/maintainer.md'),
     await makeClaudeOnlyAgentSource('maintainer')
-  );
-
-  await unlink(join(workspace, '.skillset/_claude/.gitkeep'));
-  await unlink(join(workspace, '.skillset/_codex/.gitkeep'));
-  const claudeAgentIsland = join(workspace, '.skillset/_claude/agents');
-  await mkdir(claudeAgentIsland, { recursive: true });
-  await cp(
-    join(repoRoot, '.claude/agents/clark.md'),
-    join(claudeAgentIsland, 'clark.md')
   );
 
   const manifestPath = join(workspace, 'skillset.yaml');
@@ -439,7 +324,7 @@ afterAll(async () => {
 
 describe('standalone Skillset parity', () => {
   test('reproduces the complete skill inventory, companions, and modes', async () => {
-    const expectedFiles = await listFiles(join(repoRoot, '.claude/skills'));
+    const expectedFiles = await listFiles(join(repoRoot, '.skillset/skills'));
     expect(expectedFiles).toHaveLength(39);
     expect(
       expectedFiles.filter((path) => path.endsWith('/SKILL.md'))
@@ -455,7 +340,7 @@ describe('standalone Skillset parity', () => {
 
       for (const path of outputFiles) {
         const canonicalMode = await fileMode(
-          join(repoRoot, '.claude/skills', path)
+          join(repoRoot, '.skillset/skills', path)
         );
         expect(canonicalMode).toBe(0o644);
         expect(await fileMode(join(absoluteOutputRoot, path))).toBe(
@@ -485,7 +370,7 @@ describe('standalone Skillset parity', () => {
   });
 
   test('preserves skill bodies and provider-specific frontmatter semantics', async () => {
-    const canonicalFiles = await listFiles(join(repoRoot, '.claude/skills'));
+    const canonicalFiles = await listFiles(join(repoRoot, '.skillset/skills'));
     const skillFiles = canonicalFiles.filter((path) =>
       path.endsWith('/SKILL.md')
     );
@@ -508,17 +393,9 @@ describe('standalone Skillset parity', () => {
       expect(codex.body).toBe(legacy.body);
       expectGeneratedSkillMetadata(claude.frontmatter, canonical.frontmatter);
       expectGeneratedSkillMetadata(codex.frontmatter, canonical.frontmatter);
-      expect(
-        normalizedStandaloneFrontmatter(
-          claude.frontmatter,
-          canonical.frontmatter
-        )
-      ).toEqual(canonical.frontmatter);
+      expect(claude.frontmatter).toEqual(canonical.frontmatter);
 
-      const expectedCodex = normalizedLegacyFrontmatter(legacy.frontmatter);
-      expect(
-        normalizedStandaloneFrontmatter(codex.frontmatter, expectedCodex)
-      ).toEqual(expectedCodex);
+      expect(codex.frontmatter).toEqual(legacy.frontmatter);
     }
 
     for (const skill of ['clark-decision', 'clark-survey']) {
@@ -565,29 +442,8 @@ describe('standalone Skillset parity', () => {
         )
       );
       expect(actualClaude.body).toBe(expectedClaude.body);
-      expectGeneratedAgentMetadata(
-        actualClaude.frontmatter,
-        name === 'clark' ? 'target-native' : 'portable'
-      );
-      const actualClaudeFrontmatter = normalizedStandaloneFrontmatter(
-        actualClaude.frontmatter,
-        expectedClaude.frontmatter
-      );
-      if (name === 'clark') {
-        // 0.22.0 treats `model` as source-only even inside a target-native
-        // Markdown island, so the island cannot preserve Clark's provider
-        // alias. Keep this blocking difference explicit and fail on any other
-        // semantic change.
-        const expectedWithoutModel = structuredClone(
-          expectedClaude.frontmatter
-        );
-        expect(expectedWithoutModel.model).toBe('fable');
-        delete expectedWithoutModel.model;
-        expect(actualClaudeFrontmatter).toEqual(expectedWithoutModel);
-        expect(actualClaude.frontmatter).not.toHaveProperty('model');
-      } else {
-        expect(actualClaudeFrontmatter).toEqual(expectedClaude.frontmatter);
-      }
+      expectGeneratedAgentMetadata(actualClaude.frontmatter, 'portable');
+      expect(actualClaude.frontmatter).toEqual(expectedClaude.frontmatter);
 
       const expectedCodex = Bun.TOML.parse(
         await readFile(join(repoRoot, `.codex/agents/${name}.toml`), 'utf8')
@@ -598,16 +454,6 @@ describe('standalone Skillset parity', () => {
           'utf8'
         )
       ) as Record<string, unknown>;
-      expectGeneratedAgentMetadata(actualCodex, 'portable');
-      delete actualCodex.metadata;
-      expect(actualCodex.developer_instructions).toBeString();
-      expect(expectedCodex.developer_instructions).toBeString();
-      actualCodex.developer_instructions = (
-        actualCodex.developer_instructions as string
-      ).trim();
-      expectedCodex.developer_instructions = (
-        expectedCodex.developer_instructions as string
-      ).trim();
       expect(actualCodex).toEqual(expectedCodex);
     }
 
@@ -622,17 +468,14 @@ describe('standalone Skillset parity', () => {
     );
     expect(actualMaintainer.body).toBe(expectedMaintainer.body);
     expectGeneratedAgentMetadata(actualMaintainer.frontmatter, 'portable');
-    expect(
-      normalizedStandaloneFrontmatter(
-        actualMaintainer.frontmatter,
-        expectedMaintainer.frontmatter
-      )
-    ).toEqual(expectedMaintainer.frontmatter);
+    expect(actualMaintainer.frontmatter).toEqual(
+      expectedMaintainer.frontmatter
+    );
   });
 
   test('records complete managed-output provenance in locks', async () => {
     const expectedSkillFiles = await listFiles(
-      join(repoRoot, '.claude/skills')
+      join(repoRoot, '.skillset/skills')
     );
 
     for (const outputRoot of ['.claude/skills', '.agents/skills']) {
@@ -645,7 +488,7 @@ describe('standalone Skillset parity', () => {
       expect(lock.generatedBy).toBe(generatedBy);
       expect(lock.buildMode).toBe('all');
       expect(lock.outputRoot).toBe(outputRoot);
-      expect(lock.schemaVersion).toBe(1);
+      expect(lock.schemaVersion).toBe(2);
       expect(lock.selectedTargets).toEqual(['claude', 'codex']);
       expect(lock.sourceRoot).toBe('.skillset');
       expect(lock.target).toBe('workspace');
@@ -680,7 +523,7 @@ describe('standalone Skillset parity', () => {
     expect(rootLock.generatedBy).toBe(generatedBy);
     expect(rootLock.buildMode).toBe('all');
     expect(rootLock.outputRoot).toBe('.');
-    expect(rootLock.schemaVersion).toBe(1);
+    expect(rootLock.schemaVersion).toBe(2);
     expect(rootLock.selectedTargets).toEqual(['claude', 'codex']);
     expect(rootLock.sourceRoot).toBe('.skillset');
     expect(rootLock.target).toBe('workspace');
@@ -697,10 +540,10 @@ describe('standalone Skillset parity', () => {
     expect(ownership).toEqual([
       {
         files: ['.claude/agents/clark.md'],
-        kind: 'island',
-        name: 'claude:project:agents/clark.md',
+        kind: 'project-agent',
+        name: 'clark',
         outputPath: '.claude/agents/clark.md',
-        sourcePath: '.skillset/_claude/agents/clark.md',
+        sourcePath: '.skillset/agents/clark.md',
       },
       {
         files: ['.claude/agents/lewis.md'],
@@ -735,10 +578,10 @@ describe('standalone Skillset parity', () => {
   });
 
   test('keeps configured legacy replacements dormant', async () => {
-    const canonicalFiles = await listFiles(join(repoRoot, '.claude/skills'));
+    const canonicalFiles = await listFiles(join(repoRoot, '.skillset/skills'));
     const sourceText = await Promise.all(
       canonicalFiles.map((path) =>
-        readFile(join(repoRoot, '.claude/skills', path), 'utf8')
+        readFile(join(repoRoot, '.skillset/skills', path), 'utf8')
       )
     );
     const corpus = sourceText.join('\n');
@@ -757,7 +600,7 @@ describe('standalone Skillset parity', () => {
     }
   });
 
-  test('reproduces executable-mode loss and chmod-only drift blindness', async () => {
+  test('preserves executable modes and detects chmod-only drift', async () => {
     const modeFixture = await createBareFixture('trails-skillset-mode-');
     requireCliSuccess(await initializeFixture(modeFixture));
 
@@ -805,22 +648,22 @@ describe('standalone Skillset parity', () => {
       '.claude/skills/mode-probe/bin/probe.sh'
     );
     expect(await fileMode(companion)).toBe(0o755);
-    expect(await fileMode(output)).toBe(0o644);
+    expect(await fileMode(output)).toBe(0o755);
 
-    await chmod(output, 0o755);
-    requireCliSuccess(
-      await runCli(modeFixture, [
-        'check',
-        '--only',
-        'outputs',
-        '--root',
-        modeFixture.workspace,
-        '--json',
-      ])
-    );
+    await chmod(output, 0o644);
+    const drift = await runCli(modeFixture, [
+      'check',
+      '--only',
+      'outputs',
+      '--root',
+      modeFixture.workspace,
+      '--json',
+    ]);
+    expect(drift.ok).toBe(false);
+    expect(drift.exitCode).not.toBe(0);
   });
 
-  test('reproduces unsafe mixed-root adoption and non-automatic agents', async () => {
+  test('recognizes managed mixed-root outputs without re-adopting them', async () => {
     const adoptionFixture = await createBareFixture('trails-skillset-adopt-');
     await Promise.all([
       cp(
@@ -844,24 +687,10 @@ describe('standalone Skillset parity', () => {
       '--adopt',
       'all',
     ]);
-    expect(adoption.ok).toBe(false);
-    expect(adoption.exitCode).not.toBe(0);
+    requireCliSuccess(adoption);
     const report = asRecord(asRecord(adoption.data).report);
-    expect(report.candidates).toEqual([
-      { kind: 'skills', path: '.agents/skills' },
-      { kind: 'skills', path: '.claude/skills' },
-    ]);
-    expect(
-      (
-        report.imports as {
-          readonly candidate: { readonly path: string };
-          readonly ok: boolean;
-        }[]
-      ).map(({ candidate, ok }) => ({ ok, path: candidate.path }))
-    ).toEqual([
-      { ok: true, path: '.agents/skills' },
-      { ok: false, path: '.claude/skills' },
-    ]);
+    expect(report.candidates).toEqual([]);
+    expect(report.imports).toEqual([]);
     expect(
       (
         report.surveySkips as {
@@ -871,27 +700,12 @@ describe('standalone Skillset parity', () => {
       ).map(({ path, surface }) => ({ path, surface }))
     ).toContainEqual({ path: '.claude/agents', surface: 'agents' });
 
-    const adoptedClarkDecision = parseMarkdown(
-      await readFile(
-        join(
-          adoptionFixture.workspace,
-          '.skillset/skills/clark-decision/SKILL.md'
-        ),
-        'utf8'
-      )
-    );
-    expect(adoptedClarkDecision.frontmatter).not.toHaveProperty('agent');
-    expect(adoptedClarkDecision.frontmatter).not.toHaveProperty('context');
-    expect(
-      asRecord(asRecord(adoptedClarkDecision.frontmatter.metadata).skillset)
-        .generator
-    ).toBe('scripts/codex/skillset.ts');
     expect(
       await listFiles(join(adoptionFixture.workspace, '.skillset/agents'))
     ).toEqual(['.gitkeep']);
   });
 
-  test('reproduces Clark portable rejection before the lossy island fallback', async () => {
+  test('preserves Clark provider-native skill ownership and model', async () => {
     const clarkFixture = await createBareFixture('trails-skillset-clark-');
     requireCliSuccess(await initializeFixture(clarkFixture));
 
@@ -914,7 +728,7 @@ describe('standalone Skillset parity', () => {
     );
     await writeFile(
       join(clarkFixture.workspace, '.skillset/agents/clark.md'),
-      await makeAdaptiveAgentSource('clark', true)
+      await makeAdaptiveAgentSource('clark')
     );
 
     const build = await runCli(clarkFixture, [
@@ -924,17 +738,32 @@ describe('standalone Skillset parity', () => {
       clarkFixture.workspace,
       '--json',
     ]);
-    expect(build.ok).toBe(false);
-    expect(build.exitCode).not.toBe(0);
-    expect(
-      build.diagnostics.some(
-        ({ message, path }) =>
-          (path?.includes('.skillset/agents/clark.md') === true ||
-            message.includes('.skillset/agents/clark.md')) &&
-          message.includes('trails') &&
-          message.includes('no matching standalone skill exists')
+    requireCliSuccess(build);
+    const rendered = parseMarkdown(
+      await readFile(
+        join(clarkFixture.workspace, '.claude/agents/clark.md'),
+        'utf8'
       )
-    ).toBe(true);
+    );
+    expect(rendered.frontmatter.model).toBe('fable');
+    expect(rendered.frontmatter.skills).toContain('trails');
+
+    const lock = JSON.parse(
+      await readFile(join(clarkFixture.workspace, 'skillset.lock'), 'utf8')
+    ) as SkillsetLock;
+    const clark = lock.items.find(
+      ({ name, outputPath }) =>
+        name === 'clark' && outputPath === '.claude/agents/clark.md'
+    );
+    expect(clark).toMatchObject({
+      skillReferences: expect.arrayContaining([
+        {
+          authored: 'trails',
+          ownership: 'provider-native',
+          rendered: 'trails',
+        },
+      ]),
+    });
   });
 
   test('detects target-side byte drift without touching live outputs', async () => {

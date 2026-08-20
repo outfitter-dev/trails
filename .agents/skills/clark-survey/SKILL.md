@@ -1,16 +1,9 @@
 ---
-name: clark-survey
-description: "Autonomous codebase health scan for vocabulary drift, naming convention violations, structural anti-patterns, documentation staleness, and test health. Produces prioritized findings as Linear issues. Use for health checks, scheduled scans, or after heavy unreviewed agent work."
+description: Autonomous codebase health scan for vocabulary drift, naming convention violations, structural anti-patterns, documentation staleness, and test health. Produces prioritized findings as Linear issues. Use for health checks, scheduled scans, or after heavy unreviewed agent work.
 metadata:
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/clark-survey
-    source-file: .claude/skills/clark-survey/SKILL.md
-    source-frontmatter:
-      context: fork
-      agent: clark
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: clark-survey
 ---
 
 # Clark: Survey

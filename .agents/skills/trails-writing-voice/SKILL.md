@@ -1,16 +1,11 @@
 ---
-name: trails-writing-voice
-description: "Trails writing voice and values. Use when drafting or reviewing Trails docs, ADRs, README content, release notes, agent guidance, or public explanations for stance, audience, and tone."
+description: Trails writing voice and values. Use when drafting or reviewing Trails docs, ADRs, README content, release notes, agent guidance, or public explanations for stance, audience, and tone.
 metadata:
-  version: 0.1.0
   author: trails
   category: content
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/trails-writing-voice
-    source-file: .claude/skills/trails-writing-voice/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: trails-writing-voice
 ---
 
 # Trails Writing Voice

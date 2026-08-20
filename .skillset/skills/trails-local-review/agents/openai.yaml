@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Trails Local Review'
+  short_description: 'Review Trails branches and stacks'
+  default_prompt: 'Use $trails-local-review to review this Trails branch, stack, or milestone against written acceptance and current repository evidence.'

@@ -1,13 +1,9 @@
 ---
-name: tenets
-description: "Trails framework design tenets — the foundational beliefs, promises, primitives, and patterns that govern the framework. Use when evaluating architectural decisions, reviewing feature proposals, checking alignment with framework principles, or when tenets, principles, or design philosophy are mentioned."
+description: Trails framework design tenets — the foundational beliefs, promises, primitives, and patterns that govern the framework. Use when evaluating architectural decisions, reviewing feature proposals, checking alignment with framework principles, or when tenets, principles, or design philosophy are mentioned.
 metadata:
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/tenets
-    source-file: .claude/skills/tenets/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: tenets
 ---
 
 # Trails Design Tenets

@@ -10,15 +10,12 @@ import {
   buildWardenGuideManifest,
 } from '@ontrails/warden';
 
-export const CLAUDE_SKILL_WARDEN_GUIDE_PATH =
-  '.claude/skills/be-clark/references/warden-guide.md';
-export const AGENTS_SKILL_WARDEN_GUIDE_PATH =
-  '.agents/skills/be-clark/references/warden-guide.md';
+export const SKILLSET_SKILL_WARDEN_GUIDE_PATH =
+  '.skillset/skills/be-clark/references/warden-guide.md';
 export const PLUGIN_SKILL_WARDEN_GUIDE_PATH =
   'plugin/skills/trails/references/warden-guide.md';
 export const SKILL_WARDEN_GUIDE_PATHS = [
-  CLAUDE_SKILL_WARDEN_GUIDE_PATH,
-  AGENTS_SKILL_WARDEN_GUIDE_PATH,
+  SKILLSET_SKILL_WARDEN_GUIDE_PATH,
   PLUGIN_SKILL_WARDEN_GUIDE_PATH,
 ] as const;
 
@@ -118,13 +115,23 @@ const readCurrentGuide = async (targetPath: string): Promise<string> => {
   return target.text();
 };
 
-const run = async (): Promise<void> => {
-  const check = process.argv.includes('--check');
-  const expected = renderSkillWardenGuide();
+interface SyncSkillWardenGuidesOptions {
+  readonly check?: boolean;
+  readonly manifest?: WardenGuideManifest;
+  readonly rootDir?: string;
+}
+
+export const syncSkillWardenGuides = async ({
+  check = false,
+  manifest = buildWardenGuideManifest(),
+  rootDir = process.cwd(),
+}: SyncSkillWardenGuidesOptions = {}): Promise<readonly string[]> => {
+  const expected = renderSkillWardenGuide(manifest);
   let stale = false;
+  const changedPaths: string[] = [];
 
   for (const guidePath of SKILL_WARDEN_GUIDE_PATHS) {
-    const targetPath = resolve(process.cwd(), guidePath);
+    const targetPath = resolve(rootDir, guidePath);
     const source = await readCurrentGuide(targetPath);
 
     if (check) {
@@ -139,11 +146,25 @@ const run = async (): Promise<void> => {
 
     if (source !== expected) {
       await Bun.write(targetPath, expected);
+      changedPaths.push(guidePath);
       console.log(`Wrote ${targetPath}`);
     }
   }
 
   if (check && stale) {
+    throw new Error('Warden skill guidance is out of date.');
+  }
+
+  return changedPaths;
+};
+
+const run = async (): Promise<void> => {
+  try {
+    await syncSkillWardenGuides({
+      check: process.argv.includes('--check'),
+    });
+  } catch (error) {
+    console.error(error);
     process.exit(1);
   }
 };

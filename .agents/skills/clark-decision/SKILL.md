@@ -1,16 +1,9 @@
 ---
-name: clark-decision
-description: "Authoritative architectural ruling on a specific Trails framework question — naming choices, vocabulary compliance, pattern fitness, scope decisions. Consults the constitutional hierarchy, decides, and logs. Use when a definitive call is needed or when 'let Clark decide' is the instruction."
+description: Authoritative architectural ruling on a specific Trails framework question — naming choices, vocabulary compliance, pattern fitness, scope decisions. Consults the constitutional hierarchy, decides, and logs. Use when a definitive call is needed or when 'let Clark decide' is the instruction.
 metadata:
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/clark-decision
-    source-file: .claude/skills/clark-decision/SKILL.md
-    source-frontmatter:
-      context: fork
-      agent: clark
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: clark-decision
 ---
 
 # Clark: Decision

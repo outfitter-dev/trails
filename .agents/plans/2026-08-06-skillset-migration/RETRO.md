@@ -1,6 +1,6 @@
 ---
 created: "2026-08-06T21:00:00Z"
-updated: "2026-08-08T12:02:41Z"
+updated: "2026-08-18T18:34:00Z"
 description: Running evidence log for the standalone Skillset migration goal.
 linear:
   - TRL-1271
@@ -195,5 +195,19 @@ No ancestor source, merge, queue, publication, release, deployment, global Skill
 No Skillset publication, global activation, HOME provider mutation, Trails merge, queue, or new TRL-1272 implementation was performed in this checkpoint.
 
 ## Checkpoint template
+
+## 2026-08-18 — TRL-1272 canonical source adoption
+
+- Pinned the repository exactly to released `skillset@0.23.0` and proved selective Claude skill import hermetically under temporary HOME, TMPDIR, and XDG roots before changing live ownership: 16 skills, 39 files, exit 0.
+- Adopted `skillset.yaml`, `.skillset/skills`, and deliberate Clark, Lewis, and Claude-only Maintainer project-agent source. Clark retains `model: fable` and the external `trails` skill as an explicit provider-native reference; Claude-only `context: fork` and `agent: clark` fields lower only to Claude.
+- Standalone Skillset now owns committed Claude/Codex skill and project-agent outputs plus schema-v2 locks. `skillset:check` and the root `check` validate those standalone outputs; the retained legacy generator remains callable as the intentionally historical `skillset:oracle:check` until TRL-1273 removes it.
+- The first commit hook ran the legacy sync and then Markdownlint, mutating standalone-managed output after it had been staged. That amend bypassed the known mutating hook only after restoring exact output through `skillset build`; the fresh-review correction below then removed the legacy writer from the normal hook path.
+- Fresh review promoted safe sync ownership into TRL-1272: `skillset:sync` and the pre-commit hook now invoke the pinned standalone build, and both pre-push and hosted Governance run standalone output drift validation before parity. A static ownership-contract test protects those four entry points. TRL-1273 owns deletion of the legacy implementation, config, and tests rather than first establishment of a safe writer.
+- A follow-up review found that the ownership contract was not itself on a normal named gate. `skillset:ownership` now runs it explicitly, and root check, pre-push, and hosted Governance all enforce `check -> ownership -> parity`; the contract asserts its own execution and ordering across those gates.
+- A later full GitHub review-thread audit found two current-head P2s that the earlier green-CI checkpoint missed. Commit `09293213d281ac8b599bc8eb848e0d5cd1463d59` makes Warden write canonical `.skillset/` guidance plus the separately owned plugin guide, composes Warden refresh/check ahead of standalone Skillset projection/check, and runs mutating Markdownlint before the projection hook. Focused ownership/Warden tests and the full repository check pass.
+- This review correction intentionally rehomes the Warden source seam from TRL-1275 to the lowest independently correct branch. TRL-1275 retains its accepted Regrade-loop doctrine and distribution-ready evidence, but must not duplicate the one-writer implementation after restacking. The Linear scope and upper PR must record this divergence explicitly.
+- Removed the obsolete Knip dependency exemption now that package scripts directly own the released CLI. Focused verification includes standalone sync/check, parity, the ownership-contract test, and dead-code; the final gate set includes formatting, typecheck, diff-check, and the full repository check.
+- TRL-1272 is `release:none`: it changes private repository agent source, generated development-tool output, tests, and root development dependencies. It changes no publishable `@ontrails/*` package, public trail contract, schema, surface exposure, or runtime behavior.
+- Plugin projection ownership remains unchanged for TRL-1274. Warden provider projection remains Skillset-owned, while its canonical source refresh now belongs to TRL-1272 as required for a working normal path. No HOME/provider activation, global mutation, publication, release, deployment, tracker mutation, PR mutation, or merge occurred.
 
 For each checkpoint append: branch/stack state; tracker/PR mutations; changed files and owner; commands/results; review findings/dispositions; blocker/next move; skipped gates with concrete reasons; and authority confirmation.

@@ -1,0 +1,313 @@
+{
+  "buildMode": "all",
+  "features": {
+    "promptArguments": true
+  },
+  "generatedBy": "skillset@0.1.0",
+  "items": [
+    {
+      "fileModes": {
+        ".claude/agents/clark.md": "0644"
+      },
+      "files": [
+        ".claude/agents/clark.md"
+      ],
+      "kind": "project-agent",
+      "name": "clark",
+      "outputHash": "sha256:fcce04482cf1c940e3fb66f0d599b21c1865ae980e50149fa45ff4cd355e16dc",
+      "outputPath": ".claude/agents/clark.md",
+      "preprocessDependencies": [],
+      "skillReferences": [
+        {
+          "authored": "be-clark",
+          "ownership": "managed",
+          "rendered": "be-clark"
+        },
+        {
+          "authored": "tenets",
+          "ownership": "managed",
+          "rendered": "tenets"
+        },
+        {
+          "authored": "clark-pathfinding",
+          "ownership": "managed",
+          "rendered": "clark-pathfinding"
+        },
+        {
+          "authored": "clark-decision",
+          "ownership": "managed",
+          "rendered": "clark-decision"
+        },
+        {
+          "authored": "clark-survey",
+          "ownership": "managed",
+          "rendered": "clark-survey"
+        },
+        {
+          "authored": "trails",
+          "ownership": "provider-native",
+          "rendered": "trails"
+        }
+      ],
+      "sourceHash": "sha256:ffe417bf23dda0ed0efa6ac81d8458c3ffc25d01e58d60054c6f5c134c0b3372",
+      "sourcePath": ".skillset/agents/clark.md",
+      "validation": "structured",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        ".claude/agents/lewis.md": "0644"
+      },
+      "files": [
+        ".claude/agents/lewis.md"
+      ],
+      "kind": "project-agent",
+      "name": "lewis",
+      "outputHash": "sha256:9e3cc31db76f1971baf2c337369b439a03901a51531dc195fba5079d994c5f88",
+      "outputPath": ".claude/agents/lewis.md",
+      "preprocessDependencies": [],
+      "skillReferences": [
+        {
+          "authored": "be-lewis",
+          "ownership": "managed",
+          "rendered": "be-lewis"
+        }
+      ],
+      "sourceHash": "sha256:6739daa67ff2c64e7f94a961f595d7cad1ee53191f1acd083757289508a0b28f",
+      "sourcePath": ".skillset/agents/lewis.md",
+      "validation": "structured",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        ".claude/agents/maintainer.md": "0644"
+      },
+      "files": [
+        ".claude/agents/maintainer.md"
+      ],
+      "kind": "project-agent",
+      "name": "maintainer",
+      "outputHash": "sha256:eba67135caa1188f3eef3fe0b86a515c8324f472c6303ef7254ee17c0a4bdf37",
+      "outputPath": ".claude/agents/maintainer.md",
+      "preprocessDependencies": [],
+      "skillReferences": [
+        {
+          "authored": "trails-adrs",
+          "ownership": "managed",
+          "rendered": "trails-adrs"
+        }
+      ],
+      "sourceHash": "sha256:583869fd66775ac84b53a534c064a8c361428473bdf14bc3b116813a235aced3",
+      "sourcePath": ".skillset/agents/maintainer.md",
+      "validation": "structured",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        ".codex/agents/clark.toml": "0644"
+      },
+      "files": [
+        ".codex/agents/clark.toml"
+      ],
+      "kind": "project-agent",
+      "name": "clark",
+      "outputHash": "sha256:aaa0155ad98935b7a5f15d17657614a29110b952af124b9d5fb3d6fdbf03434e",
+      "outputPath": ".codex/agents/clark.toml",
+      "preprocessDependencies": [],
+      "skillReferences": [],
+      "sourceHash": "sha256:2de63f68f174732242820aa2c2e65a74ed7b90c2d3cfe31845d6d6204fdb6f39",
+      "sourcePath": ".skillset/agents/clark.md",
+      "validation": "structured",
+      "version": "0.1.0"
+    },
+    {
+      "fileModes": {
+        ".codex/agents/lewis.toml": "0644"
+      },
+      "files": [
+        ".codex/agents/lewis.toml"
+      ],
+      "kind": "project-agent",
+      "name": "lewis",
+      "outputHash": "sha256:a254c1b5bd350c322dd870abb714a074c2734300fa242a58486f689c15e0648c",
+      "outputPath": ".codex/agents/lewis.toml",
+      "preprocessDependencies": [],
+      "skillReferences": [],
+      "sourceHash": "sha256:e99d529a98e3e432592b5885b43c5b9182116c40d293bb2ccd4c82cc67bfbe69",
+      "sourcePath": ".skillset/agents/lewis.md",
+      "validation": "structured",
+      "version": "0.1.0"
+    }
+  ],
+  "outputRoot": ".",
+  "renderResults": [
+    {
+      "destination": "agent",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/agents.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude subagent Markdown/frontmatter structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-subagent-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:41303616b5d8d8f13b01380d224e4687846dbf68ae5c4c3ddd1fb80f4762f95a",
+          "ref": "claude-subagent",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "project-agents",
+      "outputs": [
+        {
+          "kind": "project-agent",
+          "path": ".claude/agents/clark.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/agents/clark.md",
+      "sourceUnit": "agent:clark",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "agent",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/agents.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Codex custom agent TOML structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "codex-subagent-toml-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:45166b628859b5cecc6d2ecd78561d4ad73e58c4ab7c4cfddda53a3365867cb6",
+          "ref": "codex-subagent",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "project-agents",
+      "outputs": [
+        {
+          "kind": "project-agent",
+          "path": ".codex/agents/clark.toml"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/agents/clark.md",
+      "sourceUnit": "agent:clark",
+      "status": "transformed",
+      "target": "codex"
+    },
+    {
+      "destination": "agent",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/agents.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude subagent Markdown/frontmatter structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-subagent-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:41303616b5d8d8f13b01380d224e4687846dbf68ae5c4c3ddd1fb80f4762f95a",
+          "ref": "claude-subagent",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "project-agents",
+      "outputs": [
+        {
+          "kind": "project-agent",
+          "path": ".claude/agents/lewis.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/agents/lewis.md",
+      "sourceUnit": "agent:lewis",
+      "status": "rendered",
+      "target": "claude"
+    },
+    {
+      "destination": "agent",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/agents.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Codex custom agent TOML structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "codex-subagent-toml-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:45166b628859b5cecc6d2ecd78561d4ad73e58c4ab7c4cfddda53a3365867cb6",
+          "ref": "codex-subagent",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "project-agents",
+      "outputs": [
+        {
+          "kind": "project-agent",
+          "path": ".codex/agents/lewis.toml"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/agents/lewis.md",
+      "sourceUnit": "agent:lewis",
+      "status": "transformed",
+      "target": "codex"
+    },
+    {
+      "destination": "agent",
+      "evidence": [
+        {
+          "kind": "docs",
+          "ref": "docs/reference/features/agents.md"
+        },
+        {
+          "kind": "provider-overlay",
+          "note": "Claude subagent Markdown/frontmatter structure is currently documented in prose; no adopted JSON Schema source is available.",
+          "ref": "claude-subagent-frontmatter-overlay"
+        },
+        {
+          "kind": "provider-snapshot",
+          "note": "sha256:41303616b5d8d8f13b01380d224e4687846dbf68ae5c4c3ddd1fb80f4762f95a",
+          "ref": "claude-subagent",
+          "verifiedAt": "2026-06-23"
+        }
+      ],
+      "featureId": "project-agents",
+      "outputs": [
+        {
+          "kind": "project-agent",
+          "path": ".claude/agents/maintainer.md"
+        }
+      ],
+      "schema": "skillset-render-result@1",
+      "sourcePath": ".skillset/agents/maintainer.md",
+      "sourceUnit": "agent:maintainer",
+      "status": "rendered",
+      "target": "claude"
+    }
+  ],
+  "schemaVersion": 2,
+  "selectedTargets": [
+    "claude",
+    "codex"
+  ],
+  "skillsetMetadata": true,
+  "sourceRoot": ".skillset",
+  "target": "workspace"
+}

@@ -8,6 +8,9 @@ interface CheckCommand {
 const checks: readonly CheckCommand[] = [
   { cmd: ['bun', 'trails', 'warden', '--pre-push'], name: 'warden' },
   { cmd: ['bun', 'scripts/adr.ts', 'check'], name: 'adr' },
+  { cmd: ['bun', 'run', 'skillset:check'], name: 'skillset-check' },
+  { cmd: ['bun', 'run', 'skillset:ownership'], name: 'skillset-ownership' },
+  { cmd: ['bun', 'run', 'skillset:parity'], name: 'skillset-parity' },
   { cmd: ['bun', 'run', 'test'], name: 'test' },
   { cmd: ['bun', 'run', 'typecheck'], name: 'typecheck' },
   { cmd: ['bun', 'run', 'lint'], name: 'lint' },

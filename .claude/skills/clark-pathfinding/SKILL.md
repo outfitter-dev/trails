@@ -1,6 +1,9 @@
 ---
+description: Big-picture architectural planning and exploration for the Trails framework. Socratic, principle-anchored exploration of features, ADRs, tenets, and horizon planning. Use when planning new capabilities, drafting or revising ADRs, exploring architectural questions, reviewing tenets, or doing horizon planning.
+metadata:
+  generated: skillset@0.1.0
+  version: 0.1.0
 name: clark-pathfinding
-description: "Big-picture architectural planning and exploration for the Trails framework. Socratic, principle-anchored exploration of features, ADRs, tenets, and horizon planning. Use when planning new capabilities, drafting or revising ADRs, exploring architectural questions, reviewing tenets, or doing horizon planning."
 ---
 
 # Clark: Pathfinding

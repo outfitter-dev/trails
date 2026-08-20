@@ -1,13 +1,9 @@
 ---
-name: trails-goal-loop
-description: "Define, execute, and settle durable Trails goals. Use for non-trivial Trails work spanning issues, Graphite branches or stacks, agents, review loops, CI, release or publication gates, or whenever a Trails goal needs an explicit completion horizon, authority boundary, evidence contract, and resumable packet."
+description: Define, execute, and settle durable Trails goals. Use for non-trivial Trails work spanning issues, Graphite branches or stacks, agents, review loops, CI, release or publication gates, or whenever a Trails goal needs an explicit completion horizon, authority boundary, evidence contract, and resumable packet.
 metadata:
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/trails-goal-loop
-    source-file: .claude/skills/trails-goal-loop/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: trails-goal-loop
 ---
 
 # Trails Goal Loop

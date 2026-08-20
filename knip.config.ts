@@ -114,9 +114,6 @@ const config: KnipConfig = {
         'scripts/__tests__/**/*.ts',
         'trails.config.ts',
       ],
-      // The parity harness invokes the pinned CLI through its repository-local
-      // binary path so the hermetic fixture never resolves a global Skillset.
-      ignoreDependencies: ['skillset'],
       project: ['scripts/**/*.ts'],
     },
     ...workspaceMap,

@@ -1,16 +1,11 @@
 ---
-name: trails-editorial
-description: "Complete Trails editorial review workflow. Use when reviewing docs, ADRs, README changes, release notes, agent guidance, or docs-heavy PRs for voice, style, structure, correctness, and readiness."
+description: Complete Trails editorial review workflow. Use when reviewing docs, ADRs, README changes, release notes, agent guidance, or docs-heavy PRs for voice, style, structure, correctness, and readiness.
 metadata:
-  version: 0.1.0
   author: trails
   category: documentation
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/trails-editorial
-    source-file: .claude/skills/trails-editorial/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: trails-editorial
 ---
 
 # Trails Editorial

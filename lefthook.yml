@@ -24,17 +24,17 @@ pre-commit:
       run: bun run format:file {staged_files}
       stage_fixed: true
     team_skills:
-      priority: 3
-      env:
-        GIT_PAGER: cat
-      glob: '{.claude/skills/be-clark/**,.claude/skills/be-lewis/**,.claude/skills/ask-trails-crew/**,.claude/skills/building-trails/**,.claude/skills/trails-goal-loop/**,.claude/skills/trails-local-review/**,scripts/codex/skillset.config.toml,scripts/codex/skillset.ts}'
-      run: bun run skillset:sync
-      stage_fixed: true
-    markdownlint:
       priority: 4
       env:
         GIT_PAGER: cat
-      glob: '*.md'
+      glob: '{.skillset/**,skillset.yaml,skillset.lock,.claude/agents/**,.claude/skills/**,.agents/skills/**,.codex/agents/**,packages/warden/**,scripts/sync-skill-warden-guide.ts,plugin/skills/trails/references/warden-guide.md,package.json,bun.lock}'
+      run: git diff --quiet -- .skillset skillset.yaml && test -z "$(git ls-files --others --exclude-standard -- .skillset skillset.yaml)" || { echo "Skillset canonical inputs have unstaged or untracked changes; stage or stash them before committing." >&2; exit 1; }; bun run skillset:sync && git add -- .skillset/skills/be-clark/references/warden-guide.md .claude/agents .claude/skills .agents/skills .codex/agents skillset.lock plugin/skills/trails/references/warden-guide.md
+      stage_fixed: true
+    markdownlint:
+      priority: 3
+      env:
+        GIT_PAGER: cat
+      glob: '{*.md,**/*.md}'
       run: bun run mdlint:fix {staged_files}
       stage_fixed: true
 

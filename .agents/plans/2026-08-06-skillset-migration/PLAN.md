@@ -1,6 +1,6 @@
 ---
 created: "2026-08-06T21:00:00Z"
-updated: "2026-08-08T12:02:41Z"
+updated: "2026-08-18T18:34:00Z"
 description: Execution plan for the dependency-honest standalone Skillset migration stack.
 linear:
   - TRL-1271
@@ -71,22 +71,24 @@ The 2026-08-08 coordinator handoff supersedes the worker-only landing boundary: 
 
 ## Phase 2 — TRL-1272 canonical source and lock
 
-- [ ] Reverify SET-396 and npm latest. Do not begin source adoption until a published release preserves Clark's provider-native external skill reference and model alias.
-- [ ] Create the exact Linear-named child branch on TRL-1271.
-- [ ] Use reviewed selective Claude import; never use `init --adopt all` on 0.22.0.
-- [ ] Establish `.skillset/` as the sole canonical authored source for managed skills.
-- [ ] Author Clark/Lewis project agents deliberately and preserve provider-native fields only where parity evidence requires them.
-- [ ] Preserve deliberate handling for Claude-only `context: fork` and `agent: clark` on `clark-decision` and `clark-survey`.
-- [ ] Preserve dynamic `!` pre-resolution and provider-relative companion references visibly.
-- [ ] Commit deterministic managed output and `skillset.lock`; keep the legacy generator only as an oracle.
-- [ ] Record branch-local `release:none`, verify, review, commit, and submit a draft PR.
+- [x] Reverify SET-396 and npm latest. Do not begin source adoption until a published release preserves Clark's provider-native external skill reference and model alias.
+- [x] Create the exact Linear-named child branch on TRL-1271.
+- [x] Use the reviewed selective Claude import on pinned 0.23.0; never use `init --adopt all` for this migration.
+- [x] Establish `.skillset/` as the sole canonical authored source for managed skills.
+- [x] Author Clark/Lewis project agents deliberately and preserve provider-native fields only where parity evidence requires them.
+- [x] Preserve deliberate handling for Claude-only `context: fork` and `agent: clark` on `clark-decision` and `clark-survey`.
+- [x] Preserve dynamic `!` pre-resolution and provider-relative companion references visibly.
+- [x] Commit deterministic managed output and `skillset.lock`; keep the legacy generator only as an oracle.
+- [x] Make standalone Skillset the only normal-path sync/check owner across package scripts, pre-commit, pre-push, and hosted Governance; keep the legacy implementation oracle-only until TRL-1273 deletes it.
+- [x] Keep Warden manifest interpretation in Trails, but refresh its canonical `.skillset/` guide before Skillset renders provider outputs. Run mutating Markdownlint before that projection step so staged source, outputs, and locks cannot diverge.
+- [ ] Reverify the current head, restack dependent branches, submit or update the draft PR, and obtain green hosted CI and current-head review evidence.
 
 ## Phase 3 — TRL-1273 standalone CLI cutover
 
 - [ ] Create the exact Linear-named child branch on TRL-1272.
 - [ ] Rewire `skillset:sync`, `skillset:check`, root checks, and relevant hooks to the pinned CLI.
 - [ ] Delete the bespoke generator, TOML config, tests, and stale guidance after accepted parity.
-- [ ] Keep plugin and Warden projection consolidation out of this branch.
+- [ ] Keep plugin consolidation and new Warden doctrine out of this branch. Preserve the review-required canonical Warden source seam established on TRL-1272.
 - [ ] Document clean-checkout invocation, migration boundary, and branch-local `release:none`.
 - [ ] Verify, review, commit, and submit a draft PR.
 
@@ -102,9 +104,9 @@ The 2026-08-08 coordinator handoff supersedes the worker-only landing boundary: 
 ### TRL-1275 Warden projection
 
 - [ ] Create TRL-1275 from TRL-1273, never from TRL-1274.
-- [ ] Keep rule-manifest interpretation and guidance derivation in Trails.
-- [ ] Add an explicit deterministic Skillset source seam for derived guidance.
-- [ ] Prove exactly one command owner for every artifact, especially root `AGENTS.md` and generated skill blocks.
+- [ ] Treat the canonical Warden source seam and one-writer command composition as established by the lowest independently correct branch, TRL-1272, after PR #999 review.
+- [ ] Keep rule-manifest interpretation and guidance derivation in Trails; do not duplicate the source-seam implementation on this upper branch.
+- [ ] Narrow the branch to current accepted Regrade-loop doctrine, generated provider copies/locks, and branch-local migration/release evidence. Explicitly document the review-driven scope rehome.
 - [ ] Verify drift propagation, record `release:none`, review, commit, and submit a draft PR.
 
 ## Phase 5 — full readiness

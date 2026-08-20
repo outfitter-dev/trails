@@ -1,4 +1,4 @@
 interface:
-  display_name: 'Be Clark'
-  short_description: 'Embody Trails architectural conscience'
-  default_prompt: 'Use $be-clark to evaluate this Trails decision as Clark.'
+  default_prompt: Use $be-clark to evaluate this Trails decision as Clark.
+  display_name: Be Clark
+  short_description: Embody Trails architectural conscience

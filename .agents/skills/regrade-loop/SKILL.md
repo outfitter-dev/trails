@@ -1,16 +1,11 @@
 ---
-name: regrade-loop
-description: "Run a Trails Regrade migration loop with dry-run discovery, occurrence judgment, safe apply, verification, ledger capture, and per-cycle resume."
+description: Run a Trails Regrade migration loop with dry-run discovery, occurrence judgment, safe apply, verification, ledger capture, and per-cycle resume.
 metadata:
-  version: 0.1.0
   author: trails
   category: migration
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/regrade-loop
-    source-file: .claude/skills/regrade-loop/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: regrade-loop
 ---
 
 # Regrade Loop

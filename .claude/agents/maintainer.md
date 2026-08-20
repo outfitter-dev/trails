@@ -1,9 +1,12 @@
 ---
-name: maintainer
-description: Use this agent to draft, edit, review, search, and maintain Trails ADR artifacts after their architectural direction is settled, or to structure options for a pending decision. The maintainer owns ADR craft and lifecycle, not constitutional authority; route new primitive, vocabulary, tenet, acceptance, revision, or supersession judgments through ask-trails-crew.
-model: opus
 color: orange
+description: Use this agent to draft, edit, review, search, and maintain Trails ADR artifacts after their architectural direction is settled, or to structure options for a pending decision. The maintainer owns ADR craft and lifecycle, not constitutional authority; route new primitive, vocabulary, tenet, acceptance, revision, or supersession judgments through ask-trails-crew.
 memory: project
+metadata:
+  skillset:
+    generated: skillset@0.1.0
+model: opus
+name: maintainer
 skills:
   - trails-adrs
 ---

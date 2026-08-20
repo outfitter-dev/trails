@@ -1,10 +1,11 @@
 ---
-name: trails-writing-style
-description: 'Trails prose craft and lexicon style. Use when writing or reviewing docs, ADRs, examples, release notes, agent prompts, comments, PR descriptions, or issue language for rhythm, clarity, and vocabulary precision.'
+description: Trails prose craft and lexicon style. Use when writing or reviewing docs, ADRs, examples, release notes, agent prompts, comments, PR descriptions, or issue language for rhythm, clarity, and vocabulary precision.
 metadata:
-  version: '0.1.0'
   author: trails
   category: content
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: trails-writing-style
 ---
 
 # Trails Writing Style

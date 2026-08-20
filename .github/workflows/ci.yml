@@ -111,6 +111,12 @@ jobs:
       - name: ADR check
         run: bun scripts/adr.ts check
 
+      - name: Skillset output check
+        run: bun run skillset:check
+
+      - name: Skillset ownership
+        run: bun run skillset:ownership
+
       - name: Skillset parity
         run: bun run skillset:parity
 

@@ -1,13 +1,9 @@
 ---
-name: building-trails
-description: "The working-on-Trails doctrine digest — what governs the framework, the decision tools for framework work, and where truth lives. Use at the start of any session that changes Trails itself (framework code, docs, vocabulary, governance), when orienting a new agent or persona, or when deciding which governing source answers a question. Not for building apps with Trails; the trails skill covers consuming the framework."
+description: The working-on-Trails doctrine digest — what governs the framework, the decision tools for framework work, and where truth lives. Use at the start of any session that changes Trails itself (framework code, docs, vocabulary, governance), when orienting a new agent or persona, or when deciding which governing source answers a question. Not for building apps with Trails; the trails skill covers consuming the framework.
 metadata:
-  skillset:
-    generator: scripts/codex/skillset.ts
-    target: codex
-    version: 1
-    source: .claude/skills/building-trails
-    source-file: .claude/skills/building-trails/SKILL.md
+  generated: skillset@0.1.0
+  version: 0.1.0
+name: building-trails
 ---
 
 # Building Trails
