@@ -132,29 +132,28 @@ export const renderTrailsHomebrewFormula = (
   return `class Trails < Formula
   desc "Agent-native, contract-first TypeScript framework"
   homepage "https://github.com/outfitter-dev/trails"
-  version "${version}"
   license "MIT"
 
   depends_on "bun"
 
   on_macos do
     on_arm do
-      url "https://github.com/outfitter-dev/trails/releases/download/v#{version}/trails-v#{version}-darwin-arm64.tar.gz"
+      url "https://github.com/outfitter-dev/trails/releases/download/v${version}/trails-v${version}-darwin-arm64.tar.gz"
       sha256 "${checksums['darwin-arm64']}"
     end
     on_intel do
-      url "https://github.com/outfitter-dev/trails/releases/download/v#{version}/trails-v#{version}-darwin-x64.tar.gz"
+      url "https://github.com/outfitter-dev/trails/releases/download/v${version}/trails-v${version}-darwin-x64.tar.gz"
       sha256 "${checksums['darwin-x64']}"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/outfitter-dev/trails/releases/download/v#{version}/trails-v#{version}-linux-arm64.tar.gz"
+      url "https://github.com/outfitter-dev/trails/releases/download/v${version}/trails-v${version}-linux-arm64.tar.gz"
       sha256 "${checksums['linux-arm64']}"
     end
     on_intel do
-      url "https://github.com/outfitter-dev/trails/releases/download/v#{version}/trails-v#{version}-linux-x64.tar.gz"
+      url "https://github.com/outfitter-dev/trails/releases/download/v${version}/trails-v${version}-linux-x64.tar.gz"
       sha256 "${checksums['linux-x64']}"
     end
   end

@@ -65,12 +65,21 @@ describe('Trails Homebrew release handoff', () => {
       version,
       parseTrailsCliChecksums(checksumFile, version)
     );
+    expect(formula).not.toMatch(/^ {2}version\s/mu);
     expect(formula).toContain('license "MIT"');
     expect(formula).toContain('depends_on "bun"');
-    expect(formula).toContain('trails-v#{version}-darwin-arm64.tar.gz');
-    expect(formula).toContain('trails-v#{version}-darwin-x64.tar.gz');
-    expect(formula).toContain('trails-v#{version}-linux-arm64.tar.gz');
-    expect(formula).toContain('trails-v#{version}-linux-x64.tar.gz');
+    expect(formula).toContain(
+      `releases/download/v${version}/trails-v${version}-darwin-arm64.tar.gz`
+    );
+    expect(formula).toContain(
+      `releases/download/v${version}/trails-v${version}-darwin-x64.tar.gz`
+    );
+    expect(formula).toContain(
+      `releases/download/v${version}/trails-v${version}-linux-arm64.tar.gz`
+    );
+    expect(formula).toContain(
+      `releases/download/v${version}/trails-v${version}-linux-x64.tar.gz`
+    );
     expect(formula).toContain('libexec.install Dir["*"]');
     expect(formula).toContain('bin.install_symlink libexec/"bin/trails"');
     expect(formula).toContain('shell_output("#{bin}/trails --version")');
