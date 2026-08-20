@@ -139,22 +139,27 @@ const parseArgs = (
 };
 
 export const defaultInstalledSkillCandidates = (
-  homeDir = homedir()
-): readonly InstalledSkillCandidate[] => [
-  {
-    label: 'agents-shared',
-    path: join(homeDir, '.agents/skills/trails'),
-  },
-  {
-    label: 'claude-home',
-    path: join(homeDir, '.config/claude/skills/trails'),
-  },
-  {
-    label: 'codex-home',
-    optional: true,
-    path: join(homeDir, '.config/codex/skills/trails'),
-  },
-];
+  homeDir = homedir(),
+  codexHome = process.env.CODEX_HOME
+): readonly InstalledSkillCandidate[] => {
+  const resolvedCodexHome = codexHome || join(homeDir, '.codex');
+
+  return [
+    {
+      label: 'agents-shared',
+      path: join(homeDir, '.agents/skills/trails'),
+    },
+    {
+      label: 'claude-home',
+      path: join(homeDir, '.config/claude/skills/trails'),
+    },
+    {
+      label: 'codex-home',
+      optional: true,
+      path: join(resolvedCodexHome, 'skills/trails'),
+    },
+  ];
+};
 
 const pathExists = async (path: string): Promise<boolean> => {
   try {

@@ -4,7 +4,10 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { checkInstalledTrailsSkills } from '../check-installed-trails-skill.js';
+import {
+  checkInstalledTrailsSkills,
+  defaultInstalledSkillCandidates,
+} from '../check-installed-trails-skill.js';
 import type { InstalledSkillCandidate } from '../check-installed-trails-skill.js';
 
 const renderSkill = (
@@ -61,6 +64,31 @@ const checkOne = async (
   });
 
 describe('check-installed-trails-skill', () => {
+  test('uses the canonical Codex home for the optional installed skill', () => {
+    const codexHome = defaultInstalledSkillCandidates('/tmp/home', '').find(
+      (candidate) => candidate.label === 'codex-home'
+    );
+
+    expect(codexHome).toEqual({
+      label: 'codex-home',
+      optional: true,
+      path: '/tmp/home/.codex/skills/trails',
+    });
+  });
+
+  test('honors CODEX_HOME for the optional installed skill', () => {
+    const codexHome = defaultInstalledSkillCandidates(
+      '/tmp/home',
+      '/tmp/custom-codex'
+    ).find((candidate) => candidate.label === 'codex-home');
+
+    expect(codexHome).toEqual({
+      label: 'codex-home',
+      optional: true,
+      path: '/tmp/custom-codex/skills/trails',
+    });
+  });
+
   test('accepts a matching copied skill root', async () => {
     await withFixture(async (rootDir) => {
       const installedDir = join(rootDir, 'installed/trails');

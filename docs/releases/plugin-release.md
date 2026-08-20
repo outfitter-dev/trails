@@ -12,7 +12,7 @@ Do not run any of these without explicit operator approval:
 - mutate Claude marketplace state;
 - run `npx skills outfitter-dev/trails` against a real global install target;
 - mutate `$HOME/.agents/skills/trails`, `$HOME/.config/claude/skills/trails`,
-  or `$HOME/.config/codex/skills/trails`.
+  or `${CODEX_HOME:-$HOME/.codex}/skills/trails`.
 
 If an installer or marketplace probe cannot be pointed at a disposable target, mark it externally/manual blocked instead of testing against a real profile.
 
