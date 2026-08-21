@@ -182,6 +182,7 @@ export const deriveOutputMode: any;
 export const deriveTopoGraph: any;
 export const deriveTopoGraphDiff: any;
 export const deriveTopoGraphHash: any;
+export const deriveWorkspaceView: any;
 export const devPermitPreset: any;
 export const dryRunPreset: any;
 export const env: any;

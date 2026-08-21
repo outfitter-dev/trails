@@ -1,5 +1,5 @@
 /**
- * Workspace-wide trail-id index for compose-app resolution.
+ * Legacy workspace-wide trail-id index for compose-app resolution.
  *
  * Builds a `{ trailId → appName }` index that lets `trails run <id>` resolve
  * a trail to its owning app without scanning every app's source. The index is
@@ -13,6 +13,10 @@
  * resolution is CLI tooling that reads Topography artifacts before runtime
  * begins — `@ontrails/core` resolves a single in-memory graph and stays
  * unaware of workspace topology.
+ *
+ * @deprecated This package-workspace and root-aggregate compatibility bridge
+ * remains only until the TRL-1300 operator consumer cutover. New workspace
+ * consumers must use `deriveWorkspaceView()` with Config-owned identity.
  */
 
 import { existsSync } from 'node:fs';
@@ -437,7 +441,7 @@ const buildFromDiscovery = async (
 };
 
 /**
- * Build a workspace-wide trail-id-to-app-name index.
+ * Build a legacy workspace-wide trail-id-to-app-name index.
  *
  * Prefers a committed topo artifact (`trails.lock` carrying a workspace
  * trail index) when present; otherwise walks the workspace's
@@ -451,6 +455,10 @@ const buildFromDiscovery = async (
  * }
  * const owningApp = result.index['my-app.do-thing'];
  * ```
+ *
+ * @deprecated Use `deriveWorkspaceView()` with Config-owned workspace identity.
+ * This bridge is deleted when run and completions adopt shared project context
+ * in TRL-1300; it must not be used as workspace identity by new consumers.
  */
 export const buildWorkspaceTrailIndex = async (
   options: BuildWorkspaceTrailIndexOptions

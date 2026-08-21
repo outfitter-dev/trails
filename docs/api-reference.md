@@ -259,6 +259,7 @@ These are programmatic Topography APIs for deriving, hashing, diffing, reading, 
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
+deriveWorkspaceView({ identity, selectedAppIds?, currentAppGraphHashes?, lockScope? })
 collectTopoGraphOverlays(topo, registrations) // namespaced overlays (adapter-contributed facts)
 deriveActivationGraph(topoGraph), deriveDeclaredTrailActivation(entry)
 deriveSignalActivationRelations(topoGraph)
@@ -273,6 +274,8 @@ pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 TOPO_STORE_SCHEMA_VERSION
 
 TopoGraph, TopoGraphEntry, TopoGraphEntityReference, TrailsLock, LockManifest, DiffResult, DiffEntry, JsonSchema
+WorkspaceView, WorkspaceViewContent, WorkspaceViewEvidence, WorkspaceViewApp, WorkspaceViewCollision
+WorkspaceAppLockObservation, UnownedWorkspaceLockObservation, WORKSPACE_VIEW_SCHEMA_VERSION
 TopoGraphOverlays, TopoGraphOverlayRegistration
 ActivationGraphReport, TrailActivationReport, SignalActivationRelations
 ActivationOverviewReport, ActivationSourceReport, ActivationChainReport, ActivationEdgeReport
