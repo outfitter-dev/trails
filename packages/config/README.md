@@ -101,6 +101,54 @@ Each layer overrides the previous. Environment variables always win.
 
 `trails.config.local.*` is a per-developer override and does not mark a project root by itself. A bare `.trails/` directory also does not mark a root; it is the committed-control home for project-local sections after a project root is known.
 
+## Workspace app identity
+
+A workspace root names its lock-owning Trails apps in the static `workspace.apps` section. App IDs are the authored identity, roots are project-relative, and an `entry` override is app-root-relative. Omit `entry` when the app uses the shared `src/app.ts` convention:
+
+```typescript
+import { defineConfig } from '@ontrails/config';
+import { z } from 'zod';
+
+export default defineConfig({
+  schema: z.object({}),
+  workspace: {
+    apps: {
+      demo: { root: 'apps/demo' },
+      junction: { root: 'examples/junction' },
+      custom: { root: 'apps/custom', entry: 'src/custom-app.ts' },
+    },
+  },
+});
+```
+
+A workspace-only root may use a direct object without inventing a deployment schema:
+
+```typescript
+export default {
+  workspace: {
+    apps: {
+      demo: { root: 'apps/demo' },
+    },
+  },
+};
+```
+
+`readTrailsProjectIdentity()` reads only this literal project-identity subset. TypeScript modules are parsed without being imported or evaluated; JSON, JSONC, YAML, and TOML configs converge through the same validator. Dynamic app declarations, escaping paths, normalized root collisions, and nested workspace declarations fail with typed `ValidationError` diagnostics.
+
+Callers must supply their collection boundary; Config does not infer a working-tree boundary. Pass `startDir` as well when discovery starts below that root. Discovery walks past app-local locks and ordinary nested app configs, inventories workspace declarations throughout the collection, and never crosses the supplied boundary or a nested repository edge:
+
+```typescript
+import { readTrailsProjectIdentity } from '@ontrails/config';
+
+const workspaceRoot = '/path/to/workspace';
+const identity = await readTrailsProjectIdentity({
+  boundaryDir: workspaceRoot,
+  startDir: process.cwd(),
+});
+```
+
+Each resolved app preserves the app-relative `entry` and derives its project-relative `modulePath`, absolute `rootDir` and `entryPath`, and whether the entry came from convention or an explicit override. Only authored IDs, roots, and optional entry overrides are project identity; absolute paths are live convenience values.
+
 ## Extensions
 
 ### `env()`

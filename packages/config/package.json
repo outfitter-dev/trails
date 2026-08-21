@@ -26,6 +26,9 @@
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
+  "dependencies": {
+    "@ontrails/source": "workspace:^"
+  },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
     "zod": "catalog:"

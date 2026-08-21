@@ -19,6 +19,7 @@ export {
   findTrailsProjectRoot,
   resolveTrailsProjectRoot,
   trailsConfigModuleCandidates,
+  trailsAppEntryRelativePath,
   trailsLockFileName,
   trailsLocalConfigDataCandidates,
   trailsLocalConfigFileCandidates,
@@ -27,6 +28,14 @@ export {
   type TrailsProjectRootMarker,
   type TrailsProjectRootResolution,
 } from './trails-conventions.js';
+export {
+  readTrailsProjectIdentity,
+  type ReadTrailsProjectIdentityOptions,
+  type ReadTrailsProjectIdentityResult,
+  type ResolvedTrailsWorkspaceApp,
+  type TrailsWorkspaceAppConfig,
+  type TrailsWorkspaceConfig,
+} from './workspace-config.js';
 export {
   loadTrailsConfigFileValue,
   loadTrailsConfigValue,

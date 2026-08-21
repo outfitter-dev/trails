@@ -8,6 +8,7 @@ import type { z } from 'zod';
 import { appConfig } from './app-config.js';
 import { deriveConfig } from './resolve.js';
 import { loadTrailsLocalConfigValue } from './trails-config-file.js';
+import type { TrailsWorkspaceConfig } from './workspace-config.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,6 +21,8 @@ export interface DefineConfigOptions<T extends z.ZodType> {
   readonly profiles?: Record<string, Partial<z.infer<T>>>;
   /** When true, fall back to `NODE_ENV` when `TRAILS_ENV` is unset. */
   readonly envFromNodeEnv?: boolean;
+  /** Static workspace identity. This is never included in runtime resolution. */
+  readonly workspace?: TrailsWorkspaceConfig | undefined;
 }
 
 /** Options passed to `resolve()` on a defined config. */
@@ -118,5 +121,6 @@ export const defineConfig = <T extends z.ZodType>(
       });
     },
     schema: options.schema,
+    workspace: options.workspace,
   };
 };

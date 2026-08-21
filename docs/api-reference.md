@@ -603,6 +603,7 @@ findTrailsConfigModulePath(options)  // locate root trails.config.*
 findTrailsLocalConfigModulePath(rootDir) // locate root trails.config.local.*
 findTrailsProjectRoot(options?)      // walk upward to a project root marker
 resolveTrailsProjectRoot(options?)   // explicit root or discovered/fallback root
+readTrailsProjectIdentity(options)   // statically read bounded workspace.apps identity without module execution
 
 // Extensions
 env(schema, envVar)                  // bind a schema field to an environment variable
@@ -631,7 +632,9 @@ configDescribe                       // describe all schema fields
 configExplain                        // show which source won per field
 configInit                           // generate example config files
 
-DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
+DefineConfigOptions, TrailsWorkspaceConfig, TrailsWorkspaceAppConfig
+ReadTrailsProjectIdentityOptions, ReadTrailsProjectIdentityResult, ResolvedTrailsWorkspaceApp
+ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
 ```
 
 ## `@ontrails/permits`
