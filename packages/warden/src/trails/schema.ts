@@ -119,6 +119,13 @@ export const authoredMcpSurfaceBindingSetSchema = z.object({
     .describe('Trail ids registered in the owning app topo'),
 });
 
+const unownedWorkspaceLockObservationSchema = z.object({
+  coaching: z.string(),
+  kind: z.enum(['forbidden-workspace-aggregate', 'unconfigured-app-lock']),
+  path: z.string(),
+  provenance: z.literal('source-collection'),
+});
+
 const governedVocabularyHistoryFormJudgmentSchema = z.object({
   disposition: z.string(),
   form: z.string(),
@@ -237,6 +244,13 @@ export const projectAwareRuleInput = ruleInput.extend({
     .record(z.string(), z.enum(intentValues))
     .optional()
     .describe('Normalized trail intents keyed by trail ID'),
+  unownedWorkspaceLocks: z
+    .array(unownedWorkspaceLockObservationSchema)
+    .readonly()
+    .optional()
+    .describe(
+      'Observation-only trails.lock artifacts outside configured app ownership'
+    ),
 });
 
 /**

@@ -78,6 +78,7 @@ import { validDescribeRefs } from './valid-describe-refs.js';
 import { wardenExportSymmetry } from './warden-export-symmetry.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 import { webhookRouteCollision } from './webhook-route-collision.js';
+import { workspaceLockOwnership } from './workspace-lock-ownership.js';
 
 export type {
   GovernedVocabularyHistoryEvidence,
@@ -224,6 +225,7 @@ export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDetourContract } from './valid-detour-contract.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 export { webhookRouteCollision } from './webhook-route-collision.js';
+export { workspaceLockOwnership } from './workspace-lock-ownership.js';
 
 /** All built-in warden rules, keyed by rule name. */
 export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
@@ -287,6 +289,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [forkWithoutPreservedImplementation.name, forkWithoutPreservedImplementation],
   [markerSchemaUnsupported.name, markerSchemaUnsupported],
   [versionPinnedCompose.name, versionPinnedCompose],
+  [workspaceLockOwnership.name, workspaceLockOwnership],
 ]);
 
 /**

@@ -26,6 +26,7 @@ import * as adapterCheck from './trails/adapter-check.js';
 import * as compile from './trails/compile.js';
 import * as completions from './trails/completions.js';
 import * as completionsComplete from './trails/completions-complete.js';
+import * as configExplain from './trails/config-explain.js';
 import * as create from './trails/create.js';
 import * as createAdapter from './trails/create-adapter.js';
 import * as createScaffold from './trails/create-scaffold.js';
@@ -63,6 +64,7 @@ export const operatorApp = topo(
   survey,
   topoCommand,
   compile,
+  configExplain,
   topoHistory,
   topoPin,
   topoUnpin,

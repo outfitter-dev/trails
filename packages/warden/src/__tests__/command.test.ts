@@ -404,6 +404,51 @@ describe('runWardenCommand', () => {
     }
   });
 
+  test('uses an explicit config path for workspace lock ownership', async () => {
+    const dir = makeTempDir();
+    try {
+      const workspaceRoot = join(dir, 'custom');
+      mkdirSync(join(workspaceRoot, 'apps', 'configured', 'src'), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(workspaceRoot, 'trails.config.ts'),
+        `export default {
+  workspace: { apps: { configured: { root: 'apps/configured' } } },
+  warden: { depth: 'project', lock: 'skip' },
+};
+`
+      );
+      writeFileSync(
+        join(workspaceRoot, 'apps', 'configured', 'src', 'app.ts'),
+        'export {};\n'
+      );
+      writeFileSync(join(workspaceRoot, 'trails.lock'), '{}\n');
+
+      const result = await runWardenCommand({
+        args: ['--config-path', 'custom/trails.config.ts', '--format', 'json'],
+        cwd: dir,
+        env: {},
+      });
+
+      expect(result.report.effectiveConfig).toMatchObject({
+        depth: 'project',
+        lock: 'skip',
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: 'forbidden-workspace-aggregate',
+          filePath: 'trails.lock',
+          rule: 'workspace-lock-ownership',
+          severity: 'error',
+        })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('applies Warden scope excludes from project config', async () => {
     const dir = makeTempDir();
     try {

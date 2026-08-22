@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 import { withFreshAppLease } from './operator-context.js';
 import { resolveRunTargetProject } from './run.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import { createCurrentAppExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLES_LISTING_KIND = 'examples-listing' as const;
 
@@ -54,7 +54,7 @@ const buildHappyExampleInput = (): {
   readonly module: string;
   readonly rootDir: string;
 } => ({
-  ...createIsolatedExampleInput('run-examples-happy'),
+  ...createCurrentAppExampleInput(),
   id: 'survey.brief',
 });
 

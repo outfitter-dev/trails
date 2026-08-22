@@ -20,11 +20,6 @@ import type { WardenExpectedAppBinding } from '@ontrails/warden';
 import { z } from 'zod';
 
 import {
-  createIsolatedExampleRoot,
-  writeIsolatedExampleTextFile,
-} from '../local-state-io.js';
-
-import {
   assertObservableProjectApps,
   resolveOperatorProjectContext,
 } from './project-context.js';
@@ -98,14 +93,6 @@ const wardenInputSchema = z
   });
 
 type WardenTrailInput = z.infer<typeof wardenInputSchema>;
-
-const createIsolatedWardenExampleRoot = (name: string): string => {
-  const rootDir = createIsolatedExampleRoot(
-    `warden-${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-  );
-  writeIsolatedExampleTextFile(rootDir, 'src/clean.ts', 'export {};\n');
-  return rootDir;
-};
 
 const pushFlag = (args: string[], condition: boolean, flag: string): void => {
   if (condition) {
@@ -278,7 +265,7 @@ export const wardenTrail = trail('warden', {
       input: {
         depth: 'source',
         lock: 'skip',
-        rootDir: createIsolatedWardenExampleRoot('default'),
+        rootDir: '.',
       },
       name: 'Default warden run',
     },
@@ -287,7 +274,7 @@ export const wardenTrail = trail('warden', {
         depth: 'source',
         format: 'github',
         lock: 'skip',
-        rootDir: createIsolatedWardenExampleRoot('github'),
+        rootDir: '.',
       },
       name: 'GitHub Actions annotations',
     },

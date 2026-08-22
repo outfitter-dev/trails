@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 75
+- Rule count: 76
 
 ## Agent Instructions
 
@@ -55,6 +55,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `valid-describe-refs` (warn, all/project-static, advisory): Describe references point at known Trails concepts.
 - `warden-export-symmetry` (error, source/source-static, repo-local): The Warden package exports trail wrappers, not raw rules.
 - `warden-rules-use-ast` (error, source/source-static, repo-local): Warden source rules use AST helpers instead of ad hoc parsing or raw node-field casts.
+- `workspace-lock-ownership` (warn, project/project-static, external): Nested locks outside configured app ownership warn, while workspace-root aggregate locks error. Guidance: Warn on nested locks outside configured app ownership and reject workspace-root aggregate locks.
 
 ### Lifecycle
 

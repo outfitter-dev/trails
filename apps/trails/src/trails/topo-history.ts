@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import {
   DEFAULT_TOPO_HISTORY_LIMIT,
-  createIsolatedExampleInput,
+  createCurrentAppExampleInput,
   listTopoHistory,
   topoSnapshotOutput,
 } from './topo-support.js';
@@ -23,7 +23,7 @@ export const topoHistoryTrail = trail('topo.history', {
   description: 'List saved topo snapshots, including pinned references',
   examples: [
     {
-      input: createIsolatedExampleInput('topo-history'),
+      input: createCurrentAppExampleInput(),
       name: 'Show topo history',
     },
   ],

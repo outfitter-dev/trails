@@ -6,7 +6,6 @@ import {
   DEFAULT_TOPO_SNAPSHOT_RETENTION,
 } from './dev-support.js';
 import { resolveTrailRootDir } from './root-dir.js';
-import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devCleanTrail = trail('dev.clean', {
   description: 'Prune unpinned topo snapshots and old trace records',
@@ -14,7 +13,6 @@ export const devCleanTrail = trail('dev.clean', {
     {
       input: {
         dryRun: true,
-        rootDir: createIsolatedExampleInput('dev-clean').rootDir,
       },
       name: 'Preview local cleanup',
     },

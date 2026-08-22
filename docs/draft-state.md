@@ -67,7 +67,7 @@ One draft dependency can turn surprising amounts of downstream work into draft s
 These outputs reject draft state at runtime via `validateEstablishedTopo()`:
 
 - **Surface rendering** — no draft trails in current shipped surfaces
-- **Lockfile export** — no draft nodes in root `trails.lock`
+- **Lockfile export** — no draft nodes in an app root's `trails.lock`
 - **OpenAPI generation** — the HTTP OpenAPI rendering excludes draft trails
 - **Topo exports** — standard topo accessors exclude draft declarations
 

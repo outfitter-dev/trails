@@ -6,7 +6,10 @@ import type {
   SurfaceBindings,
   Topo,
 } from '@ontrails/core';
-import type { TopoGraph } from '@ontrails/topography';
+import type {
+  TopoGraph,
+  UnownedWorkspaceLockObservation,
+} from '@ontrails/topography';
 
 import type { WardenDepth } from '../config.js';
 import type { WardenImportResolution } from '../resolve.js';
@@ -309,6 +312,10 @@ export interface AuthoredMcpSurfaceBindingSet {
  * Options for compose-file rules that need knowledge of all trail IDs in a project.
  */
 export interface ProjectContext {
+  /** Observation-only lock artifacts not owned by configured workspace apps. */
+  readonly unownedWorkspaceLocks?:
+    | readonly UnownedWorkspaceLockObservation[]
+    | undefined;
   /** Whether this project owns the governed transition registry and must prove completed migrations. */
   readonly governedVocabularyHistoryRequired?: boolean | undefined;
   /** Validated committed Regrade history evidence keyed by governed transition. */

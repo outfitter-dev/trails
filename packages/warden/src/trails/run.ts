@@ -14,6 +14,7 @@ import type {
   GovernedVocabularyHistoryEvidence,
   GovernedVocabularyHistoryIssue,
   ProjectAwareWardenRule,
+  ProjectContext,
   WardenDiagnostic,
   WardenRule,
 } from '../rules/types.js';
@@ -42,6 +43,7 @@ const appendDiagnostics = (
 type TrailIntentMap = Readonly<Record<string, Intent>>;
 
 interface ProjectRuleOptions {
+  readonly unownedWorkspaceLocks?: ProjectContext['unownedWorkspaceLocks'];
   readonly governedVocabularyHistories?: readonly GovernedVocabularyHistoryEvidence[];
   readonly governedVocabularyHistoryIssues?: readonly GovernedVocabularyHistoryIssue[];
   readonly governedVocabularyHistoryRequired?: boolean;
@@ -66,6 +68,7 @@ interface ProjectRuleOptions {
 }
 
 const PROJECT_OPTION_KEYS = [
+  'unownedWorkspaceLocks',
   'governedVocabularyHistories',
   'governedVocabularyHistoryIssues',
   'governedVocabularyHistoryRequired',

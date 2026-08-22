@@ -1039,10 +1039,10 @@
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0010-native-infrastructure.md",
       "slug": "native-infrastructure",
-      "status": "accepted",
-      "superseded_by": null,
+      "status": "partially-superseded",
+      "superseded_by": ["54"],
       "title": "Trails-Native Infrastructure Pattern",
-      "updated": "2026-05-09"
+      "updated": "2026-08-22"
     },
     {
       "created": "2026-03-30",
@@ -3066,6 +3066,11 @@
       "created": "2026-06-22",
       "depends_on": ["10", "11", "14", "15", "17", "41", "42", "46"],
       "inbound": [
+        {
+          "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)",
+          "from": "0010",
+          "fromPath": "docs/adr/0010-native-infrastructure.md"
+        },
         {
           "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)",
           "from": "0011",

@@ -7,7 +7,10 @@
 
 import { isAbsolute, relative, resolve } from 'node:path';
 
-import { resolveTrailsProjectRoot } from '@ontrails/config';
+import {
+  readTrailsProjectIdentity,
+  resolveTrailsProjectRoot,
+} from '@ontrails/config';
 import {
   getEntityReferences,
   matchesAnyPathGlob,
@@ -15,10 +18,11 @@ import {
   surfaceBindingsFromLockOverlays,
 } from '@ontrails/core';
 import type { SurfaceBindings, Topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topography';
+import { deriveTopoGraph, deriveWorkspaceView } from '@ontrails/topography';
 import type {
   TopoGraph,
   TopoGraphOverlayRegistration,
+  UnownedWorkspaceLockObservation,
 } from '@ontrails/topography';
 
 import type {
@@ -119,6 +123,8 @@ export interface WardenRunOptions {
   readonly rootDir?: string | undefined;
   /** Warden config section from `trails.config.ts`, if already loaded. */
   readonly config?: WardenConfigInput | undefined;
+  /** Resolved selected Config path, when already known by the caller. */
+  readonly configPath?: string | undefined;
   /** CLI/config-layer app names carried through shared resolution. */
   readonly apps?: readonly string[] | undefined;
   /** Include shared adapter authoring checks as Warden diagnostics. */
@@ -429,6 +435,7 @@ interface MutableProjectContext {
   publicWorkspaces: ReturnType<typeof collectPublicWorkspaces>;
   reconcileTableIds: Set<string>;
   trailIntentsById: Map<string, 'destroy' | 'read' | 'write'>;
+  unownedWorkspaceLocks: readonly UnownedWorkspaceLockObservation[] | undefined;
 }
 
 const createMutableProjectContext = (): MutableProjectContext => ({
@@ -455,6 +462,7 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   reconcileTableIds: new Set<string>(),
   topoTrailIds: new Set<string>(),
   trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
+  unownedWorkspaceLocks: undefined,
 });
 
 const addEntityReferenceTargets = (
@@ -474,6 +482,9 @@ const addEntityReferenceTargets = (
 };
 
 const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
+  ...(context.unownedWorkspaceLocks === undefined
+    ? {}
+    : { unownedWorkspaceLocks: context.unownedWorkspaceLocks }),
   ...(context.authoredMcpSurfaceBindingSets === undefined
     ? {}
     : { authoredMcpSurfaceBindingSets: context.authoredMcpSurfaceBindingSets }),
@@ -1020,6 +1031,9 @@ const buildProjectContext = (
   scope: WardenScope = EMPTY_WARDEN_SCOPE,
   authoredMcpSurfaceBindingSets:
     | readonly AuthoredMcpSurfaceBindingSet[]
+    | undefined = undefined,
+  unownedWorkspaceLocks:
+    | readonly UnownedWorkspaceLockObservation[]
     | undefined = undefined
 ): ProjectContext => {
   const context = createMutableProjectContext();
@@ -1028,6 +1042,7 @@ const buildProjectContext = (
     governedHistory.byTransitionId;
   context.governedVocabularyHistoryIssues = governedHistory.issues;
   context.authoredMcpSurfaceBindingSets = authoredMcpSurfaceBindingSets;
+  context.unownedWorkspaceLocks = unownedWorkspaceLocks;
   const typeScriptSourceFiles = sourceFiles.filter(
     (sourceFile) => sourceFile.kind === 'typescript'
   );
@@ -1385,6 +1400,26 @@ interface WardenLintResult {
   readonly sourceFiles: readonly SourceFile[];
 }
 
+const collectUnownedWorkspaceLocks = async (
+  rootDir: string,
+  scope: WardenScope,
+  configPath: string | undefined
+): Promise<readonly UnownedWorkspaceLockObservation[] | undefined> => {
+  const identity = await readTrailsProjectIdentity({
+    boundaryDir: rootDir,
+    configPath,
+    startDir: rootDir,
+  });
+  if (identity.workspace === undefined) {
+    return undefined;
+  }
+  const workspace = await deriveWorkspaceView({
+    identity,
+    lockScope: scope,
+  });
+  return workspace.evidence.unownedLocks;
+};
+
 const lintFiles = async (
   rootDir: string,
   drafts: EffectiveWardenConfig['drafts'],
@@ -1392,7 +1427,8 @@ const lintFiles = async (
   topoTargets: readonly WardenTopoTarget[],
   extraTopoRules: readonly TopoAwareWardenRule[],
   extraSourceRules: readonly WardenRule[],
-  selector: WardenRuleSelector
+  selector: WardenRuleSelector,
+  configPath: string | undefined
 ): Promise<WardenLintResult> => {
   if (selector.tier === 'topo-aware') {
     return {
@@ -1409,13 +1445,17 @@ const lintFiles = async (
     rootDir,
     scope
   );
+  const unownedWorkspaceLocks = selectorIncludesProjectChecks(selector)
+    ? await collectUnownedWorkspaceLocks(rootDir, scope, configPath)
+    : undefined;
   const context = buildProjectContext(
     sourceFiles,
     loaded.collection,
     rootDir,
     topoTargets.map((target) => target.topo),
     scope,
-    collectAuthoredMcpSurfaceBindingSets(topoTargets)
+    collectAuthoredMcpSurfaceBindingSets(topoTargets),
+    unownedWorkspaceLocks
   );
   const allDiagnostics: WardenDiagnostic[] = [
     ...lintSourceFiles(sourceFiles, context, extraSourceRules, selector),
@@ -1821,7 +1861,8 @@ export const runWarden = async (
         topoTargets,
         [...projectRules.topoRules, ...(options.extraTopoRules ?? [])],
         [...projectRules.sourceRules, ...(options.extraSourceRules ?? [])],
-        selector
+        selector,
+        options.configPath
       )
     : { diagnostics: [], sourceFiles: [] };
   const adapterDiagnostics = adapterDiagnosticsForRun(rootDir, options);
