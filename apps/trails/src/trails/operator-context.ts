@@ -1,7 +1,12 @@
-import type { Result } from '@ontrails/core';
+import { Result } from '@ontrails/core';
 
 import { tryLoadFreshAppLease } from './load-app.js';
 import type { FreshAppLease } from './load-app.js';
+import { assertConfiguredAppBinding } from './project-context.js';
+import type {
+  OperatorAppProjectContext,
+  OperatorProjectContext,
+} from './project-context.js';
 import { resolveTrailRootDir } from './root-dir.js';
 
 interface RootDirInput {
@@ -50,6 +55,40 @@ export const withFreshAppLease = async <T>(
   } finally {
     lease.release();
   }
+};
+
+const selectedAppContexts = (
+  context: OperatorProjectContext
+): readonly OperatorAppProjectContext[] =>
+  context.selectedExtent === 'workspace'
+    ? context.apps.map((app) => ({
+        app,
+        boundaryDir: context.boundaryDir,
+        identity: context.identity,
+        projectRoot: context.projectRoot,
+        selectedExtent: 'configured-app',
+        selectionProvenance: context.selectionProvenance,
+      }))
+    : [context];
+
+/** Load every selected app and prove its live topo name matches Config. */
+export const assertFreshProjectAppBindings = async (
+  context: OperatorProjectContext
+): Promise<Result<void, Error>> => {
+  if (context.identity.workspace === undefined) {
+    return Result.ok();
+  }
+  for (const selected of selectedAppContexts(context)) {
+    const binding = await withFreshAppLease(
+      selected.app.modulePath,
+      selected.app.rootDir,
+      (lease) => assertConfiguredAppBinding(selected, lease.app.name)
+    );
+    if (binding.isErr()) {
+      return binding;
+    }
+  }
+  return Result.ok();
 };
 
 export const withFreshOperatorApp = async <T>(

@@ -358,6 +358,22 @@ const writeWorkspace = (
       2
     )}\n`
   );
+  if (apps.length > 1) {
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify(
+        {
+          workspace: {
+            apps: Object.fromEntries(
+              apps.map((app) => [app.name, { root: `apps/${app.name}` }])
+            ),
+          },
+        },
+        null,
+        2
+      )}\n`
+    );
+  }
 
   for (const spec of apps) {
     const appDir = join(workspaceRoot, 'apps', spec.name);
@@ -501,6 +517,30 @@ describe('run.examples trail', () => {
     const value = expectOk(result) as RunExamplesListing;
     expect(value.trailId).toBe('shared.demo');
     expect(value.examples.map((example) => example.name)).toEqual(['App B']);
+  });
+
+  test('preserves configured selection from a nested CWD without root-dir', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['alpha.only'] },
+      {
+        examplesByTrail: {
+          'beta.only': [{ name: 'Beta example' }],
+        },
+        name: 'app-b',
+        trailIds: ['beta.only'],
+      },
+    ]);
+
+    const result = await executeTrail(
+      runExamplesTrail,
+      { id: 'beta.only' },
+      { ctx: { cwd: join(workspaceRoot, 'apps', 'app-b', 'src') } }
+    );
+
+    const value = expectOk(result) as RunExamplesListing;
+    expect(value.examples.map((example) => example.name)).toEqual([
+      'Beta example',
+    ]);
   });
 
   test('returns an empty examples array when the resolved trail has no examples', async () => {

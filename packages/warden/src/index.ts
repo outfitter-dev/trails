@@ -106,6 +106,7 @@ export {
 export type {
   ParsedWardenCommand,
   RunWardenCommandOptions,
+  WardenExpectedAppBinding,
   WardenCommandResult,
 } from './command.js';
 export {

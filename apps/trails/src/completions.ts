@@ -11,8 +11,8 @@
  *     a sorted list of suggestions (e.g. trail IDs).
  *
  * This split keeps the shell-side script tiny and standardish (no rich shell
- * DSL), while the heavy lifting stays in TypeScript where it can reuse the
- * workspace trail index for accurate, live suggestions.
+ * DSL), while the heavy lifting stays in TypeScript where it can reuse
+ * Config-owned app identities and live topos for accurate suggestions.
  */
 
 import {
@@ -21,9 +21,73 @@ import {
   Result,
   ValidationError,
 } from '@ontrails/core';
-import { buildWorkspaceTrailIndex } from '@ontrails/topography';
+import { readTrailsProjectIdentity } from '@ontrails/config';
 
 import { tryLoadFreshAppLease } from './trails/load-app.js';
+
+interface CompletionApp {
+  readonly configured: boolean;
+  readonly id: string;
+  readonly modulePath: string | undefined;
+  readonly rootDir: string;
+}
+
+const completionApps = async (
+  workspaceRoot: string
+): Promise<readonly CompletionApp[]> => {
+  const identity = await readTrailsProjectIdentity({
+    boundaryDir: workspaceRoot,
+    startDir: workspaceRoot,
+  });
+  return identity.workspace === undefined
+    ? [
+        {
+          configured: false,
+          id: 'standalone',
+          modulePath: undefined,
+          rootDir: identity.rootDir,
+        },
+      ]
+    : identity.apps.map((app) => ({
+        configured: true,
+        id: app.id,
+        modulePath: app.entry,
+        rootDir: app.rootDir,
+      }));
+};
+
+const completionOwners = async (
+  workspaceRoot: string,
+  trailId?: string | undefined
+): Promise<ReadonlyMap<string, readonly string[]>> => {
+  const owners = new Map<string, string[]>();
+  for (const app of await completionApps(workspaceRoot)) {
+    const loaded = await tryLoadFreshAppLease(app.modulePath, app.rootDir);
+    if (loaded.isErr()) {
+      throw loaded.error;
+    }
+    const lease = loaded.value;
+    try {
+      if (app.configured && lease.app.name !== app.id) {
+        throw new ValidationError(
+          `Configured app "${app.id}" loaded topo "${lease.app.name}" while completing shell input.`
+        );
+      }
+      const ids = trailId === undefined ? lease.app.ids() : [trailId];
+      for (const id of ids) {
+        if (lease.app.get(id) === undefined) {
+          continue;
+        }
+        const current = owners.get(id) ?? [];
+        current.push(app.id);
+        owners.set(id, current);
+      }
+    } finally {
+      lease.release();
+    }
+  }
+  return owners;
+};
 
 /** Shells supported by the completion generator. */
 export type CompletionShell = 'bash' | 'zsh' | 'fish';
@@ -130,18 +194,14 @@ export const renderTrailIdCompletions = async (
   workspaceRoot: string,
   prefix: string
 ): Promise<readonly string[]> => {
-  let result: Awaited<ReturnType<typeof buildWorkspaceTrailIndex>>;
+  let owners: ReadonlyMap<string, readonly string[]>;
   try {
-    result = await buildWorkspaceTrailIndex({ cwd: workspaceRoot });
+    owners = await completionOwners(workspaceRoot);
   } catch {
     return [];
   }
-  const ids = new Set<string>(Object.keys(result.index));
-  for (const collision of result.collisions) {
-    ids.add(collision.trailId);
-  }
   const matching: string[] = [];
-  for (const id of ids) {
+  for (const id of owners.keys()) {
     if (id.startsWith(prefix)) {
       matching.push(id);
     }
@@ -158,6 +218,22 @@ export const renderTrailIdCompletions = async (
   return matching;
 };
 
+/** Return Config-owned app IDs matching a shell prefix. */
+export const renderAppIdCompletions = async (
+  workspaceRoot: string,
+  prefix: string
+): Promise<readonly string[]> => {
+  try {
+    const apps = await completionApps(workspaceRoot);
+    return apps
+      .filter((app) => app.configured && app.id.startsWith(prefix))
+      .map((app) => app.id)
+      .toSorted();
+  } catch {
+    return [];
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Example name completion
 // ---------------------------------------------------------------------------
@@ -165,9 +241,8 @@ export const renderTrailIdCompletions = async (
 /**
  * Return example names for `trailId` matching `prefix`, sorted lexicographically.
  *
- * Looks the trail up via the workspace index (TRL-404), resolves its owning
- * app module from the enriched index, loads the app's topo, and reads the
- * `name` of every structured example.
+ * Resolves Config-owned app identity, requires one live owner, loads that app,
+ * and reads the `name` of every structured example.
  *
  * Completion is best-effort for shell callers, but this helper preserves
  * load-time failures as `RecoverableCompletionError` so the internal bridge can
@@ -179,32 +254,62 @@ export const renderTrailExampleCompletions = async (
   prefix: string
 ): Promise<Result<readonly string[], RecoverableCompletionError>> => {
   try {
-    const { index } = await buildWorkspaceTrailIndex({ cwd: workspaceRoot });
-    const owner = index[trailId];
+    const owners = await completionOwners(workspaceRoot, trailId);
+    const appIds = owners.get(trailId) ?? [];
+    if (appIds.length !== 1) {
+      return Result.ok([]);
+    }
+    const [ownerId] = appIds;
+    const apps = await completionApps(workspaceRoot);
+    const owner = apps.find((app) => app.id === ownerId);
     if (owner === undefined) {
       return Result.ok([]);
     }
     const leaseResult = await tryLoadFreshAppLease(
       owner.modulePath,
-      workspaceRoot
+      owner.rootDir
     );
     if (leaseResult.isErr()) {
       return Result.err(
         recoverableCompletionError(
           'Cannot load app while completing example names',
-          { modulePath: owner.modulePath, trailId, workspaceRoot },
+          {
+            appId: owner.id,
+            modulePath: owner.modulePath,
+            trailId,
+            workspaceRoot,
+          },
           leaseResult.error
         )
       );
     }
     const lease = leaseResult.value;
     try {
+      if (owner.configured && lease.app.name !== owner.id) {
+        return Result.err(
+          recoverableCompletionError(
+            'Configured app identity does not match its loaded topo while completing example names',
+            {
+              actualAppId: lease.app.name,
+              expectedAppId: owner.id,
+              modulePath: owner.modulePath,
+              trailId,
+              workspaceRoot,
+            }
+          )
+        );
+      }
       const target = lease.app.get(trailId);
       if (target === undefined) {
         return Result.err(
           recoverableCompletionError(
             'Indexed trail was not found in loaded app while completing example names',
-            { modulePath: owner.modulePath, trailId, workspaceRoot }
+            {
+              appId: owner.id,
+              modulePath: owner.modulePath,
+              trailId,
+              workspaceRoot,
+            }
           )
         );
       }

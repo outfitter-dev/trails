@@ -1,6 +1,6 @@
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- result-shape assertions branch on isOk/isErr */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import type { ActionResultContext } from '@ontrails/cli';
@@ -374,7 +374,7 @@ const writeWorkspace = (
     `  output: z.unknown(),`,
     permitLine,
     `  examples: ${examplesArrayLiteral},`,
-    `  implementation: (input) => {`,
+    `  implementation: (input, ctx) => {`,
     `    const config = dispatch.get(input.__exampleName);`,
     `    if (!config) {`,
     `      return Result.ok(undefined);`,
@@ -383,7 +383,7 @@ const writeWorkspace = (
     `      const Ctor = errorClasses[config.className] ?? NotFoundError;`,
     `      return Result.err(new Ctor(config.message));`,
     `    }`,
-    `    return Result.ok(config.value);`,
+    `    return Result.ok(config.value === '__cwd' ? ctx.cwd : config.value);`,
     `  },`,
   ].filter((line): line is string => line !== null);
 
@@ -421,6 +421,18 @@ const writeWorkspace = (
       `export const app = topo(${JSON.stringify(appName)}, [targetTrail]);`,
       '',
     ].join('\n')
+  );
+};
+
+const writeWorkspaceIdentity = (workspaceRoot: string): void => {
+  const apps = Object.fromEntries(
+    readdirSync(join(workspaceRoot, 'apps'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => [entry.name, { root: `apps/${entry.name}` }])
+  );
+  writeFixture(
+    join(workspaceRoot, 'trails.config.json'),
+    `${JSON.stringify({ workspace: { apps } }, null, 2)}\n`
   );
 };
 
@@ -467,7 +479,6 @@ describe('run.example trail', () => {
         returnValue: { name: 'Alpha' },
       },
     ]);
-
     const result = await executeRunExampleTrail({
       exampleName: 'happy',
       id: 'demo.alpha',
@@ -532,6 +543,29 @@ describe('run.example trail', () => {
       outcome: 'ok',
       value: { name: 'Alpha' },
     });
+  });
+
+  test('runs the stored example with the selected app root as CWD', async () => {
+    const appRoot = join(workspaceRoot, 'apps', 'app-a');
+    writeWorkspace(workspaceRoot, 'demo.cwd', [
+      {
+        expected: appRoot,
+        name: 'current root',
+        returnValue: '__cwd',
+      },
+    ]);
+    writeWorkspaceIdentity(workspaceRoot);
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'current root',
+      id: 'demo.cwd',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    expect(envelope.match).toBe(true);
+    expect(envelope.actual).toEqual({ outcome: 'ok', value: appRoot });
   });
 
   test('forwards the wrapper permit when running a protected input-only example', async () => {
@@ -793,12 +827,12 @@ describe('run.example trail', () => {
         returnValue: { name: 'Alpha' },
       },
     ]);
+    writeWorkspaceIdentity(workspaceRoot);
 
     const result = await executeRunExampleTrail({
       app: 'app-a',
       exampleName: 'happy',
       id: 'demo.alpha',
-      module: 'apps/app-a/src/app.ts',
       rootDir: workspaceRoot,
     });
 
@@ -832,6 +866,7 @@ describe('run.example trail', () => {
       ],
       'app-b'
     );
+    writeWorkspaceIdentity(workspaceRoot);
 
     const result = await executeRunExampleTrail({
       app: 'app-b',

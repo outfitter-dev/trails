@@ -154,11 +154,11 @@ The Wayfind catalog is cold and deterministic. Graph queries read root `trails.l
 | `wayfindErrorsTrail` / `wayfindAdaptersTrail` / `wayfindOverlayTrail` | Inspect error facts, adapter evidence, and namespaced overlays |
 | `wayfindDescribeTrail` / `wayfindContractTrail` | Inspect one saved entity or trail contract |
 | `wayfindNearbyTrail` / `wayfindImpactTrail` | Traverse typed relation edges around saved graph entities |
-| `wayfindDiffTrail` | Compare two explicit saved TopoGraph baselines |
+| `wayfindDiffTrail` | Compare two explicit saved TopoGraph baselines as a low-level artifact query |
 | `loadWayfinderArtifacts` | Load lock, TopoGraph, and topo-store evidence with drift status |
 | `createWayfinderGraphEntityPredicate` / `filterWayfinderEntityRefs` | Reuse the typed Wayfind entity filter kit |
 
-Wayfind trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling. The Trails operator CLI preserves the existing `trails wayfind` grammar, and the operator MCP surface preserves the existing selected direct `wayfind.*` tools.
+Wayfind trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling. The Trails operator CLI preserves the existing `trails wayfind` grammar and adds Config-owned project/app selection around saved navigation and semantic diff. Topography continues to own artifact loading, app-partitioned workspace derivation, and graph comparison; it does not interpret `--app`. The operator MCP surface preserves the selected direct `wayfind.*` tools through that same project-aware command boundary.
 
 ### Operator File Outline
 

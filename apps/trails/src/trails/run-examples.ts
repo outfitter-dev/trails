@@ -11,8 +11,8 @@ import {
 import type { StructuredTrailExample, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
-import { resolveRunModulePath } from './run.js';
+import { withFreshAppLease } from './operator-context.js';
+import { resolveRunTargetProject } from './run.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLES_LISTING_KIND = 'examples-listing' as const;
@@ -107,22 +107,19 @@ export const runExamplesTrail = trail('run.examples', {
       name: 'List trail examples',
     },
   ],
-  implementation: async (input: RunExamplesTrailInput, ctx) =>
-    withOperatorRootDir(input, ctx, async (rootDir) => {
-      const moduleResolution = await resolveRunModulePath(
-        rootDir,
-        input.module,
-        input.id,
-        input.app
-      );
-      if (moduleResolution.isErr()) {
-        return moduleResolution;
-      }
-
-      return withFreshAppLease(moduleResolution.value, rootDir, (lease) =>
-        buildExamplesListing(lease.app, input.id)
-      );
-    }),
+  implementation: async (input: RunExamplesTrailInput, ctx) => {
+    const target = await resolveRunTargetProject(input, input.id, {
+      cwd: ctx.cwd,
+    });
+    if (target.isErr()) {
+      return target;
+    }
+    return withFreshAppLease(
+      target.value.modulePath,
+      target.value.rootDir,
+      (lease) => buildExamplesListing(lease.app, input.id)
+    );
+  },
   input: runExamplesTrailInputSchema,
   intent: 'read',
   output: runExamplesListingSchema,

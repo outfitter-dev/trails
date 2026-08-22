@@ -4,7 +4,6 @@ import {
   wayfindEntitiesTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
-  wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindOverlayTrail,
@@ -98,7 +97,7 @@ const operatorTrails = Object.fromEntries(
 );
 
 const cliWayfinderCommandTrails = {
-  wayfindDiffTrail,
+  wayfindDiffTrail: wayfind.wayfindDiffTrail,
   wayfindFileTrail: wayfind.wayfindFileTrail,
   wayfindPatternTrail: wayfind.wayfindPatternTrail,
   wayfindQueryTrail: wayfind.wayfindQueryTrail,

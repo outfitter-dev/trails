@@ -23,10 +23,11 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
+  renderAppIdCompletions,
   renderTrailExampleCompletions,
   renderTrailIdCompletions,
 } from '../completions.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { resolveOperatorProjectContext } from './project-context.js';
 
 const EMPTY_SUGGESTIONS = '';
 
@@ -100,6 +101,20 @@ const completeRunPosition: CompletionHandler = async ({ args, rootDir }) => {
 const renderSuggestions = (suggestions: readonly string[]): string =>
   suggestions.join('\n');
 
+const detectAppValueCompletion = (
+  args: readonly string[]
+): { readonly inline: boolean; readonly prefix: string } | null => {
+  const token = args.at(-1) ?? '';
+  const previous = args.at(-2);
+  if (previous === '--app') {
+    return { inline: false, prefix: token };
+  }
+  if (token.startsWith('--app=')) {
+    return { inline: true, prefix: token.slice('--app='.length) };
+  }
+  return null;
+};
+
 /**
  * Subcommand → handler dispatch table.
  *
@@ -128,11 +143,29 @@ export const completionsCompleteTrail = trail('completions.__complete', {
     },
   ],
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
+    const context = await resolveOperatorProjectContext(
+      { rootDir: input.rootDir },
+      { cwd: ctx.cwd }
+    );
+    if (context.isErr()) {
+      return context;
     }
-    const rootDir = rootDirResult.value;
+    const rootDir = context.value.projectRoot;
+
+    const appContext = detectAppValueCompletion(input.args);
+    if (appContext !== null) {
+      const suggestions = await renderAppIdCompletions(
+        rootDir,
+        appContext.prefix
+      );
+      return Result.ok(
+        renderSuggestions(
+          appContext.inline
+            ? suggestions.map((suggestion) => `--app=${suggestion}`)
+            : suggestions
+        )
+      );
+    }
 
     const [subcommand] = input.args;
     if (subcommand === undefined) {
