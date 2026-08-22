@@ -18,6 +18,7 @@ import {
   writeProjectFile,
 } from '../project-writes.js';
 import type { PlannedProjectOperation } from '../project-writes.js';
+import { resolveSurfaceEntryFile } from './add-surface.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,7 +46,6 @@ interface ScaffoldRequest {
 
 interface VerifyRequest {
   readonly dir?: string | undefined;
-  readonly hookDir?: string | undefined;
   readonly name: string;
   readonly verify: boolean;
 }
@@ -99,7 +99,6 @@ const buildSurfaceInput = (dir: string, surface: string) => ({
 
 const buildVerifyInput = (input: VerifyRequest) => ({
   ...(input.dir === undefined ? {} : { dir: input.dir }),
-  ...(input.hookDir === undefined ? {} : { hookDir: input.hookDir }),
   name: input.name,
 });
 
@@ -162,10 +161,19 @@ const collectCreateOperations = (
   scaffolded: ScaffoldedProject,
   input: CreateInput
 ): Result<PlannedProjectOperation[], Error> => {
+  const surfacePaths: string[] = [];
+  for (const surface of input.surfaces) {
+    const entryFile = resolveSurfaceEntryFile(scaffolded.appDir, surface);
+    if (entryFile.isErr()) {
+      return entryFile;
+    }
+    surfacePaths.push(
+      projectRelativeAppPath(scaffolded.appRoot, entryFile.value)
+    );
+  }
+
   const preserveExistingPaths = [
-    ...input.surfaces.map((surface) =>
-      projectRelativeAppPath(scaffolded.appRoot, `bin/${surface}.ts`)
-    ),
+    ...surfacePaths,
     ...(input.verify
       ? [
           projectRelativeAppPath(
@@ -257,12 +265,15 @@ const generateReadme = (input: CreateInput): string => {
   const verificationStructure = input.verify
     ? '- `__tests__/examples.test.ts` - examples-as-tests harness\n'
     : '- Verification files were not generated for this project\n';
+  const workspaceRunCommand =
+    input.starter === 'empty'
+      ? ''
+      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name}\n`;
 
   const compileCommands = input.workspace
     ? `bunx trails compile --app ${input.name}
 bunx trails validate --app ${input.name}
-bunx trails run hello --app ${input.name}
-bunx trails warden --app ${input.name}
+${workspaceRunCommand}bunx trails warden --app ${input.name}
 bunx trails wayfind --overview --app ${input.name}`
     : `bun run compile
 bun run validate
@@ -416,7 +427,6 @@ export const createTrail = trail('create', {
           'add.verify',
           buildVerifyInput({
             dir: dirname(scaffolded.value.appDir),
-            hookDir: scaffolded.value.dir,
             name: basename(scaffolded.value.appDir),
             verify: input.verify,
           })

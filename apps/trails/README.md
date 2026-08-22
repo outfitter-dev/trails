@@ -7,8 +7,8 @@ Install, update, or uninstall the standalone CLI with Homebrew using the canonic
 Use the CLI to scaffold a Trails app, add surfaces, inspect the current topo, run warden checks, manage draft state, and keep local Trails project state tidy.
 
 ```bash
-bunx @ontrails/trails create my-app
-bunx @ontrails/trails create my-app --workspace
+bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```
 
 Common workflows:

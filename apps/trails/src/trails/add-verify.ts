@@ -2,7 +2,7 @@
  * `add.verify` trail -- Add testing + warden setup to a project.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
@@ -19,6 +19,7 @@ import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
 } from '../versions.js';
+import { resolveOperatorProjectContext } from './project-context.js';
 import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
@@ -87,6 +88,18 @@ const updatePackageJsonForVerify = async (
   return written.isErr() ? Result.err(written.error) : Result.ok();
 };
 
+/** Place the hook at a Config-owned workspace root, never a package-only root. */
+const resolveHookDir = async (projectDir: string): Promise<string> => {
+  const context = await resolveOperatorProjectContext({}, { cwd: projectDir });
+  if (context.isErr() || context.value.selectedExtent !== 'configured-app') {
+    return projectDir;
+  }
+
+  return realpathSync(context.value.app.rootDir) === realpathSync(projectDir)
+    ? context.value.projectRoot
+    : projectDir;
+};
+
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
@@ -100,7 +113,7 @@ export const addVerify = trail('add.verify', {
     }
 
     const projectDir = projectDirResult.value;
-    const hookDir = input.hookDir ?? projectDir;
+    const hookDir = await resolveHookDir(projectDir);
     const files: string[] = [];
 
     const writeFile = async (
@@ -151,10 +164,6 @@ export const addVerify = trail('add.verify', {
   },
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
-    hookDir: z
-      .string()
-      .optional()
-      .describe('Git root for lefthook.yml; defaults to the project directory'),
     name: z
       .string()
       .regex(PROJECT_NAME_PATTERN, PROJECT_NAME_MESSAGE)

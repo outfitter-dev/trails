@@ -20,6 +20,7 @@ import { findTopoPath } from './project.js';
 import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 type Surface = 'cli' | 'http' | 'mcp';
+type SurfaceEntryRoot = 'bin' | 'src';
 
 const generateCliEntry = (appImportPath: string): string =>
   `import { devPermitPreset, permitPreset } from '@ontrails/cli';
@@ -48,10 +49,10 @@ import { app } from '${appImportPath}';
 await surface(app, { port: 3000 });
 `;
 
-const surfaceEntryFiles = {
-  cli: 'bin/cli.ts',
-  http: 'bin/http.ts',
-  mcp: 'bin/mcp.ts',
+const surfaceEntryNames = {
+  cli: 'cli.ts',
+  http: 'http.ts',
+  mcp: 'mcp.ts',
 } satisfies Record<Surface, string>;
 
 const surfaceDependencies = {
@@ -61,7 +62,58 @@ const surfaceDependencies = {
 } satisfies Record<Surface, readonly string[]>;
 
 /** Resolve the entry file for a surface. */
-const getEntryFile = (surface: Surface): string => surfaceEntryFiles[surface];
+const getEntryFile = (surface: Surface, entryRoot: SurfaceEntryRoot): string =>
+  `${entryRoot}/${surfaceEntryNames[surface]}`;
+
+/** Preserve an established legacy src layout while fresh scaffolds use bin. */
+const resolveSurfaceEntryRoot = (
+  cwd: string,
+  surface: Surface
+): Result<SurfaceEntryRoot, Error> => {
+  const targetRoots: SurfaceEntryRoot[] = ['bin', 'src'];
+  for (const entryRoot of targetRoots) {
+    const targetExists = projectPathExists(
+      cwd,
+      getEntryFile(surface, entryRoot)
+    );
+    if (targetExists.isErr()) {
+      return targetExists;
+    }
+    if (targetExists.value) {
+      return Result.ok(entryRoot);
+    }
+  }
+
+  let hasBinEntry = false;
+  let hasSrcEntry = false;
+  for (const candidate of Object.keys(surfaceEntryNames) as Surface[]) {
+    for (const entryRoot of targetRoots) {
+      const exists = projectPathExists(cwd, getEntryFile(candidate, entryRoot));
+      if (exists.isErr()) {
+        return exists;
+      }
+      if (exists.value) {
+        if (entryRoot === 'bin') {
+          hasBinEntry = true;
+        } else {
+          hasSrcEntry = true;
+        }
+      }
+    }
+  }
+  return Result.ok(hasSrcEntry && !hasBinEntry ? 'src' : 'bin');
+};
+
+/** Resolve the surface entry path without mutating the project. */
+export const resolveSurfaceEntryFile = (
+  cwd: string,
+  surface: Surface
+): Result<string, Error> => {
+  const entryRoot = resolveSurfaceEntryRoot(cwd, surface);
+  return entryRoot.isErr()
+    ? entryRoot
+    : Result.ok(getEntryFile(surface, entryRoot.value));
+};
 
 // ---------------------------------------------------------------------------
 // Trail definition
@@ -71,7 +123,8 @@ const getEntryFile = (surface: Surface): string => surfaceEntryFiles[surface];
 const patchPkgDeps = (
   pkg: Record<string, unknown>,
   surface: Surface,
-  cwd: string
+  cwd: string,
+  entryFile: string
 ): string => {
   const [depName = ''] = surfaceDependencies[surface];
   const deps = (pkg['dependencies'] ?? {}) as Record<string, string>;
@@ -80,7 +133,7 @@ const patchPkgDeps = (
   }
   if (surface === 'cli') {
     pkg['bin'] = {
-      [(pkg['name'] as string | undefined) ?? basename(cwd)]: './bin/cli.ts',
+      [(pkg['name'] as string | undefined) ?? basename(cwd)]: `./${entryFile}`,
     };
   }
   pkg['dependencies'] = Object.fromEntries(
@@ -92,7 +145,8 @@ const patchPkgDeps = (
 /** Update package.json with surface dependency and CLI bin if needed. */
 const updatePkgJsonForSurface = async (
   cwd: string,
-  surface: Surface
+  surface: Surface,
+  entryFile: string
 ): Promise<Result<string, Error>> => {
   const pkgPathResult = resolveProjectPath(cwd, 'package.json');
   if (pkgPathResult.isErr()) {
@@ -104,7 +158,7 @@ const updatePkgJsonForSurface = async (
     return Result.ok(surfaceDependencies[surface][0] ?? '');
   }
   const pkg = (await Bun.file(pkgPath).json()) as Record<string, unknown>;
-  const depName = patchPkgDeps(pkg, surface, cwd);
+  const depName = patchPkgDeps(pkg, surface, cwd, entryFile);
   const written = await writeProjectFile(
     cwd,
     'package.json',
@@ -116,11 +170,15 @@ const updatePkgJsonForSurface = async (
 /** Create the entry file for a surface and return the relative path. */
 const writeSurfaceEntry = async (
   cwd: string,
-  surface: Surface
+  surface: Surface,
+  entryFile: string
 ): Promise<Result<string, Error>> => {
-  const entryFile = getEntryFile(surface);
+  const entryRoot: SurfaceEntryRoot = entryFile.startsWith('src/')
+    ? 'src'
+    : 'bin';
   const sourceImport = (await findTopoPath(cwd)) ?? './app.js';
-  const appImport = `../src/${sourceImport.slice(2)}`;
+  const appImport =
+    entryRoot === 'src' ? sourceImport : `../src/${sourceImport.slice(2)}`;
   const generators = {
     cli: generateCliEntry,
     http: generateHttpEntry,
@@ -137,22 +195,29 @@ export const addSurface = trail('add.surface', {
   implementation: async (input) => {
     const cwd = resolve(input.dir ?? '.');
     const { surface } = input;
-    const entryFile = getEntryFile(surface);
-    const entryExists = projectPathExists(cwd, entryFile);
+    const entryFile = resolveSurfaceEntryFile(cwd, surface);
+    if (entryFile.isErr()) {
+      return entryFile;
+    }
+    const entryExists = projectPathExists(cwd, entryFile.value);
     if (entryExists.isErr()) {
       return entryExists;
     }
 
     let created: string | null = null;
     if (!entryExists.value) {
-      const written = await writeSurfaceEntry(cwd, surface);
+      const written = await writeSurfaceEntry(cwd, surface, entryFile.value);
       if (written.isErr()) {
         return written;
       }
-      created = entryFile;
+      created = entryFile.value;
     }
 
-    const dependency = await updatePkgJsonForSurface(cwd, surface);
+    const dependency = await updatePkgJsonForSurface(
+      cwd,
+      surface,
+      entryFile.value
+    );
     if (dependency.isErr()) {
       return dependency;
     }

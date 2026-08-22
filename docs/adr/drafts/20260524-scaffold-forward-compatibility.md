@@ -116,7 +116,7 @@ Those features may follow once there are real scaffold-to-scaffold migrations to
 - Future migration tooling has a small, stable starting point through the lock's existing extension mechanism, without requiring a parallel manifest.
 - Existing generated apps do not receive retroactive provenance unless a future migration tool chooses to add it.
 - Existing `.trails/scaffold.json` files from earlier betas are inert legacy breadcrumbs. Apps may remove them after moving the same facts into an authored `scaffold` overlay and recompiling their app lock.
-- Existing `src/cli.ts`, `src/mcp.ts`, and `src/http.ts` entrypoints remain runnable. New scaffolds and `trails add surface` writes use `bin/`; adopters may move an old entry and update the package `bin` path when they want the new layout.
+- Existing `src/cli.ts`, `src/mcp.ts`, and `src/http.ts` entrypoints remain runnable. New scaffolds use `bin/`; `trails add surface` preserves an established all-`src/` surface layout so older generated projects stay inside their authored TypeScript and lint scopes. Adopters may move old entries together and update the package `bin` path when they want the new layout.
 
 ## Non-Goals
 

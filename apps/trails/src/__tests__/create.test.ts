@@ -690,6 +690,134 @@ describe('trails create', () => {
       });
     });
 
+    test('reconciles an existing workspace manifest before scaffolding', async () => {
+      await withTempProject(async (dir) => {
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(
+          join(dir, 'package.json'),
+          `${JSON.stringify(
+            {
+              name: 'existing-root',
+              scripts: { custom: 'echo custom' },
+              workspaces: ['services/*'],
+            },
+            null,
+            2
+          )}\n`
+        );
+
+        const result = expectOk(await runCreate(dir, { workspace: true }));
+        const manifest = readJson(dir, 'package.json');
+
+        expect(result.created).toContain('package.json');
+        expect(manifest).toMatchObject({
+          name: 'existing-root',
+          private: true,
+          scripts: {
+            build: 'bun run --filter "*" build',
+            custom: 'echo custom',
+            test: 'bun run --filter "*" test',
+            typecheck: 'bun run --filter "*" typecheck',
+          },
+          workspaces: ['services/*', 'apps/*', 'packages/*'],
+        });
+      });
+    });
+
+    test('rejects conflicting workspace orchestration scripts before writing', async () => {
+      await withTempProject(async (dir) => {
+        mkdirSync(dir, { recursive: true });
+        const manifest = `${JSON.stringify(
+          { name: 'existing-root', scripts: { build: 'echo user-build' } },
+          null,
+          2
+        )}\n`;
+        writeFileSync(join(dir, 'package.json'), manifest);
+
+        const error = expectErr(await runCreate(dir, { workspace: true }));
+
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error.message).toContain(
+          'Cannot reconcile the existing workspace package.json'
+        );
+        expect(readText(dir, 'package.json')).toBe(manifest);
+        expectPaths(dir, ['apps', 'trails.config.ts', 'README.md'], false);
+      });
+    });
+
+    test('rejects incompatible existing Config before writing workspace files', async () => {
+      await withTempProject(async (dir) => {
+        mkdirSync(dir, { recursive: true });
+        const config = 'export default {};\n';
+        writeFileSync(join(dir, 'trails.config.ts'), config);
+
+        const result = await runCreate(dir, { workspace: true });
+
+        const error = expectErr(result);
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error.message).toContain(
+          'Cannot reconcile existing Trails Config'
+        );
+        expect(readText(dir, 'trails.config.ts')).toBe(config);
+        expectPaths(
+          dir,
+          ['package.json', 'apps', 'README.md', 'tsconfig.base.json'],
+          false
+        );
+      });
+    });
+
+    test.each([
+      ['hello', 'hello'],
+      ['entity', 'entity.list'],
+      ['empty', null],
+    ] as const)(
+      'renders starter-aware workspace run guidance for %s',
+      async (starter, expectedTrail) => {
+        await withTempProject(async (dir) => {
+          const name = basename(dir);
+          expectOk(
+            await runCreate(dir, { starter, verify: false, workspace: true })
+          );
+
+          const readme = readText(dir, 'README.md');
+          if (expectedTrail === null) {
+            expect(readme).not.toContain('bunx trails run ');
+          } else {
+            expect(readme).toContain(
+              `bunx trails run ${expectedTrail} --app ${name}`
+            );
+            const trailSource = readText(
+              dir,
+              `apps/${name}/src/trails/${starter === 'hello' ? 'hello' : 'entity'}.ts`
+            );
+            expect(trailSource).toContain('.default({})');
+          }
+        });
+      }
+    );
+
+    test('keeps standalone hooks inside projects nested under package workspaces', async () => {
+      await withTempProject(async (outerDir) => {
+        mkdirSync(outerDir, { recursive: true });
+        writeFileSync(
+          join(outerDir, 'package.json'),
+          `${JSON.stringify({ name: 'outer', workspaces: ['apps/*'] }, null, 2)}\n`
+        );
+        const dir = join(outerDir, 'apps', 'standalone');
+
+        const result = expectOk(await runCreate(dir));
+
+        expect(result.layout).toBe('standalone');
+        expectCreatedPaths(result.created, ['lefthook.yml']);
+        expectPaths(dir, ['lefthook.yml'], true);
+        expectPaths(outerDir, ['lefthook.yml'], false);
+        expect(result.plannedOperations).toEqual(
+          expect.arrayContaining([{ kind: 'write', path: 'lefthook.yml' }])
+        );
+      });
+    });
+
     test('dry-run plans the complete workspace without writing it', async () => {
       await withTempProject(async (dir) => {
         const name = basename(dir);
@@ -768,6 +896,35 @@ describe('trails create', () => {
         const applied = expectOk(await runCreate(dir, input));
         expect(applied.created).toEqual([]);
         expect(applied.plannedOperations).toEqual(dryRun.plannedOperations);
+      });
+    });
+
+    test('dry-run preserves legacy src surface paths used by reconciliation', async () => {
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        writeFileSync(join(dir, 'src', 'cli.ts'), 'existing cli\n');
+
+        const input = {
+          surfaces: ['cli', 'mcp'] as const,
+          verify: false,
+        };
+        const dryRun = expectOk(
+          await runCreate(dir, { ...input, dryRun: true })
+        );
+        const applied = expectOk(await runCreate(dir, input));
+
+        expect(dryRun.plannedOperations).toEqual(applied.plannedOperations);
+        expect(dryRun.plannedOperations).toEqual(
+          expect.arrayContaining([{ kind: 'write', path: 'src/mcp.ts' }])
+        );
+        expect(dryRun.plannedOperations).not.toEqual(
+          expect.arrayContaining([
+            { kind: 'write', path: 'bin/cli.ts' },
+            { kind: 'write', path: 'bin/mcp.ts' },
+          ])
+        );
+        expectPaths(dir, ['src/cli.ts', 'src/mcp.ts'], true);
+        expectPaths(dir, ['bin/cli.ts', 'bin/mcp.ts'], false);
       });
     });
 
@@ -1049,6 +1206,62 @@ describe('trails create', () => {
       });
     });
 
+    test('preserves the legacy src surface layout without rewriting tooling', async () => {
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        const pkg = readJson(dir, 'package.json');
+        pkg['scripts'] = { keep: 'echo keep', lint: 'oxlint ./src' };
+        writeFileSync(
+          join(dir, 'package.json'),
+          `${JSON.stringify(pkg, null, 2)}\n`
+        );
+        const tsconfig = `{
+  "compilerOptions": { "rootDir": "src" },
+  "include": ["src"]
+}\n`;
+        writeFileSync(join(dir, 'tsconfig.json'), tsconfig);
+        writeFileSync(join(dir, 'src', 'cli.ts'), 'existing cli\n');
+
+        const mcp = expectOk(
+          await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
+        );
+        const cli = expectOk(
+          await addSurface.implementation({ dir, surface: 'cli' }, {} as never)
+        );
+
+        expect(mcp.created).toBe('src/mcp.ts');
+        expect(cli.created).toBeNull();
+        expectPaths(dir, ['src/mcp.ts', 'src/cli.ts'], true);
+        expectPaths(dir, ['bin/mcp.ts', 'bin/cli.ts'], false);
+        expect(readText(dir, 'src/mcp.ts')).toContain("from './app.js'");
+        expect(readText(dir, 'src/cli.ts')).toBe('existing cli\n');
+        expect(readText(dir, 'tsconfig.json')).toBe(tsconfig);
+        const updated = readJson(dir, 'package.json');
+        expect(updated['scripts']).toEqual({
+          keep: 'echo keep',
+          lint: 'oxlint ./src',
+        });
+        expect(updated['bin']).toEqual({ test: './src/cli.ts' });
+      });
+    });
+
+    test('reconciles an existing legacy surface in a mixed layout', async () => {
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        mkdirSync(join(dir, 'bin'), { recursive: true });
+        writeFileSync(join(dir, 'bin', 'cli.ts'), 'new-layout cli\n');
+        writeFileSync(join(dir, 'src', 'mcp.ts'), 'legacy mcp\n');
+
+        const result = expectOk(
+          await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
+        );
+
+        expect(result.created).toBeNull();
+        expect(readText(dir, 'src/mcp.ts')).toBe('legacy mcp\n');
+        expectPaths(dir, ['bin/mcp.ts'], false);
+      });
+    });
+
     test('reconciles existing surface entrypoint', async () => {
       await withTempProject(async (dir) => {
         mkdirSync(join(dir, 'src'), { recursive: true });
@@ -1072,6 +1285,10 @@ describe('trails create', () => {
         expectExactOntrailsPin(deps['@ontrails/mcp']);
       });
     });
+  });
+
+  test('keeps workspace hook ownership out of the add.verify input', () => {
+    expect('hookDir' in addVerify.input.shape).toBe(false);
   });
 });
 

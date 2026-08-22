@@ -4,9 +4,13 @@
  * Generates package.json, tsconfig, app.ts, starter trails, and scaffold provenance.
  */
 
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
-import { Result, trail } from '@ontrails/core';
+import {
+  findTrailsConfigPaths,
+  readTrailsProjectIdentity,
+} from '@ontrails/config';
+import { Result, trail, ValidationError } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -105,15 +109,17 @@ const generateAppPackageJson = (name: string): string => {
   return stringifyScaffoldPackageJson(pkg);
 };
 
+const requiredWorkspaceScripts = {
+  build: 'bun run --filter "*" build',
+  test: 'bun run --filter "*" test',
+  typecheck: 'bun run --filter "*" typecheck',
+} as const;
+
 const generateWorkspacePackageJson = (name: string): string =>
   stringifyScaffoldPackageJson({
     name,
     private: true,
-    scripts: {
-      build: 'bun run --filter "*" build',
-      test: 'bun run --filter "*" test',
-      typecheck: 'bun run --filter "*" typecheck',
-    },
+    scripts: requiredWorkspaceScripts,
     workspaces: ['apps/*', 'packages/*'],
   });
 
@@ -128,6 +134,132 @@ const generateWorkspaceConfig = (name: string): string =>
   },
 };
 `;
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const validateRequiredWorkspaceScripts = (
+  existingScripts: Record<string, unknown> | undefined
+): void => {
+  for (const [script, command] of Object.entries(requiredWorkspaceScripts)) {
+    const existingCommand = existingScripts?.[script];
+    if (existingCommand !== undefined && existingCommand !== command) {
+      throw new TypeError(
+        `scripts.${script} must remain "${command}" so the root command reaches every generated app`
+      );
+    }
+  }
+};
+
+interface PreparedScaffoldFiles {
+  readonly files: Map<string, string>;
+  readonly overwritePaths: ReadonlySet<string>;
+}
+
+const prepareWorkspaceScaffoldFiles = async (
+  projectDir: string,
+  name: string,
+  sourceFiles: Map<string, string>
+): Promise<TrailsResult<PreparedScaffoldFiles, Error>> => {
+  const files = new Map(sourceFiles);
+  const overwritePaths = new Set<string>();
+  const manifestPath = join(projectDir, 'package.json');
+  const manifestFile = Bun.file(manifestPath);
+  if (await manifestFile.exists()) {
+    try {
+      const source = await manifestFile.text();
+      const parsed: unknown = JSON.parse(source);
+      if (!isPlainRecord(parsed)) {
+        throw new TypeError('the root value must be an object');
+      }
+      const existingScripts = parsed['scripts'];
+      if (existingScripts !== undefined && !isPlainRecord(existingScripts)) {
+        throw new TypeError('scripts must be an object when present');
+      }
+      const existingWorkspaces = parsed['workspaces'];
+      if (
+        existingWorkspaces !== undefined &&
+        (!Array.isArray(existingWorkspaces) ||
+          existingWorkspaces.some((value) => typeof value !== 'string'))
+      ) {
+        throw new TypeError(
+          'workspaces must be an array of strings when present'
+        );
+      }
+      validateRequiredWorkspaceScripts(existingScripts);
+      const merged = stringifyScaffoldPackageJson({
+        ...parsed,
+        private: true,
+        scripts: { ...requiredWorkspaceScripts, ...existingScripts },
+        workspaces: [
+          ...new Set([
+            ...((existingWorkspaces as string[] | undefined) ?? []),
+            'apps/*',
+            'packages/*',
+          ]),
+        ],
+      });
+      if (merged === source) {
+        files.delete('package.json');
+      } else {
+        files.set('package.json', merged);
+        overwritePaths.add('package.json');
+      }
+    } catch (error) {
+      return Result.err(
+        new ValidationError(
+          `Cannot reconcile the existing workspace package.json at ${manifestPath}.`,
+          {
+            ...(error instanceof Error ? { cause: error } : {}),
+            context: {
+              path: manifestPath,
+              reason: 'invalid-workspace-manifest',
+            },
+          }
+        )
+      );
+    }
+  }
+
+  const configPaths = findTrailsConfigPaths(projectDir);
+  if (configPaths.length > 0) {
+    try {
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: projectDir,
+        startDir: projectDir,
+      });
+      const expectedRoot = `apps/${name}`;
+      const app = identity.apps.find((candidate) => candidate.id === name);
+      if (app?.root !== expectedRoot) {
+        return Result.err(
+          new ValidationError(
+            `Cannot reconcile existing Trails Config with workspace app "${name}" at "${expectedRoot}". Update workspace.apps first or choose a different target directory.`,
+            {
+              context: {
+                configuredAppIds: identity.apps.map(
+                  (candidate) => candidate.id
+                ),
+                expectedAppId: name,
+                expectedRoot,
+                paths: configPaths,
+                reason: 'incompatible-workspace-config',
+              },
+            }
+          )
+        );
+      }
+      files.delete('trails.config.ts');
+    } catch (error) {
+      return Result.err(
+        error instanceof Error
+          ? error
+          : new ValidationError('Unable to read existing Trails Config.')
+      );
+    }
+  }
+
+  return Result.ok({ files, overwritePaths });
+};
 
 const TSCONFIG_CONTENT = `{
   "compilerOptions": {
@@ -295,9 +427,11 @@ export const hello = trail('hello', {
     const name = input.name ?? 'world';
     return Result.ok({ message: \`Hello, \${name}!\` });
   },
-  input: z.object({
-    name: z.string().optional(),
-  }),
+  input: z
+    .object({
+      name: z.string().optional(),
+    })
+    .default({}),
   intent: 'read',
   output: z.object({
     message: z.string(),
@@ -376,7 +510,7 @@ export const list = trail('entity.list', {
     const store = entityStore.from(ctx);
     return Result.ok({ entities: store.list() });
   },
-  input: z.object({}),
+  input: z.object({}).default({}),
   intent: 'read',
   output: z.object({
     entities: z.array(entitySchema),
@@ -660,23 +794,70 @@ export const createScaffold = trail('create.scaffold', {
     const dryRun = input.dryRun === true;
     const layout: ScaffoldLayout = input.workspace ? 'workspace' : 'standalone';
     const appRoot = layout === 'workspace' ? `apps/${input.name}` : '.';
-    const fileMap = collectScaffoldFiles(input.name, starter, layout);
-    const operations = collectScaffoldOperations(fileMap);
-    const plannedOperations: TrailsResult<PlannedProjectOperation[], Error> =
-      dryRun
-        ? planProjectOperations(projectDir, operations, {
-            existing: 'preserve',
-          })
-        : await applyProjectOperations(projectDir, operations, {
-            existing: 'preserve',
-          });
-    if (plannedOperations.isErr()) {
-      return plannedOperations;
+    const sourceFiles = collectScaffoldFiles(input.name, starter, layout);
+    const prepared =
+      layout === 'workspace'
+        ? await prepareWorkspaceScaffoldFiles(
+            projectDir,
+            input.name,
+            sourceFiles
+          )
+        : Result.ok({
+            files: sourceFiles,
+            overwritePaths: new Set<string>(),
+          } satisfies PreparedScaffoldFiles);
+    if (prepared.isErr()) {
+      return prepared;
     }
+    const operations = collectScaffoldOperations(prepared.value.files);
+    const overwriteOperations = operations.filter(
+      (operation) =>
+        operation.kind === 'write' &&
+        prepared.value.overwritePaths.has(operation.path)
+    );
+    const preserveOperations = operations.filter(
+      (operation) =>
+        operation.kind !== 'write' ||
+        !prepared.value.overwritePaths.has(operation.path)
+    );
+    const overwritePlan = planProjectOperations(
+      projectDir,
+      overwriteOperations
+    );
+    if (overwritePlan.isErr()) {
+      return overwritePlan;
+    }
+    const preservePlan = planProjectOperations(projectDir, preserveOperations, {
+      existing: 'preserve',
+    });
+    if (preservePlan.isErr()) {
+      return preservePlan;
+    }
+    if (!dryRun) {
+      const overwritten = await applyProjectOperations(
+        projectDir,
+        overwriteOperations
+      );
+      if (overwritten.isErr()) {
+        return overwritten;
+      }
+      const preserved = await applyProjectOperations(
+        projectDir,
+        preserveOperations,
+        { existing: 'preserve' }
+      );
+      if (preserved.isErr()) {
+        return preserved;
+      }
+    }
+    const plannedOperations: PlannedProjectOperation[] = [
+      ...overwritePlan.value,
+      ...preservePlan.value,
+    ];
 
     const created = dryRun
       ? []
-      : plannedOperations.value
+      : plannedOperations
           .filter((operation) => operation.kind === 'write')
           .map((operation) => operation.path);
 
@@ -688,7 +869,7 @@ export const createScaffold = trail('create.scaffold', {
       dryRun,
       layout,
       name: input.name,
-      plannedOperations: plannedOperations.value,
+      plannedOperations,
     } satisfies ScaffoldResult);
   },
   input: z.object({
