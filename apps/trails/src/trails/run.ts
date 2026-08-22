@@ -151,7 +151,7 @@ const collectLiveOwners = async (
     );
     if (loaded.isErr()) {
       if (context.selectedExtent === 'workspace') {
-        return Result.err(loaded.error);
+        return loaded;
       }
       unavailableAppIds.push(appId);
     }
