@@ -1,4 +1,4 @@
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, realpathSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import {
@@ -7,6 +7,7 @@ import {
   resolveTrailsProjectRoot,
   trailsAppEntryRelativePath,
   trailsLockFileName,
+  trailsSourceRootCandidates,
 } from '@ontrails/config';
 import type {
   ReadTrailsProjectIdentityResult,
@@ -268,12 +269,39 @@ const resolveStandaloneRoot = (
   startDir: string,
   boundaryDir: string,
   explicitRoot: boolean
-): TrailsProjectRootResolution =>
-  resolveTrailsProjectRoot({
+): TrailsProjectRootResolution => {
+  const resolved = resolveTrailsProjectRoot({
     boundaryDir,
     ...(explicitRoot ? { explicitRootDir: boundaryDir } : {}),
     startDir,
   });
+  if (explicitRoot || resolved.marker !== 'config') {
+    return resolved;
+  }
+
+  let current = resolve(startDir);
+  const configRoot = resolve(resolved.rootDir);
+  while (true) {
+    for (const candidate of trailsSourceRootCandidates) {
+      const markerPath = join(current, candidate);
+      try {
+        if (statSync(markerPath).isDirectory()) {
+          return { marker: 'source', markerPath, rootDir: current };
+        }
+      } catch {
+        // Missing source conventions are ordinary during the bounded walk.
+      }
+    }
+    if (current === configRoot) {
+      return resolved;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return resolved;
+    }
+    current = parent;
+  }
+};
 
 export const resolveOperatorProjectContext = async (
   input: OperatorProjectContextInput,

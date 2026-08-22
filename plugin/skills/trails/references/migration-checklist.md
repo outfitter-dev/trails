@@ -63,8 +63,10 @@ For each handler:
 ## Phase 6: Governance
 
 - [ ] `trails warden` reports clean
-- [ ] Regenerate root `trails.lock`: `trails compile`
-- [ ] Verify root `trails.lock`: `trails validate`
+- [ ] Regenerate the current app's root `trails.lock`: `trails compile`
+- [ ] From a configured workspace root, regenerate one app lock: `trails compile --app <id>`
+- [ ] Verify the current app with `trails validate`, one configured app with `trails validate --app <id>`, or the complete configured set with bare `trails validate` from the workspace root
+- [ ] Confirm no aggregate workspace-root `trails.lock` was created
 - [ ] Add lock check to CI
 
 ## Common Gotchas

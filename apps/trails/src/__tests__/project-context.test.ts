@@ -227,6 +227,37 @@ describe('resolveOperatorProjectContext', () => {
     }
   );
 
+  test('keeps a nested app root ahead of an ancestor non-workspace config', async () => {
+    writeFileSync(
+      join(root, 'trails.config.ts'),
+      'export default { warden: { format: "human" } };\n'
+    );
+    const appRoot = join(root, 'apps', 'standalone');
+    mkdirSync(join(appRoot, 'src', 'trails'), { recursive: true });
+    writeFileSync(join(appRoot, 'src', 'app.ts'), 'export default {};\n');
+    const canonicalAppRoot = realpathSync(appRoot);
+
+    const context = expectOk<{
+      readonly app: {
+        readonly modulePath: string;
+        readonly rootDir: string;
+      };
+      readonly projectRoot: string;
+      readonly selectedExtent: string;
+    }>(
+      await resolveOperatorProjectContext(
+        { module: './src/app.ts' },
+        { cwd: appRoot }
+      )
+    );
+
+    expect(context).toMatchObject({
+      app: { modulePath: './src/app.ts', rootDir: canonicalAppRoot },
+      projectRoot: canonicalAppRoot,
+      selectedExtent: 'standalone-app',
+    });
+  });
+
   test('selects workspace extent only at the configured root', async () => {
     const context = expectOk<{
       readonly apps: readonly { readonly id: string }[];
