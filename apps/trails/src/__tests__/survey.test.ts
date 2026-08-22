@@ -316,6 +316,11 @@ const repoTempDir = (): string =>
     `trails-survey-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
+const standaloneModuleInput = (rootDir: string) => ({
+  module: './src/app.ts' as const,
+  rootDir,
+});
+
 let testStateHome: string | undefined;
 let originalTrailsStateHome: string | undefined;
 
@@ -1495,7 +1500,7 @@ describe('trails compile', () => {
       writeSurveyAppFixture(dir);
 
       const compiled = expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       ) as {
@@ -1519,7 +1524,7 @@ describe('trails compile', () => {
       writeFileSync(join(dir, '.trails', 'topo.lock'), '{}\n');
       writeFileSync(join(dir, '.trails', 'trails.lock'), '{}\n');
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1537,7 +1542,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       const initial = expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1552,7 +1557,7 @@ describe('trails compile', () => {
       );
 
       const refreshed = expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1575,7 +1580,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1591,7 +1596,7 @@ describe('trails compile', () => {
       db.close();
 
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1601,7 +1606,7 @@ describe('trails compile', () => {
 
       expectOk(
         await compileTrail.implementation(
-          { force: true, module: './src/app.ts' },
+          { ...standaloneModuleInput(dir), force: true },
           {
             cwd: dir,
           } as never
@@ -1612,7 +1617,7 @@ describe('trails compile', () => {
       );
 
       const validated = expectOk(
-        await validateTrail.implementation({ module: './src/app.ts' }, {
+        await validateTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1628,7 +1633,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       const compiled = expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       ) as {
@@ -1662,7 +1667,7 @@ describe('trails compile', () => {
       writeSurveyAppFixture(dir);
 
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1670,14 +1675,14 @@ describe('trails compile', () => {
       expect(firstLock).not.toContain('"generatedAt"');
 
       const validated = expectOk(
-        await validateTrail.implementation({ module: './src/app.ts' }, {
+        await validateTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
       expect(validated.stale).toBe(false);
 
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1697,14 +1702,14 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
 
       writeSurveyAppFixture(dir, { helloNameDescription: 'The caller name' });
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1712,7 +1717,7 @@ describe('trails compile', () => {
       const lock = readFileSync(join(dir, 'trails.lock'), 'utf8');
       expect(lock).toContain('The caller name');
       const validated = expectOk(
-        await validateTrail.implementation({ module: './src/app.ts' }, {
+        await validateTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1728,14 +1733,14 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
 
       writeSurveyAppFixture(dir, { helloNameRequired: true });
       const blocked = await compileTrail.implementation(
-        { module: './src/app.ts' },
+        standaloneModuleInput(dir),
         {
           cwd: dir,
         } as never
@@ -1746,7 +1751,7 @@ describe('trails compile', () => {
 
       const forced = expectOk(
         await compileTrail.implementation(
-          { force: true, module: './src/app.ts' },
+          { ...standaloneModuleInput(dir), force: true },
           {
             cwd: dir,
           } as never
@@ -1769,7 +1774,7 @@ describe('trails compile', () => {
         topoGraphHash: forced.hash,
       });
       const validated = expectOk(
-        await validateTrail.implementation({ module: './src/app.ts' }, {
+        await validateTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1781,7 +1786,7 @@ describe('trails compile', () => {
       );
       expect(validated.currentHash).not.toBe(validated.committedHash);
       const recompiled = expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       ) as {
@@ -1810,7 +1815,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1818,7 +1823,7 @@ describe('trails compile', () => {
 
       writeSurveyAppFixture(dir, { helloNameRequired: true });
       const blocked = await compileTrail.implementation(
-        { module: './src/app.ts' },
+        standaloneModuleInput(dir),
         {
           cwd: dir,
         } as never
@@ -1851,7 +1856,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1882,7 +1887,7 @@ describe('trails compile', () => {
       );
 
       const validated = await validateTrail.implementation(
-        { module: './src/app.ts' },
+        standaloneModuleInput(dir),
         {
           cwd: dir,
         } as never
@@ -1904,7 +1909,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir, { withBye: true });
       expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
@@ -1912,7 +1917,7 @@ describe('trails compile', () => {
       writeSurveyAppFixture(dir);
       const forced = expectOk(
         await compileTrail.implementation(
-          { force: true, module: './src/app.ts' },
+          { ...standaloneModuleInput(dir), force: true },
           {
             cwd: dir,
           } as never
@@ -1936,13 +1941,13 @@ describe('trails compile', () => {
         topoGraphHash: forced.hash,
       });
       const validated = expectOk(
-        await validateTrail.implementation({ module: './src/app.ts' }, {
+        await validateTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       );
       expect(validated.stale).toBe(false);
       const recompiled = expectOk(
-        await compileTrail.implementation({ module: './src/app.ts' }, {
+        await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
       ) as {
@@ -2008,7 +2013,7 @@ describe('trails survey diff', () => {
       writeSurveyAppFixture(dir);
 
       const result = await surveyDiffTrail.implementation(
-        { module: './src/app.ts' },
+        standaloneModuleInput(dir),
         {
           cwd: dir,
         } as never
@@ -2034,7 +2039,7 @@ describe('trails survey diff', () => {
       writeSurveyAppFixture(dir, { withBye: true });
 
       const result = await surveyDiffTrail.implementation(
-        { module: './src/app.ts' },
+        standaloneModuleInput(dir),
         {
           cwd: dir,
         } as never
@@ -2539,6 +2544,18 @@ describe('trails survey output schema', () => {
       compileTrail.output.safeParse({
         hash: 'a'.repeat(64),
         lockPath: 'trails.lock',
+        project: {
+          appId: 'survey-fixture',
+          appRoot: '.',
+          artifactPath: 'trails.lock',
+          completeness: 'complete',
+          configuredAppIds: [],
+          modulePath: './src/app.ts',
+          moduleSource: 'module',
+          projectRoot: '.',
+          selectedExtent: 'standalone-app',
+          selectionProvenance: 'root-dir',
+        },
         snapshot: {
           createdAt: new Date(0).toISOString(),
           gitDirty: false,

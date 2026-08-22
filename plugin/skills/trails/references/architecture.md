@@ -32,7 +32,7 @@ Core defines ports. Everything on the edges is an adapter.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
 - Surfaces are peers. CLI, MCP, HTTP, and library are shipped adapters. Adding a surface is a `surface()` call.
 - Implementations are surface-agnostic authored implementations: input in, `Result` out.
-- The contract is machine-readable at runtime via root `trails.lock`, Wayfinder, and compatibility survey/guide commands.
+- The contract is machine-readable at runtime via each lock-owning app's root `trails.lock`, Wayfinder, and compatibility survey/guide commands.
 
 ## Information Architecture
 
@@ -76,9 +76,9 @@ Every piece of information has a clear ownership model.
 |----------|------|
 | Which trails a trail composes | `ctx.compose()` calls in the implementation function |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| TopoGraph entries and lock hash | All established trails, resources, signals, entities, examples, and derived fields, canonicalized into root `trails.lock` |
+| TopoGraph entries and lock hash | All established trails, resources, signals, entities, examples, and derived fields, canonicalized into the lock-owning app's root `trails.lock` |
 
-Warden uses inference to verify declarations match actual code. Topography captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
+Warden uses inference to verify declarations match actual code. Topography captures each resolved app `TopoGraph`, semantic diff, and app-root `trails.lock` artifact for CI governance. From a configured workspace root, use `trails compile --app <id>` for one app, `trails validate --app <id>` for one app, or bare `trails validate` for the complete configured set. Bare compile and validate remain app-local from a standalone or configured app root. A configured workspace never owns an aggregate root lock. `trails topo` is for topo-store history and pin management.
 
 Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind --overview --root-dir . --json`, then use target selectors, population filters, contract, dependency, impact, map, outline, or diff views before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topography does not derive.
 

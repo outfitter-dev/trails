@@ -62,7 +62,7 @@ export const app = topo('lock-roundtrip-fixture', { hello });
 
 const compileFixture = async (dir: string): Promise<void> => {
   const compiled = await compileTrail.implementation(
-    { module: './src/app.ts' },
+    { module: './src/app.ts', rootDir: dir },
     {
       cwd: dir,
     } as never
