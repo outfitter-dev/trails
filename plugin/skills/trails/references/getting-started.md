@@ -6,10 +6,10 @@
 # Requires Bun (https://bun.sh)
 
 # Scaffold a standalone app
-bunx @ontrails/trails create my-app
+bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or a configured workspace with one app under apps/my-app
-bunx @ontrails/trails create my-app --workspace
+bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
 bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod

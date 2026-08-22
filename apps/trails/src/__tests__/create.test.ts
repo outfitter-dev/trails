@@ -1245,6 +1245,52 @@ describe('trails create', () => {
       });
     });
 
+    test('uses established src-only tooling before any surface entry exists', async () => {
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        const pkg = readJson(dir, 'package.json');
+        pkg['scripts'] = { lint: 'oxlint ./src' };
+        writeFileSync(
+          join(dir, 'package.json'),
+          `${JSON.stringify(pkg, null, 2)}\n`
+        );
+        writeFileSync(
+          join(dir, 'tsconfig.base.json'),
+          '{"compilerOptions":{"rootDir":"src"}}\n'
+        );
+        writeFileSync(
+          join(dir, 'tsconfig.json'),
+          '{"extends":"./tsconfig.base.json","include":["src"]}\n'
+        );
+
+        const result = expectOk(
+          await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
+        );
+
+        expect(result.created).toBe('src/mcp.ts');
+        expectPaths(dir, ['src/mcp.ts'], true);
+        expectPaths(dir, ['bin/mcp.ts'], false);
+      });
+    });
+
+    test('uses bin when TypeScript config does not declare a root directory', async () => {
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        writeFileSync(
+          join(dir, 'tsconfig.json'),
+          '{"compilerOptions":{"strict":true},"include":["src"]}\n'
+        );
+
+        const result = expectOk(
+          await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
+        );
+
+        expect(result.created).toBe('bin/mcp.ts');
+        expectPaths(dir, ['bin/mcp.ts'], true);
+        expectPaths(dir, ['src/mcp.ts'], false);
+      });
+    });
+
     test('reconciles an existing legacy surface in a mixed layout', async () => {
       await withTempProject(async (dir) => {
         setupMinimalProject(dir);

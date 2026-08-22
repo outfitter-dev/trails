@@ -5,9 +5,10 @@
  */
 
 import { existsSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 
-import { Result, trail } from '@ontrails/core';
+import { Result, trail, ValidationError } from '@ontrails/core';
+import ts from 'typescript';
 import { z } from 'zod';
 
 import {
@@ -65,6 +66,41 @@ const surfaceDependencies = {
 const getEntryFile = (surface: Surface, entryRoot: SurfaceEntryRoot): string =>
   `${entryRoot}/${surfaceEntryNames[surface]}`;
 
+const readConfiguredTypeScriptRoot = (
+  cwd: string
+): Result<string | null, Error> => {
+  const configPath = ts.findConfigFile(cwd, ts.sys.fileExists);
+  if (configPath === undefined) {
+    return Result.ok(null);
+  }
+  const read = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (read.error !== undefined) {
+    return Result.err(
+      new ValidationError(
+        `Unable to read TypeScript config before choosing a surface entry root: ${ts.flattenDiagnosticMessageText(read.error.messageText, '\n')}`,
+        { context: { configPath } }
+      )
+    );
+  }
+  const parsed = ts.parseJsonConfigFileContent(
+    read.config,
+    ts.sys,
+    dirname(configPath),
+    undefined,
+    configPath
+  );
+  const [error] = parsed.errors;
+  if (error !== undefined) {
+    return Result.err(
+      new ValidationError(
+        `Unable to resolve TypeScript config before choosing a surface entry root: ${ts.flattenDiagnosticMessageText(error.messageText, '\n')}`,
+        { context: { configPath } }
+      )
+    );
+  }
+  return Result.ok(parsed.options.rootDir ?? null);
+};
+
 /** Preserve an established legacy src layout while fresh scaffolds use bin. */
 const resolveSurfaceEntryRoot = (
   cwd: string,
@@ -101,7 +137,23 @@ const resolveSurfaceEntryRoot = (
       }
     }
   }
-  return Result.ok(hasSrcEntry && !hasBinEntry ? 'src' : 'bin');
+  if (hasSrcEntry && !hasBinEntry) {
+    return Result.ok('src');
+  }
+  if (hasBinEntry) {
+    return Result.ok('bin');
+  }
+
+  const configuredRoot = readConfiguredTypeScriptRoot(cwd);
+  if (configuredRoot.isErr()) {
+    return configuredRoot;
+  }
+  return Result.ok(
+    configuredRoot.value !== null &&
+      resolve(configuredRoot.value) === resolve(cwd, 'src')
+      ? 'src'
+      : 'bin'
+  );
 };
 
 /** Resolve the surface entry path without mutating the project. */

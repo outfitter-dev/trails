@@ -110,12 +110,16 @@ describe('README_SNIPPET_CONFIGS', () => {
       'bunx @ontrails/trails create my-app --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
     const workspaceCommand =
       'bunx @ontrails/trails create my-app --workspace --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
-    const canonicalGuides = [
+    const publishedGuides = [
       new URL('../../apps/trails/README.md', import.meta.url),
       new URL('../../docs/getting-started.md', import.meta.url),
+      new URL(
+        '../../plugin/skills/trails/references/getting-started.md',
+        import.meta.url
+      ),
     ];
 
-    for (const guide of canonicalGuides) {
+    for (const guide of publishedGuides) {
       const markdown = readFileSync(guide, 'utf8');
 
       expect(markdown).toContain(standaloneCommand);
