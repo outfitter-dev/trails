@@ -20,6 +20,9 @@ This is not a private helper package. The Trails operator app consumes Topograph
 ## What it owns
 
 - deterministic TopoGraph generation from an established topo
+- deterministic app-partitioned workspace views from Config-owned app identity
+  and app-local locks, with completeness, binding, freshness, collection-edge,
+  and unowned-lock evidence kept outside the canonical hash
 - structured example and field-override provenance derivation for TopoGraph entries
 - stable hashing for CI drift detection
 - semantic diffing between two TopoGraphs
@@ -64,13 +67,39 @@ if (diff.hasBreaking) {
 }
 ```
 
+Configured workspaces name apps through `@ontrails/config`. Topography consumes that static identity and reads exactly those app-root locks; its bounded lock census supplies coaching evidence but never discovers additional app identity:
+
+```typescript
+import { readTrailsProjectIdentity } from '@ontrails/config';
+import { deriveWorkspaceView } from '@ontrails/topography';
+
+const projectRoot = process.cwd();
+const identity = await readTrailsProjectIdentity({
+  boundaryDir: projectRoot,
+  startDir: projectRoot,
+});
+const view = await deriveWorkspaceView({ identity });
+
+if (view.evidence.configuredCompleteness === 'partial') {
+  console.error(view.evidence.apps);
+}
+for (const unowned of view.evidence.unownedLocks) {
+  console.warn(unowned.path, unowned.coaching);
+}
+```
+
+`workspaceViewHash` exists only for a complete, correctly bound configured app set. It hashes the schema version, sorted app IDs and project-relative roots, app graph hashes, and collision facts. Selected scope, absolute checkout location, lock paths, freshness, collection skips, and unowned-lock evidence do not affect it. Passing `currentAppGraphHashes` proves `fresh` or `stale` state; without live evidence, saved graphs report freshness as `unknown`.
+
 `deriveTopoGraph()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
 
 ## File outputs
 
 The normal exported artifact is:
 
-- `trails.lock` — root committed resolved truth. It embeds the serialized TopoGraph plus the hash and summary needed for drift detection.
+- `trails.lock` — committed resolved truth at the root of one lock-owning app.
+  It embeds the serialized TopoGraph plus the hash and summary needed for drift
+  detection. A configured workspace has one such file per configured app and no
+  workspace-root aggregate lock, unless the root itself is a configured app.
 
 `trails compile` writes it from the current topo. `trails validate` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
@@ -85,9 +114,10 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 | `deriveDeclaredTrailActivation(entry)` | Trail-local activation report from a resolved TopoGraph entry |
 | `deriveSignalActivationRelations(topoGraph)` | Signal-local activation relations for source and consumer navigation |
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
+| `deriveWorkspaceView(options)` | Config-fed app-partitioned saved graph view with separate observation evidence |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeTrailsLock(lock, options?)` | Write root `trails.lock` as a v4 lock envelope |
-| `readTrailsLock(options?)` | Read root `trails.lock` as a v4 lock envelope |
+| `writeTrailsLock(lock, options?)` | Write an app-root `trails.lock` envelope |
+| `readTrailsLock(options?)` | Read an app-root `trails.lock` envelope |
 | `readTopoGraph(options?)` | Read a TopoGraph from v4 `trails.lock` or legacy `topo.lock` |
 | `writeTopoGraph(topoGraph, options?)` | Write legacy `topo.lock` for explicit migration/testing paths |
 | `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v3 manifest |
