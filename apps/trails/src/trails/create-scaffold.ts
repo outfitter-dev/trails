@@ -26,21 +26,22 @@ import {
   scaffoldDependencyVersions,
   trailsPackageVersion,
 } from '../versions.js';
-import {
-  stringifyScaffoldJson,
-  stringifyScaffoldPackageJson,
-} from './scaffold-json.js';
+import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type Starter = 'empty' | 'entity' | 'hello';
+type ScaffoldLayout = 'standalone' | 'workspace';
 
 interface ScaffoldResult {
+  readonly appDir: string;
+  readonly appRoot: string;
   readonly created: string[];
   readonly dir: string;
   readonly dryRun: boolean;
+  readonly layout: ScaffoldLayout;
   readonly name: string;
   readonly plannedOperations: PlannedProjectOperation[];
 }
@@ -65,7 +66,7 @@ const frameworkCommandScripts = {
 // Content generators
 // ---------------------------------------------------------------------------
 
-const generatePackageJson = (name: string): string => {
+const generateAppPackageJson = (name: string): string => {
   const deps: Record<string, string> = {
     '@ontrails/core': ontrailsPackageRange,
     zod: scaffoldDependencyVersions.zod,
@@ -91,7 +92,7 @@ const generatePackageJson = (name: string): string => {
         build: 'tsc -b',
         'format:check': 'bunx ultracite check .',
         'format:fix': 'bunx ultracite fix .',
-        lint: 'oxlint ./src',
+        lint: 'oxlint ./src ./bin',
         test: 'bun test',
         typecheck: 'tsc --noEmit',
         ...frameworkCommandScripts,
@@ -104,13 +105,29 @@ const generatePackageJson = (name: string): string => {
   return stringifyScaffoldPackageJson(pkg);
 };
 
-const generateScaffoldProvenance = (starter: Starter): string =>
-  stringifyScaffoldJson({
-    generatedAt: new Date().toISOString(),
-    scaffoldVersion: trailsPackageVersion,
-    schemaVersion: 1,
-    template: starter,
+const generateWorkspacePackageJson = (name: string): string =>
+  stringifyScaffoldPackageJson({
+    name,
+    private: true,
+    scripts: {
+      build: 'bun run --filter "*" build',
+      test: 'bun run --filter "*" test',
+      typecheck: 'bun run --filter "*" typecheck',
+    },
+    workspaces: ['apps/*', 'packages/*'],
   });
+
+const generateWorkspaceConfig = (name: string): string =>
+  `export default {
+  workspace: {
+    apps: {
+      ${/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(name) ? name : `'${name}'`}: {
+        root: 'apps/${name}',
+      },
+    },
+  },
+};
+`;
 
 const TSCONFIG_CONTENT = `{
   "compilerOptions": {
@@ -119,13 +136,37 @@ const TSCONFIG_CONTENT = `{
     "moduleResolution": "bundler",
     "noUncheckedIndexedAccess": true,
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
     "verbatimModuleSyntax": true
   },
-  "include": ["src"]
+  "include": ["bin", "src"]
+}
+`;
+
+const TSCONFIG_BASE_CONTENT = `{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "verbatimModuleSyntax": true
+  }
+}
+`;
+
+const TSCONFIG_WORKSPACE_APP_CONTENT = `{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "extends": "../../tsconfig.base.json",
+  "include": ["bin", "src"]
 }
 `;
 
@@ -237,10 +278,6 @@ const generateHelloTrail = (): string =>
 import { z } from 'zod';
 
 export const hello = trail('hello', {
-  implementation: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: \`Hello, \${name}!\` });
-  },
   description: 'Say hello',
   examples: [
     {
@@ -254,6 +291,10 @@ export const hello = trail('hello', {
       name: 'Named greeting',
     },
   ],
+  implementation: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: \`Hello, \${name}!\` });
+  },
   input: z.object({
     name: z.string().optional(),
   }),
@@ -278,14 +319,6 @@ const entitySchema = z.object({
 });
 
 export const show = trail('entity.show', {
-  implementation: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const entity = store.get(input.id);
-    if (!entity) {
-      return Result.err(new NotFoundError(\`Entity "\${input.id}" not found\`));
-    }
-    return Result.ok(entity);
-  },
   description: 'Show an entity by ID',
   examples: [
     {
@@ -294,6 +327,14 @@ export const show = trail('entity.show', {
       name: 'Show entity',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = store.get(input.id);
+    if (!entity) {
+      return Result.err(new NotFoundError(\`Entity "\${input.id}" not found\`));
+    }
+    return Result.ok(entity);
+  },
   input: z.object({ id: z.string() }),
   intent: 'read',
   output: entitySchema,
@@ -301,12 +342,6 @@ export const show = trail('entity.show', {
 });
 
 export const add = trail('entity.add', {
-  implementation: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const entity = { id: randomUUID(), name: input.name };
-    store.add(entity);
-    return Result.ok(entity);
-  },
   description: 'Add a new entity',
   examples: [
     {
@@ -315,6 +350,12 @@ export const add = trail('entity.add', {
       name: 'Add entity',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = { id: randomUUID(), name: input.name };
+    store.add(entity);
+    return Result.ok(entity);
+  },
   input: z.object({ name: z.string() }),
   intent: 'write',
   output: entitySchema,
@@ -323,10 +364,6 @@ export const add = trail('entity.add', {
 });
 
 export const list = trail('entity.list', {
-  implementation: (_input, ctx) => {
-    const store = entityStore.from(ctx);
-    return Result.ok({ entities: store.list() });
-  },
   description: 'List entities',
   examples: [
     {
@@ -335,6 +372,10 @@ export const list = trail('entity.list', {
       name: 'List entities',
     },
   ],
+  implementation: (_input, ctx) => {
+    const store = entityStore.from(ctx);
+    return Result.ok({ entities: store.list() });
+  },
   input: z.object({}),
   intent: 'read',
   output: z.object({
@@ -344,11 +385,6 @@ export const list = trail('entity.list', {
 });
 
 export const remove = trail('entity.delete', {
-  implementation: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const deleted = store.delete(input.id);
-    return Result.ok({ deleted, id: input.id });
-  },
   description: 'Delete an entity by ID',
   examples: [
     {
@@ -357,6 +393,11 @@ export const remove = trail('entity.delete', {
       name: 'Delete entity',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const deleted = store.delete(input.id);
+    return Result.ok({ deleted, id: input.id });
+  },
   input: z.object({ id: z.string() }),
   intent: 'destroy',
   output: z.object({
@@ -373,9 +414,6 @@ const generateSearchTrail = (): string =>
 import { z } from 'zod';
 
 export const search = trail('search', {
-  implementation: () => {
-    return Result.ok({ results: [] });
-  },
   description: 'Search entities by query',
   examples: [
     {
@@ -384,6 +422,7 @@ export const search = trail('search', {
       name: 'Search entities',
     },
   ],
+  implementation: () => Result.ok({ results: [] }),
   input: z.object({ query: z.string() }),
   intent: 'read',
   output: z.object({
@@ -397,6 +436,8 @@ const generateOnboardTrail = (): string =>
 import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
+  composes: ['entity.add'],
+  description: 'Onboard a new entity end-to-end',
   implementation: async (input, ctx) => {
     const result = await ctx.compose('entity.add', { name: input.name });
     if (result.isErr()) {
@@ -404,8 +445,6 @@ export const onboard = trail('entity.onboard', {
     }
     return Result.ok({ onboarded: true });
   },
-  composes: ['entity.add'],
-  description: 'Onboard a new entity end-to-end',
   input: z.object({ name: z.string() }),
   intent: 'write',
   output: z.object({ onboarded: z.boolean() }),
@@ -515,9 +554,26 @@ const generateAppTs = (name: string, starter: Starter): string => {
 
   return [
     "import { topo } from '@ontrails/core';",
+    "import { z } from 'zod';",
     ...imports,
     '',
     `export const app = ${topoExpression};`,
+    '',
+    'export const trailsOverlays = [',
+    '  {',
+    '    derive: () => ({',
+    `      scaffoldVersion: '${trailsPackageVersion}',`,
+    '      schemaVersion: 1,',
+    `      template: '${starter}',`,
+    '    }),',
+    "    namespace: 'scaffold',",
+    '    schema: z.object({',
+    '      scaffoldVersion: z.string(),',
+    '      schemaVersion: z.literal(1),',
+    "      template: z.enum(['empty', 'entity', 'hello']),",
+    '    }),',
+    '  },',
+    '];',
     '',
   ].join('\n');
 };
@@ -540,21 +596,43 @@ const starterFileGenerators: Record<Starter, () => [string, string][]> = {
 
 const collectScaffoldFiles = (
   name: string,
-  starter: Starter
-): Map<string, string> =>
-  new Map([
-    ['package.json', generatePackageJson(name)],
-    ['AGENTS.md', AGENTS_CONTENT],
-    ['CLAUDE.md', CLAUDE_CONTENT],
-    ['tsconfig.json', TSCONFIG_CONTENT],
-    ['tsconfig.tests.json', TSCONFIG_TESTS_CONTENT],
-    ['.gitignore', GITIGNORE_CONTENT],
-    ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
-    ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
-    ['.trails/scaffold.json', generateScaffoldProvenance(starter)],
-    ['src/app.ts', generateAppTs(name, starter)],
-    ...starterFileGenerators[starter](),
-  ]);
+  starter: Starter,
+  layout: ScaffoldLayout
+): Map<string, string> => {
+  const appRoot = layout === 'workspace' ? `apps/${name}` : '.';
+  const appPath = (path: string): string =>
+    appRoot === '.' ? path : `${appRoot}/${path}`;
+  const appFiles: [string, string][] = [
+    [appPath('package.json'), generateAppPackageJson(name)],
+    [appPath('AGENTS.md'), AGENTS_CONTENT],
+    [appPath('CLAUDE.md'), CLAUDE_CONTENT],
+    [
+      appPath('tsconfig.json'),
+      layout === 'workspace'
+        ? TSCONFIG_WORKSPACE_APP_CONTENT
+        : TSCONFIG_CONTENT,
+    ],
+    [appPath('tsconfig.tests.json'), TSCONFIG_TESTS_CONTENT],
+    [appPath('oxlint.config.ts'), OXLINT_CONFIG_CONTENT],
+    [appPath('.oxfmtrc.jsonc'), OXFMTRC_CONTENT],
+    [appPath('src/app.ts'), generateAppTs(name, starter)],
+    ...starterFileGenerators[starter]().map(
+      ([path, content]) => [appPath(path), content] as [string, string]
+    ),
+  ];
+
+  return new Map(
+    layout === 'workspace'
+      ? [
+          ['package.json', generateWorkspacePackageJson(name)],
+          ['trails.config.ts', generateWorkspaceConfig(name)],
+          ['.gitignore', GITIGNORE_CONTENT],
+          ['tsconfig.base.json', TSCONFIG_BASE_CONTENT],
+          ...appFiles,
+        ]
+      : [['.gitignore', GITIGNORE_CONTENT], ...appFiles]
+  );
+};
 
 const collectScaffoldOperations = (
   fileMap: Map<string, string>
@@ -580,7 +658,9 @@ export const createScaffold = trail('create.scaffold', {
     const projectDir = projectDirResult.value;
     const starter = (input.starter ?? 'hello') as Starter;
     const dryRun = input.dryRun === true;
-    const fileMap = collectScaffoldFiles(input.name, starter);
+    const layout: ScaffoldLayout = input.workspace ? 'workspace' : 'standalone';
+    const appRoot = layout === 'workspace' ? `apps/${input.name}` : '.';
+    const fileMap = collectScaffoldFiles(input.name, starter, layout);
     const operations = collectScaffoldOperations(fileMap);
     const plannedOperations: TrailsResult<PlannedProjectOperation[], Error> =
       dryRun
@@ -601,9 +681,12 @@ export const createScaffold = trail('create.scaffold', {
           .map((operation) => operation.path);
 
     return Result.ok({
+      appDir: resolve(projectDir, appRoot),
+      appRoot,
       created,
       dir: resolve(projectDir),
       dryRun,
+      layout,
       name: input.name,
       plannedOperations: plannedOperations.value,
     } satisfies ScaffoldResult);
@@ -622,14 +705,21 @@ export const createScaffold = trail('create.scaffold', {
       .enum(['hello', 'entity', 'empty'])
       .default('hello')
       .describe('Starter trail'),
+    workspace: z
+      .boolean()
+      .default(false)
+      .describe('Create a configured workspace with one app'),
   }),
   intent: 'write',
   output: z.object({
+    appDir: z.string(),
+    appRoot: z.string(),
     created: z
       .array(z.string())
       .describe('Project-relative paths of files written (empty in dry-run)'),
     dir: z.string(),
     dryRun: z.boolean(),
+    layout: z.enum(['standalone', 'workspace']),
     name: z.string(),
     plannedOperations: z.array(
       z.discriminatedUnion('kind', [

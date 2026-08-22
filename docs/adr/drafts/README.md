@@ -34,7 +34,7 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
 - [Wayfinding](20260503-wayfinding.md)
   - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md), [ADR-0037: Owner-First Authority](../0037-owner-first-authority.md), [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md)
 - [Scaffold Forward Compatibility](20260524-scaffold-forward-compatibility.md)
-  - depends on [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md), [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)
+  - depends on [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md), [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md), [ADR-0052: Overlays Are the Lock's One Extension Mechanism](../0052-overlays-one-extension-mechanism.md), [ADR-0054: Project Substrate Names Its Truth](../0054-project-substrate-names-its-truth.md)
 - [Adapter authoring as a paved path](20260528-adapter-authoring-as-a-paved-path.md)
   - depends on [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md)
 - [Fixes are Warden diagnostic metadata](20260530-fixes-are-warden-diagnostic-metadata.md)

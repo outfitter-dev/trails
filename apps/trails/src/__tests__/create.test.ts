@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -123,6 +124,39 @@ const expectGeneratedProjectFormatCheck = (dir: string): void => {
   }
 };
 
+const expectGeneratedProjectLintCheck = (dir: string): void => {
+  symlinkSync(join(repoRoot, 'node_modules'), join(dir, 'node_modules'), 'dir');
+  const command = ['bun', 'run', 'lint'];
+  const proc = Bun.spawnSync({
+    cmd: command,
+    cwd: dir,
+    env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
+    stderr: 'pipe',
+    stdout: 'pipe',
+    timeout: formatterTimeoutMs,
+  });
+  const stdout = proc.stdout.toString();
+  const stderr = proc.stderr.toString();
+  const signalCode = proc.signalCode ?? undefined;
+  if (
+    proc.exitCode !== 0 ||
+    proc.exitedDueToTimeout ||
+    signalCode !== undefined
+  ) {
+    throw new Error(
+      [
+        'Generated Trails scaffold did not pass its Oxlint contract.',
+        `command: ${command.join(' ')}`,
+        `cwd: ${dir}`,
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n')
+    );
+  }
+};
+
 const runCompose = async (
   id: string,
   input: unknown
@@ -146,9 +180,11 @@ const runCompose = async (
 const runCreate = (
   projectDir: string,
   overrides?: Partial<{
+    dryRun: boolean;
     starter: Starter;
     surfaces: readonly Surface[];
     verify: boolean;
+    workspace: boolean;
   }>
 ) =>
   createTrail.implementation(
@@ -158,8 +194,12 @@ const runCreate = (
       starter: overrides?.starter ?? 'hello',
       surfaces: [...(overrides?.surfaces ?? ['cli'])],
       verify: overrides?.verify ?? true,
+      workspace: overrides?.workspace ?? false,
     },
-    { compose: runCompose } as never
+    {
+      compose: runCompose,
+      dryRun: overrides?.dryRun ?? false,
+    } as never
   );
 
 const setupMinimalProject = (dir: string): void => {
@@ -196,9 +236,7 @@ const assertDefaultProjectFiles = (dir: string): void => {
       'oxlint.config.ts',
       '.oxfmtrc.jsonc',
       'src/app.ts',
-      '.trails',
-      '.trails/scaffold.json',
-      'src/cli.ts',
+      'bin/cli.ts',
       'src/trails/hello.ts',
       '__tests__/examples.test.ts',
       'lefthook.yml',
@@ -226,6 +264,8 @@ const assertNoDisposableTrailsState = (dir: string): void => {
       '.trails/trails.db',
       '.trails/trails.db-shm',
       '.trails/trails.db-wal',
+      '.trails',
+      'trails.lock',
     ],
     false
   );
@@ -250,15 +290,14 @@ const assertScaffoldProvenance = (
   dir: string,
   starter: Starter = 'hello'
 ): void => {
-  const provenance = readJson(dir, '.trails/scaffold.json');
-  expect(provenance['schemaVersion']).toBe(1);
-  expect(provenance['scaffoldVersion']).toBe(trailsPackageVersion);
-  expect(provenance['template']).toBe(starter);
-
-  const { generatedAt } = provenance;
-  expect(typeof generatedAt).toBe('string');
-  expect(Number.isNaN(Date.parse(generatedAt as string))).toBe(false);
-  expect(new Date(generatedAt as string).toISOString()).toBe(generatedAt);
+  expectContainsAll(readText(dir, 'src/app.ts'), [
+    'export const trailsOverlays = [',
+    "namespace: 'scaffold'",
+    `scaffoldVersion: '${trailsPackageVersion}'`,
+    'schemaVersion: 1',
+    `template: '${starter}'`,
+  ]);
+  expect(readText(dir, 'src/app.ts')).not.toContain('generatedAt');
 };
 
 const assertAgentGuidance = (dir: string): void => {
@@ -308,23 +347,23 @@ const assertReadme = (
     'bun run warden',
     'bun run survey',
     'bun run guide',
-    '`src/app.ts` - the topo',
+    '`src/app.ts` - the side-effect-free topo entry',
     '`src/trails/` - trail definitions',
     '`AGENTS.md` - project guidance',
     'Add a trail with `bun run add`',
   ]);
   for (const surface of surfaces) {
-    const file = surface === 'cli' ? 'src/cli.ts' : `src/${surface}.ts`;
+    const file = surface === 'cli' ? 'bin/cli.ts' : `bin/${surface}.ts`;
     expect(content).toContain(`\`${file}\` -`);
   }
   if (!surfaces.includes('cli')) {
-    expect(content).not.toContain('`src/cli.ts` -');
+    expect(content).not.toContain('`bin/cli.ts` -');
   }
   if (!surfaces.includes('mcp')) {
-    expect(content).not.toContain('`src/mcp.ts` -');
+    expect(content).not.toContain('`bin/mcp.ts` -');
   }
   if (!surfaces.includes('http')) {
-    expect(content).not.toContain('`src/http.ts` -');
+    expect(content).not.toContain('`bin/http.ts` -');
   }
 
   if (verify) {
@@ -346,7 +385,7 @@ const assertReadme = (
 const assertCliPackage = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   expect(pkg['name']).toBe(basename(dir));
-  expectContainsAll(readText(dir, 'src/cli.ts'), [
+  expectContainsAll(readText(dir, 'bin/cli.ts'), [
     "import { devPermitPreset, permitPreset } from '@ontrails/cli'",
     "import { surface } from '@ontrails/commander'",
     'presets: [permitPreset(), devPermitPreset()]',
@@ -354,6 +393,7 @@ const assertCliPackage = (dir: string): void => {
   ]);
 
   const deps = pkg['dependencies'] as Record<string, string>;
+  expect(pkg['bin']).toEqual({ [basename(dir)]: './bin/cli.ts' });
   expectExactOntrailsPin(deps['@ontrails/core']);
   expectExactOntrailsPin(deps['@ontrails/cli']);
   expectExactOntrailsPin(deps['@ontrails/commander']);
@@ -402,7 +442,7 @@ const assertFrameworkCliScripts = (dir: string): void => {
     'format:check': 'bunx ultracite check .',
     'format:fix': 'bunx ultracite fix .',
     guide: 'trails guide',
-    lint: 'oxlint ./src',
+    lint: 'oxlint ./src ./bin',
     revise: 'trails revise',
     run: 'trails run',
     survey: 'trails survey',
@@ -478,7 +518,7 @@ const assertEntityStarter = (dir: string): void => {
   ]);
   expectContainsAll(readText(dir, 'src/trails/search.ts'), [
     "import { Result, trail } from '@ontrails/core'",
-    'return Result.ok({ results: [] })',
+    'implementation: () => Result.ok({ results: [] })',
   ]);
   expectContainsAll(readText(dir, 'src/trails/onboard.ts'), [
     "import { Result, trail } from '@ontrails/core'",
@@ -487,9 +527,9 @@ const assertEntityStarter = (dir: string): void => {
 };
 
 const assertMcpSurface = (dir: string): void => {
-  expectPaths(dir, ['src/mcp.ts'], true);
-  expectPaths(dir, ['src/cli.ts'], false);
-  expectContainsAll(readText(dir, 'src/mcp.ts'), [
+  expectPaths(dir, ['bin/mcp.ts'], true);
+  expectPaths(dir, ['bin/cli.ts'], false);
+  expectContainsAll(readText(dir, 'bin/mcp.ts'), [
     "import { surface } from '@ontrails/mcp'",
     'await surface(app)',
   ]);
@@ -503,8 +543,8 @@ const assertMcpSurface = (dir: string): void => {
 };
 
 const assertHttpSurface = (dir: string): void => {
-  expectPaths(dir, ['src/http.ts'], true);
-  expectContainsAll(readText(dir, 'src/http.ts'), [
+  expectPaths(dir, ['bin/http.ts'], true);
+  expectContainsAll(readText(dir, 'bin/http.ts'), [
     "import { surface } from '@ontrails/hono'",
     'await surface(app, { port: 3000 })',
   ]);
@@ -551,11 +591,13 @@ describe('trails create', () => {
     test('generates project structure with defaults', async () => {
       await withTempProject(async (dir) => {
         const result = expectOk(await runCreate(dir));
+        expect(result.appDir).toBe(dir);
+        expect(result.dryRun).toBe(false);
+        expect(result.layout).toBe('standalone');
         expectCreatedPaths(result.created, [
           'AGENTS.md',
           'CLAUDE.md',
           'README.md',
-          '.trails/scaffold.json',
           'tsconfig.tests.json',
         ]);
         assertDefaultProjectFiles(dir);
@@ -571,6 +613,152 @@ describe('trails create', () => {
         assertFieldworkLintMarkers(dir);
         assertFrameworkCliScripts(dir);
         assertHelloApp(dir);
+      });
+    });
+
+    test('generates an explicit configured workspace with one lock-owning app', async () => {
+      await withTempProject(async (dir) => {
+        const name = basename(dir);
+        const appDir = join(dir, 'apps', name);
+        const result = expectOk(await runCreate(dir, { workspace: true }));
+
+        expect(result.layout).toBe('workspace');
+        expect(result.appDir).toBe(appDir);
+        expectCreatedPaths(result.created, [
+          'package.json',
+          'trails.config.ts',
+          'tsconfig.base.json',
+          `apps/${name}/package.json`,
+          `apps/${name}/src/app.ts`,
+          `apps/${name}/bin/cli.ts`,
+          `apps/${name}/__tests__/examples.test.ts`,
+          'README.md',
+        ]);
+        expectPaths(
+          dir,
+          [
+            'package.json',
+            'trails.config.ts',
+            'tsconfig.base.json',
+            `apps/${name}/package.json`,
+            `apps/${name}/tsconfig.json`,
+            `apps/${name}/src/app.ts`,
+            `apps/${name}/bin/cli.ts`,
+            `apps/${name}/__tests__/examples.test.ts`,
+          ],
+          true
+        );
+        expectPaths(dir, ['trails.lock', '.trails', 'trails'], false);
+        expectPaths(appDir, ['trails.lock', '.trails', 'trails'], false);
+
+        expect(readJson(dir, 'package.json')['workspaces']).toEqual([
+          'apps/*',
+          'packages/*',
+        ]);
+        expectContainsAll(readText(dir, 'trails.config.ts'), [
+          'workspace:',
+          'apps:',
+          `'${name}': {`,
+          `root: 'apps/${name}'`,
+        ]);
+        expect(readText(dir, 'trails.config.ts')).not.toContain('process.env');
+        expectContainsAll(readText(appDir, 'src/app.ts'), [
+          `topo('${name}'`,
+          "namespace: 'scaffold'",
+        ]);
+        expectContainsAll(readText(dir, 'README.md'), [
+          `bunx trails compile --app ${name}`,
+          `bunx trails validate --app ${name}`,
+          `bunx trails run hello --app ${name}`,
+          `bunx trails warden --app ${name}`,
+          `bunx trails wayfind --overview --app ${name}`,
+          `apps/${name}/trails.lock`,
+          'never creates a root aggregate lock',
+          'global per-user cache and state homes',
+        ]);
+        assertCliPackage(appDir);
+        assertScaffoldProvenance(appDir);
+        assertNoDisposableTrailsState(dir);
+        expectGeneratedProjectFormatCheck(dir);
+      });
+    });
+
+    test('dry-run plans the complete workspace without writing it', async () => {
+      await withTempProject(async (dir) => {
+        const name = basename(dir);
+        const result = expectOk(
+          await runCreate(dir, {
+            dryRun: true,
+            surfaces: ['cli', 'mcp'],
+            workspace: true,
+          })
+        );
+
+        expect(result.dryRun).toBe(true);
+        expect(result.created).toEqual([]);
+        expect(result.layout).toBe('workspace');
+        expect(result.plannedOperations).toEqual(
+          expect.arrayContaining([
+            { kind: 'write', path: 'package.json' },
+            { kind: 'write', path: 'trails.config.ts' },
+            { kind: 'write', path: 'tsconfig.base.json' },
+            { kind: 'write', path: `apps/${name}/package.json` },
+            { kind: 'write', path: `apps/${name}/src/app.ts` },
+            { kind: 'write', path: `apps/${name}/bin/cli.ts` },
+            { kind: 'write', path: `apps/${name}/bin/mcp.ts` },
+            {
+              kind: 'write',
+              path: `apps/${name}/__tests__/examples.test.ts`,
+            },
+            { kind: 'write', path: 'README.md' },
+          ])
+        );
+        expect(result.plannedOperations).not.toEqual(
+          expect.arrayContaining([
+            { kind: 'write', path: 'trails.lock' },
+            { kind: 'write', path: '.trails/scaffold.json' },
+          ])
+        );
+        expect(result.guidance.join('\n')).toContain(
+          `trails compile --app ${name}`
+        );
+        expect(result.guidance.join('\n')).toContain('no root aggregate lock');
+        expect(existsSync(dir)).toBe(false);
+      });
+    });
+
+    test('dry-run reruns report only writes the real rerun performs', async () => {
+      await withTempProject(async (dir) => {
+        const name = basename(dir);
+        const input = {
+          surfaces: ['cli', 'mcp'] as const,
+          workspace: true,
+        };
+        expectOk(await runCreate(dir, input));
+        const readme = readText(dir, 'README.md');
+        const cli = readText(dir, `apps/${name}/bin/cli.ts`);
+        const testFile = readText(
+          dir,
+          `apps/${name}/__tests__/examples.test.ts`
+        );
+
+        const dryRun = expectOk(
+          await runCreate(dir, { ...input, dryRun: true })
+        );
+
+        expect(dryRun.created).toEqual([]);
+        expect(dryRun.plannedOperations).toEqual([
+          { kind: 'write', path: `apps/${name}/package.json` },
+        ]);
+        expect(readText(dir, 'README.md')).toBe(readme);
+        expect(readText(dir, `apps/${name}/bin/cli.ts`)).toBe(cli);
+        expect(readText(dir, `apps/${name}/__tests__/examples.test.ts`)).toBe(
+          testFile
+        );
+
+        const applied = expectOk(await runCreate(dir, input));
+        expect(applied.created).toEqual([]);
+        expect(applied.plannedOperations).toEqual(dryRun.plannedOperations);
       });
     });
 
@@ -596,7 +784,6 @@ describe('trails create', () => {
             { kind: 'write', path: 'AGENTS.md' },
             { kind: 'write', path: 'CLAUDE.md' },
             { kind: 'write', path: 'src/app.ts' },
-            { kind: 'write', path: '.trails/scaffold.json' },
             { kind: 'write', path: 'tsconfig.tests.json' },
           ])
         );
@@ -627,8 +814,6 @@ describe('trails create', () => {
             'oxlint.config.ts',
             '.oxfmtrc.jsonc',
             'src/app.ts',
-            '.trails',
-            '.trails/scaffold.json',
             'src/trails/hello.ts',
           ],
           true
@@ -665,10 +850,10 @@ describe('trails create', () => {
     test('generates with CLI, MCP, and HTTP surfaces', async () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { surfaces: ['cli', 'mcp', 'http'] }));
-        expectPaths(dir, ['src/cli.ts', 'src/mcp.ts', 'src/http.ts'], true);
+        expectPaths(dir, ['bin/cli.ts', 'bin/mcp.ts', 'bin/http.ts'], true);
         assertCliPackage(dir);
         assertHttpSurface(dir);
-        expectContainsAll(readText(dir, 'src/mcp.ts'), [
+        expectContainsAll(readText(dir, 'bin/mcp.ts'), [
           "import { surface } from '@ontrails/mcp'",
           'await surface(app)',
         ]);
@@ -681,7 +866,7 @@ describe('trails create', () => {
       });
     });
 
-    test('generates formatter-clean project files', async () => {
+    test('generates formatter- and lint-clean project files', async () => {
       await withTempProject(async (dir) => {
         expectOk(
           await runCreate(dir, {
@@ -692,6 +877,7 @@ describe('trails create', () => {
         );
 
         expectGeneratedProjectFormatCheck(dir);
+        expectGeneratedProjectLintCheck(dir);
       });
     });
 
@@ -721,6 +907,7 @@ describe('trails create', () => {
     test('reruns reconcile missing scaffold pieces without overwriting existing files', async () => {
       await withTempProject(async (dir) => {
         mkdirSync(join(dir, 'src'), { recursive: true });
+        mkdirSync(join(dir, 'bin'), { recursive: true });
         mkdirSync(join(dir, '.trails'), { recursive: true });
         writeFileSync(
           join(dir, 'package.json'),
@@ -741,24 +928,24 @@ describe('trails create', () => {
           join(dir, 'src', 'app.ts'),
           "import { topo } from '@ontrails/core';\nexport const app = topo('existing');\n"
         );
-        writeFileSync(join(dir, 'src', 'cli.ts'), 'existing cli\n');
+        writeFileSync(join(dir, 'bin', 'cli.ts'), 'existing cli\n');
 
         const result = expectOk(
           await runCreate(dir, { surfaces: ['cli', 'mcp'] })
         );
 
         expectCreatedPaths(result.created, [
-          'src/mcp.ts',
+          'bin/mcp.ts',
           'src/trails/hello.ts',
           '__tests__/examples.test.ts',
           'lefthook.yml',
         ]);
-        expect(result.created).not.toContain('src/cli.ts');
-        expect(readText(dir, 'src/cli.ts')).toBe('existing cli\n');
+        expect(result.created).not.toContain('bin/cli.ts');
+        expect(readText(dir, 'bin/cli.ts')).toBe('existing cli\n');
         expect(readText(dir, 'src/app.ts')).toContain("topo('existing')");
         expect(readText(dir, 'tsconfig.json')).toBe('{"custom":true}\n');
         expect(readText(dir, 'README.md')).toBe('# Existing README\n');
-        expectPaths(dir, ['src/mcp.ts', 'src/trails/hello.ts'], true);
+        expectPaths(dir, ['bin/mcp.ts', 'src/trails/hello.ts'], true);
 
         const pkg = readJson(dir, 'package.json');
         expect(pkg['workspaceNote']).toBe('preserve me');
@@ -826,10 +1013,10 @@ describe('trails create', () => {
           await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
         );
 
-        expect(result.created).toBe('src/mcp.ts');
+        expect(result.created).toBe('bin/mcp.ts');
         expect(result.dependency).toBe('@ontrails/mcp');
-        expectPaths(dir, ['src/mcp.ts'], true);
-        expectContainsAll(readText(dir, 'src/mcp.ts'), [
+        expectPaths(dir, ['bin/mcp.ts'], true);
+        expectContainsAll(readText(dir, 'bin/mcp.ts'), [
           "import { surface } from '@ontrails/mcp'",
         ]);
         const deps = readJson(dir, 'package.json')['dependencies'] as Record<
@@ -847,7 +1034,7 @@ describe('trails create', () => {
           await addSurface.implementation({ dir, surface: 'http' }, {} as never)
         );
 
-        expect(result.created).toBe('src/http.ts');
+        expect(result.created).toBe('bin/http.ts');
         expect(result.dependency).toBe('@ontrails/hono');
         assertHttpSurface(dir);
       });
@@ -856,18 +1043,19 @@ describe('trails create', () => {
     test('reconciles existing surface entrypoint', async () => {
       await withTempProject(async (dir) => {
         mkdirSync(join(dir, 'src'), { recursive: true });
+        mkdirSync(join(dir, 'bin'), { recursive: true });
         mkdirSync(join(dir, '.trails'), { recursive: true });
         writeFileSync(
           join(dir, 'package.json'),
           JSON.stringify({ name: basename(dir) }, null, 2)
         );
-        writeFileSync(join(dir, 'src', 'mcp.ts'), 'existing content');
+        writeFileSync(join(dir, 'bin', 'mcp.ts'), 'existing content');
 
         const result = expectOk(
           await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
         );
         expect(result.created).toBeNull();
-        expect(readText(dir, 'src/mcp.ts')).toBe('existing content');
+        expect(readText(dir, 'bin/mcp.ts')).toBe('existing content');
         const deps = readJson(dir, 'package.json')['dependencies'] as Record<
           string,
           string

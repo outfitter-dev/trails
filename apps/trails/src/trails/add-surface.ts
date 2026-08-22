@@ -49,9 +49,9 @@ await surface(app, { port: 3000 });
 `;
 
 const surfaceEntryFiles = {
-  cli: 'src/cli.ts',
-  http: 'src/http.ts',
-  mcp: 'src/mcp.ts',
+  cli: 'bin/cli.ts',
+  http: 'bin/http.ts',
+  mcp: 'bin/mcp.ts',
 } satisfies Record<Surface, string>;
 
 const surfaceDependencies = {
@@ -80,7 +80,7 @@ const patchPkgDeps = (
   }
   if (surface === 'cli') {
     pkg['bin'] = {
-      [(pkg['name'] as string | undefined) ?? basename(cwd)]: './src/cli.ts',
+      [(pkg['name'] as string | undefined) ?? basename(cwd)]: './bin/cli.ts',
     };
   }
   pkg['dependencies'] = Object.fromEntries(
@@ -119,7 +119,8 @@ const writeSurfaceEntry = async (
   surface: Surface
 ): Promise<Result<string, Error>> => {
   const entryFile = getEntryFile(surface);
-  const appImport = (await findTopoPath(cwd)) ?? './app.js';
+  const sourceImport = (await findTopoPath(cwd)) ?? './app.js';
+  const appImport = `../src/${sourceImport.slice(2)}`;
   const generators = {
     cli: generateCliEntry,
     http: generateHttpEntry,
