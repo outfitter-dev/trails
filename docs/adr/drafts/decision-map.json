@@ -198,7 +198,7 @@
     },
     {
       "created": "2026-05-24",
-      "depends_on": ["10", "47", "48"],
+      "depends_on": ["10", "47", "48", "52", "54"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
@@ -207,7 +207,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Scaffold Forward Compatibility",
-      "updated": "2026-05-24"
+      "updated": "2026-08-22"
     },
     {
       "created": "2026-05-28",

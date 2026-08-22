@@ -3027,6 +3027,11 @@
           "context": "> **Status update (2026-07-07):** Amended by [ADR-0052: Overlays Are the Lock's One Extension Mechanism](0052-overlays-one-extension-mechanism.md). The accommodation doctrine here stands — converge wi",
           "from": "0050",
           "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        },
+        {
+          "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
+          "from": "20260524",
+          "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         }
       ],
       "number": "0052",
@@ -3085,6 +3090,11 @@
           "context": "> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md).",
           "from": "0046",
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
+        },
+        {
+          "context": "- docs/adr/0054-project-substrate-names-its-truth.md",
+          "from": "20260524",
+          "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         }
       ],
       "number": "0054",

@@ -1,8 +1,10 @@
 const packageKeyOrder = [
   'name',
   'version',
+  'private',
   'bin',
   'type',
+  'workspaces',
   'scripts',
   'dependencies',
   'devDependencies',

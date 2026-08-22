@@ -2,7 +2,7 @@
  * `add.verify` trail -- Add testing + warden setup to a project.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
@@ -19,6 +19,7 @@ import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
 } from '../versions.js';
+import { resolveOperatorProjectContext } from './project-context.js';
 import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
@@ -87,6 +88,18 @@ const updatePackageJsonForVerify = async (
   return written.isErr() ? Result.err(written.error) : Result.ok();
 };
 
+/** Place the hook at a Config-owned workspace root, never a package-only root. */
+const resolveHookDir = async (projectDir: string): Promise<string> => {
+  const context = await resolveOperatorProjectContext({}, { cwd: projectDir });
+  if (context.isErr() || context.value.selectedExtent !== 'configured-app') {
+    return projectDir;
+  }
+
+  return realpathSync(context.value.app.rootDir) === realpathSync(projectDir)
+    ? context.value.projectRoot
+    : projectDir;
+};
+
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
@@ -100,13 +113,15 @@ export const addVerify = trail('add.verify', {
     }
 
     const projectDir = projectDirResult.value;
+    const hookDir = await resolveHookDir(projectDir);
     const files: string[] = [];
 
     const writeFile = async (
+      rootDir: string,
       relativePath: string,
       content: string
     ): Promise<Result<void, Error>> => {
-      const exists = projectPathExists(projectDir, relativePath);
+      const exists = projectPathExists(rootDir, relativePath);
       if (exists.isErr()) {
         return exists;
       }
@@ -114,7 +129,7 @@ export const addVerify = trail('add.verify', {
         return Result.ok();
       }
 
-      const written = await writeProjectFile(projectDir, relativePath, content);
+      const written = await writeProjectFile(rootDir, relativePath, content);
       if (written.isErr()) {
         return written;
       }
@@ -123,6 +138,7 @@ export const addVerify = trail('add.verify', {
     };
 
     const testFile = await writeFile(
+      projectDir,
       '__tests__/examples.test.ts',
       generateTestFile()
     );
@@ -130,7 +146,11 @@ export const addVerify = trail('add.verify', {
       return testFile;
     }
 
-    const lefthookFile = await writeFile('lefthook.yml', generateLefthookYml());
+    const lefthookFile = await writeFile(
+      hookDir,
+      'lefthook.yml',
+      generateLefthookYml()
+    );
     if (lefthookFile.isErr()) {
       return lefthookFile;
     }
