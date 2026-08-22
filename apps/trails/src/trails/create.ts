@@ -242,12 +242,12 @@ const collectCreateOperations = (
 const createGuidance = (input: CreateInput): string[] =>
   input.workspace
     ? [
-        `Install dependencies, then run \`trails compile --app ${input.name}\` from the workspace root to derive apps/${input.name}/trails.lock.`,
+        `Install dependencies, then run \`trails compile --app ${input.name} --permit '{"id":"local-dev","scopes":["topo:write"]}'\` from the workspace root to derive apps/${input.name}/trails.lock.`,
         'The workspace view derives from the literal workspace.apps catalog and app-owned locks; no root aggregate lock is created.',
         'Disposable cache and observed state stay in the global per-user Trails cache and state homes.',
       ]
     : [
-        'Install dependencies, then run `trails compile` to derive the app-root trails.lock.',
+        'Install dependencies, then run `trails compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\'` to derive the app-root trails.lock.',
         'Disposable cache and observed state stay in the global per-user Trails cache and state homes.',
       ];
 
@@ -267,7 +267,8 @@ const starterReadmeLines = {
 
 const generateReadme = (
   input: CreateInput,
-  surfaceEntryFiles: ResolvedSurfaceEntryFiles
+  surfaceEntryFiles: ResolvedSurfaceEntryFiles,
+  createdSurfaceFiles: ReadonlySet<string>
 ): string => {
   const appPrefix = input.workspace ? `apps/${input.name}/` : '';
   const surfaceLines = [...surfaceEntryFiles]
@@ -283,14 +284,29 @@ const generateReadme = (
   const workspaceRunCommand =
     input.starter === 'empty'
       ? ''
-      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name}\n`;
+      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name} --permit '{"id":"local-dev","scopes":["trails:run"]}'\n`;
+  const cliEntryFile = surfaceEntryFiles.get('cli');
+  const localPermitGuidance =
+    input.starter === 'entity' &&
+    cliEntryFile !== undefined &&
+    createdSurfaceFiles.has(cliEntryFile)
+      ? `## Local Permits
+
+Protected starter writes require an explicit scoped permit. For local exploration, run the generated CLI with the narrow starter scope:
+
+\`\`\`bash
+bun ${appPrefix}${cliEntryFile} entity add --name New --permit '{"id":"local-dev","scopes":["entity:write"]}'
+\`\`\`
+
+`
+      : '';
 
   const compileCommands = input.workspace
-    ? `bunx trails compile --app ${input.name}
+    ? `bunx trails compile --app ${input.name} --permit '{"id":"local-dev","scopes":["topo:write"]}'
 bunx trails validate --app ${input.name}
 ${workspaceRunCommand}bunx trails warden --app ${input.name}
 bunx trails wayfind --overview --app ${input.name}`
-    : `bun run compile
+    : `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'
 bun run validate
 bun run warden
 bun run survey
@@ -326,7 +342,7 @@ The generated app module authors deterministic scaffold provenance in the \`scaf
 
 ${starterReadmeLines[input.starter]}
 
-## Next Steps
+${localPermitGuidance}## Next Steps
 
 - Add a trail with ${input.workspace ? `\`cd apps/${input.name} && bun run add\`` : '`bun run add`'}
 - Run ${input.workspace ? `\`bunx trails warden --app ${input.name}\`` : '`bun run warden`'} before review
@@ -337,7 +353,8 @@ ${starterReadmeLines[input.starter]}
 const writeReadme = async (
   input: CreateInput,
   dir: string,
-  surfaceEntryFiles: ResolvedSurfaceEntryFiles
+  surfaceEntryFiles: ResolvedSurfaceEntryFiles,
+  createdSurfaceFiles: ReadonlySet<string>
 ): Promise<Result<string | null, Error>> => {
   const exists = projectPathExists(dir, 'README.md');
   if (exists.isErr()) {
@@ -350,7 +367,7 @@ const writeReadme = async (
   const written = await writeProjectFile(
     dir,
     'README.md',
-    generateReadme(input, surfaceEntryFiles)
+    generateReadme(input, surfaceEntryFiles, createdSurfaceFiles)
   );
   return written.isErr() ? Result.err(written.error) : Result.ok('README.md');
 };
@@ -467,7 +484,8 @@ export const createTrail = trail('create', {
       const readmeFile = await writeReadme(
         input,
         scaffolded.value.dir,
-        surfaceEntryFiles.value
+        surfaceEntryFiles.value,
+        new Set(surfaceFiles.value)
       );
       if (readmeFile.isErr()) {
         return readmeFile;
