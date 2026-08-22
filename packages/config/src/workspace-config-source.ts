@@ -1,12 +1,14 @@
 import { ValidationError } from '@ontrails/core';
 import {
   extractStringLiteral,
+  extractStringOrTemplateLiteral,
   getNodeExpression,
   identifierName,
   parseWithDiagnostics,
   propertyKeyName,
 } from '@ontrails/source';
 import type { AstNode } from '@ontrails/source';
+import { isMap, isScalar, parseDocument } from 'yaml';
 
 import { parseTrailsConfigData } from './trails-config-file.js';
 
@@ -91,6 +93,85 @@ const staticPropertyEntries = (
     entries.set(key, unwrapExpression(value));
   }
   return entries;
+};
+
+const directPropertyKey = (property: AstNode): string | null => {
+  if (property.type !== 'Property' || property['computed'] === true) {
+    return null;
+  }
+  return propertyKeyName(property);
+};
+
+const computedPropertyKey = (property: AstNode): string | null =>
+  property.type === 'Property' && property['computed'] === true
+    ? extractStringOrTemplateLiteral(property['key'] as AstNode | undefined)
+    : null;
+
+/** Locate the sole explicit workspace property without constraining deployment. */
+const findWorkspaceNode = (
+  configObject: AstNode,
+  filePath: string
+): AstNode | undefined => {
+  const properties = propertiesOf(unwrapExpression(configObject), filePath);
+  const workspaceProperties = properties.filter(
+    (property) => directPropertyKey(property) === 'workspace'
+  );
+  if (workspaceProperties.length > 1) {
+    throw staticIdentityError(
+      `The default config object declares "workspace" more than once in ${filePath}.`,
+      filePath,
+      'invalid-shape',
+      { key: 'workspace' }
+    );
+  }
+  const [workspaceProperty] = workspaceProperties;
+  if (workspaceProperty === undefined) {
+    const computedWorkspace = properties.find(
+      (property) => computedPropertyKey(property) === 'workspace'
+    );
+    if (computedWorkspace !== undefined) {
+      throw staticIdentityError(
+        `Static workspace identity in ${filePath} must use a direct workspace property.`,
+        filePath,
+        'dynamic-expression',
+        { expressionType: computedWorkspace.type }
+      );
+    }
+    const possibleWorkspaceProvider = properties.find(
+      (property) =>
+        property.type !== 'Property' ||
+        (property['computed'] === true &&
+          computedPropertyKey(property) === null)
+    );
+    if (possibleWorkspaceProvider !== undefined) {
+      throw staticIdentityError(
+        `Static workspace identity in ${filePath} cannot be proven absent because spreads or computed properties could supply workspace.`,
+        filePath,
+        'dynamic-expression',
+        { expressionType: possibleWorkspaceProvider.type }
+      );
+    }
+    return undefined;
+  }
+  const workspaceIndex = properties.indexOf(workspaceProperty);
+  const possibleOverride = properties
+    .slice(workspaceIndex + 1)
+    .find(
+      (property) =>
+        property.type !== 'Property' ||
+        (property['computed'] === true &&
+          (computedPropertyKey(property) === null ||
+            computedPropertyKey(property) === 'workspace'))
+    );
+  if (possibleOverride !== undefined) {
+    throw staticIdentityError(
+      `Static workspace identity in ${filePath} must follow spreads and computed properties that could override workspace.`,
+      filePath,
+      'dynamic-expression',
+      { expressionType: possibleOverride.type }
+    );
+  }
+  return unwrapExpression(workspaceProperty['value'] as AstNode);
 };
 
 const findConfigHelperNames = (
@@ -213,9 +294,10 @@ const extractLiteralApps = (
 
 const extractWorkspaceFromModule = (
   filePath: string,
-  sourceCode: string
+  sourceCode: string,
+  parsePath = filePath
 ): unknown => {
-  const parsed = parseWithDiagnostics(filePath, sourceCode);
+  const parsed = parseWithDiagnostics(parsePath, sourceCode);
   if (parsed.ast === null || parsed.diagnostics.length > 0) {
     throw staticIdentityError(
       `Unable to parse static workspace identity from ${filePath}. Fix the TypeScript syntax before running a workspace command.`,
@@ -232,12 +314,7 @@ const extractWorkspaceFromModule = (
     findConfigHelperNames(body),
     filePath
   );
-  const configEntries = staticPropertyEntries(
-    configObject,
-    filePath,
-    'The default config object'
-  );
-  const workspaceNode = configEntries.get('workspace');
+  const workspaceNode = findWorkspaceNode(configObject, filePath);
   if (workspaceNode === undefined) {
     return undefined;
   }
@@ -257,6 +334,81 @@ const extractWorkspaceFromModule = (
   return { apps: extractLiteralApps(appsNode, filePath) };
 };
 
+const yamlKeyName = (value: unknown): string | null => {
+  if (!isScalar(value)) {
+    return null;
+  }
+  const scalar = value.value;
+  return typeof scalar === 'string' ||
+    typeof scalar === 'number' ||
+    typeof scalar === 'boolean' ||
+    typeof scalar === 'bigint' ||
+    scalar === null
+    ? String(scalar)
+    : null;
+};
+
+const yamlUniqueEntry = (
+  value: unknown,
+  key: string,
+  label: string,
+  filePath: string
+): unknown => {
+  if (!isMap(value)) {
+    return undefined;
+  }
+  const matches = value.items.filter((pair) => yamlKeyName(pair.key) === key);
+  if (matches.length > 1) {
+    throw staticIdentityError(
+      `${label} declares "${key}" more than once in ${filePath}.`,
+      filePath,
+      'invalid-shape',
+      { key }
+    );
+  }
+  return matches[0]?.value;
+};
+
+const assertYamlIdentityKeysUnique = (
+  filePath: string,
+  sourceCode: string
+): void => {
+  const document = parseDocument(sourceCode, { uniqueKeys: false });
+  const workspaceNode = yamlUniqueEntry(
+    document.contents,
+    'workspace',
+    'The default config object',
+    filePath
+  );
+  const appsNode = yamlUniqueEntry(
+    workspaceNode,
+    'apps',
+    'workspace',
+    filePath
+  );
+  if (!isMap(appsNode)) {
+    return;
+  }
+  const appIds = new Set<string>();
+  for (const pair of appsNode.items) {
+    const appId = yamlKeyName(pair.key);
+    if (appId === null) {
+      continue;
+    }
+    if (appIds.has(appId)) {
+      throw staticIdentityError(
+        `workspace.apps declares "${appId}" more than once in ${filePath}.`,
+        filePath,
+        'invalid-shape',
+        { key: appId }
+      );
+    }
+    appIds.add(appId);
+    yamlUniqueEntry(pair.value, 'root', `workspace.apps.${appId}`, filePath);
+    yamlUniqueEntry(pair.value, 'entry', `workspace.apps.${appId}`, filePath);
+  }
+};
+
 const extensionFor = (filePath: string): string | undefined =>
   ['.jsonc', '.json', '.toml', '.yaml', '.mts', '.mjs', '.ts', '.js'].find(
     (extension) => filePath.endsWith(extension)
@@ -269,16 +421,32 @@ export const parseTrailsProjectConfigFile = async (
   try {
     switch (extensionFor(filePath)) {
       case '.json': {
-        return parseTrailsConfigData(filePath, text);
+        parseTrailsConfigData(filePath, text);
+        return {
+          workspace: extractWorkspaceFromModule(
+            filePath,
+            `export default (${text});`,
+            `${filePath}.ts`
+          ),
+        };
       }
       case '.jsonc': {
-        return parseTrailsConfigData(filePath, text);
+        parseTrailsConfigData(filePath, text);
+        return {
+          workspace: extractWorkspaceFromModule(
+            filePath,
+            `export default (${text});`,
+            `${filePath}.ts`
+          ),
+        };
       }
       case '.toml': {
         return parseTrailsConfigData(filePath, text);
       }
       case '.yaml': {
-        return parseTrailsConfigData(filePath, text);
+        const parsed = parseTrailsConfigData(filePath, text);
+        assertYamlIdentityKeysUnique(filePath, text);
+        return parsed;
       }
       case '.js':
       case '.mjs':

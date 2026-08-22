@@ -133,7 +133,7 @@ export default {
 };
 ```
 
-`readTrailsProjectIdentity()` reads only this literal project-identity subset. TypeScript modules are parsed without being imported or evaluated; JSON, JSONC, YAML, and TOML configs converge through the same validator. Dynamic app declarations, escaping paths, normalized root collisions, and nested workspace declarations fail with typed `ValidationError` diagnostics.
+`readTrailsProjectIdentity()` reads only this literal project-identity subset. TypeScript modules are parsed without being imported or evaluated; type-only wrappers such as `as const` and `satisfies` are transparent, while unrelated deployment properties remain free to use the normal resolved-config patterns before the explicit `workspace` declaration. JSON, JSONC, YAML, and TOML configs converge through the same validator. Dynamic app declarations, duplicate identity keys, escaping paths, normalized root collisions, potential overrides after `workspace`, and nested workspace declarations fail with typed `ValidationError` diagnostics.
 
 Callers must supply their collection boundary; Config does not infer a working-tree boundary. Pass `startDir` as well when discovery starts below that root. Discovery walks past app-local locks and ordinary nested app configs, inventories workspace declarations throughout the collection, and never crosses the supplied boundary or a nested repository edge:
 

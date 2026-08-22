@@ -160,7 +160,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 
 | Package | What it does | Supporting dep |
 | --- | --- | --- |
-| `@ontrails/config` | Config resolution, profiles, static workspace app identity, resource config schemas, diagnostics | `@ontrails/source` for non-executing TypeScript identity parsing |
+| `@ontrails/config` | Config resolution, profiles, static workspace app identity, resource config schemas, diagnostics | `@ontrails/source` for non-executing TypeScript identity parsing; `yaml` for source-preserving YAML identity validation |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
@@ -193,7 +193,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/mcp (core, @modelcontextprotocol/sdk)
 @ontrails/http (core)
 @ontrails/library (core)
-@ontrails/config (core, source)
+@ontrails/config (core, source, yaml)
 @ontrails/permits (core)
 @ontrails/store (core)
 @ontrails/drizzle (store, drizzle-orm)

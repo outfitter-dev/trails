@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -151,6 +151,157 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
     });
   }
 
+  test('does not let type wrappers launder dynamic identity', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        'export default ({ workspace: { apps: getApps() } } as const);\n'
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('workspace.apps must use inline object literals');
+    });
+  });
+
+  test('ignores flexible deployment properties before literal workspace identity', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        `import { defineConfig } from '@ontrails/config';
+const deployment = readDeployment();
+const deploymentKey = process.env.DEPLOYMENT_KEY;
+export default defineConfig({
+  ...deployment,
+  [deploymentKey]: readValue(),
+  schema: buildSchema(),
+  workspace: { apps: { demo: { root: 'apps/demo' } } },
+});\n`
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(result.apps[0]).toMatchObject({
+        id: 'demo',
+        root: 'apps/demo',
+      });
+    });
+  });
+
+  test('rejects deployment expressions that could override literal workspace identity', async () => {
+    for (const suffix of ['...deployment', '[deploymentKey]: readValue()']) {
+      await withTempDir(async (rootDir) => {
+        await writeFile(
+          rootDir,
+          'trails.config.ts',
+          `export default {
+  workspace: { apps: { demo: { root: 'apps/demo' } } },
+  ${suffix},
+};\n`
+        );
+
+        await expect(
+          readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+        ).rejects.toThrow('could override workspace');
+      });
+    }
+  });
+
+  test('allows a statically unrelated computed deployment key after workspace', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        `export default {
+  workspace: { apps: { demo: { root: 'apps/demo' } } },
+  ['deployment']: readDeployment(),
+};\n`
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(result.apps[0]?.id).toBe('demo');
+    });
+  });
+
+  test('rejects computed workspace identity when no direct property overrides it', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        "export default { ['workspace']: { apps: { demo: { root: 'apps/demo' } } } };\n"
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('must use a direct workspace property');
+    });
+  });
+
+  test.each([
+    ['a spread', '...projectIdentity'],
+    ['an unknown computed property', '[projectKey]: projectIdentity'],
+  ])(
+    'rejects %s when workspace identity is otherwise absent',
+    async (_label, property) => {
+      await withTempDir(async (rootDir) => {
+        await writeFile(
+          rootDir,
+          'trails.config.ts',
+          `const projectIdentity = readProjectIdentity();
+const projectKey = process.env.PROJECT_KEY;
+export default { ${property} };\n`
+        );
+
+        await expect(
+          readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+        ).rejects.toThrow('could supply workspace');
+      });
+    }
+  );
+
+  test('accepts a statically unrelated computed template key without workspace identity', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        'export default { [`deployment`]: readDeployment() };\n'
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(result.apps).toEqual([]);
+    });
+  });
+
+  test('rejects duplicate explicit workspace properties', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        `export default {
+  workspace: { apps: { alpha: { root: 'apps/alpha' } } },
+  workspace: { apps: { beta: { root: 'apps/beta' } } },
+};\n`
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('declares "workspace" more than once');
+    });
+  });
+
   test('recognizes an aliased Config-owned defineConfig import', async () => {
     await withTempDir(async (rootDir) => {
       await writeFile(
@@ -211,6 +362,50 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
           modulePath: 'apps/demo/src/app.ts',
           root: 'apps/demo',
         });
+      });
+    });
+  }
+
+  for (const [extension, content, duplicate] of [
+    ['json', '{"workspace":{"apps":{}},"workspace":{"apps":{}}}', 'workspace'],
+    ['jsonc', '{"workspace":{"apps":{},"apps":{}}}', 'apps'],
+    [
+      'yaml',
+      'workspace:\n  apps:\n    demo:\n      root: apps/a\n      root: apps/b\n',
+      'root',
+    ],
+  ] as const) {
+    test(`rejects duplicate ${extension} ${duplicate} identity fields`, async () => {
+      await withTempDir(async (rootDir) => {
+        await writeFile(rootDir, `trails.config.${extension}`, content);
+
+        await expect(
+          readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+        ).rejects.toThrow('more than once');
+      });
+    });
+  }
+
+  for (const [extension, content] of [
+    [
+      'json',
+      '{"deployment":{"region":"a"},"deployment":{"region":"b"},"workspace":{"apps":{"demo":{"root":"apps/demo"}}}}',
+    ],
+    [
+      'yaml',
+      'deployment:\n  region: a\ndeployment:\n  region: b\nworkspace:\n  apps:\n    demo:\n      root: apps/demo\n',
+    ],
+  ] as const) {
+    test(`keeps duplicate unrelated ${extension} deployment keys outside identity proof`, async () => {
+      await withTempDir(async (rootDir) => {
+        await writeFile(rootDir, `trails.config.${extension}`, content);
+
+        const result = await readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: rootDir,
+        });
+
+        expect(result.apps[0]?.id).toBe('demo');
       });
     });
   }
@@ -396,6 +591,80 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
     });
   });
 
+  test('canonicalizes trailing root separators before collision checks', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: {
+            apps: {
+              alpha: { root: 'apps/a' },
+              beta: { root: './apps/a//' },
+            },
+          },
+        })
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('App roots must be unique');
+    });
+
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: { apps: { demo: { root: './apps/demo//' } } },
+        })
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(result.apps[0]?.root).toBe('apps/demo');
+    });
+  });
+
+  for (const [extension, content] of [
+    [
+      'json',
+      '{"workspace":{"apps":{"demo":{"root":"apps/a"},"demo":{"root":"apps/b"}}}}',
+    ],
+    [
+      'jsonc',
+      '{"workspace":{"apps":{"demo":{"root":"apps/a"},/* duplicate */"demo":{"root":"apps/b"}}}}',
+    ],
+    [
+      'yaml',
+      'workspace:\n  apps:\n    demo:\n      root: apps/a\n    demo:\n      root: apps/b\n',
+    ],
+    [
+      'toml',
+      '[workspace.apps.demo]\nroot = "apps/a"\n[workspace.apps.demo]\nroot = "apps/b"\n',
+    ],
+  ] as const) {
+    test(`rejects duplicate ${extension} app IDs before identity collapses`, async () => {
+      await withTempDir(async (rootDir) => {
+        await writeFile(rootDir, `trails.config.${extension}`, content);
+
+        try {
+          await readTrailsProjectIdentity({
+            boundaryDir: rootDir,
+            startDir: rootDir,
+          });
+          throw new Error(`Expected duplicate ${extension} app ID to fail`);
+        } catch (error) {
+          expect(error).toBeInstanceOf(ValidationError);
+          expect((error as Error).message).toMatch(/more than once|parse/u);
+        }
+      });
+    });
+  }
+
   test('discovers the workspace config above a nested app lock', async () => {
     await withTempDir(async (rootDir) => {
       const appRoot = join(rootDir, 'apps', 'demo');
@@ -534,6 +803,127 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
       } finally {
         await rm(outside, { force: true, recursive: true });
       }
+    });
+  });
+
+  test('rejects a discovery start that escapes through a boundary symlink', async () => {
+    await withTempDir(async (rootDir) => {
+      const outside = await makeTempDir();
+      try {
+        await writeFile(
+          outside,
+          'trails.config.json',
+          JSON.stringify({ workspace: { apps: { escaped: { root: 'app' } } } })
+        );
+        const linkedStart = join(rootDir, 'linked-outside');
+        await symlink(outside, linkedStart, 'dir');
+
+        await expect(
+          readTrailsProjectIdentity({
+            boundaryDir: rootDir,
+            startDir: linkedStart,
+          })
+        ).rejects.toThrow('outside discovery boundary');
+      } finally {
+        await rm(outside, { force: true, recursive: true });
+      }
+    });
+  });
+
+  test('accepts a discovery start through a symlink that stays inside the boundary', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: 'apps/demo' } } } })
+      );
+      const appRoot = join(rootDir, 'apps', 'demo');
+      await mkdir(appRoot, { recursive: true });
+      const linkedStart = join(rootDir, 'linked-demo');
+      await symlink(appRoot, linkedStart, 'dir');
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: linkedStart,
+      });
+
+      expect(identity.configPath).toBe(join(rootDir, 'trails.config.json'));
+      expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
+    });
+  });
+
+  test('walks canonical workspace ancestry from an external alias into the boundary', async () => {
+    await withTempDir(async (rootDir) => {
+      const aliasRoot = await makeTempDir();
+      try {
+        await writeFile(
+          rootDir,
+          'trails.config.json',
+          JSON.stringify({
+            workspace: { apps: { demo: { root: 'apps/demo' } } },
+          })
+        );
+        const appRoot = join(rootDir, 'apps', 'demo');
+        await mkdir(appRoot, { recursive: true });
+        const linkedStart = join(aliasRoot, 'linked-demo');
+        await symlink(appRoot, linkedStart, 'dir');
+
+        const identity = await readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: linkedStart,
+        });
+
+        expect(identity.configPath).toBe(join(rootDir, 'trails.config.json'));
+        expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
+      } finally {
+        await rm(aliasRoot, { force: true, recursive: true });
+      }
+    });
+  });
+
+  test('rejects an explicit config that escapes through a boundary symlink', async () => {
+    await withTempDir(async (rootDir) => {
+      const outside = await makeTempDir();
+      try {
+        const outsideConfig = await writeFile(
+          outside,
+          'trails.config.json',
+          JSON.stringify({ workspace: { apps: {} } })
+        );
+        const linkedConfig = join(rootDir, 'linked-config.json');
+        await symlink(outsideConfig, linkedConfig, 'file');
+
+        await expect(
+          readTrailsProjectIdentity({
+            boundaryDir: rootDir,
+            configPath: linkedConfig,
+            startDir: rootDir,
+          })
+        ).rejects.toThrow('outside discovery boundary');
+      } finally {
+        await rm(outside, { force: true, recursive: true });
+      }
+    });
+  });
+
+  test('keeps an explicit internal config alias without treating it as a duplicate', async () => {
+    await withTempDir(async (rootDir) => {
+      const configPath = await writeFile(
+        rootDir,
+        'trails.config.ts',
+        `export default { workspace: { apps: { demo: { root: 'apps/demo' } } } };`
+      );
+      const linkedConfig = join(rootDir, 'trails.config.mts');
+      await symlink(configPath, linkedConfig, 'file');
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        configPath: linkedConfig,
+        startDir: rootDir,
+      });
+
+      expect(identity.configPath).toBe(linkedConfig);
+      expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
     });
   });
 

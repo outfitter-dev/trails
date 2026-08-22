@@ -4,11 +4,11 @@ import { dirname, isAbsolute, posix, resolve } from 'node:path';
 import { NotFoundError, ValidationError } from '@ontrails/core';
 
 import { trailsAppEntryRelativePath } from './trails-conventions.js';
+import { canonicalBoundaryPath, isWithinBoundary } from './path-boundary.js';
 import {
   collectConfigPathsWithinBoundary,
   combineConfigPaths,
   findConfigPathsThroughBoundary,
-  isWithinBoundary,
 } from './workspace-config-collection.js';
 import {
   parseTrailsProjectConfigFile,
@@ -123,7 +123,7 @@ const normalizeProjectRelativePath = (
       { value }
     );
   }
-  const relativePath = normalized.replace(/^\.\//u, '');
+  const relativePath = normalized.replace(/^\.\//u, '').replace(/\/+$/u, '');
   if (relativePath === '' || relativePath === '.') {
     if (allowCurrentDirectory) {
       return '.';
@@ -269,8 +269,10 @@ export const readTrailsProjectIdentity = async (
   const locatedPaths = combineConfigPaths(collectedPaths, selectedPaths);
 
   const workspaceResults: ReadTrailsProjectIdentityResult[] = [];
+  const canonicalBoundary = canonicalBoundaryPath(resolvedBoundary);
   for (const located of locatedPaths) {
-    if (!isWithinBoundary(resolvedBoundary, dirname(located))) {
+    const canonicalConfigDirectory = dirname(canonicalBoundaryPath(located));
+    if (!isWithinBoundary(canonicalBoundary, canonicalConfigDirectory)) {
       throw new ValidationError(
         `Trails config file "${located}" is outside discovery boundary "${resolvedBoundary}".`,
         { context: { boundaryDir: resolvedBoundary, configPath: located } }
