@@ -45,6 +45,7 @@ interface ScaffoldRequest {
 
 interface VerifyRequest {
   readonly dir?: string | undefined;
+  readonly hookDir?: string | undefined;
   readonly name: string;
   readonly verify: boolean;
 }
@@ -98,6 +99,7 @@ const buildSurfaceInput = (dir: string, surface: string) => ({
 
 const buildVerifyInput = (input: VerifyRequest) => ({
   ...(input.dir === undefined ? {} : { dir: input.dir }),
+  ...(input.hookDir === undefined ? {} : { hookDir: input.hookDir }),
   name: input.name,
 });
 
@@ -147,6 +149,15 @@ const collectCreatedFiles = (
 const projectRelativeAppPath = (appRoot: string, path: string): string =>
   appRoot === '.' ? path : `${appRoot}/${path}`;
 
+const projectRelativeVerifyPath = (
+  layout: ScaffoldedProject['layout'],
+  appRoot: string,
+  path: string
+): string =>
+  layout === 'workspace' && path === 'lefthook.yml'
+    ? path
+    : projectRelativeAppPath(appRoot, path);
+
 const collectCreateOperations = (
   scaffolded: ScaffoldedProject,
   input: CreateInput
@@ -161,7 +172,11 @@ const collectCreateOperations = (
             scaffolded.appRoot,
             '__tests__/examples.test.ts'
           ),
-          projectRelativeAppPath(scaffolded.appRoot, 'lefthook.yml'),
+          projectRelativeVerifyPath(
+            scaffolded.layout,
+            scaffolded.appRoot,
+            'lefthook.yml'
+          ),
         ]
       : []),
     'README.md',
@@ -401,6 +416,7 @@ export const createTrail = trail('create', {
           'add.verify',
           buildVerifyInput({
             dir: dirname(scaffolded.value.appDir),
+            hookDir: scaffolded.value.dir,
             name: basename(scaffolded.value.appDir),
             verify: input.verify,
           })
@@ -423,7 +439,11 @@ export const createTrail = trail('create', {
             projectRelativeAppPath(scaffolded.value.appRoot, path)
           ),
           verifyFiles.value.map((path) =>
-            projectRelativeAppPath(scaffolded.value.appRoot, path)
+            projectRelativeVerifyPath(
+              scaffolded.value.layout,
+              scaffolded.value.appRoot,
+              path
+            )
           ),
           readmeFile.value
         ),

@@ -632,6 +632,7 @@ describe('trails create', () => {
           `apps/${name}/src/app.ts`,
           `apps/${name}/bin/cli.ts`,
           `apps/${name}/__tests__/examples.test.ts`,
+          'lefthook.yml',
           'README.md',
         ]);
         expectPaths(
@@ -640,6 +641,7 @@ describe('trails create', () => {
             'package.json',
             'trails.config.ts',
             'tsconfig.base.json',
+            'lefthook.yml',
             `apps/${name}/package.json`,
             `apps/${name}/tsconfig.json`,
             `apps/${name}/src/app.ts`,
@@ -649,7 +651,12 @@ describe('trails create', () => {
           true
         );
         expectPaths(dir, ['trails.lock', '.trails', 'trails'], false);
-        expectPaths(appDir, ['trails.lock', '.trails', 'trails'], false);
+        expectPaths(
+          appDir,
+          ['trails.lock', '.trails', 'trails', 'lefthook.yml'],
+          false
+        );
+        expect(readText(dir, 'lefthook.yml')).toContain('bunx trails warden');
 
         expect(readJson(dir, 'package.json')['workspaces']).toEqual([
           'apps/*',
@@ -710,6 +717,7 @@ describe('trails create', () => {
               kind: 'write',
               path: `apps/${name}/__tests__/examples.test.ts`,
             },
+            { kind: 'write', path: 'lefthook.yml' },
             { kind: 'write', path: 'README.md' },
           ])
         );
@@ -717,6 +725,7 @@ describe('trails create', () => {
           expect.arrayContaining([
             { kind: 'write', path: 'trails.lock' },
             { kind: 'write', path: '.trails/scaffold.json' },
+            { kind: 'write', path: `apps/${name}/lefthook.yml` },
           ])
         );
         expect(result.guidance.join('\n')).toContain(
