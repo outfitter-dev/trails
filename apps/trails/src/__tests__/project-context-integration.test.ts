@@ -96,6 +96,101 @@ afterEach(() => {
 });
 
 describe('compile and validate project context', () => {
+  test('bare compile and validate discover one nested standalone app module', async () => {
+    rmSync(join(root, 'trails.config.ts'));
+    rmSync(join(root, 'apps'), { force: true, recursive: true });
+    writeApp(root, 'solo');
+
+    const compiled = expectOk(
+      await compileTrail.implementation({}, { cwd: root } as never)
+    );
+    const validated = expectOk(
+      await validateTrail.implementation({}, { cwd: root } as never)
+    );
+
+    expect(compiled.project).toMatchObject({
+      modulePath: 'apps/solo/src/app.ts',
+      moduleSource: 'convention',
+      selectedExtent: 'standalone-app',
+    });
+    expect(validated.project).toMatchObject({
+      modulePath: 'apps/solo/src/app.ts',
+      moduleSource: 'convention',
+      selectedExtent: 'standalone-app',
+    });
+    expect(existsSync(join(root, 'trails.lock'))).toBe(true);
+  });
+
+  test('bare compile and validate keep a conventional nested app ahead of an ancestor config', async () => {
+    writeFileSync(
+      join(root, 'trails.config.ts'),
+      'export default { warden: { format: "human" } };\n'
+    );
+    rmSync(join(root, 'apps'), { force: true, recursive: true });
+    writeApp(root, 'standalone');
+    const appRoot = join(root, 'apps', 'standalone');
+
+    const compiled = expectOk(
+      await compileTrail.implementation({}, { cwd: appRoot } as never)
+    );
+    const validated = expectOk(
+      await validateTrail.implementation({}, { cwd: appRoot } as never)
+    );
+
+    expect(compiled.project).toMatchObject({
+      appRoot: '.',
+      modulePath: 'src/app.ts',
+      moduleSource: 'convention',
+      projectRoot: appRoot,
+      selectedExtent: 'standalone-app',
+    });
+    expect(validated.project).toMatchObject({
+      appRoot: '.',
+      modulePath: 'src/app.ts',
+      moduleSource: 'convention',
+      projectRoot: appRoot,
+      selectedExtent: 'standalone-app',
+    });
+    expect(existsSync(join(root, 'trails.lock'))).toBe(false);
+    expect(existsSync(join(appRoot, 'trails.lock'))).toBe(true);
+  });
+
+  test('bare compile and validate keep a custom module app-local ahead of an ancestor config', async () => {
+    writeFileSync(
+      join(root, 'trails.config.ts'),
+      'export default { warden: { format: "human" } };\n'
+    );
+    rmSync(join(root, 'apps'), { force: true, recursive: true });
+    const appRoot = join(root, 'apps', 'custom');
+    mkdirSync(appRoot, { recursive: true });
+    writeFileSync(join(appRoot, 'topo.ts'), appSource('custom'));
+
+    const input = { module: './topo.ts' } as const;
+    const compiled = expectOk(
+      await compileTrail.implementation(input, { cwd: appRoot } as never)
+    );
+    const validated = expectOk(
+      await validateTrail.implementation(input, { cwd: appRoot } as never)
+    );
+
+    expect(compiled.project).toMatchObject({
+      appRoot: '.',
+      modulePath: './topo.ts',
+      moduleSource: 'module',
+      projectRoot: appRoot,
+      selectedExtent: 'standalone-app',
+    });
+    expect(validated.project).toMatchObject({
+      appRoot: '.',
+      modulePath: './topo.ts',
+      moduleSource: 'module',
+      projectRoot: appRoot,
+      selectedExtent: 'standalone-app',
+    });
+    expect(existsSync(join(root, 'trails.lock'))).toBe(false);
+    expect(existsSync(join(appRoot, 'trails.lock'))).toBe(true);
+  });
+
   test('workspace-root compile requires one app and never fans out', async () => {
     const result = await compileTrail.implementation({}, {
       cwd: root,

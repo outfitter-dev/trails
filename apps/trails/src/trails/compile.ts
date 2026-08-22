@@ -8,6 +8,7 @@ import {
   assertConfiguredAppBinding,
   assertObservableProjectApps,
   compileNeedsAppError,
+  resolveOperatorAppModuleContext,
   resolveOperatorProjectContext,
 } from './project-context.js';
 import {
@@ -63,28 +64,36 @@ const compileSelectedProject = async (
   if (context.selectedExtent === 'workspace') {
     return Result.err(compileNeedsAppError(context));
   }
+  const appContext = resolveOperatorAppModuleContext(context);
+  if (appContext.isErr()) {
+    return appContext;
+  }
+  const selectedContext = appContext.value;
   const observable = await assertObservableProjectApps(context);
   if (observable.isErr()) {
     return observable;
   }
   return withFreshAppLease(
-    context.app.modulePath,
-    context.app.rootDir,
+    selectedContext.app.modulePath,
+    selectedContext.app.rootDir,
     async (lease) => {
-      const binding = assertConfiguredAppBinding(context, lease.app.name);
+      const binding = assertConfiguredAppBinding(
+        selectedContext,
+        lease.app.name
+      );
       if (binding.isErr()) {
         return binding;
       }
       const compiled = await compileCurrentTopo(lease.app, {
         force: input.force,
         overlays: lease.overlays,
-        rootDir: context.app.rootDir,
+        rootDir: selectedContext.app.rootDir,
       });
       return compiled.isErr()
         ? compiled
         : Result.ok({
             ...compiled.value,
-            project: appProjectSelection(context, lease.app.name),
+            project: appProjectSelection(selectedContext, lease.app.name),
           });
     }
   );

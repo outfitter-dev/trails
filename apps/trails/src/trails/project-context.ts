@@ -1,6 +1,7 @@
 import { existsSync, realpathSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
+import { findAppModule } from '@ontrails/cli';
 import {
   findTrailsConfigPaths,
   readTrailsProjectIdentity,
@@ -14,7 +15,7 @@ import type {
   ResolvedTrailsWorkspaceApp,
   TrailsProjectRootResolution,
 } from '@ontrails/config';
-import { Result, ValidationError } from '@ontrails/core';
+import { deriveSafePath, Result, ValidationError } from '@ontrails/core';
 import { deriveWorkspaceView } from '@ontrails/topography';
 
 export type OperatorModuleSource = 'config' | 'convention' | 'module';
@@ -60,6 +61,8 @@ export interface OperatorProjectContextInput {
 export interface OperatorProjectContextRuntime {
   readonly cwd?: string | undefined;
 }
+
+const URL_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
 const isInside = (root: string, target: string): boolean => {
   const path = relative(root, target);
@@ -163,6 +166,32 @@ const standaloneApp = (
   root: '.',
   rootDir: projectRoot,
 });
+
+/** Apply canonical module discovery only when a standalone app will be loaded. */
+export const resolveOperatorAppModuleContext = (
+  context: OperatorAppProjectContext
+): Result<OperatorAppProjectContext, Error> => {
+  if (context.app.configured || context.app.moduleSource !== 'convention') {
+    return Result.ok(context);
+  }
+  try {
+    return Result.ok({
+      ...context,
+      app: {
+        ...context.app,
+        modulePath: findAppModule(context.app.rootDir),
+      },
+    });
+  } catch (error) {
+    return Result.err(
+      error instanceof Error
+        ? error
+        : new ValidationError('Unable to discover a Trails app module.', {
+            context: { detail: String(error) },
+          })
+    );
+  }
+};
 
 const unknownAppError = (
   requestedAppId: string,
@@ -268,7 +297,8 @@ const configuredSelection = (
 const resolveStandaloneRoot = (
   startDir: string,
   boundaryDir: string,
-  explicitRoot: boolean
+  explicitRoot: boolean,
+  modulePath: string | undefined
 ): TrailsProjectRootResolution => {
   const resolved = resolveTrailsProjectRoot({
     boundaryDir,
@@ -282,6 +312,34 @@ const resolveStandaloneRoot = (
   let current = resolve(startDir);
   const configRoot = resolve(resolved.rootDir);
   while (true) {
+    if (
+      modulePath !== undefined &&
+      !isAbsolute(modulePath) &&
+      !URL_SCHEME.test(modulePath)
+    ) {
+      const safeModulePath = deriveSafePath(current, modulePath);
+      if (safeModulePath.isOk()) {
+        try {
+          if (statSync(safeModulePath.value).isFile()) {
+            return {
+              marker: 'source',
+              markerPath: safeModulePath.value,
+              rootDir: current,
+            };
+          }
+        } catch {
+          // A missing custom entry is ordinary during the bounded walk.
+        }
+      }
+    }
+    const appEntryPath = join(current, trailsAppEntryRelativePath);
+    try {
+      if (statSync(appEntryPath).isFile()) {
+        return { marker: 'source', markerPath: appEntryPath, rootDir: current };
+      }
+    } catch {
+      // A missing conventional entry is ordinary during the bounded walk.
+    }
     for (const candidate of trailsSourceRootCandidates) {
       const markerPath = join(current, candidate);
       try {
@@ -336,7 +394,12 @@ export const resolveOperatorProjectContext = async (
       throw unknownAppError(input.app, [], identity.rootDir);
     }
 
-    const root = resolveStandaloneRoot(startDir, boundaryDir, explicitRoot);
+    const root = resolveStandaloneRoot(
+      startDir,
+      boundaryDir,
+      explicitRoot,
+      input.module
+    );
     return Result.ok({
       app: standaloneApp(root.rootDir, input.module),
       boundaryDir,

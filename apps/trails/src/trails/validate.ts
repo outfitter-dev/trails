@@ -12,6 +12,7 @@ import type {
 import {
   assertConfiguredAppBinding,
   assertObservableProjectApps,
+  resolveOperatorAppModuleContext,
   resolveOperatorProjectContext,
 } from './project-context.js';
 import {
@@ -164,43 +165,61 @@ const assertValidatedConfiguredAppBinding = async (
 };
 
 const validateAppProject = async (
-  context: OperatorAppProjectContext
-): Promise<TrailResult<AppValidationOutput, Error>> =>
-  withFreshAppLease<AppValidationOutput>(
-    context.app.modulePath,
-    context.app.rootDir,
+  context: OperatorAppProjectContext,
+  options: { readonly validateArtifactBinding?: boolean } = {}
+): Promise<TrailResult<AppValidationOutput, Error>> => {
+  const moduleContext = resolveOperatorAppModuleContext(context);
+  if (moduleContext.isErr()) {
+    return moduleContext;
+  }
+  const selectedContext = moduleContext.value;
+  return withFreshAppLease<AppValidationOutput>(
+    selectedContext.app.modulePath,
+    selectedContext.app.rootDir,
     async (lease) => {
-      const binding = assertConfiguredAppBinding(context, lease.app.name);
+      const binding = assertConfiguredAppBinding(
+        selectedContext,
+        lease.app.name
+      );
       if (binding.isErr()) {
         return binding;
       }
       const validated = await validateCurrentTopo(lease.app, {
         overlays: lease.overlays,
-        rootDir: context.app.rootDir,
+        rootDir: selectedContext.app.rootDir,
       });
       if (validated.isErr()) {
         return validated;
       }
-      const artifactBinding = await assertValidatedConfiguredAppBinding(
-        context,
-        validated.value.committedHash
-      );
-      if (artifactBinding.isErr()) {
-        return artifactBinding;
+      if (options.validateArtifactBinding !== false) {
+        const artifactBinding = await assertValidatedConfiguredAppBinding(
+          selectedContext,
+          validated.value.committedHash
+        );
+        if (artifactBinding.isErr()) {
+          return artifactBinding;
+        }
       }
-      return context.selectedExtent === 'configured-app'
+      return selectedContext.selectedExtent === 'configured-app'
         ? Result.ok({
             ...validated.value,
-            project: configuredAppProjectSelection(context, lease.app.name),
+            project: configuredAppProjectSelection(
+              selectedContext,
+              lease.app.name
+            ),
             selectedExtent: 'configured-app',
           })
         : Result.ok({
             ...validated.value,
-            project: standaloneAppProjectSelection(context, lease.app.name),
+            project: standaloneAppProjectSelection(
+              selectedContext,
+              lease.app.name
+            ),
             selectedExtent: 'standalone-app',
           });
     }
   );
+};
 
 const workspaceValidationError = (
   message: string,
@@ -217,7 +236,9 @@ const validateWorkspaceProject = async (
 ): Promise<TrailResult<ValidateTrailOutput, Error>> => {
   const results: WorkspaceAppValidation[] = [];
   for (const app of context.apps) {
-    const validated = await validateAppProject(appContext(context, app));
+    const validated = await validateAppProject(appContext(context, app), {
+      validateArtifactBinding: false,
+    });
     if (validated.isErr()) {
       return Result.err(
         workspaceValidationError(

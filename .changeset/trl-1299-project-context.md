@@ -9,4 +9,6 @@ exactly one app lock without root fanout, validate either one app or the complet
 workspace, enforce configured topo-name binding and collection boundaries, and
 return machine-readable selection and completeness provenance. Project-root
 discovery can now be bounded to one working tree so linked and nested checkouts
-do not borrow identity from a parent collection.
+do not borrow identity from a parent collection. Custom `--module` entries stay
+relative to the selected standalone app root, and complete workspace validation
+derives saved binding and freshness evidence once after validating each live app.

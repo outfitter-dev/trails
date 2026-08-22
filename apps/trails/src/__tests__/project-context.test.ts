@@ -13,6 +13,7 @@ import { join } from 'node:path';
 
 import {
   compileNeedsAppError,
+  resolveOperatorAppModuleContext,
   resolveOperatorProjectContext,
 } from '../trails/project-context.js';
 
@@ -256,6 +257,55 @@ describe('resolveOperatorProjectContext', () => {
       projectRoot: canonicalAppRoot,
       selectedExtent: 'standalone-app',
     });
+  });
+
+  test('discovers the sole nested app module in a standalone project', async () => {
+    rmSync(join(root, 'trails.config.ts'));
+    writeFileSync(
+      join(root, 'apps', 'alpha', 'src', 'app.ts'),
+      'export default {};\n'
+    );
+
+    const context = expectOk(
+      await resolveOperatorProjectContext({}, { cwd: root })
+    );
+    const discovered = expectOk<{
+      readonly app: {
+        readonly modulePath: string;
+        readonly moduleSource: string;
+      };
+      readonly selectedExtent: string;
+    }>(resolveOperatorAppModuleContext(context as never));
+
+    expect(discovered).toMatchObject({
+      app: {
+        modulePath: 'apps/alpha/src/app.ts',
+        moduleSource: 'convention',
+      },
+      selectedExtent: 'standalone-app',
+    });
+  });
+
+  test('preserves standalone ambiguity across nested app modules', async () => {
+    rmSync(join(root, 'trails.config.ts'));
+    writeFileSync(
+      join(root, 'apps', 'alpha', 'src', 'app.ts'),
+      'export default {};\n'
+    );
+    writeFileSync(
+      join(root, 'apps', 'beta', 'src', 'app.ts'),
+      'export default {};\n'
+    );
+
+    const context = expectOk(
+      await resolveOperatorProjectContext({}, { cwd: root })
+    );
+    const result = resolveOperatorAppModuleContext(context as never);
+
+    expect(result.isErr()).toBe(true);
+    expect(result.error?.message).toContain('apps/alpha/src/app.ts');
+    expect(result.error?.message).toContain('apps/beta/src/app.ts');
+    expect(result.error?.message).toContain('--module');
   });
 
   test('selects workspace extent only at the configured root', async () => {
