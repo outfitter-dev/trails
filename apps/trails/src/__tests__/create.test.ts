@@ -1452,11 +1452,7 @@ await surface(app);
         );
         expect(readme).not.toContain('entity add --name New --permit');
 
-        symlinkSync(
-          join(repoRoot, 'node_modules'),
-          join(dir, 'node_modules'),
-          'dir'
-        );
+        linkGeneratedProjectDependencies(dir);
         const legacyCli = Bun.spawnSync({
           cmd: [
             process.execPath,
