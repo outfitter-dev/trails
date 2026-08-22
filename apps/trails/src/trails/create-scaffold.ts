@@ -50,6 +50,9 @@ interface ScaffoldResult {
   readonly plannedOperations: PlannedProjectOperation[];
 }
 
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const frameworkCommandScripts = {
   add: 'trails add',
   compile: 'trails compile',
@@ -109,6 +112,70 @@ const generateAppPackageJson = (name: string): string => {
   return stringifyScaffoldPackageJson(pkg);
 };
 
+const mergeScaffoldOwnedMap = (
+  existing: unknown,
+  required: Record<string, unknown>,
+  field: string
+): Record<string, unknown> => {
+  if (existing !== undefined && !isPlainRecord(existing)) {
+    throw new TypeError(`${field} must be an object when present`);
+  }
+
+  const entries = existing ?? {};
+  for (const [key, value] of Object.entries(required)) {
+    const existingValue = entries[key];
+    if (existingValue !== undefined && existingValue !== value) {
+      throw new TypeError(
+        `${field}.${key} must remain ${JSON.stringify(value)} for the generated app contract`
+      );
+    }
+  }
+
+  return { ...required, ...entries };
+};
+
+const mergeAppPackageJson = (
+  source: string,
+  name: string
+): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(source);
+  if (!isPlainRecord(parsed)) {
+    throw new TypeError('the app manifest root value must be an object');
+  }
+
+  const generated = JSON.parse(generateAppPackageJson(name)) as Record<
+    string,
+    unknown
+  >;
+  const existingType = parsed['type'];
+  if (existingType !== undefined && existingType !== generated['type']) {
+    throw new TypeError(
+      `type must remain ${JSON.stringify(generated['type'])} for the generated app contract`
+    );
+  }
+
+  return {
+    ...generated,
+    ...parsed,
+    dependencies: mergeScaffoldOwnedMap(
+      parsed['dependencies'],
+      generated['dependencies'] as Record<string, unknown>,
+      'dependencies'
+    ),
+    devDependencies: mergeScaffoldOwnedMap(
+      parsed['devDependencies'],
+      generated['devDependencies'] as Record<string, unknown>,
+      'devDependencies'
+    ),
+    scripts: mergeScaffoldOwnedMap(
+      parsed['scripts'],
+      generated['scripts'] as Record<string, unknown>,
+      'scripts'
+    ),
+    type: generated['type'],
+  };
+};
+
 const requiredWorkspaceScripts = {
   build: 'bun run --filter "*" build',
   test: 'bun run --filter "*" test',
@@ -135,9 +202,6 @@ const generateWorkspaceConfig = (name: string): string =>
 };
 `;
 
-const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
 const validateRequiredWorkspaceScripts = (
   existingScripts: Record<string, unknown> | undefined
 ): void => {
@@ -156,6 +220,83 @@ interface PreparedScaffoldFiles {
   readonly overwritePaths: ReadonlySet<string>;
 }
 
+const mergeWorkspacePackageJson = (source: string): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(source);
+  if (!isPlainRecord(parsed)) {
+    throw new TypeError('the root value must be an object');
+  }
+  const existingScripts = parsed['scripts'];
+  if (existingScripts !== undefined && !isPlainRecord(existingScripts)) {
+    throw new TypeError('scripts must be an object when present');
+  }
+  const existingWorkspaces = parsed['workspaces'];
+  if (
+    existingWorkspaces !== undefined &&
+    (!Array.isArray(existingWorkspaces) ||
+      existingWorkspaces.some((value) => typeof value !== 'string'))
+  ) {
+    throw new TypeError('workspaces must be an array of strings when present');
+  }
+  validateRequiredWorkspaceScripts(existingScripts);
+  return {
+    ...parsed,
+    private: true,
+    scripts: { ...requiredWorkspaceScripts, ...existingScripts },
+    workspaces: [
+      ...new Set([
+        ...((existingWorkspaces as string[] | undefined) ?? []),
+        'apps/*',
+        'packages/*',
+      ]),
+    ],
+  };
+};
+
+interface ExistingManifestReconciliation {
+  readonly files: Map<string, string>;
+  readonly merge: (source: string) => Record<string, unknown>;
+  readonly message: string;
+  readonly overwritePaths: Set<string>;
+  readonly path: string;
+  readonly projectDir: string;
+  readonly reason: string;
+}
+
+const reconcileExistingManifest = async ({
+  files,
+  merge,
+  message,
+  overwritePaths,
+  path,
+  projectDir,
+  reason,
+}: ExistingManifestReconciliation): Promise<TrailsResult<void, Error>> => {
+  const manifestPath = join(projectDir, path);
+  const manifestFile = Bun.file(manifestPath);
+  if (!(await manifestFile.exists())) {
+    return Result.ok();
+  }
+
+  try {
+    const source = await manifestFile.text();
+    const merged = stringifyScaffoldPackageJson(merge(source));
+    if (merged === source) {
+      files.delete(path);
+    } else {
+      files.set(path, merged);
+      overwritePaths.add(path);
+    }
+    return Result.ok();
+  } catch (error) {
+    return Result.err(
+      new ValidationError(`${message} at ${manifestPath}.`, {
+        ...(error instanceof Error ? { cause: error } : {}),
+        context: { path: manifestPath, reason },
+      })
+    );
+  }
+};
+
 const prepareWorkspaceScaffoldFiles = async (
   projectDir: string,
   name: string,
@@ -163,62 +304,31 @@ const prepareWorkspaceScaffoldFiles = async (
 ): Promise<TrailsResult<PreparedScaffoldFiles, Error>> => {
   const files = new Map(sourceFiles);
   const overwritePaths = new Set<string>();
-  const manifestPath = join(projectDir, 'package.json');
-  const manifestFile = Bun.file(manifestPath);
-  if (await manifestFile.exists()) {
-    try {
-      const source = await manifestFile.text();
-      const parsed: unknown = JSON.parse(source);
-      if (!isPlainRecord(parsed)) {
-        throw new TypeError('the root value must be an object');
-      }
-      const existingScripts = parsed['scripts'];
-      if (existingScripts !== undefined && !isPlainRecord(existingScripts)) {
-        throw new TypeError('scripts must be an object when present');
-      }
-      const existingWorkspaces = parsed['workspaces'];
-      if (
-        existingWorkspaces !== undefined &&
-        (!Array.isArray(existingWorkspaces) ||
-          existingWorkspaces.some((value) => typeof value !== 'string'))
-      ) {
-        throw new TypeError(
-          'workspaces must be an array of strings when present'
-        );
-      }
-      validateRequiredWorkspaceScripts(existingScripts);
-      const merged = stringifyScaffoldPackageJson({
-        ...parsed,
-        private: true,
-        scripts: { ...requiredWorkspaceScripts, ...existingScripts },
-        workspaces: [
-          ...new Set([
-            ...((existingWorkspaces as string[] | undefined) ?? []),
-            'apps/*',
-            'packages/*',
-          ]),
-        ],
-      });
-      if (merged === source) {
-        files.delete('package.json');
-      } else {
-        files.set('package.json', merged);
-        overwritePaths.add('package.json');
-      }
-    } catch (error) {
-      return Result.err(
-        new ValidationError(
-          `Cannot reconcile the existing workspace package.json at ${manifestPath}.`,
-          {
-            ...(error instanceof Error ? { cause: error } : {}),
-            context: {
-              path: manifestPath,
-              reason: 'invalid-workspace-manifest',
-            },
-          }
-        )
-      );
-    }
+  const workspaceManifest = await reconcileExistingManifest({
+    files,
+    merge: mergeWorkspacePackageJson,
+    message: 'Cannot reconcile the existing workspace package.json',
+    overwritePaths,
+    path: 'package.json',
+    projectDir,
+    reason: 'invalid-workspace-manifest',
+  });
+  if (workspaceManifest.isErr()) {
+    return workspaceManifest;
+  }
+
+  const appManifestRelativePath = `apps/${name}/package.json`;
+  const appManifest = await reconcileExistingManifest({
+    files,
+    merge: (source) => mergeAppPackageJson(source, name),
+    message: 'Cannot reconcile the existing app package.json',
+    overwritePaths,
+    path: appManifestRelativePath,
+    projectDir,
+    reason: 'invalid-app-manifest',
+  });
+  if (appManifest.isErr()) {
+    return appManifest;
   }
 
   const configPaths = findTrailsConfigPaths(projectDir);

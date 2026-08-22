@@ -157,20 +157,31 @@ const projectRelativeVerifyPath = (
     ? path
     : projectRelativeAppPath(appRoot, path);
 
-const collectCreateOperations = (
-  scaffolded: ScaffoldedProject,
-  input: CreateInput
-): Result<PlannedProjectOperation[], Error> => {
-  const surfacePaths: string[] = [];
-  for (const surface of input.surfaces) {
-    const entryFile = resolveSurfaceEntryFile(scaffolded.appDir, surface);
+type ResolvedSurfaceEntryFiles = ReadonlyMap<Surface, string>;
+
+const resolveSurfaceEntryFiles = (
+  appDir: string,
+  surfaces: readonly Surface[]
+): Result<ResolvedSurfaceEntryFiles, Error> => {
+  const entries = new Map<Surface, string>();
+  for (const surface of surfaces) {
+    const entryFile = resolveSurfaceEntryFile(appDir, surface);
     if (entryFile.isErr()) {
       return entryFile;
     }
-    surfacePaths.push(
-      projectRelativeAppPath(scaffolded.appRoot, entryFile.value)
-    );
+    entries.set(surface, entryFile.value);
   }
+  return Result.ok(entries);
+};
+
+const collectCreateOperations = (
+  scaffolded: ScaffoldedProject,
+  input: CreateInput,
+  surfaceEntryFiles: ResolvedSurfaceEntryFiles
+): Result<PlannedProjectOperation[], Error> => {
+  const surfacePaths = [...surfaceEntryFiles.values()].map((entryFile) =>
+    projectRelativeAppPath(scaffolded.appRoot, entryFile)
+  );
 
   const preserveExistingPaths = [
     ...surfacePaths,
@@ -240,10 +251,10 @@ const createGuidance = (input: CreateInput): string[] =>
         'Disposable cache and observed state stay in the global per-user Trails cache and state homes.',
       ];
 
-const surfaceReadmeLines = {
-  cli: '- `bin/cli.ts` - CLI surface entry point',
-  http: '- `bin/http.ts` - HTTP surface entry point',
-  mcp: '- `bin/mcp.ts` - MCP surface entry point',
+const surfaceReadmeDescriptions = {
+  cli: 'CLI surface entry point',
+  http: 'HTTP surface entry point',
+  mcp: 'MCP surface entry point',
 } satisfies Record<Surface, string>;
 
 const starterReadmeLines = {
@@ -254,11 +265,15 @@ const starterReadmeLines = {
   hello: 'Includes a `hello` trail with examples for the first happy path.',
 } satisfies Record<Starter, string>;
 
-const generateReadme = (input: CreateInput): string => {
+const generateReadme = (
+  input: CreateInput,
+  surfaceEntryFiles: ResolvedSurfaceEntryFiles
+): string => {
   const appPrefix = input.workspace ? `apps/${input.name}/` : '';
-  const surfaceLines = input.surfaces
-    .map((surface) =>
-      surfaceReadmeLines[surface].replace('`bin/', `\`${appPrefix}bin/`)
+  const surfaceLines = [...surfaceEntryFiles]
+    .map(
+      ([surface, entryFile]) =>
+        `- \`${appPrefix}${entryFile}\` - ${surfaceReadmeDescriptions[surface]}`
     )
     .join('\n');
   const verificationCommand = input.verify ? 'bun test\n' : '';
@@ -321,7 +336,8 @@ ${starterReadmeLines[input.starter]}
 
 const writeReadme = async (
   input: CreateInput,
-  dir: string
+  dir: string,
+  surfaceEntryFiles: ResolvedSurfaceEntryFiles
 ): Promise<Result<string | null, Error>> => {
   const exists = projectPathExists(dir, 'README.md');
   if (exists.isErr()) {
@@ -334,7 +350,7 @@ const writeReadme = async (
   const written = await writeProjectFile(
     dir,
     'README.md',
-    generateReadme(input)
+    generateReadme(input, surfaceEntryFiles)
   );
   return written.isErr() ? Result.err(written.error) : Result.ok('README.md');
 };
@@ -391,7 +407,19 @@ export const createTrail = trail('create', {
       return scaffolded;
     }
 
-    const plannedOperations = collectCreateOperations(scaffolded.value, input);
+    const surfaceEntryFiles = resolveSurfaceEntryFiles(
+      scaffolded.value.appDir,
+      input.surfaces
+    );
+    if (surfaceEntryFiles.isErr()) {
+      return surfaceEntryFiles;
+    }
+
+    const plannedOperations = collectCreateOperations(
+      scaffolded.value,
+      input,
+      surfaceEntryFiles.value
+    );
     if (plannedOperations.isErr()) {
       return plannedOperations;
     }
@@ -436,7 +464,11 @@ export const createTrail = trail('create', {
         return verifyFiles;
       }
 
-      const readmeFile = await writeReadme(input, scaffolded.value.dir);
+      const readmeFile = await writeReadme(
+        input,
+        scaffolded.value.dir,
+        surfaceEntryFiles.value
+      );
       if (readmeFile.isErr()) {
         return readmeFile;
       }

@@ -114,11 +114,13 @@ Same trail contract, different surface. The MCP server exposes `myapp_greet` wit
 
 ## Open an HTTP Surface
 
+Create `bin/http.ts`.
+
 Use Hono when you want framework portability:
 
 ```typescript
 import { surface } from '@ontrails/hono';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph, { port: 3000 });
 ```
@@ -127,7 +129,7 @@ Use Bun-native HTTP when you want Bun's `Bun.serve({ routes })` path without a t
 
 ```typescript
 import { surface } from '@ontrails/http/bun';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph, { port: 3000 });
 ```
