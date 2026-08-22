@@ -1019,16 +1019,18 @@ export const runWardenCommand = async ({
     config: loadedConfig.config,
     env,
   });
-  const topoResolution = effectiveConfigNeedsTopo(
-    preflight.effectiveConfig.depth
-  )
-    ? await resolveWardenTopoTargets({
-        apps: preflight.effectiveConfig.apps,
-        expectedAppBindings,
-        rootDir,
-        strict: parsed.ci,
-      })
-    : { diagnostics: [], topos: [] };
+  const needsExpectedBindingPreflight =
+    parsed.fix && expectedAppBindings !== undefined;
+  const topoResolution =
+    effectiveConfigNeedsTopo(preflight.effectiveConfig.depth) ||
+    needsExpectedBindingPreflight
+      ? await resolveWardenTopoTargets({
+          apps: preflight.effectiveConfig.apps,
+          expectedAppBindings,
+          rootDir,
+          strict: parsed.ci,
+        })
+      : { diagnostics: [], topos: [] };
   const report = await runWarden(
     buildRunOptions({
       adapterCheck: parsed.adapterCheck,

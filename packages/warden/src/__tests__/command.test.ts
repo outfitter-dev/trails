@@ -148,7 +148,7 @@ describe('runWardenCommand', () => {
       writeFileSync(sourcePath, source);
 
       const result = await runWardenCommand({
-        args: ['--apps', app, '--depth', 'topo', '--fix', '--lock', 'skip'],
+        args: ['--apps', app, '--depth', 'source', '--fix', '--lock', 'skip'],
         cwd: dir,
         env: {},
         expectedAppBindings: [{ app, expectedAppId: 'alpha' }],
@@ -175,7 +175,7 @@ describe('runWardenCommand', () => {
       writeFileSync(sourcePath, source);
 
       const result = await runWardenCommand({
-        args: ['--apps', app, '--depth', 'topo', '--fix', '--lock', 'skip'],
+        args: ['--apps', app, '--depth', 'source', '--fix', '--lock', 'skip'],
         cwd: dir,
         env: {},
         expectedAppBindings: [{ app, expectedAppId: 'alpha' }],
@@ -186,6 +186,61 @@ describe('runWardenCommand', () => {
       );
       expect(result.report.fixes).toBeUndefined();
       expect(readFileSync(sourcePath, 'utf8')).toBe(source);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('applies source fixes after proving an expected app identity', async () => {
+    const dir = makeTempDir();
+    try {
+      const app = 'apps/alpha/src/app.ts';
+      const sourcePath = join(dir, 'legacy.ts');
+      mkdirSync(join(dir, 'apps/alpha/src'), { recursive: true });
+      writeFileSync(
+        join(dir, app),
+        `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const graph = topo('alpha', []);\n`
+      );
+      writeFileSync(
+        sourcePath,
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+
+      const result = await runWardenCommand({
+        args: ['--apps', app, '--depth', 'source', '--fix', '--lock', 'skip'],
+        cwd: dir,
+        env: {},
+        expectedAppBindings: [{ app, expectedAppId: 'alpha' }],
+      });
+
+      expect(result.preflightError).toBeUndefined();
+      expect(result.report.fixes).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+      });
+      expect(readFileSync(sourcePath, 'utf8')).toContain('composes: []');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('does not load expected app bindings for source checks without fixes', async () => {
+    const dir = makeTempDir();
+    try {
+      const app = 'apps/alpha/src/app.ts';
+      mkdirSync(join(dir, 'apps/alpha/src'), { recursive: true });
+      writeFileSync(join(dir, app), `throw new Error('must not load');\n`);
+      writeFileSync(join(dir, 'source.ts'), 'export const value = 1;\n');
+
+      const result = await runWardenCommand({
+        args: ['--apps', app, '--depth', 'source', '--lock', 'skip'],
+        cwd: dir,
+        env: {},
+        expectedAppBindings: [{ app, expectedAppId: 'alpha' }],
+      });
+
+      expect(result.preflightError).toBeUndefined();
+      expect(result.report.fixes).toBeUndefined();
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
