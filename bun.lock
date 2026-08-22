@@ -292,6 +292,10 @@
     "packages/config": {
       "name": "@ontrails/config",
       "version": "1.0.0-beta.50",
+      "dependencies": {
+        "@ontrails/source": "workspace:^",
+        "yaml": "^2.8.3",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
