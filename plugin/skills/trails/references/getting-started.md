@@ -22,7 +22,17 @@ bun add -d @ontrails/testing@beta # Testing (dev)
 
 During the active beta line, use `@beta` for the newest published beta or exact `1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
-After `bun install`, derive the app-owned lock with `trails compile` for a standalone app or `trails compile --app my-app` from a configured workspace root. Scaffolding itself does not write locks, and a workspace has no aggregate root lock. The normal compile path records deterministic scaffold provenance in the app lock's `scaffold` overlay.
+After `bun install`, derive the app-owned lock with the narrow `topo:write` permit:
+
+```bash
+# From a standalone app
+trails compile --permit '{"id":"local-dev","scopes":["topo:write"]}'
+
+# From a configured workspace root
+trails compile --app my-app --permit '{"id":"local-dev","scopes":["topo:write"]}'
+```
+
+Scaffolding itself does not write locks, and a workspace has no aggregate root lock. The normal compile path records deterministic scaffold provenance in the app lock's `scaffold` overlay.
 
 ## Define Your First Trail
 

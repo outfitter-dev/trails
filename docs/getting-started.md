@@ -51,7 +51,17 @@ bun add -d @ontrails/testing@beta
 
 During the active beta line, use `@beta` for the newest published beta or pin exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
-`create` writes authored source, not a lock. After `bun install`, run `trails compile` in a standalone app or `trails compile --app my-app` at a configured workspace root. That canonical compile path writes the selected app's `trails.lock`, including deterministic scaffold provenance in its `scaffold` overlay. A workspace never receives an aggregate root lock.
+`create` writes authored source, not a lock. After `bun install`, compile with the narrow `topo:write` permit:
+
+```bash
+# From a standalone app
+trails compile --permit '{"id":"local-dev","scopes":["topo:write"]}'
+
+# From a configured workspace root
+trails compile --app my-app --permit '{"id":"local-dev","scopes":["topo:write"]}'
+```
+
+That canonical compile path writes the selected app's `trails.lock`, including deterministic scaffold provenance in its `scaffold` overlay. A workspace never receives an aggregate root lock.
 
 ## Your First Trail
 

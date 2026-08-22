@@ -306,6 +306,48 @@ const expectGeneratedProjectTypecheck = (dir: string): void => {
   }
 };
 
+const expectGeneratedStandaloneCompile = (dir: string): void => {
+  if (!existsSync(join(dir, 'node_modules'))) {
+    symlinkSync(
+      join(repoRoot, 'node_modules'),
+      join(dir, 'node_modules'),
+      'dir'
+    );
+  }
+  const command = [
+    'bun',
+    'run',
+    'compile',
+    '--permit',
+    '{"id":"local-dev","scopes":["topo:write"]}',
+  ];
+  const proc = Bun.spawnSync({
+    cmd: command,
+    cwd: dir,
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      TRAILS_STATE_HOME: join(dir, '.test-state'),
+    } as Record<string, string>,
+    stderr: 'pipe',
+    stdout: 'pipe',
+    timeout: formatterTimeoutMs,
+  });
+  if (proc.exitCode !== 0 || proc.exitedDueToTimeout) {
+    throw new Error(
+      [
+        'Generated standalone compile guidance did not succeed.',
+        `command: ${command.join(' ')}`,
+        `cwd: ${dir}`,
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `stdout: ${proc.stdout.toString()}`,
+        `stderr: ${proc.stderr.toString()}`,
+      ].join('\n')
+    );
+  }
+  expectPaths(dir, ['trails.lock'], true);
+};
+
 const readGeneratedSurfaceOverlayParity = (
   dir: string
 ): {
@@ -551,6 +593,7 @@ const assertReadme = (
     `# ${basename(dir)}`,
     'A Trails project.',
     'bun install',
+    `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'`,
     'bun run warden',
     'bun run survey',
     'bun run guide',
@@ -822,6 +865,7 @@ describe('trails create', () => {
         assertNoDisposableTrailsState(dir);
         assertAgentGuidance(dir);
         assertReadme(dir);
+        expectGeneratedStandaloneCompile(dir);
         assertScaffoldProvenance(dir);
         assertTsconfigTests(dir);
         assertCliPackage(dir);
@@ -891,7 +935,7 @@ describe('trails create', () => {
           "namespace: 'scaffold'",
         ]);
         expectContainsAll(readText(dir, 'README.md'), [
-          `bunx trails compile --app ${name}`,
+          `bunx trails compile --app ${name} --permit '{"id":"local-dev","scopes":["topo:write"]}'`,
           `bunx trails validate --app ${name}`,
           `bunx trails run hello --app ${name}`,
           `bunx trails warden --app ${name}`,
@@ -1366,6 +1410,122 @@ describe('trails create', () => {
         assertScaffoldProvenance(dir, 'entity');
         assertEntityStarter(dir);
         assertReadme(dir, { starter: 'entity' });
+      });
+    });
+
+    test('teaches scoped local permits only for protected CLI starters', async () => {
+      const permit =
+        '--permit \'{"id":"local-dev","scopes":["entity:write"]}\'';
+      const runPermit =
+        '--permit \'{"id":"local-dev","scopes":["trails:run"]}\'';
+      const compilePermit =
+        '--permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+      const forbiddenShortcut = `--dev${'-permit'}`;
+
+      await withTempProject(async (dir) => {
+        expectOk(await runCreate(dir, { starter: 'entity' }));
+        const readme = readText(dir, 'README.md');
+        expect(readme).toContain(
+          'Protected starter writes require an explicit scoped permit.'
+        );
+        expect(readme).toContain(
+          `bun bin/cli.ts entity add --name New ${permit}`
+        );
+        expect(readme).not.toContain(forbiddenShortcut);
+      });
+
+      await withTempProject(async (dir) => {
+        setupMinimalProject(dir);
+        writeFileSync(
+          join(dir, 'src', 'cli.ts'),
+          `import { surface } from '@ontrails/commander';
+
+import { app } from './app.js';
+
+await surface(app);
+`
+        );
+        expectOk(await runCreate(dir, { starter: 'entity', verify: false }));
+        const readme = readText(dir, 'README.md');
+        expect(readme).not.toContain(
+          'Protected starter writes require an explicit scoped permit.'
+        );
+        expect(readme).not.toContain('entity add --name New --permit');
+
+        symlinkSync(
+          join(repoRoot, 'node_modules'),
+          join(dir, 'node_modules'),
+          'dir'
+        );
+        const legacyCli = Bun.spawnSync({
+          cmd: [
+            process.execPath,
+            'src/cli.ts',
+            'entity',
+            'add',
+            '--permit',
+            '{"id":"local-dev","scopes":["entity:write"]}',
+          ],
+          cwd: dir,
+          env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
+          stderr: 'pipe',
+          stdout: 'pipe',
+        });
+        expect(legacyCli.exitCode).toBe(1);
+        expect(legacyCli.stderr.toString()).toContain(
+          "unknown option '--permit'"
+        );
+      });
+
+      await withTempProject(async (dir) => {
+        const name = basename(dir);
+        expectOk(await runCreate(dir, { starter: 'entity', workspace: true }));
+        const readme = readText(dir, 'README.md');
+        expect(readme).toContain(
+          `bun apps/${name}/bin/cli.ts entity add --name New ${permit}`
+        );
+        expect(readme).toContain(
+          `bunx trails run entity.list --app ${name} ${runPermit}`
+        );
+        expect(readme).toContain(
+          `bunx trails compile --app ${name} ${compilePermit}`
+        );
+        expect(readme).not.toContain(`bunx trails run hello --app ${name}`);
+        expect(readme).not.toContain(forbiddenShortcut);
+      });
+
+      await withTempProject(async (dir) => {
+        expectOk(
+          await runCreate(dir, {
+            starter: 'entity',
+            surfaces: ['mcp'],
+            workspace: true,
+          })
+        );
+        const name = basename(dir);
+        const readme = readText(dir, 'README.md');
+        expect(readme).toContain(
+          `bunx trails run entity.list --app ${name} ${runPermit}`
+        );
+        expect(readme).not.toContain(
+          'Protected starter writes require an explicit scoped permit.'
+        );
+      });
+
+      await withTempProject(async (dir) => {
+        const name = basename(dir);
+        expectOk(await runCreate(dir, { workspace: true }));
+        expect(readText(dir, 'README.md')).toContain(
+          `bunx trails run hello --app ${name} ${runPermit}`
+        );
+        expect(readText(dir, 'README.md')).toContain(
+          `bunx trails compile --app ${name} ${compilePermit}`
+        );
+      });
+
+      await withTempProject(async (dir) => {
+        expectOk(await runCreate(dir, { starter: 'empty', workspace: true }));
+        expect(readText(dir, 'README.md')).not.toContain('bunx trails run ');
       });
     });
 

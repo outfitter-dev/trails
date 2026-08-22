@@ -26,7 +26,17 @@ Common workflows:
 
 For configured workspaces, migrate package-manager discovery, root aggregate-lock assumptions, and persistent `warden.apps` lists to static `workspace.apps`. `--root-dir` fixes the project boundary, `--app` selects one stable configured ID, and `--module` only refines that app's live entry. Run and completion ownership are derived live from those configured apps; a root aggregate `trails.lock` is neither created nor consulted as workspace identity.
 
-Scaffolding never writes `trails.lock` itself. Install dependencies, then use the normal `trails compile` path so the selected app receives a validated lock with its deterministic `scaffold` overlay. The generated README teaches the exact standalone or workspace commands.
+Scaffolding never writes `trails.lock` itself. Install dependencies, then use the normal compile path with the narrow `topo:write` permit:
+
+```bash
+# From a standalone app
+trails compile --permit '{"id":"local-dev","scopes":["topo:write"]}'
+
+# From a configured workspace root
+trails compile --app my-app --permit '{"id":"local-dev","scopes":["topo:write"]}'
+```
+
+The selected app receives a validated lock with its deterministic `scaffold` overlay. The generated README teaches the same standalone or workspace flow.
 
 Trails is contract-first: define trails once with typed input, Result output, examples, and meta; the framework derives CLI, MCP, HTTP, and future surfaces from the same contracts.
 

@@ -105,11 +105,15 @@ describe('README_SNIPPET_CONFIGS', () => {
     ).toEqual([firstConfig.readmePath]);
   });
 
-  test('requires scoped permits in canonical scaffold commands', () => {
+  test('requires scoped permits in published scaffold and compile commands', () => {
     const standaloneCommand =
       'bunx @ontrails/trails create my-app --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
     const workspaceCommand =
       'bunx @ontrails/trails create my-app --workspace --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
+    const standaloneCompileCommand =
+      'trails compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+    const workspaceCompileCommand =
+      'trails compile --app my-app --permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
     const publishedGuides = [
       new URL('../../apps/trails/README.md', import.meta.url),
       new URL('../../docs/getting-started.md', import.meta.url),
@@ -124,6 +128,8 @@ describe('README_SNIPPET_CONFIGS', () => {
 
       expect(markdown).toContain(standaloneCommand);
       expect(markdown).toContain(workspaceCommand);
+      expect(markdown).toContain(standaloneCompileCommand);
+      expect(markdown).toContain(workspaceCompileCommand);
     }
   });
 
