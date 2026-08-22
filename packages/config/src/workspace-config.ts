@@ -1,11 +1,12 @@
 import { existsSync } from 'node:fs';
-import { dirname, isAbsolute, posix, resolve } from 'node:path';
+import { dirname, isAbsolute, posix, relative, resolve } from 'node:path';
 
 import { NotFoundError, ValidationError } from '@ontrails/core';
 
 import { trailsAppEntryRelativePath } from './trails-conventions.js';
 import { canonicalBoundaryPath, isWithinBoundary } from './path-boundary.js';
 import {
+  collectConfigBoundariesThroughPaths,
   collectConfigPathsWithinBoundary,
   combineConfigPaths,
   findConfigPathsThroughBoundary,
@@ -163,6 +164,7 @@ const normalizeWorkspace = (
   const rawApps = value['apps'];
   const authoredApps = new Map<string, TrailsWorkspaceAppConfig>();
   const roots = new Map<string, string>();
+  const canonicalWorkspaceRoot = canonicalBoundaryPath(rootDir);
   const apps = Object.keys(rawApps)
     .toSorted(compareStrings)
     .map((id): ResolvedTrailsWorkspaceApp => {
@@ -201,16 +203,16 @@ const normalizeWorkspace = (
         'project root',
         true
       );
-      const existingRootOwner = roots.get(appRoot);
-      if (existingRootOwner !== undefined) {
+      const resolvedAppRoot = resolve(rootDir, appRoot);
+      const canonicalAppRoot = canonicalBoundaryPath(resolvedAppRoot);
+      if (!isWithinBoundary(canonicalWorkspaceRoot, canonicalAppRoot)) {
         throw staticIdentityError(
-          `workspace.apps.${id}.root resolves to "${appRoot}", which is already owned by "${existingRootOwner}". App roots must be unique.`,
+          `workspace.apps.${id}.root resolves outside the workspace trust boundary: "${appRoot}".`,
           filePath,
-          'invalid-app',
-          { appId: id, conflictingAppId: existingRootOwner, root: appRoot }
+          'invalid-path',
+          { appId: id, root: appRoot }
         );
       }
-      roots.set(appRoot, id);
       const explicitEntry =
         rawApp['entry'] === undefined
           ? undefined
@@ -222,22 +224,113 @@ const normalizeWorkspace = (
             );
       const entry = explicitEntry ?? trailsAppEntryRelativePath;
       const modulePath = posix.join(appRoot, entry);
+      const resolvedEntryPath = resolve(rootDir, modulePath);
+      const canonicalEntryPath = canonicalBoundaryPath(resolvedEntryPath);
+      const relevantCollectionBoundaries = collectConfigBoundariesThroughPaths(
+        rootDir,
+        [resolvedAppRoot, resolvedEntryPath]
+      );
+      const appCollectionEdge = relevantCollectionBoundaries.find((boundary) =>
+        isWithinBoundary(boundary.canonicalPath, canonicalAppRoot)
+      );
+      if (appCollectionEdge !== undefined) {
+        throw staticIdentityError(
+          `workspace.apps.${id}.root traverses a ${appCollectionEdge.reason} collection edge at "${appCollectionEdge.path}": "${appRoot}".`,
+          filePath,
+          'invalid-path',
+          {
+            appId: id,
+            boundaryPath: appCollectionEdge.path,
+            boundaryReason: appCollectionEdge.reason,
+            root: appRoot,
+          }
+        );
+      }
+      const existingRootOwner = roots.get(canonicalAppRoot);
+      if (existingRootOwner !== undefined) {
+        throw staticIdentityError(
+          `workspace.apps.${id}.root resolves to "${appRoot}", which is already owned by "${existingRootOwner}". App roots must be unique.`,
+          filePath,
+          'invalid-app',
+          { appId: id, conflictingAppId: existingRootOwner, root: appRoot }
+        );
+      }
+      roots.set(canonicalAppRoot, id);
+      if (!isWithinBoundary(canonicalAppRoot, canonicalEntryPath)) {
+        throw staticIdentityError(
+          `workspace.apps.${id}.entry resolves outside its app root trust boundary: "${entry}".`,
+          filePath,
+          'invalid-path',
+          { appId: id, entry, root: appRoot }
+        );
+      }
+      const entryCollectionEdge = relevantCollectionBoundaries.find(
+        (boundary) =>
+          isWithinBoundary(boundary.canonicalPath, canonicalEntryPath)
+      );
+      if (entryCollectionEdge !== undefined) {
+        throw staticIdentityError(
+          `workspace.apps.${id}.entry traverses a ${entryCollectionEdge.reason} collection edge at "${entryCollectionEdge.path}": "${entry}".`,
+          filePath,
+          'invalid-path',
+          {
+            appId: id,
+            boundaryPath: entryCollectionEdge.path,
+            boundaryReason: entryCollectionEdge.reason,
+            entry,
+            root: appRoot,
+          }
+        );
+      }
       authoredApps.set(id, {
         ...(explicitEntry === undefined ? {} : { entry: explicitEntry }),
         root: appRoot,
       });
       return {
         entry,
-        entryPath: resolve(rootDir, modulePath),
+        entryPath: resolvedEntryPath,
         entrySource: explicitEntry === undefined ? 'convention' : 'explicit',
         id,
         modulePath,
         root: appRoot,
-        rootDir: resolve(rootDir, appRoot),
+        rootDir: resolvedAppRoot,
       };
     });
 
   return { apps, workspace: { apps: Object.fromEntries(authoredApps) } };
+};
+
+const readIdentityAtConfigPath = async (
+  configPath: string,
+  resolvedBoundary: string,
+  canonicalBoundary: string
+): Promise<ReadTrailsProjectIdentityResult> => {
+  const canonicalConfigPath = canonicalBoundaryPath(configPath);
+  const canonicalConfigDirectory = dirname(canonicalConfigPath);
+  if (!isWithinBoundary(canonicalBoundary, canonicalConfigDirectory)) {
+    throw new ValidationError(
+      `Trails config file "${configPath}" is outside discovery boundary "${resolvedBoundary}".`,
+      { context: { boundaryDir: resolvedBoundary, configPath } }
+    );
+  }
+  if (!existsSync(configPath)) {
+    throw new NotFoundError(`Trails config file not found: ${configPath}`, {
+      context: { path: configPath },
+    });
+  }
+  const rootDir = resolve(
+    resolvedBoundary,
+    relative(canonicalBoundary, canonicalConfigDirectory)
+  );
+  const config = await parseTrailsProjectConfigFile(canonicalConfigPath);
+  if (isRecord(config) && config['workspace'] !== undefined) {
+    return {
+      ...normalizeWorkspace(config['workspace'], configPath, rootDir),
+      configPath,
+      rootDir,
+    };
+  }
+  return { apps: [], configPath, rootDir };
 };
 
 /**
@@ -261,63 +354,128 @@ export const readTrailsProjectIdentity = async (
   const { boundaryDir, configPath, startDir = process.cwd() } = options;
   const resolvedStart = resolve(startDir);
   const resolvedBoundary = resolve(boundaryDir);
-  const selectedPaths =
-    configPath === undefined
-      ? findConfigPathsThroughBoundary(resolvedStart, resolvedBoundary)
-      : [resolve(resolvedStart, configPath)];
-  const collectedPaths = collectConfigPathsWithinBoundary(resolvedBoundary);
-  const locatedPaths = combineConfigPaths(collectedPaths, selectedPaths);
-
-  const workspaceResults: ReadTrailsProjectIdentityResult[] = [];
   const canonicalBoundary = canonicalBoundaryPath(resolvedBoundary);
-  for (const located of locatedPaths) {
-    const canonicalConfigDirectory = dirname(canonicalBoundaryPath(located));
-    if (!isWithinBoundary(canonicalBoundary, canonicalConfigDirectory)) {
+  let selectedPaths: readonly string[];
+  if (configPath === undefined) {
+    selectedPaths = findConfigPathsThroughBoundary(
+      resolvedStart,
+      resolvedBoundary
+    );
+  } else {
+    const explicitPath = resolve(resolvedStart, configPath);
+    const canonicalExplicitDirectory = dirname(
+      canonicalBoundaryPath(explicitPath)
+    );
+    if (!isWithinBoundary(canonicalBoundary, canonicalExplicitDirectory)) {
       throw new ValidationError(
-        `Trails config file "${located}" is outside discovery boundary "${resolvedBoundary}".`,
-        { context: { boundaryDir: resolvedBoundary, configPath: located } }
+        `Trails config file "${explicitPath}" is outside discovery boundary "${resolvedBoundary}".`,
+        { context: { boundaryDir: resolvedBoundary, configPath: explicitPath } }
       );
     }
-    if (!existsSync(located)) {
-      throw new NotFoundError(`Trails config file not found: ${located}`, {
-        context: { path: located },
-      });
-    }
-    const rootDir = dirname(located);
-    const config = await parseTrailsProjectConfigFile(located);
-    if (isRecord(config) && config['workspace'] !== undefined) {
-      workspaceResults.push({
-        ...normalizeWorkspace(config['workspace'], located, rootDir),
-        configPath: located,
-        rootDir,
-      });
-    }
+    const lexicalTargetDirectory = resolve(
+      resolvedBoundary,
+      relative(canonicalBoundary, canonicalExplicitDirectory)
+    );
+    const throughBoundary = combineConfigPaths(
+      findConfigPathsThroughBoundary(lexicalTargetDirectory, resolvedBoundary),
+      [explicitPath]
+    );
+    const canonicalExplicitPath = canonicalBoundaryPath(explicitPath);
+    selectedPaths = [
+      explicitPath,
+      ...throughBoundary.filter(
+        (path) => canonicalBoundaryPath(path) !== canonicalExplicitPath
+      ),
+    ];
   }
-
-  if (workspaceResults.length > 1) {
-    const roots = workspaceResults.map((result) => result.rootDir);
+  const selectedIdentities: ReadTrailsProjectIdentityResult[] = [];
+  for (const selectedPath of selectedPaths) {
+    selectedIdentities.push(
+      await readIdentityAtConfigPath(
+        selectedPath,
+        resolvedBoundary,
+        canonicalBoundary
+      )
+    );
+  }
+  const selectedWorkspace = selectedIdentities.find(
+    (identity) => identity.workspace !== undefined
+  );
+  if (selectedWorkspace !== undefined) {
+    const selectedRoot = canonicalBoundaryPath(selectedWorkspace.rootDir);
+    const selectedAncestors = selectedPaths.filter((selectedPath) => {
+      const candidateRoot = dirname(canonicalBoundaryPath(selectedPath));
+      return isWithinBoundary(candidateRoot, selectedRoot);
+    });
+    const relevantPaths = combineConfigPaths(
+      collectConfigPathsWithinBoundary(selectedWorkspace.rootDir),
+      selectedAncestors
+    );
+    const workspaceResults: ReadTrailsProjectIdentityResult[] = [];
+    for (const relevantPath of relevantPaths) {
+      const identity = await readIdentityAtConfigPath(
+        relevantPath,
+        resolvedBoundary,
+        canonicalBoundary
+      );
+      if (identity.workspace !== undefined) {
+        workspaceResults.push(identity);
+      }
+    }
+    const selectedConfigPath = canonicalBoundaryPath(
+      selectedWorkspace.configPath as string
+    );
+    const validatedSelectedWorkspace = workspaceResults.find(
+      (result) =>
+        canonicalBoundaryPath(result.configPath as string) ===
+        selectedConfigPath
+    );
+    if (validatedSelectedWorkspace === undefined) {
+      throw new ValidationError(
+        `Unable to validate selected Trails workspace config "${selectedWorkspace.configPath}" inside its collection boundary.`,
+        {
+          context: {
+            configPath: selectedWorkspace.configPath,
+            rootDir: selectedWorkspace.rootDir,
+          },
+        }
+      );
+    }
+    const overlappingWorkspaces = workspaceResults.filter((result) => {
+      if (
+        canonicalBoundaryPath(result.configPath as string) ===
+        selectedConfigPath
+      ) {
+        return false;
+      }
+      const candidateRoot = canonicalBoundaryPath(result.rootDir);
+      return (
+        isWithinBoundary(selectedRoot, candidateRoot) ||
+        isWithinBoundary(candidateRoot, selectedRoot)
+      );
+    });
+    if (overlappingWorkspaces.length === 0) {
+      return validatedSelectedWorkspace;
+    }
+    const conflictingWorkspaces = [
+      validatedSelectedWorkspace,
+      ...overlappingWorkspaces,
+    ];
+    const roots = conflictingWorkspaces.map((result) => result.rootDir);
     throw new ValidationError(
       `Nested Trails workspaces are not supported. Found workspace identity at: ${roots.join(', ')}. Keep one workspace.apps owner within the collection boundary.`,
       {
         context: {
-          configPaths: workspaceResults.map((result) => result.configPath),
+          configPaths: conflictingWorkspaces.map((result) => result.configPath),
           roots,
         },
       }
     );
   }
-  if (workspaceResults[0] !== undefined) {
-    const selectedWorkspace = workspaceResults.find((result) =>
-      selectedPaths.includes(result.configPath as string)
-    );
-    if (selectedWorkspace !== undefined) {
-      return selectedWorkspace;
-    }
-  }
 
-  const [nearest] = selectedPaths;
+  const [nearest] = selectedIdentities;
   if (nearest === undefined) {
     return { apps: [], rootDir: resolvedStart };
   }
-  return { apps: [], configPath: nearest, rootDir: dirname(nearest) };
+  return nearest;
 };

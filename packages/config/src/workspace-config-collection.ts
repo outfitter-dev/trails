@@ -1,7 +1,9 @@
+import { statSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 
 import { ValidationError } from '@ontrails/core';
 import { collectSourceTree } from '@ontrails/source';
+import type { SourceCollectionBoundaryReason } from '@ontrails/source';
 
 import {
   findTrailsConfigPaths,
@@ -18,6 +20,66 @@ const ignoredCollectionDirectories = new Set([
 ]);
 
 const configCandidateNames = new Set<string>(trailsConfigFileCandidates);
+
+type ConfigCollectionBoundaryReason =
+  | SourceCollectionBoundaryReason
+  | 'unreadable-git-boundary';
+
+interface ConfigCollectionBoundary {
+  readonly canonicalPath: string;
+  readonly path: string;
+  readonly reason: ConfigCollectionBoundaryReason;
+}
+
+const configCollectionBoundaryReasons = new Set<string>([
+  'nested-repository',
+  'nested-worktree',
+  'submodule-boundary',
+  'unreadable-git-boundary',
+]);
+
+const isConfigCollectionBoundaryReason = (
+  reason: string
+): reason is ConfigCollectionBoundaryReason =>
+  configCollectionBoundaryReasons.has(reason);
+
+const collectionBoundaries = (
+  rootDir: string,
+  skipped: readonly { readonly path: string; readonly reason: string }[]
+): readonly ConfigCollectionBoundary[] =>
+  skipped
+    .filter(
+      (
+        entry
+      ): entry is typeof entry & {
+        readonly reason: ConfigCollectionBoundaryReason;
+      } => isConfigCollectionBoundaryReason(entry.reason)
+    )
+    .map((entry) => {
+      const path = resolve(rootDir, entry.path);
+      return {
+        canonicalPath: canonicalBoundaryPath(path),
+        path,
+        reason: entry.reason,
+      };
+    });
+
+const assertReadableCollectionEvidence = (
+  boundaryDir: string,
+  skipped: readonly { readonly path: string; readonly reason: string }[]
+): void => {
+  const uncertain = skipped.filter(
+    (entry) =>
+      entry.reason.startsWith('unreadable-') &&
+      entry.reason !== 'unreadable-git-boundary'
+  );
+  if (uncertain.length > 0) {
+    throw new ValidationError(
+      `Unable to prove static project identity inside "${boundaryDir}" because collection evidence is unreadable.`,
+      { context: { boundaryDir: resolve(boundaryDir), skipped: uncertain } }
+    );
+  }
+};
 
 const validateOneConfigPerDirectory = (
   configPaths: readonly string[]
@@ -48,6 +110,63 @@ const dedupeConfigPaths = (
   return [...pathsByCanonicalIdentity.values()];
 };
 
+export const collectConfigBoundariesThroughPaths = (
+  boundaryDir: string,
+  targetPaths: readonly string[]
+): readonly ConfigCollectionBoundary[] => {
+  const canonicalBoundary = canonicalBoundaryPath(boundaryDir);
+  const canonicalTargets = targetPaths.map(canonicalBoundaryPath);
+  const collection = collectSourceTree(canonicalBoundary, {
+    classify: (entry) => {
+      if (entry.kind !== 'directory') {
+        return { action: 'skip', reason: 'not-target-ancestor' };
+      }
+      const canonicalEntry = canonicalBoundaryPath(
+        resolve(canonicalBoundary, entry.path)
+      );
+      return canonicalTargets.some((target) =>
+        isWithinBoundary(canonicalEntry, target)
+      )
+        ? { action: 'recurse' }
+        : { action: 'skip', reason: 'not-target-ancestor' };
+    },
+  });
+  if (collection === null) {
+    throw new ValidationError(
+      `Unable to read static project identity discovery boundary "${boundaryDir}".`,
+      { context: { boundaryDir: resolve(boundaryDir) } }
+    );
+  }
+  assertReadableCollectionEvidence(boundaryDir, collection.skipped);
+  return collectionBoundaries(canonicalBoundary, collection.skipped);
+};
+
+const assertPathDoesNotTraverseCollectionEdge = (
+  boundaryDir: string,
+  targetPath: string,
+  label: string
+): void => {
+  const canonicalTarget = canonicalBoundaryPath(targetPath);
+  const collectionEdge = collectConfigBoundariesThroughPaths(boundaryDir, [
+    canonicalTarget,
+  ]).find((boundary) =>
+    isWithinBoundary(boundary.canonicalPath, canonicalTarget)
+  );
+  if (collectionEdge !== undefined) {
+    throw new ValidationError(
+      `Static project identity ${label} "${targetPath}" traverses a ${collectionEdge.reason} collection edge at "${collectionEdge.path}".`,
+      {
+        context: {
+          boundaryDir: resolve(boundaryDir),
+          boundaryPath: collectionEdge.path,
+          boundaryReason: collectionEdge.reason,
+          targetPath,
+        },
+      }
+    );
+  }
+};
+
 export const findConfigPathsThroughBoundary = (
   startDir: string,
   boundaryDir: string
@@ -62,18 +181,15 @@ export const findConfigPathsThroughBoundary = (
       { context: { boundaryDir: boundary, startDir: start } }
     );
   }
+  assertPathDoesNotTraverseCollectionEdge(boundary, canonicalCurrent, 'target');
   const found: string[] = [];
   while (true) {
     const current = resolve(
       boundary,
       relative(canonicalBoundary, canonicalCurrent)
     );
-    const paths = findTrailsConfigPaths(current);
-    if (paths.length > 1) {
-      throw new ValidationError(
-        `Multiple Trails config files found: ${paths.join(', ')}. Keep one config file per project root.`
-      );
-    }
+    const paths = dedupeConfigPaths(findTrailsConfigPaths(current));
+    validateOneConfigPerDirectory(paths);
     if (paths[0] !== undefined) {
       found.push(paths[0]);
     }
@@ -88,12 +204,26 @@ export const findConfigPathsThroughBoundary = (
   }
 };
 
+const isFollowedFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
 export const collectConfigPathsWithinBoundary = (
   boundaryDir: string
 ): readonly string[] => {
   const boundary = resolve(boundaryDir);
+  const canonicalBoundary = canonicalBoundaryPath(boundary);
   const collection = collectSourceTree(boundary, {
     classify: (entry) => {
+      if (configCandidateNames.has(entry.name)) {
+        return entry.kind === 'file' || entry.kind === 'other'
+          ? { action: 'collect' }
+          : { action: 'skip', reason: 'invalid-trails-config-candidate' };
+      }
       if (
         entry.kind === 'directory' &&
         ignoredCollectionDirectories.has(entry.name)
@@ -102,9 +232,6 @@ export const collectConfigPathsWithinBoundary = (
       }
       if (entry.kind === 'directory') {
         return { action: 'recurse' };
-      }
-      if (entry.kind === 'file' && configCandidateNames.has(entry.name)) {
-        return { action: 'collect' };
       }
       return { action: 'skip', reason: 'not-trails-config' };
     },
@@ -115,18 +242,33 @@ export const collectConfigPathsWithinBoundary = (
       { context: { boundaryDir: boundary } }
     );
   }
-  const uncertain = collection.skipped.filter((entry) =>
-    entry.reason.startsWith('unreadable-')
-  );
-  if (uncertain.length > 0) {
-    throw new ValidationError(
-      `Unable to prove static project identity inside "${boundaryDir}" because collection evidence is unreadable.`,
-      { context: { boundaryDir: boundary, skipped: uncertain } }
+  assertReadableCollectionEvidence(boundaryDir, collection.skipped);
+  const configPaths: string[] = [];
+  for (const file of collection.files) {
+    if (!isFollowedFile(file.absolutePath)) {
+      continue;
+    }
+    const canonicalConfigPath = canonicalBoundaryPath(file.absolutePath);
+    if (!isWithinBoundary(canonicalBoundary, canonicalConfigPath)) {
+      throw new ValidationError(
+        `Static project identity config marker "${file.absolutePath}" resolves outside discovery boundary "${boundary}".`,
+        {
+          context: {
+            boundaryDir: boundary,
+            canonicalConfigPath,
+            configPath: file.absolutePath,
+          },
+        }
+      );
+    }
+    assertPathDoesNotTraverseCollectionEdge(
+      boundary,
+      canonicalConfigPath,
+      'config marker'
     );
+    configPaths.push(file.absolutePath);
   }
-  const paths = dedupeConfigPaths(
-    collection.files.map((file) => file.absolutePath)
-  );
+  const paths = dedupeConfigPaths(configPaths);
   validateOneConfigPerDirectory(paths);
   return paths;
 };

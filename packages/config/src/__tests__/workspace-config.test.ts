@@ -31,6 +31,50 @@ const withTempDir = async (operation: (rootDir: string) => Promise<void>) => {
   }
 };
 
+const collectionEdgeFixtures = [
+  [
+    'nested repository',
+    'nested-repository',
+    async (rootDir: string) => {
+      await writeFile(rootDir, 'apps/demo/.git/HEAD', 'ref: refs/heads/main\n');
+      await mkdir(join(rootDir, 'apps/demo/.git/objects'), {
+        recursive: true,
+      });
+    },
+  ],
+  [
+    'nested worktree',
+    'nested-worktree',
+    async (rootDir: string) => {
+      await writeFile(rootDir, 'git-data/demo/HEAD', 'ref: refs/heads/main\n');
+      await writeFile(
+        rootDir,
+        'apps/demo/.git',
+        'gitdir: ../../git-data/demo\n'
+      );
+    },
+  ],
+  [
+    'submodule',
+    'submodule-boundary',
+    async (rootDir: string) => {
+      await writeFile(
+        rootDir,
+        '.gitmodules',
+        '[submodule "demo"]\n\tpath = apps/demo\n\turl = ../demo\n'
+      );
+      await mkdir(join(rootDir, 'apps/demo'), { recursive: true });
+    },
+  ],
+  [
+    'malformed Git',
+    'unreadable-git-boundary',
+    async (rootDir: string) => {
+      await writeFile(rootDir, 'apps/demo/.git', 'not a gitdir pointer\n');
+    },
+  ],
+] as const;
+
 describe('readTrailsProjectIdentity', () => {
   test('requires the caller-owned collection boundary', async () => {
     await expect(
@@ -463,6 +507,298 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
     });
   });
 
+  test('rejects an app root that escapes through a workspace symlink', async () => {
+    await withTempDir(async (rootDir) => {
+      const outside = await makeTempDir();
+      try {
+        await writeFile(outside, 'src/app.ts', 'export default {};\n');
+        await mkdir(join(rootDir, 'apps'), { recursive: true });
+        await symlink(outside, join(rootDir, 'apps', 'demo'), 'dir');
+        await writeFile(
+          rootDir,
+          'trails.config.json',
+          JSON.stringify({
+            workspace: { apps: { demo: { root: 'apps/demo' } } },
+          })
+        );
+
+        await expect(
+          readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+        ).rejects.toThrow('outside the workspace trust boundary');
+      } finally {
+        await rm(outside, { force: true, recursive: true });
+      }
+    });
+  });
+
+  test('accepts an app root symlink that resolves inside the workspace', async () => {
+    await withTempDir(async (rootDir) => {
+      const internalRoot = join(rootDir, 'internal', 'demo');
+      await writeFile(internalRoot, 'src/app.ts', 'export default {};\n');
+      await mkdir(join(rootDir, 'apps'), { recursive: true });
+      const linkedRoot = join(rootDir, 'apps', 'demo');
+      await symlink(internalRoot, linkedRoot, 'dir');
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: { apps: { demo: { root: 'apps/demo' } } },
+        })
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(result.apps[0]?.rootDir).toBe(linkedRoot);
+      expect(result.apps[0]?.entryPath).toBe(join(linkedRoot, 'src', 'app.ts'));
+    });
+  });
+
+  test('rejects an app entry that escapes through a symlink', async () => {
+    await withTempDir(async (rootDir) => {
+      const outside = await makeTempDir();
+      try {
+        const outsideEntry = await writeFile(
+          outside,
+          'app.ts',
+          'export default {};\n'
+        );
+        await writeFile(rootDir, 'apps/demo/src/.keep', '');
+        await symlink(
+          outsideEntry,
+          join(rootDir, 'apps', 'demo', 'src', 'app.ts'),
+          'file'
+        );
+        await writeFile(
+          rootDir,
+          'trails.config.json',
+          JSON.stringify({
+            workspace: { apps: { demo: { root: 'apps/demo' } } },
+          })
+        );
+
+        await expect(
+          readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+        ).rejects.toThrow('outside its app root trust boundary');
+      } finally {
+        await rm(outside, { force: true, recursive: true });
+      }
+    });
+  });
+
+  test('accepts an app entry symlink that resolves inside its app root', async () => {
+    await withTempDir(async (rootDir) => {
+      const appRoot = join(rootDir, 'apps', 'demo');
+      const internalEntry = await writeFile(
+        appRoot,
+        'internal/app.ts',
+        'export default {};\n'
+      );
+      await mkdir(join(appRoot, 'src'), { recursive: true });
+      const linkedEntry = join(appRoot, 'src', 'app.ts');
+      await symlink(internalEntry, linkedEntry, 'file');
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: { apps: { demo: { root: 'apps/demo' } } },
+        })
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(result.apps[0]?.entryPath).toBe(linkedEntry);
+    });
+  });
+
+  for (const [
+    label,
+    expectedReason,
+    arrangeBoundary,
+  ] of collectionEdgeFixtures) {
+    test(`rejects an app root that traverses a ${label} collection edge`, async () => {
+      await withTempDir(async (rootDir) => {
+        await arrangeBoundary(rootDir);
+        await writeFile(
+          rootDir,
+          'trails.config.json',
+          JSON.stringify({
+            workspace: { apps: { demo: { root: 'apps/demo' } } },
+          })
+        );
+
+        try {
+          await readTrailsProjectIdentity({
+            boundaryDir: rootDir,
+            startDir: rootDir,
+          });
+          throw new Error(`Expected ${label} boundary to reject app root`);
+        } catch (error) {
+          expect(error).toBeInstanceOf(ValidationError);
+          expect((error as ValidationError).context).toMatchObject({
+            appId: 'demo',
+            boundaryReason: expectedReason,
+            reason: 'invalid-path',
+            root: 'apps/demo',
+          });
+        }
+      });
+    });
+
+    test(`rejects implicit and explicit config discovery through a ${label} collection edge`, async () => {
+      await withTempDir(async (rootDir) => {
+        await arrangeBoundary(rootDir);
+        const nestedRoot = join(rootDir, 'apps/demo');
+        const nestedConfig = await writeFile(
+          nestedRoot,
+          'trails.config.json',
+          JSON.stringify({
+            workspace: { apps: { nested: { root: '.' } } },
+          })
+        );
+        const selections = [
+          { boundaryDir: rootDir, startDir: nestedRoot },
+          {
+            boundaryDir: rootDir,
+            configPath: nestedConfig,
+            startDir: rootDir,
+          },
+        ] as const;
+
+        for (const selection of selections) {
+          try {
+            await readTrailsProjectIdentity(selection);
+            throw new Error(`Expected ${label} discovery edge to reject`);
+          } catch (error) {
+            expect(error).toBeInstanceOf(ValidationError);
+            expect((error as ValidationError).context).toMatchObject({
+              boundaryReason: expectedReason,
+            });
+          }
+        }
+      });
+    });
+  }
+
+  test('rejects an app root below a nested boundary in a config-ignored directory', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'node_modules/vendor/.git/HEAD',
+        'ref: refs/heads/main\n'
+      );
+      await mkdir(join(rootDir, 'node_modules/vendor/.git/objects'), {
+        recursive: true,
+      });
+      await writeFile(
+        rootDir,
+        'node_modules/vendor/apps/demo/src/app.ts',
+        'export {}\n'
+      );
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: {
+            apps: { demo: { root: 'node_modules/vendor/apps/demo' } },
+          },
+        })
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('traverses a nested-repository collection edge');
+    });
+  });
+
+  test('accepts an app that contains a deeper unrelated collection boundary', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(rootDir, 'apps/demo/src/app.ts', 'export {}\n');
+      await writeFile(
+        rootDir,
+        'apps/demo/vendor/.git/HEAD',
+        'ref: refs/heads/main\n'
+      );
+      await mkdir(join(rootDir, 'apps/demo/vendor/.git/objects'), {
+        recursive: true,
+      });
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: { apps: { demo: { root: 'apps/demo' } } },
+        })
+      );
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
+    });
+  });
+
+  test('rejects an app entry that traverses a deeper collection edge', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'apps/demo/vendor/nested/.git/HEAD',
+        'ref: refs/heads/main\n'
+      );
+      await mkdir(join(rootDir, 'apps/demo/vendor/nested/.git/objects'), {
+        recursive: true,
+      });
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({
+          workspace: {
+            apps: {
+              demo: {
+                entry: 'vendor/nested/src/app.ts',
+                root: 'apps/demo',
+              },
+            },
+          },
+        })
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('entry traverses a nested-repository collection edge');
+    });
+  });
+
+  test('keeps a nested repository first-class when invoked as the boundary root', async () => {
+    await withTempDir(async (rootDir) => {
+      const nestedRoot = join(rootDir, 'nested');
+      await writeFile(nestedRoot, '.git/HEAD', 'ref: refs/heads/main\n');
+      await mkdir(join(nestedRoot, '.git/objects'), { recursive: true });
+      const configPath = await writeFile(
+        nestedRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { nested: { root: '.' } } } })
+      );
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: nestedRoot,
+        startDir: nestedRoot,
+      });
+
+      expect(identity.configPath).toBe(configPath);
+      expect(identity.apps[0]).toMatchObject({
+        id: 'nested',
+        rootDir: nestedRoot,
+      });
+    });
+  });
+
   test('rejects drive-relative and URL-shaped roots portably', async () => {
     for (const appRoot of [
       'C:outside',
@@ -735,6 +1071,306 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
     });
   });
 
+  test('inventories an internal candidate config symlink for overlap proof', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: 'apps/demo' } } } })
+      );
+      const nestedConfigTarget = await writeFile(
+        rootDir,
+        'apps/demo/nested-workspace.ts',
+        `export default { workspace: { apps: { nested: { root: 'nested' } } } };\n`
+      );
+      await symlink(
+        nestedConfigTarget,
+        join(rootDir, 'apps/demo/trails.config.ts'),
+        'file'
+      );
+
+      await expect(
+        readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: rootDir,
+        })
+      ).rejects.toThrow('Nested Trails workspaces are not supported');
+    });
+  });
+
+  test('ignores dangling and directory-shaped candidate config aliases', async () => {
+    await withTempDir(async (rootDir) => {
+      const configPath = await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: 'apps/demo' } } } })
+      );
+      await mkdir(join(rootDir, 'apps/demo'), { recursive: true });
+      await symlink(
+        join(rootDir, 'missing-config.ts'),
+        join(rootDir, 'apps/demo/trails.config.ts'),
+        'file'
+      );
+      await mkdir(join(rootDir, 'apps/demo/trails.config.mts'), {
+        recursive: true,
+      });
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(identity.configPath).toBe(configPath);
+      expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
+    });
+  });
+
+  test('rejects a candidate config symlink whose target leaves the boundary', async () => {
+    await withTempDir(async (rootDir) => {
+      const outside = await makeTempDir();
+      try {
+        await writeFile(
+          rootDir,
+          'trails.config.json',
+          JSON.stringify({
+            workspace: { apps: { demo: { root: 'apps/demo' } } },
+          })
+        );
+        const outsideConfig = await writeFile(
+          outside,
+          'nested-workspace.ts',
+          `export default { workspace: { apps: { foreign: { root: '.' } } } };\n`
+        );
+        await mkdir(join(rootDir, 'apps/demo'), { recursive: true });
+        await symlink(
+          outsideConfig,
+          join(rootDir, 'apps/demo/trails.config.ts'),
+          'file'
+        );
+
+        await expect(
+          readTrailsProjectIdentity({
+            boundaryDir: rootDir,
+            startDir: rootDir,
+          })
+        ).rejects.toThrow('resolves outside discovery boundary');
+      } finally {
+        await rm(outside, { force: true, recursive: true });
+      }
+    });
+  });
+
+  test('rejects a candidate config symlink targeting a nested collection edge', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: 'apps/demo' } } } })
+      );
+      const foreignConfig = await writeFile(
+        rootDir,
+        'vendor/foreign/nested-workspace.ts',
+        `export default { workspace: { apps: { foreign: { root: '.' } } } };\n`
+      );
+      await writeFile(
+        rootDir,
+        'vendor/foreign/.git/HEAD',
+        'ref: refs/heads/main\n'
+      );
+      await mkdir(join(rootDir, 'vendor/foreign/.git/objects'), {
+        recursive: true,
+      });
+      await mkdir(join(rootDir, 'apps/demo'), { recursive: true });
+      await symlink(
+        foreignConfig,
+        join(rootDir, 'apps/demo/trails.config.ts'),
+        'file'
+      );
+
+      await expect(
+        readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: rootDir,
+        })
+      ).rejects.toThrow('traverses a nested-repository collection edge');
+    });
+  });
+
+  test('fails closed when an explicit nested config declares another workspace', async () => {
+    await withTempDir(async (rootDir) => {
+      const appRoot = join(rootDir, 'apps', 'demo');
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: 'apps/demo' } } } })
+      );
+      const nestedConfig = await writeFile(
+        appRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { nested: { root: 'nested' } } } })
+      );
+
+      await expect(
+        readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          configPath: nestedConfig,
+          startDir: rootDir,
+        })
+      ).rejects.toThrow('Nested Trails workspaces are not supported');
+    });
+  });
+
+  test('walks target ancestry for an explicit nested config alias', async () => {
+    await withTempDir(async (rootDir) => {
+      const appRoot = join(rootDir, 'apps', 'demo');
+      await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: 'apps/demo' } } } })
+      );
+      const nestedConfig = await writeFile(
+        appRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { nested: { root: 'nested' } } } })
+      );
+      const linkedConfig = join(rootDir, 'aliases', 'trails.config.mts');
+      await mkdir(dirname(linkedConfig), { recursive: true });
+      await symlink(nestedConfig, linkedConfig, 'file');
+
+      await expect(
+        readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          configPath: linkedConfig,
+          startDir: rootDir,
+        })
+      ).rejects.toThrow('Nested Trails workspaces are not supported');
+    });
+  });
+
+  test('selects one workspace without rejecting a disjoint sibling', async () => {
+    await withTempDir(async (collectionRoot) => {
+      const alphaRoot = join(collectionRoot, 'alpha');
+      const betaRoot = join(collectionRoot, 'beta');
+      const alphaConfig = await writeFile(
+        alphaRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { alpha: { root: 'app' } } } })
+      );
+      const betaConfig = await writeFile(
+        betaRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { beta: { root: 'app' } } } })
+      );
+
+      const alpha = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        startDir: join(alphaRoot, 'app', 'src'),
+      });
+      expect(alpha.configPath).toBe(alphaConfig);
+      expect(alpha.apps.map((app) => app.id)).toEqual(['alpha']);
+
+      const beta = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        configPath: betaConfig,
+        startDir: collectionRoot,
+      });
+      expect(beta.configPath).toBe(betaConfig);
+      expect(beta.apps.map((app) => app.id)).toEqual(['beta']);
+    });
+  });
+
+  test('does not parse a malformed disjoint sibling workspace', async () => {
+    await withTempDir(async (collectionRoot) => {
+      const alphaRoot = join(collectionRoot, 'alpha');
+      const betaRoot = join(collectionRoot, 'beta');
+      const alphaConfig = await writeFile(
+        alphaRoot,
+        'trails.config.ts',
+        `export default { workspace: { apps: { alpha: { root: 'app' } } } };\n`
+      );
+      await writeFile(
+        betaRoot,
+        'trails.config.ts',
+        'export default { workspace: { apps: readApps() } };\n'
+      );
+
+      const alpha = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        startDir: join(alphaRoot, 'app'),
+      });
+      const explicitAlpha = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        configPath: alphaConfig,
+        startDir: collectionRoot,
+      });
+      const collection = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        startDir: collectionRoot,
+      });
+
+      expect(alpha.apps.map((app) => app.id)).toEqual(['alpha']);
+      expect(explicitAlpha.apps.map((app) => app.id)).toEqual(['alpha']);
+      expect(collection).toEqual({ apps: [], rootDir: collectionRoot });
+    });
+  });
+
+  test('does not adopt a disjoint workspace from the collection root', async () => {
+    await withTempDir(async (collectionRoot) => {
+      await writeFile(
+        join(collectionRoot, 'alpha'),
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { alpha: { root: 'app' } } } })
+      );
+      await writeFile(
+        join(collectionRoot, 'beta'),
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { beta: { root: 'app' } } } })
+      );
+
+      const result = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        startDir: collectionRoot,
+      });
+
+      expect(result).toEqual({ apps: [], rootDir: collectionRoot });
+    });
+  });
+
+  test('does not let a nested conflict in one sibling block another workspace', async () => {
+    await withTempDir(async (collectionRoot) => {
+      const alphaRoot = join(collectionRoot, 'alpha');
+      const betaRoot = join(collectionRoot, 'beta');
+      await writeFile(
+        alphaRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { alpha: { root: 'app' } } } })
+      );
+      await writeFile(
+        betaRoot,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { beta: { root: 'app' } } } })
+      );
+      await writeFile(
+        join(betaRoot, 'app'),
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { nested: { root: 'nested' } } } })
+      );
+
+      const alpha = await readTrailsProjectIdentity({
+        boundaryDir: collectionRoot,
+        startDir: join(alphaRoot, 'app'),
+      });
+      expect(alpha.apps.map((app) => app.id)).toEqual(['alpha']);
+
+      await expect(
+        readTrailsProjectIdentity({
+          boundaryDir: collectionRoot,
+          startDir: join(betaRoot, 'app'),
+        })
+      ).rejects.toThrow('Nested Trails workspaces are not supported');
+    });
+  });
+
   test('finds nested workspace conflicts when discovery starts at the boundary', async () => {
     await withTempDir(async (rootDir) => {
       const appRoot = join(rootDir, 'apps', 'demo');
@@ -924,6 +1560,33 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
 
       expect(identity.configPath).toBe(linkedConfig);
       expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
+    });
+  });
+
+  test('resolves workspace roots from an aliased config target', async () => {
+    await withTempDir(async (rootDir) => {
+      const projectRoot = join(rootDir, 'project');
+      const configPath = await writeFile(
+        projectRoot,
+        'trails.config.ts',
+        `export default { workspace: { apps: { demo: { root: 'app' } } } };\n`
+      );
+      const linkedConfig = join(rootDir, 'aliases', 'trails.config.mts');
+      await mkdir(dirname(linkedConfig), { recursive: true });
+      await symlink(configPath, linkedConfig, 'file');
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        configPath: linkedConfig,
+        startDir: rootDir,
+      });
+
+      expect(identity.configPath).toBe(linkedConfig);
+      expect(identity.rootDir).toBe(projectRoot);
+      expect(identity.apps[0]).toMatchObject({
+        entryPath: join(projectRoot, 'app', 'src', 'app.ts'),
+        rootDir: join(projectRoot, 'app'),
+      });
     });
   });
 
