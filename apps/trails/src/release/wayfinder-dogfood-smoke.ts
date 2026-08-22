@@ -25,7 +25,9 @@ const assertObject = (value: unknown, label: string): JsonObject => {
 const assertAlignedSource = (value: JsonObject, label: string): void => {
   const drift = assertObject(value['drift'], `${label}.drift`);
   if (drift['status'] !== 'aligned') {
-    throw new Error(`${label} did not read fresh artifacts`);
+    throw new Error(
+      `${label} did not read fresh artifacts: ${JSON.stringify(value)}`
+    );
   }
   const source = assertObject(value['source'], `${label}.source`);
   if (source['kind'] !== 'topoGraph') {

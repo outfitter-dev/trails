@@ -15,8 +15,8 @@ Common workflows:
 - `trails create` starts a new Trails project with generated trail, topo, surface, and verification files.
 - `trails add surface` adds another surface entrypoint to an existing project.
 - `trails topo` inspects topo state and manages pins/history.
-- `trails compile` writes root `trails.lock`.
-- `trails validate` checks root `trails.lock` for drift.
+- `trails compile` writes the selected app's `trails.lock`. At a configured workspace root, pass `--app <id>`; compile never fans out or writes an aggregate root lock.
+- `trails validate` checks the selected app, or validates every configured app when run at a workspace root without `--app`.
 - `trails wayfind`, `trails wayfind --trails --intent read`, `trails wayfind <id> --contract`, `trails wayfind <id> --deps`, `trails wayfind <id> --impact`, `trails wayfind pattern "wayfind.*"`, `trails wayfind query "release drift"`, and `trails wayfind diff ...` read graph artifacts through Wayfinder. `trails wayfind file <file> --outline` is the operator-owned live-source exception, assembled with `@ontrails/source` and enriched with saved graph context when available.
 - `trails schema <command...>` shows accepted CLI routes, aliases, flags, and schemas for an operator command or command namespace.
 - `trails warden` runs Trails governance checks for contract and architecture drift. Use `--scope-exclude <glob>` or project `warden.scope.exclude` config when local notes, scratch space, or generated state should not be governed by Warden.
