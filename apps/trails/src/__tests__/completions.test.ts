@@ -192,6 +192,30 @@ describe('renderTrailIdCompletions', () => {
     expect(matches).toEqual(['a.only', 'b.only', 'shared.id']);
   });
 
+  test('keeps healthy app ids when configured siblings are unavailable', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'healthy', trailIds: ['healthy.id'] },
+      { name: 'broken', trailIds: ['broken.id'] },
+      { name: 'mismatch', trailIds: ['mismatch.id'] },
+    ]);
+    writeFile(
+      join(workspaceRoot, 'apps/broken/src/app.ts'),
+      `throw new Error('broken boot');\n`
+    );
+    const mismatchPath = join(workspaceRoot, 'apps/mismatch/src/app.ts');
+    writeFile(
+      mismatchPath,
+      readFileSync(mismatchPath, 'utf8').replace(
+        "name: 'mismatch'",
+        "name: 'other'"
+      )
+    );
+
+    expect(await renderTrailIdCompletions(workspaceRoot, '')).toEqual([
+      'healthy.id',
+    ]);
+  });
+
   test('rejects live topos whose names do not match Config app IDs', async () => {
     writeWorkspace(workspaceRoot, [{ name: 'docs', trailIds: ['book.read'] }]);
     const appPath = join(workspaceRoot, 'apps/docs/src/app.ts');

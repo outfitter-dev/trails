@@ -32,6 +32,16 @@ interface CompletionApp {
   readonly rootDir: string;
 }
 
+interface UnavailableCompletionApp {
+  readonly appId: string;
+  readonly error: Error;
+}
+
+interface CompletionOwnershipView {
+  readonly owners: ReadonlyMap<string, readonly string[]>;
+  readonly unavailableApps: readonly UnavailableCompletionApp[];
+}
+
 const completionApps = async (
   workspaceRoot: string
 ): Promise<readonly CompletionApp[]> => {
@@ -59,19 +69,25 @@ const completionApps = async (
 const completionOwners = async (
   workspaceRoot: string,
   trailId?: string | undefined
-): Promise<ReadonlyMap<string, readonly string[]>> => {
+): Promise<CompletionOwnershipView> => {
   const owners = new Map<string, string[]>();
+  const unavailableApps: UnavailableCompletionApp[] = [];
   for (const app of await completionApps(workspaceRoot)) {
     const loaded = await tryLoadFreshAppLease(app.modulePath, app.rootDir);
     if (loaded.isErr()) {
-      throw loaded.error;
+      unavailableApps.push({ appId: app.id, error: loaded.error });
+      continue;
     }
     const lease = loaded.value;
     try {
       if (app.configured && lease.app.name !== app.id) {
-        throw new ValidationError(
-          `Configured app "${app.id}" loaded topo "${lease.app.name}" while completing shell input.`
-        );
+        unavailableApps.push({
+          appId: app.id,
+          error: new ValidationError(
+            `Configured app "${app.id}" loaded topo "${lease.app.name}" while completing shell input.`
+          ),
+        });
+        continue;
       }
       const ids = trailId === undefined ? lease.app.ids() : [trailId];
       for (const id of ids) {
@@ -86,7 +102,7 @@ const completionOwners = async (
       lease.release();
     }
   }
-  return owners;
+  return { owners, unavailableApps };
 };
 
 /** Shells supported by the completion generator. */
@@ -196,7 +212,8 @@ export const renderTrailIdCompletions = async (
 ): Promise<readonly string[]> => {
   let owners: ReadonlyMap<string, readonly string[]>;
   try {
-    owners = await completionOwners(workspaceRoot);
+    const ownership = await completionOwners(workspaceRoot);
+    ({ owners } = ownership);
   } catch {
     return [];
   }
@@ -254,8 +271,24 @@ export const renderTrailExampleCompletions = async (
   prefix: string
 ): Promise<Result<readonly string[], RecoverableCompletionError>> => {
   try {
-    const owners = await completionOwners(workspaceRoot, trailId);
-    const appIds = owners.get(trailId) ?? [];
+    const ownership = await completionOwners(workspaceRoot, trailId);
+    const appIds = ownership.owners.get(trailId) ?? [];
+    if (appIds.length === 0 && ownership.unavailableApps.length > 0) {
+      const [firstUnavailable] = ownership.unavailableApps;
+      return Result.err(
+        recoverableCompletionError(
+          'Cannot determine a live owner while completing example names',
+          {
+            trailId,
+            unavailableAppIds: ownership.unavailableApps.map(
+              (app) => app.appId
+            ),
+            workspaceRoot,
+          },
+          firstUnavailable?.error
+        )
+      );
+    }
     if (appIds.length !== 1) {
       return Result.ok([]);
     }

@@ -451,6 +451,29 @@ const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
 };
 
 describe('run.examples trail', () => {
+  test('discovers a sole nested standalone app without --module', async () => {
+    writeWorkspace(workspaceRoot, [
+      {
+        examplesByTrail: {
+          'demo.alpha': [{ description: 'happy path', name: 'Alpha happy' }],
+        },
+        name: 'app-a',
+        trailIds: ['demo.alpha'],
+      },
+    ]);
+
+    const result = await executeTrail(runExamplesTrail, {
+      id: 'demo.alpha',
+      rootDir: workspaceRoot,
+    });
+
+    const value = expectOk(result) as RunExamplesListing;
+    expect(value.trailId).toBe('demo.alpha');
+    expect(value.examples.map((example) => example.name)).toEqual([
+      'Alpha happy',
+    ]);
+  });
+
   test('returns the structured examples listing without executing the trail', async () => {
     writeWorkspace(workspaceRoot, [
       {

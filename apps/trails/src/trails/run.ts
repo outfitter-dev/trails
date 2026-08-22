@@ -46,6 +46,7 @@ import { withFreshAppLease } from './operator-context.js';
 import {
   assertConfiguredAppBinding,
   assertObservableProjectApps,
+  resolveOperatorAppModuleContext,
   resolveOperatorProjectContext,
 } from './project-context.js';
 import type {
@@ -264,7 +265,7 @@ const resolveRunContext = async (
   trailId: string
 ): Promise<Result<OperatorAppProjectContext, Error>> => {
   if (context.selectedExtent === 'standalone-app') {
-    return Result.ok(context);
+    return resolveOperatorAppModuleContext(context);
   }
   if (context.selectedExtent === 'configured-app') {
     const owns = await withFreshAppLease(
@@ -569,7 +570,7 @@ export const runTrail = trail('run', {
         return Result.ok({
           executedAppId: lease.app.name,
           kind: INNER_TRAIL_RESULT_KIND,
-          project: operatorProjectContextOutput(context),
+          project: operatorProjectContextOutput(selected),
           trailId: input.id,
           value: result.value,
         });

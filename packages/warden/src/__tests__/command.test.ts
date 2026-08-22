@@ -210,10 +210,13 @@ describe('runWardenCommand', () => {
         args: ['--apps', app, '--depth', 'source', '--fix', '--lock', 'skip'],
         cwd: dir,
         env: {},
-        expectedAppBindings: [{ app, expectedAppId: 'alpha' }],
+        expectedAppBindings: [
+          { app, expectedAppId: 'alpha', rootDir: join(dir, 'apps/alpha') },
+        ],
       });
 
       expect(result.preflightError).toBeUndefined();
+      expect(result.report.topoNames).toEqual(['alpha']);
       expect(result.report.fixes).toMatchObject({
         applied: 1,
         filesChanged: 1,

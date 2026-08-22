@@ -1,5 +1,11 @@
 import type { ActionResultContext } from '@ontrails/cli';
-import { Result } from '@ontrails/core';
+import { deriveTrailsDir, Result, topo } from '@ontrails/core';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphHash,
+  LOCK_MANIFEST_SCHEMA_VERSION,
+  writeLockManifest,
+} from '@ontrails/topography';
 import { describe, expect, test } from 'bun:test';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -203,6 +209,21 @@ const writeConfiguredWorkspaceFixture = (dir: string): void => {
   }
 };
 
+const writeAppManifest = (
+  rootDir: string,
+  appId: string,
+  hash: string
+): Promise<string> =>
+  writeLockManifest(
+    {
+      artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+      scope: { app: appId },
+      summary: { entities: 0, resources: 0, signals: 0, trails: 0 },
+      version: LOCK_MANIFEST_SCHEMA_VERSION,
+    },
+    { dir: deriveTrailsDir({ rootDir }) }
+  );
+
 describe('trails warden', () => {
   test('declares write intent because --fix can mutate source files', () => {
     expect(wardenTrail.intent).toBe('write');
@@ -405,6 +426,74 @@ describe('trails warden', () => {
       });
       expect(result.value.errorCount).toBe(1);
       expect(result.value.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('checks configured workspace drift against each app-local lock', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      for (const appId of ['alpha', 'beta']) {
+        const app = topo(appId, []);
+        await writeAppManifest(
+          join(dir, 'apps', appId),
+          appId,
+          deriveTopoGraphHash(deriveTopoGraph(app))
+        );
+      }
+
+      const fresh = await wardenTrail.implementation(
+        { depth: 'all', rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+      await writeAppManifest(
+        join(dir, 'apps', 'alpha'),
+        'alpha',
+        '0'.repeat(64)
+      );
+      const stale = await wardenTrail.implementation(
+        { depth: 'all', rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(fresh.isOk()).toBe(true);
+      expect(fresh.value?.drift).toMatchObject({ stale: false });
+      expect(fresh.value?.passed).toBe(true);
+      expect(stale.isOk()).toBe(true);
+      expect(stale.value?.drift).toMatchObject({ stale: true });
+      expect(stale.value?.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocks configured workspace drift when app-local locks are missing', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+
+      const result = await wardenTrail.implementation(
+        { depth: 'all', rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value?.drift).toMatchObject({
+        committedHash: null,
+        currentHash: 'blocked',
+        stale: true,
+      });
+      expect(result.value?.drift?.blockedReason).toContain('alpha');
+      expect(result.value?.drift?.blockedReason).toContain('beta');
+      expect(result.value?.drift?.blockedReason).toContain(
+        join(dir, 'apps', 'alpha', 'trails.lock')
+      );
+      expect(result.value?.drift?.blockedReason).toContain(
+        join(dir, 'apps', 'beta', 'trails.lock')
+      );
+      expect(result.value?.passed).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

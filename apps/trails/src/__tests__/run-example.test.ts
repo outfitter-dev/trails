@@ -471,6 +471,26 @@ const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
 };
 
 describe('run.example trail', () => {
+  test('discovers a sole nested standalone app without --module', async () => {
+    writeWorkspace(workspaceRoot, 'demo.alpha', [
+      {
+        expected: { name: 'Alpha' },
+        name: 'happy',
+        returnValue: { name: 'Alpha' },
+      },
+    ]);
+
+    const result = await executeRunExampleTrail({
+      exampleName: 'happy',
+      id: 'demo.alpha',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    expect(envelope.match).toBe(true);
+    expect(envelope.exampleName).toBe('happy');
+  });
+
   test('expected-mode match returns envelope with match=true and no diff', async () => {
     writeWorkspace(workspaceRoot, 'demo.alpha', [
       {

@@ -551,6 +551,77 @@ describe('runTrail collision resolution', () => {
     }
   });
 
+  test('reports the selected configured owner for an unqualified workspace run', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify({ workspace: { apps: { 'app-a': { root: 'apps/app-a' } } } })}\n`
+    );
+
+    const result = await executeTrail(
+      runTrail,
+      { id: 'context.cwd', rootDir: workspaceRoot },
+      { ctx: { permit: trailsRunPermit } }
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toMatchObject({
+        project: {
+          app: {
+            appId: 'app-a',
+            appRoot: 'apps/app-a',
+            modulePath: 'src/app.ts',
+            moduleSource: 'convention',
+          },
+          selectedExtent: 'configured-app',
+        },
+      });
+    }
+  });
+
+  test('discovers a sole nested standalone app for run targets', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+    const initialized = Bun.spawnSync({
+      cmd: ['git', 'init', '--quiet', workspaceRoot],
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    if (!initialized.success) {
+      throw new Error(Buffer.from(initialized.stderr).toString('utf8'));
+    }
+
+    const target = await resolveRunTargetProject({}, 'context.cwd', {
+      cwd: workspaceRoot,
+    });
+    const result = await executeTrail(
+      runTrail,
+      { id: 'context.cwd', rootDir: workspaceRoot },
+      { ctx: { permit: trailsRunPermit } }
+    );
+
+    expect(target.isOk()).toBe(true);
+    if (target.isOk()) {
+      expect(target.value).toEqual({
+        modulePath: 'apps/app-a/src/app.ts',
+        rootDir: workspaceRoot,
+      });
+    }
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect((result.value as { value: unknown }).value).toBe(workspaceRoot);
+      expect(result.value).toMatchObject({
+        project: {
+          app: {
+            modulePath: 'apps/app-a/src/app.ts',
+            moduleSource: 'convention',
+          },
+          selectedExtent: 'standalone-app',
+        },
+      });
+    }
+  });
+
   test('forwards the wrapper permit when executing the target trail', async () => {
     writeExecutableWorkspace(workspaceRoot);
 

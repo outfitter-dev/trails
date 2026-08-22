@@ -18,6 +18,7 @@ import { assertFreshProjectAppBindings } from './operator-context.js';
 import {
   assertObservableProjectApps,
   assertSelectedArtifactBinding,
+  resolveOperatorAppModuleContext,
   resolveOperatorProjectContext,
 } from './project-context.js';
 import type {
@@ -427,48 +428,42 @@ const viewFor = (input: WayfindInput): WayfinderView => {
   return input.view;
 };
 
+const liveSourceInputError = (
+  input: WayfindInput
+): ValidationError | undefined => {
+  if (input.deps || input.impact) {
+    return liveSourceError(
+      '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for relational graph views.'
+    );
+  }
+  if (hasLiveTypedFilter(input)) {
+    return liveSourceError(
+      '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for typed filters.'
+    );
+  }
+  if (input.target !== undefined && targetLooksLikeFile(input.target)) {
+    return liveSourceError(
+      '`trails wayfind --source live` does not support source file targets; use locked artifacts for file outlines.'
+    );
+  }
+  const view = viewFor(input);
+  if (view === 'contract' || view === 'map' || view === 'outline') {
+    return liveSourceError(
+      '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for this view.'
+    );
+  }
+  return undefined;
+};
+
 const viewLiveSource = async (
   input: WayfindInput,
   ctx: TrailContextWithCompose
 ) => {
   const view = viewFor(input);
-  if (input.deps || input.impact) {
+  const inputError = liveSourceInputError(input);
+  if (inputError !== undefined) {
     return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for relational graph views.'
-        )
-      ),
-      view,
-    };
-  }
-  if (hasLiveTypedFilter(input)) {
-    return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for typed filters.'
-        )
-      ),
-      view,
-    };
-  }
-  if (input.target !== undefined && targetLooksLikeFile(input.target)) {
-    return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` does not support source file targets; use locked artifacts for file outlines.'
-        )
-      ),
-      view,
-    };
-  }
-  if (view === 'contract' || view === 'map' || view === 'outline') {
-    return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for this view.'
-        )
-      ),
+      result: Result.err(inputError),
       view,
     };
   }
@@ -1078,13 +1073,26 @@ export const wayfindTrail = trail('wayfind.navigate', {
       const outlined = await dispatchWayfind(input, ctx);
       return outlined;
     }
+    if (input.source === 'live') {
+      const inputError = liveSourceInputError(input);
+      if (inputError !== undefined) {
+        return Result.err(inputError);
+      }
+    }
     const contextResult = await resolveOperatorProjectContext(input, {
       cwd: ctx.cwd,
     });
     if (contextResult.isErr()) {
       return contextResult;
     }
-    const context = contextResult.value;
+    let context = contextResult.value;
+    if (input.source === 'live' && context.selectedExtent !== 'workspace') {
+      const moduleContext = resolveOperatorAppModuleContext(context);
+      if (moduleContext.isErr()) {
+        return moduleContext;
+      }
+      context = moduleContext.value;
+    }
     if (context.selectedExtent !== 'workspace' || input.source === 'live') {
       const observable = await assertObservableProjectApps(context);
       if (observable.isErr()) {

@@ -238,6 +238,7 @@ const selectedWardenApps = (
     bindings.push({
       app: projectRelativeModulePath(app),
       expectedAppId: app.id,
+      rootDir: app.rootDir,
     });
   }
   return Result.ok({

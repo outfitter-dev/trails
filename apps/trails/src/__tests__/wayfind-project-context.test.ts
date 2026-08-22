@@ -115,6 +115,88 @@ const fakeWayfindContext = (cwd: string) => {
 };
 
 describe('Wayfinder shared project context', () => {
+  test('discovers a sole nested standalone app for live navigation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'trails-wayfind-standalone-'));
+    tempRoots.push(root);
+    await mkdir(join(root, 'apps', 'solo', 'src'), { recursive: true });
+    await writeFile(
+      join(root, 'apps', 'solo', 'src', 'app.ts'),
+      'export {};\n'
+    );
+    const facts = fakeWayfindContext(root);
+    const input = wayfindTrail.input.parse({
+      overview: true,
+      rootDir: root,
+      source: 'live',
+    });
+
+    const result = await wayfindTrail.implementation(input, facts.ctx);
+
+    expect(result.isOk()).toBe(true);
+    expect(facts.calls).toEqual([
+      {
+        id: 'survey',
+        input: {
+          module: 'apps/solo/src/app.ts',
+          rootDir: root,
+        },
+      },
+    ]);
+    if (result.isOk()) {
+      expect(result.value.project).toMatchObject({
+        app: { modulePath: 'apps/solo/src/app.ts' },
+        selectedExtent: 'standalone-app',
+      });
+    }
+  });
+
+  test('preserves an explicit standalone module for live navigation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'trails-wayfind-explicit-'));
+    tempRoots.push(root);
+    const facts = fakeWayfindContext(root);
+    const input = wayfindTrail.input.parse({
+      module: 'custom/app.ts',
+      overview: true,
+      rootDir: root,
+      source: 'live',
+    });
+
+    const result = await wayfindTrail.implementation(input, facts.ctx);
+
+    expect(result.isOk()).toBe(true);
+    expect(facts.calls).toEqual([
+      {
+        id: 'survey',
+        input: { module: 'custom/app.ts', rootDir: root },
+      },
+    ]);
+  });
+
+  test('does not discover standalone source modules for locked navigation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'trails-wayfind-locked-'));
+    tempRoots.push(root);
+    await mkdir(join(root, 'apps', 'solo', 'src'), { recursive: true });
+    await writeFile(
+      join(root, 'apps', 'solo', 'src', 'app.ts'),
+      'export {};\n'
+    );
+    const facts = fakeWayfindContext(root);
+    const input = wayfindTrail.input.parse({ overview: true, rootDir: root });
+
+    const result = await wayfindTrail.implementation(input, facts.ctx);
+
+    expect(result.isOk()).toBe(true);
+    expect(facts.calls).toEqual([
+      { id: 'wayfind.overview', input: { rootDir: root } },
+    ]);
+    if (result.isOk()) {
+      expect(result.value.project).toMatchObject({
+        app: { modulePath: 'src/app.ts' },
+        selectedExtent: 'standalone-app',
+      });
+    }
+  });
+
   test('selects one configured app without requiring unrelated locks', async () => {
     const root = await createWorkspace({ alpha: 'alpha.show' });
     const facts = fakeWayfindContext(root);
