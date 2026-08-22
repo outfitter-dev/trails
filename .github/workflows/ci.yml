@@ -101,9 +101,9 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Warden
-        # App selection comes from warden.apps in root trails.config.ts so the
-        # framework apps and examples/* stay covered from one source of truth.
-        run: bun packages/warden/bin/warden.ts --ci
+        # The operator owns Config-authored workspace app selection. The
+        # package-local binary cannot derive the root workspace.apps catalog.
+        run: bun apps/trails/bin/trails.ts warden --ci
 
       - name: Regrade audit
         run: bun run regrade:audit

@@ -26,12 +26,9 @@ import {
   deriveTopoGraphDiff,
   deriveTopoGraph,
   resolveTopoGraphVersionReference,
-  TOPO_GRAPH_SCHEMA_VERSION,
   readTopoGraph,
 } from '@ontrails/topography';
 import { z } from 'zod';
-
-import { writeIsolatedExampleJsonFile } from '../local-state-io.js';
 
 import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 import {
@@ -50,7 +47,7 @@ import {
   signalDetailOutput,
   trailDetailOutput,
 } from './topo-output-schemas.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import { createCurrentAppExampleInput } from './topo-support.js';
 import {
   briefReportSchema,
   deriveShippedSurfaceInventory,
@@ -363,23 +360,10 @@ const createDiffExampleInput = (): {
   readonly against: string;
   readonly module: string;
   readonly rootDir: string;
-} => {
-  const input = createIsolatedExampleInput('survey-diff');
-  writeIsolatedExampleJsonFile(input.rootDir, 'baseline/topo.lock', {
-    activationGraph: {
-      edgeCount: 0,
-      edges: [],
-      sourceCount: 0,
-      sourceKeys: [],
-      trailIds: [],
-    },
-    activationSources: {},
-    entries: [],
-    generatedAt: '2026-01-01T00:00:00.000Z',
-    topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
-  } satisfies TopoGraph);
-  return { ...input, against: 'baseline' };
-};
+} => ({
+  ...createCurrentAppExampleInput(),
+  against: 'saved',
+});
 
 const isNotFound = (error: unknown): boolean =>
   typeof error === 'object' &&
@@ -669,7 +653,7 @@ const diffEntryOutput = z.object({
   change: z.enum(['added', 'removed', 'modified']),
   details: z.array(z.string()).readonly(),
   id: z.string(),
-  kind: z.enum(['entity', 'trail', 'signal', 'resource']),
+  kind: z.enum(['entity', 'trail', 'signal', 'resource', 'trailhead']),
   severity: z.enum(['info', 'warning', 'breaking']),
 });
 
@@ -733,12 +717,12 @@ export const surveyTrail = trail('survey', {
   examples: [
     {
       description: 'Show all registered trails, resources, and signals',
-      input: createIsolatedExampleInput('survey-overview'),
+      input: createCurrentAppExampleInput(),
       name: 'Overview',
     },
     {
       description: 'Find every trail, resource, or signal with a matching ID',
-      input: { ...createIsolatedExampleInput('survey-lookup'), id: 'survey' },
+      input: { ...createCurrentAppExampleInput(), id: 'survey' },
       name: 'Lookup by ID',
     },
   ],
@@ -813,7 +797,7 @@ export const surveyBriefTrail = trail('survey.brief', {
   examples: [
     {
       description: 'Show counts and feature flags',
-      input: createIsolatedExampleInput('survey-brief'),
+      input: createCurrentAppExampleInput(),
       name: 'Brief capability report',
     },
   ],
@@ -831,7 +815,7 @@ export const surveySurfacesTrail = trail('survey.surfaces', {
   examples: [
     {
       description: 'Show CLI, MCP, and HTTP derived facts for public trails',
-      input: createIsolatedExampleInput('survey-surfaces'),
+      input: createCurrentAppExampleInput(),
       name: 'Shipped surface inventory',
     },
   ],
@@ -895,7 +879,7 @@ export const surveyTrailDetailTrail = trail('survey.trail', {
     {
       description: 'Show trail contract detail',
       input: {
-        ...createIsolatedExampleInput('survey-trail-detail'),
+        ...createCurrentAppExampleInput(),
         id: 'survey',
       },
       name: 'Trail detail',
@@ -924,7 +908,7 @@ export const surveyResourceTrail = trail('survey.resource', {
       description: 'Show resource usage detail',
       error: 'NotFoundError',
       input: {
-        ...createIsolatedExampleInput('survey-resource-detail'),
+        ...createCurrentAppExampleInput(),
         id: 'db.main',
       },
       name: 'Resource detail',
@@ -947,7 +931,7 @@ export const surveySignalTrail = trail('survey.signal', {
       description: 'Show signal producer and consumer detail',
       error: 'NotFoundError',
       input: {
-        ...createIsolatedExampleInput('survey-signal-detail'),
+        ...createCurrentAppExampleInput(),
         id: 'hello.greeted',
       },
       name: 'Signal detail',

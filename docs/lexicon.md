@@ -90,7 +90,7 @@ These names are the current durable graph-artifact vocabulary.
 
 #### `TopoGraph`
 
-The exported TypeScript type family for the serialized, inspectable graph content. A TopoGraph contains trail, signal, resource, entity, activation, schema, layer, example, and surface-rendering facts. It is embedded in root `trails.lock`.
+The exported TypeScript type family for the serialized, inspectable graph content. A TopoGraph contains trail, signal, resource, entity, activation, schema, layer, example, and surface-rendering facts. It is embedded in the owning app root's `trails.lock`.
 
 #### `topoGraph`
 
@@ -445,7 +445,7 @@ Compiler-managed graph audit records for future `--force` compile behavior. `for
 
 ### `graph`
 
-The assembled, queryable value returned by `topo()`. The graph is the runtime shape that surfaces render, survey inspects, and the root `trails.lock` serializes for review.
+The assembled, queryable value returned by `topo()`. The graph is the runtime shape that surfaces render, survey inspects, and the owning app root's `trails.lock` serializes for review.
 
 ```typescript
 const graph = topo('myapp', entityModule, searchModule);

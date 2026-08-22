@@ -15,7 +15,8 @@ import { z } from 'zod';
 
 import { withFreshAppLease } from './operator-context.js';
 import { resolveRunTargetProject } from './run.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import type { RunTargetProject } from './run.js';
+import { createCurrentAppExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLE_COMPARISON_KIND = 'example-comparison' as const;
 
@@ -59,7 +60,7 @@ const buildHappyExampleInput = (): {
   readonly module: string;
   readonly rootDir: string;
 } => ({
-  ...createIsolatedExampleInput('run-example-happy'),
+  ...createCurrentAppExampleInput(),
   exampleName: 'Brief capability report',
   id: 'survey.brief',
 });
@@ -346,22 +347,79 @@ const determineMode = (
   return 'none';
 };
 
-const rebaseCurrentAppExampleInput = (
-  input: unknown,
-  appRoot: string
-): unknown =>
+const isCurrentAppExampleInput = (input: unknown): boolean =>
   isPlainObject(input) &&
   input['rootDir'] === '.' &&
-  input['module'] === './src/app.ts'
-    ? { ...input, rootDir: appRoot }
-    : input;
+  input['module'] === './src/app.ts';
+
+// Keep the operator exception explicit: domain inputs may legitimately use the
+// same module/root values and must run exactly as authored.
+const CURRENT_APP_EXAMPLE_IDENTITIES = new Set([
+  'compile\0Compile the current topo to trails.lock',
+  'guide\0List trail guidance',
+  'run\0Reject unknown trail ID',
+  'run\0Run trail by ID',
+  'run.example\0Run named example',
+  'run.examples\0List trail examples',
+  'survey\0Lookup by ID',
+  'survey\0Overview',
+  'survey.brief\0Brief capability report',
+  'survey.diff\0Breaking changes',
+  'survey.diff\0Diff against baseline',
+  'survey.diff\0Force audit events',
+  'survey.resource\0Resource detail',
+  'survey.signal\0Signal detail',
+  'survey.surfaces\0Shipped surface inventory',
+  'survey.trail\0Trail detail',
+  'topo\0Show the current topo summary',
+  'topo.history\0Show topo history',
+  'topo.pin\0Pin the current topo',
+  'topo.unpin\0Preview pin removal',
+]);
+
+const isCurrentAppExampleIdentity = (
+  trailId: string,
+  exampleName: string
+): boolean => CURRENT_APP_EXAMPLE_IDENTITIES.has(`${trailId}\0${exampleName}`);
+
+const rebaseCurrentAppMarker = (
+  input: Record<string, unknown>,
+  target: RunTargetProject
+): Record<string, unknown> => ({
+  ...input,
+  module: target.modulePath,
+  rootDir: target.rootDir,
+});
+
+const rebaseCurrentAppExampleInput = (
+  input: unknown,
+  target: RunTargetProject,
+  trailId: string,
+  exampleName: string
+): unknown => {
+  if (
+    !isCurrentAppExampleIdentity(trailId, exampleName) ||
+    !(isPlainObject(input) && isCurrentAppExampleInput(input))
+  ) {
+    return input;
+  }
+  const rebased = rebaseCurrentAppMarker(input, target);
+  return trailId === 'run' &&
+    isPlainObject(input['input']) &&
+    isCurrentAppExampleInput(input['input'])
+    ? {
+        ...rebased,
+        input: rebaseCurrentAppMarker(input['input'], target),
+      }
+    : rebased;
+};
 
 const buildComparisonEnvelope = async (
   app: Topo,
   trailId: string,
   exampleName: string,
   permit: BasePermit | undefined,
-  cwd: string
+  target: RunTargetProject
 ): Promise<Result<RunExampleComparison, Error>> => {
   const exampleResult = findExample(app, trailId, exampleName);
   if (exampleResult.isErr()) {
@@ -372,9 +430,12 @@ const buildComparisonEnvelope = async (
   const executed = await run(
     app,
     trailId,
-    rebaseCurrentAppExampleInput(example.input, cwd),
+    rebaseCurrentAppExampleInput(example.input, target, trailId, exampleName),
     {
-      ctx: { cwd, ...(permit === undefined ? {} : { permit }) },
+      ctx: {
+        cwd: target.rootDir,
+        ...(permit === undefined ? {} : { permit }),
+      },
     }
   );
   const actual = deriveActualOutcome(executed);
@@ -479,7 +540,7 @@ export const runExampleTrail = trail('run.example', {
           input.id,
           input.exampleName,
           ctx.permit,
-          target.value.rootDir
+          target.value
         )
     );
   },

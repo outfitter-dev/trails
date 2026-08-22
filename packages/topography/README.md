@@ -26,7 +26,7 @@ This is not a private helper package. The Trails operator app consumes Topograph
 - structured example and field-override provenance derivation for TopoGraph entries
 - stable hashing for CI drift detection
 - semantic diffing between two TopoGraphs
-- file I/O helpers for root `trails.lock` plus legacy artifact-family readers
+- file I/O helpers for app-root `trails.lock` plus legacy artifact-family readers
 - the topo-store: queryable persistence of the resolved topo graph in the shared
   `trails.db` in the per-user Trails state store, including snapshots, pinning,
   history, and read-only query accessors (relocated from `@ontrails/core` per
@@ -142,7 +142,7 @@ import {
 } from '@ontrails/topography';
 ```
 
-The Wayfind catalog is cold and deterministic. Graph queries read root `trails.lock` and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
+The Wayfind catalog is cold and deterministic. Graph queries read the selected app root's `trails.lock` and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
 
 | Export | What it does |
 | --- | --- |

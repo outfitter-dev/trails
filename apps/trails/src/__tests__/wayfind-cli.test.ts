@@ -1,6 +1,7 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import { Result } from '@ontrails/core';
 import { describe, expect, test } from 'bun:test';
+import { resolve } from 'node:path';
 
 import {
   app,
@@ -10,6 +11,8 @@ import {
 } from '../app.js';
 import { formatWayfindOutlineText } from '../run-wayfind-outline.js';
 import { wayfindTrail } from '../trails/wayfind.js';
+
+const operatorAppRoot = resolve(import.meta.dir, '../..');
 
 const unwrapCommands = () => {
   const result = deriveCliCommands(app, {
@@ -39,7 +42,7 @@ const fakeWayfindContext = () => {
         calls.push({ id, input });
         return Result.ok({ id, input });
       },
-      cwd: process.cwd(),
+      cwd: operatorAppRoot,
     },
   };
 };
@@ -277,7 +280,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('dispatches --overlay through the generic overlay read', async () => {
     const facts = fakeWayfindContext();
-    const rootDir = process.cwd();
+    const rootDir = operatorAppRoot;
     const result = await wayfindTrail.implementation(
       parseWayfindInput({ overlay: 'cloudflare', rootDir }),
       facts.ctx

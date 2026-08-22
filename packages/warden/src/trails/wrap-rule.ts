@@ -91,6 +91,9 @@ const buildGovernedHistoryContext = (
 export const buildProjectContext = (
   input: ProjectAwareRuleInput
 ): ProjectContext => ({
+  ...(input.unownedWorkspaceLocks
+    ? { unownedWorkspaceLocks: input.unownedWorkspaceLocks }
+    : {}),
   ...(input.authoredMcpSurfaceBindingSets
     ? { authoredMcpSurfaceBindingSets: input.authoredMcpSurfaceBindingSets }
     : {}),

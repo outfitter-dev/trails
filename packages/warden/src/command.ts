@@ -919,6 +919,7 @@ const buildRunOptions = ({
   adapterCheck,
   cli,
   config,
+  configPath,
   env,
   fix,
   rootDir,
@@ -927,6 +928,7 @@ const buildRunOptions = ({
   readonly adapterCheck: boolean;
   readonly cli: WardenConfigLayer;
   readonly config?: WardenConfigInput | undefined;
+  readonly configPath?: string | undefined;
   readonly env: EnvRecord;
   readonly fix: boolean;
   readonly rootDir: string;
@@ -936,6 +938,7 @@ const buildRunOptions = ({
     adapterCheck,
     apps: cli.apps,
     config,
+    configPath,
     depth: cli.depth,
     drafts: cli.drafts,
     failOn: cli.failOn,
@@ -1053,6 +1056,7 @@ export const runWardenCommand = async ({
       adapterCheck: parsed.adapterCheck,
       cli: parsed.cli,
       config: loadedConfig.config,
+      configPath: loadedConfig.configPath,
       env,
       fix: parsed.fix && topoResolution.preflightError === undefined,
       rootDir,

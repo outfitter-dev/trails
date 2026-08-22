@@ -111,7 +111,7 @@ These are derived from implementation code itself. Useful for governance and doc
 | ---------------------------- | ------------------------------------------ |
 | Which trails a trail composes | `ctx.compose()` calls in the implementation |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| TopoGraph entries and lock metadata | All of the above, canonicalized into root `trails.lock` |
+| TopoGraph entries and lock metadata | All of the above, canonicalized into the selected app root's `trails.lock` |
 
 Warden uses inference to verify that declarations match actual code. The TopoGraph captures inferred information for CI governance.
 

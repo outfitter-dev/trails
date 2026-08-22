@@ -48,6 +48,8 @@ bun trails warden --pre-push
 
 In a configured workspace, the integrated operator derives topo targets from static `workspace.apps`. Use `trails warden --app <id>` to narrow topo-aware rules to one app; project-wide source and project facts remain in scope. The operator rejects `--apps` in that workspace because it would introduce a second app catalog.
 
+The project-static `workspace-lock-ownership` rule checks the same collection boundary without deriving identity from files it finds. A nested `trails.lock` outside configured app roots is a warning with its root-relative path, source-collection provenance, and declare-or-remove coaching. An unowned lock at the workspace root is a forbidden aggregate and reports as an error. Scope exclusions and typed nested repository, worktree, and submodule boundaries remain outside this census.
+
 CI can also use the direct Warden bin:
 
 ```bash

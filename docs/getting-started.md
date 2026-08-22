@@ -343,6 +343,8 @@ App-loading `trails` commands automatically discover a conventional entry point 
 
 Configured workspaces name app identity in `workspace.apps`. From the workspace root, use `--app <id>` for one-app operations such as `trails compile`; a bare `trails validate` deliberately validates the complete configured app set. `trails compile` never fans out and never creates a workspace-root aggregate lock.
 
+Run `trails config explain --json` when you need to inspect the static catalog, resolved app entries, selected extent, and selection provenance. The command does not import app modules or treat locks as app discovery.
+
 If multiple entry candidates are found inside the selected app, the CLI exits with an error listing them; pass `--module` to refine that app's module.
 
 `--root-dir` fixes the discovery boundary exactly. `--module` is selected-app-relative by default and never changes app identity or the lock root. The Trails CLI rejects URL-shaped paths, absolute paths, and `..` paths that escape the selected app root. Framework code that deliberately loads an app module outside that boundary must opt into `trustedModulePath: true` when calling `loadApp` or `loadFreshAppLease`.

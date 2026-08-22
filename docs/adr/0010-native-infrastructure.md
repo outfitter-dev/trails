@@ -2,13 +2,24 @@
 id: 10
 slug: native-infrastructure
 title: Trails-Native Infrastructure Pattern
-status: accepted
+status: partially-superseded
+superseded_by: ['54']
 created: 2026-03-30
-updated: 2026-05-09
+updated: 2026-08-22
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0010: Trails-Native Infrastructure Pattern
+
+> **Current-law update (2026-08-22):**
+> [ADR-0054: Project Substrate Names Its Truth](0054-project-substrate-names-its-truth.md)
+> supersedes this ADR's repo-local state and artifact layout. `.trails/` now
+> holds committed control only; cache and observed state live in per-user
+> stores, and each lock-owning app owns its own root `trails.lock`. Its
+> source-static project identity also gives the operator-owned
+> `trails config explain` route a different contract from the resolved
+> deployment-provenance trail sketched below. Resolved field provenance remains
+> a Config library derivation pending the deferred config-cascade work.
 
 ## Context
 

@@ -282,6 +282,7 @@ export {
   wardenExportSymmetryTrail,
   wardenRulesUseAstTrail,
   webhookRouteCollisionTrail,
+  workspaceLockOwnershipTrail,
   wrapRule,
   wrapTopoRule,
 } from './trails/index.js';

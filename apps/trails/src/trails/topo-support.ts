@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 
 import { deriveTrailsDbPath } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
@@ -11,11 +10,6 @@ import {
 } from '@ontrails/topography';
 import type { TopoSnapshot } from '@ontrails/topography';
 import { z } from 'zod';
-
-import {
-  createIsolatedExampleRoot,
-  writeIsolatedExampleAppModule,
-} from '../local-state-io.js';
 
 import { requireTrailRootDir } from './root-dir.js';
 import type { BriefReport, SurveyListReport } from './topo-reports.js';
@@ -35,19 +29,6 @@ export const topoSnapshotOutput = z.object({
 
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = 'trails.lock';
-const sourceExampleAppModule = fileURLToPath(
-  new URL('../app.ts', import.meta.url)
-);
-const bundledExampleAppModule = fileURLToPath(
-  new URL('app.js', import.meta.url)
-);
-const EXAMPLE_APP_MODULE = existsSync(sourceExampleAppModule)
-  ? sourceExampleAppModule
-  : bundledExampleAppModule;
-
-const uniqueExampleRootName = (name: string): string =>
-  `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-
 export interface TopoSummaryReport {
   readonly app: BriefReport;
   readonly dbPath: string;
@@ -149,15 +130,13 @@ const buildSnapshotInput = (
   ...deriveTopoCounts(app),
 });
 
-export const createIsolatedExampleInput = (
-  name: string
-): { readonly module: string; readonly rootDir: string } => {
-  const rootDir = createIsolatedExampleRoot(uniqueExampleRootName(name));
-  return {
-    module: writeIsolatedExampleAppModule(rootDir, EXAMPLE_APP_MODULE),
-    rootDir,
-  };
-};
+export const createCurrentAppExampleInput = (): {
+  readonly module: string;
+  readonly rootDir: string;
+} => ({
+  module: './src/app.ts',
+  rootDir: '.',
+});
 
 export const listTopoHistory = (options?: {
   readonly limit?: number;

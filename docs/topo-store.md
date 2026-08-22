@@ -110,7 +110,7 @@ trails compile --app api
 
 ### `trails diff`
 
-Compare the current topo against a saved TopoGraph target. The default target is the committed root `trails.lock`; explicit targets may be workspace-relative `trails.lock` or legacy `topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
+Compare the current topo against a saved TopoGraph target. The default target is the selected app root's committed `trails.lock`; explicit targets may be workspace-relative `trails.lock` or legacy `topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
 
 ```bash
 trails diff

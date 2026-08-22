@@ -71,5 +71,4 @@ export { configRef, isConfigRef, type ConfigRef } from './ref.js';
 export { deriveConfig, type DeriveConfigOptions } from './resolve.js';
 export { configCheck } from './trails/config-check.js';
 export { configDescribe } from './trails/config-describe.js';
-export { configExplain } from './trails/config-explain.js';
 export { configInit } from './trails/config-init.js';

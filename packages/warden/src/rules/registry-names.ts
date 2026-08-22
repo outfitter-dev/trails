@@ -84,6 +84,7 @@ import { validDetourContract } from './valid-detour-contract.js';
 import { validDescribeRefs } from './valid-describe-refs.js';
 import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 import { webhookRouteCollision } from './webhook-route-collision.js';
+import { workspaceLockOwnership } from './workspace-lock-ownership.js';
 
 /**
  * All non-`warden-export-symmetry` rule identifiers registered in
@@ -166,4 +167,5 @@ export const registeredRuleNames: readonly string[] = [
   versionWithoutExamples.name,
   wardenRulesUseAst.name,
   webhookRouteCollision.name,
+  workspaceLockOwnership.name,
 ];

@@ -220,13 +220,11 @@ Validate config values against the schema. Returns a config report with field-le
 
 Describe all fields in the schema — paths, types, defaults, env bindings, secret markers, deprecation messages.
 
-### `config.explain`
-
-Show which source won for each config field — defaults, base, profile, local, or env.
-
 ### `config.init`
 
 Generate example config files in TOML, JSON, JSONC, or YAML. Optionally writes `.env.example` and `.schema.json`.
+
+Resolved deployment provenance remains available as the `deriveConfigProvenance()` library primitive. The Trails operator's `trails config explain` command has a narrower project-substrate contract: it explains source-static app identity and selection without treating `workspace.apps` as runtime config.
 
 ## Testing
 

@@ -18,7 +18,7 @@ import {
 import { exportCurrentTopo } from './topo-store-support.js';
 import type { TopoExportReport } from './topo-support.js';
 import {
-  createIsolatedExampleInput,
+  createCurrentAppExampleInput,
   topoSnapshotOutput,
 } from './topo-support.js';
 
@@ -103,7 +103,7 @@ export const compileTrail = trail('compile', {
   description: 'Compile the current topo to trails.lock',
   examples: [
     {
-      input: createIsolatedExampleInput('compile'),
+      input: createCurrentAppExampleInput(),
       name: 'Compile the current topo to trails.lock',
     },
   ],

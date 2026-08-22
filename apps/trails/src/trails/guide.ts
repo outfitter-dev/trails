@@ -14,7 +14,7 @@ import {
   deriveCurrentTopoDetail,
   readSurfaceLayerNamesFromContext,
 } from './topo-read-support.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import { createCurrentAppExampleInput } from './topo-support.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,7 +54,7 @@ export const guideTrail = trail('guide', {
   examples: [
     {
       description: 'Lists all trails with descriptions and example counts',
-      input: createIsolatedExampleInput('guide-list'),
+      input: createCurrentAppExampleInput(),
       name: 'List trail guidance',
     },
   ],
