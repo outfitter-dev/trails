@@ -111,6 +111,46 @@ export default defineConfig({
     });
   });
 
+  for (const [label, content] of [
+    [
+      'as const',
+      "export default { workspace: { apps: { demo: { root: 'apps/demo' } } } } as const;\n",
+    ],
+    [
+      'satisfies',
+      "export default { workspace: { apps: { demo: { root: 'apps/demo' } } } } satisfies { workspace: { apps: Record<string, { root: string }> } };\n",
+    ],
+    [
+      'parentheses',
+      "export default ({ workspace: { apps: { demo: { root: 'apps/demo' } } } });\n",
+    ],
+    [
+      'defineConfig as const',
+      `import { defineConfig } from '@ontrails/config';
+export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } } } }) as const;\n`,
+    ],
+    [
+      'nested as const',
+      "export default { workspace: { apps: { demo: { root: 'apps/demo' as const } } } };\n",
+    ],
+  ] as const) {
+    test(`reads TypeScript identity wrapped with ${label}`, async () => {
+      await withTempDir(async (rootDir) => {
+        await writeFile(rootDir, 'trails.config.ts', content);
+
+        const result = await readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: rootDir,
+        });
+
+        expect(result.apps[0]).toMatchObject({
+          id: 'demo',
+          root: 'apps/demo',
+        });
+      });
+    });
+  }
+
   test('recognizes an aliased Config-owned defineConfig import', async () => {
     await withTempDir(async (rootDir) => {
       await writeFile(

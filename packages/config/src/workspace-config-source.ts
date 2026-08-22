@@ -1,6 +1,7 @@
 import { ValidationError } from '@ontrails/core';
 import {
   extractStringLiteral,
+  getNodeExpression,
   identifierName,
   parseWithDiagnostics,
   propertyKeyName,
@@ -26,6 +27,23 @@ export const staticIdentityError = (
     context: { ...context, path: filePath, reason, section: 'workspace.apps' },
   });
 
+/** Unwrap `as const`, `satisfies`, and parenthesized wrappers. */
+const unwrapExpression = (node: AstNode): AstNode => {
+  let current = node;
+  while (
+    current.type === 'ParenthesizedExpression' ||
+    current.type === 'TSAsExpression' ||
+    current.type === 'TSSatisfiesExpression'
+  ) {
+    const inner = getNodeExpression(current);
+    if (inner === undefined) {
+      return current;
+    }
+    current = inner;
+  }
+  return current;
+};
+
 const propertiesOf = (node: AstNode, filePath: string): readonly AstNode[] => {
   if (node.type !== 'ObjectExpression') {
     throw staticIdentityError(
@@ -44,7 +62,7 @@ const staticPropertyEntries = (
   label: string
 ): ReadonlyMap<string, AstNode> => {
   const entries = new Map<string, AstNode>();
-  for (const property of propertiesOf(node, filePath)) {
+  for (const property of propertiesOf(unwrapExpression(node), filePath)) {
     if (property.type !== 'Property') {
       throw staticIdentityError(
         `${label} must not use spreads in ${filePath}; author workspace identity as direct literal properties.`,
@@ -70,7 +88,7 @@ const staticPropertyEntries = (
         { key }
       );
     }
-    entries.set(key, value);
+    entries.set(key, unwrapExpression(value));
   }
   return entries;
 };
@@ -128,12 +146,13 @@ const unwrapConfigObject = (
   helperNames: ReadonlySet<string>,
   filePath: string
 ): AstNode => {
-  if (declaration.type !== 'CallExpression') {
-    return declaration;
+  const expression = unwrapExpression(declaration);
+  if (expression.type !== 'CallExpression') {
+    return expression;
   }
-  const callee = declaration['callee'] as AstNode | undefined;
+  const callee = expression['callee'] as AstNode | undefined;
   const args =
-    (declaration['arguments'] as readonly AstNode[] | undefined) ?? [];
+    (expression['arguments'] as readonly AstNode[] | undefined) ?? [];
   const helperName = identifierName(callee);
   if (
     helperName === null ||
@@ -144,10 +163,10 @@ const unwrapConfigObject = (
       `Static workspace identity in ${filePath} may only use defineConfig({...}) imported from @ontrails/config.`,
       filePath,
       'dynamic-expression',
-      { expressionType: declaration.type }
+      { expressionType: expression.type }
     );
   }
-  return args[0] as AstNode;
+  return unwrapExpression(args[0] as AstNode);
 };
 
 const extractLiteralApps = (
