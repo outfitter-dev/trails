@@ -180,7 +180,7 @@ export const readTopoGraph = async (
   }
 
   const content = await readTextIfExists(join(dir, TOPO_GRAPH_FILE));
-  return content ? parseTopoGraph(content) : null;
+  return content === null ? null : parseTopoGraph(content);
 };
 
 // ---------------------------------------------------------------------------
@@ -248,7 +248,7 @@ export const readTrailsLock = async (
 ): Promise<TrailsLock | null> => {
   const dir = resolveDir(options);
   const content = await readTextIfExists(join(dir, LOCK_MANIFEST_FILE));
-  return content ? parseTrailsLock(content) : null;
+  return content === null ? null : parseTrailsLock(content);
 };
 
 /**

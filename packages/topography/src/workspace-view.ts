@@ -13,7 +13,7 @@ import { trailsLockFileName } from '@ontrails/config';
 import type { ResolvedTrailsWorkspaceApp } from '@ontrails/config';
 
 import { deriveStableHash, deriveTopoGraphHash } from './hash.js';
-import { readTrailsLock } from './io.js';
+import { isTopoArtifactRegenerationError, readTrailsLock } from './io.js';
 import type {
   LockManifestSummary,
   TopoGraph,
@@ -156,6 +156,12 @@ const validateSelection = (
   const selectedAppIds = [...(requested ?? configuredAppIds)].toSorted(
     compareStrings
   );
+  if (selectedAppIds.length === 0) {
+    throw new ValidationError(
+      'Workspace app selection must contain at least one configured app ID.',
+      { context: { configuredAppIds, selectedAppIds } }
+    );
+  }
   const unique = new Set(selectedAppIds);
   if (unique.size !== selectedAppIds.length) {
     throw new ValidationError(
@@ -176,10 +182,56 @@ const validateSelection = (
   return selectedAppIds;
 };
 
+const validateCurrentAppGraphHashes = (
+  configuredAppIds: readonly string[],
+  currentAppGraphHashes: Readonly<Record<string, string>> | undefined
+): void => {
+  if (currentAppGraphHashes === undefined) {
+    return;
+  }
+  for (const appId of configuredAppIds) {
+    if (!Object.hasOwn(currentAppGraphHashes, appId)) {
+      continue;
+    }
+    const currentHash = currentAppGraphHashes[appId];
+    if (currentHash !== undefined && !/^[0-9a-f]{64}$/u.test(currentHash)) {
+      throw new ValidationError(
+        `Current graph hash for app ${appId} must be a lowercase SHA-256 digest.`,
+        { context: { appId, currentHash } }
+      );
+    }
+  }
+};
+
 interface AppReadResult {
   readonly app?: WorkspaceViewApp | undefined;
   readonly observation: WorkspaceAppLockObservation;
 }
+
+const failedAppRead = (
+  app: ResolvedTrailsWorkspaceApp,
+  selected: ReadonlySet<string>,
+  error: unknown
+): AppReadResult => {
+  const lockPath = lockPathForApp(app);
+  const invalid = isTopoArtifactRegenerationError(error);
+  return {
+    observation: {
+      binding: 'unavailable',
+      coaching: invalid
+        ? `Regenerate ${lockPath} by compiling configured app ${app.id}.`
+        : `Restore access to ${lockPath}, then inspect configured app ${app.id} again.`,
+      detail: errorDetail(error),
+      freshness: 'unavailable',
+      id: app.id,
+      lockPath,
+      provenance: 'configured-app-lock',
+      root: app.root,
+      selected: selected.has(app.id),
+      status: invalid ? 'invalid' : 'unavailable',
+    },
+  };
+};
 
 const unavailableAppRead = (
   app: ResolvedTrailsWorkspaceApp,
@@ -232,16 +284,7 @@ const readConfiguredApp = async (
   try {
     lock = await readTrailsLock({ dir: app.rootDir });
   } catch (error) {
-    return {
-      observation: {
-        ...base,
-        binding: 'unavailable',
-        coaching: `Regenerate ${lockPath} by compiling configured app ${app.id}.`,
-        detail: errorDetail(error),
-        freshness: 'unavailable',
-        status: 'invalid',
-      },
-    };
+    return failedAppRead(app, selected, error);
   }
   if (lock === null) {
     return {
@@ -326,12 +369,6 @@ const readConfiguredApp = async (
   const currentHash = hasCurrentHash
     ? currentAppGraphHashes?.[app.id]
     : undefined;
-  if (currentHash !== undefined && !/^[0-9a-f]{64}$/u.test(currentHash)) {
-    throw new ValidationError(
-      `Current graph hash for app ${app.id} must be a lowercase SHA-256 digest.`,
-      { context: { appId: app.id, currentHash } }
-    );
-  }
   const freshness = freshnessFor(currentHash, actualHash);
   return {
     app: {
@@ -389,6 +426,10 @@ export const deriveWorkspaceView = async (
   const selectedAppIds = validateSelection(
     configuredAppIds,
     options.selectedAppIds
+  );
+  validateCurrentAppGraphHashes(
+    configuredAppIds,
+    options.currentAppGraphHashes
   );
   const selected = new Set(selectedAppIds);
   const expectedLockPaths = new Set(configuredApps.map(lockPathForApp));

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, posix } from 'node:path';
 
@@ -235,6 +235,65 @@ describe('deriveWorkspaceView app-lock evidence', () => {
     );
   });
 
+  test('classifies an existing zero-byte lock as invalid', async () => {
+    await mkdir(join(rootDir, 'apps/empty'), { recursive: true });
+    await Bun.write(join(rootDir, 'apps/empty/trails.lock'), '');
+
+    const view = await deriveWorkspaceView({
+      identity: identity(rootDir, [{ id: 'empty', root: 'apps/empty' }]),
+    });
+
+    expect(view.content.apps).toEqual([]);
+    expect(view.workspaceViewHash).toBeNull();
+    expect(view.evidence.configuredCompleteness).toBe('partial');
+    expect(view.evidence.apps).toContainEqual(
+      expect.objectContaining({
+        binding: 'unavailable',
+        coaching:
+          'Regenerate apps/empty/trails.lock by compiling configured app empty.',
+        detail: expect.stringContaining('Invalid JSON'),
+        freshness: 'unavailable',
+        id: 'empty',
+        status: 'invalid',
+      })
+    );
+  });
+
+  test.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'classifies an unreadable configured lock as unavailable',
+    async () => {
+      const appRoot = join(rootDir, 'apps/blocked');
+      const lockPath = join(appRoot, 'trails.lock');
+      await writeAppLock(appRoot, 'blocked', graph([entry('blocked.read')]));
+      await chmod(lockPath, 0o000);
+
+      try {
+        const view = await deriveWorkspaceView({
+          identity: identity(rootDir, [
+            { id: 'blocked', root: 'apps/blocked' },
+          ]),
+        });
+
+        expect(view.content.apps).toEqual([]);
+        expect(view.workspaceViewHash).toBeNull();
+        expect(view.evidence.configuredCompleteness).toBe('partial');
+        expect(view.evidence.apps).toContainEqual(
+          expect.objectContaining({
+            binding: 'unavailable',
+            coaching:
+              'Restore access to apps/blocked/trails.lock, then inspect configured app blocked again.',
+            detail: expect.stringContaining('EACCES'),
+            freshness: 'unavailable',
+            id: 'blocked',
+            status: 'unavailable',
+          })
+        );
+      } finally {
+        await chmod(lockPath, 0o600);
+      }
+    }
+  );
+
   test('distinguishes invalid JSON, hash-integrity failure, and app binding mismatch', async () => {
     await Bun.write(join(rootDir, 'apps/json/trails.lock'), '{nope}\n');
     await writeAppLock(
@@ -333,23 +392,72 @@ describe('deriveWorkspaceView app-lock evidence', () => {
     );
   });
 
-  test('rejects unconfigured selections, duplicate selections, and malformed current hashes', async () => {
+  test('rejects unconfigured and duplicate selections', async () => {
     const appGraph = graph([entry('one.read')]);
     await writeAppLock(join(rootDir, 'one'), 'one', appGraph);
     const project = identity(rootDir, [{ id: 'one', root: 'one' }]);
 
+    await expect(
+      deriveWorkspaceView({
+        identity: identity(join(rootDir, 'missing-workspace'), [
+          { id: 'one', root: 'missing' },
+        ]),
+        selectedAppIds: [],
+      })
+    ).rejects.toThrow(
+      'Workspace app selection must contain at least one configured app ID.'
+    );
     await expect(
       deriveWorkspaceView({ identity: project, selectedAppIds: ['other'] })
     ).rejects.toThrow('unconfigured IDs');
     await expect(
       deriveWorkspaceView({ identity: project, selectedAppIds: ['one', 'one'] })
     ).rejects.toThrow('duplicate IDs');
-    await expect(
-      deriveWorkspaceView({
-        currentAppGraphHashes: { one: 'not-a-hash' },
-        identity: project,
-      })
-    ).rejects.toThrow('lowercase SHA-256');
+  });
+
+  test('validates configured current hashes before observing lock posture', async () => {
+    const appGraph = graph([entry('one.read')]);
+    await mkdir(join(rootDir, 'cases/invalid'), { recursive: true });
+    await Bun.write(join(rootDir, 'cases/invalid/trails.lock'), '');
+    await writeAppLock(join(rootDir, 'cases/mismatched'), 'one', appGraph, {
+      scopeApp: 'somewhere-else',
+    });
+    await writeAppLock(join(rootDir, 'cases/scoped'), 'one', appGraph);
+    await writeAppLock(join(rootDir, 'cases/integrity'), 'one', appGraph, {
+      hash: '0'.repeat(64),
+    });
+    await writeAppLock(join(rootDir, 'cases/valid'), 'one', appGraph);
+
+    const cases = [
+      { root: 'cases/missing' },
+      { root: 'cases/invalid' },
+      { root: 'cases/mismatched' },
+      {
+        lockScope: { exclude: ['cases/scoped/trails.lock'] },
+        root: 'cases/scoped',
+      },
+      { root: 'cases/integrity' },
+      { root: 'cases/valid' },
+    ] as const;
+
+    for (const fixture of cases) {
+      await expect(
+        deriveWorkspaceView({
+          currentAppGraphHashes: { one: 'not-a-hash' },
+          identity: identity(rootDir, [{ id: 'one', root: fixture.root }]),
+          ...('lockScope' in fixture ? { lockScope: fixture.lockScope } : {}),
+        })
+      ).rejects.toThrow(
+        'Current graph hash for app one must be a lowercase SHA-256 digest.'
+      );
+    }
+
+    const view = await deriveWorkspaceView({
+      currentAppGraphHashes: { unconfigured: 'not-a-hash' },
+      identity: identity(rootDir, [{ id: 'one', root: 'cases/valid' }]),
+    });
+    expect(view.evidence.apps[0]?.freshness).toBe('unknown');
+    expect(view.evidence.configuredCompleteness).toBe('complete');
   });
 
   test('rejects legacy workspace metadata inside an app-local lock', async () => {

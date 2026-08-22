@@ -153,6 +153,14 @@ describe('writeTopoGraph / readTopoGraph', () => {
     expect(result).toBeNull();
   });
 
+  test('rejects an existing zero-byte topo.lock as invalid', async () => {
+    await Bun.write(join(tempDir, 'topo.lock'), '');
+
+    await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
+      'Invalid JSON'
+    );
+  });
+
   test('rejects topo.lock files with invalid shape', async () => {
     await Bun.write(
       join(tempDir, 'topo.lock'),
@@ -345,6 +353,14 @@ describe('writeTrailsLock / readTrailsLock', () => {
 
     await expect(readTrailsLock({ dir: tempDir })).resolves.toEqual(trailsLock);
     await expect(readTopoGraph({ dir: tempDir })).resolves.toEqual(topoGraph);
+  });
+
+  test('rejects an existing zero-byte trails.lock as invalid', async () => {
+    await Bun.write(join(tempDir, 'trails.lock'), '');
+
+    await expect(readTrailsLock({ dir: tempDir })).rejects.toThrow(
+      'Invalid JSON'
+    );
   });
 
   test('derives v5 root locks back to v4 manifests for compatibility', async () => {
