@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -30,7 +31,55 @@ type Starter = 'empty' | 'entity' | 'hello';
 type Surface = 'cli' | 'http' | 'mcp';
 
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
+const repoNodeModules = join(repoRoot, 'node_modules');
+const trailsPackageNodeModules = join(repoRoot, 'apps/trails/node_modules');
 const formatterTimeoutMs = 30_000;
+
+const linkGeneratedProjectDependencies = (dir: string): void => {
+  const target = join(dir, 'node_modules');
+  if (existsSync(target)) {
+    return;
+  }
+
+  mkdirSync(target, { recursive: true });
+  const sources = [trailsPackageNodeModules, repoNodeModules];
+  for (const source of sources) {
+    for (const entry of readdirSync(source)) {
+      if (entry === '.bin' || entry === '@ontrails') {
+        continue;
+      }
+      const destination = join(target, entry);
+      if (!existsSync(destination)) {
+        symlinkSync(join(source, entry), destination, 'dir');
+      }
+    }
+  }
+
+  const ontrailsTarget = join(target, '@ontrails');
+  mkdirSync(ontrailsTarget);
+  for (const sourceDir of sources.map((entry) => join(entry, '@ontrails'))) {
+    if (!existsSync(sourceDir)) {
+      continue;
+    }
+    for (const entry of readdirSync(sourceDir)) {
+      const destination = join(ontrailsTarget, entry);
+      if (!existsSync(destination)) {
+        symlinkSync(join(sourceDir, entry), destination, 'dir');
+      }
+    }
+  }
+
+  const binTarget = join(target, '.bin');
+  mkdirSync(binTarget);
+  for (const sourceDir of sources.map((entry) => join(entry, '.bin'))) {
+    for (const entry of readdirSync(sourceDir)) {
+      const destination = join(binTarget, entry);
+      if (!existsSync(destination)) {
+        symlinkSync(join(sourceDir, entry), destination, 'file');
+      }
+    }
+  }
+};
 
 const makeTempProject = (): string =>
   join(
@@ -200,7 +249,7 @@ const expectGeneratedProjectFormatCheck = (dir: string): void => {
 };
 
 const expectGeneratedProjectLintCheck = (dir: string): void => {
-  symlinkSync(join(repoRoot, 'node_modules'), join(dir, 'node_modules'), 'dir');
+  linkGeneratedProjectDependencies(dir);
   const command = ['bun', 'run', 'lint'];
   const proc = Bun.spawnSync({
     cmd: command,
@@ -233,13 +282,7 @@ const expectGeneratedProjectLintCheck = (dir: string): void => {
 };
 
 const expectGeneratedProjectTypecheck = (dir: string): void => {
-  if (!existsSync(join(dir, 'node_modules'))) {
-    symlinkSync(
-      join(repoRoot, 'node_modules'),
-      join(dir, 'node_modules'),
-      'dir'
-    );
-  }
+  linkGeneratedProjectDependencies(dir);
   const command = ['bunx', 'tsc', '--noEmit', '-p', 'tsconfig.json'];
   const proc = Bun.spawnSync({
     cmd: command,
@@ -269,13 +312,7 @@ const readGeneratedSurfaceOverlayParity = (
   readonly cliAlias: boolean;
   readonly mcpTrailhead: boolean;
 } => {
-  if (!existsSync(join(dir, 'node_modules'))) {
-    symlinkSync(
-      join(repoRoot, 'node_modules'),
-      join(dir, 'node_modules'),
-      'dir'
-    );
-  }
+  linkGeneratedProjectDependencies(dir);
   const script = String.raw`
 import { mock } from 'bun:test';
 import { join } from 'node:path';
