@@ -46,11 +46,15 @@ bun trails warden
 bun trails warden --pre-push
 ```
 
-CI can use the direct Warden bin. When `warden.apps` is set in `trails.config.ts`, the config governs app selection; pass `--apps` only to override it for a single run:
+In a configured workspace, the integrated operator derives topo targets from static `workspace.apps`. Use `trails warden --app <id>` to narrow topo-aware rules to one app; project-wide source and project facts remain in scope. The operator rejects `--apps` in that workspace because it would introduce a second app catalog.
+
+CI can also use the direct Warden bin:
 
 ```bash
 bunx @ontrails/warden --ci
 ```
+
+The direct bin retains `warden.apps`, `TRAILS_APPS`, and `--apps` compatibility for standalone apps and migration. Configured workspaces should move the persistent list to `workspace.apps` and use the integrated operator when they need stable app-ID selection.
 
 `--ci` is a preset on the Warden bin. It runs all depths, emits GitHub annotations by default, fails on errors, and suppresses lockfile mutation. Use `--fail-on warning` or `--strict` when warnings should block the run.
 

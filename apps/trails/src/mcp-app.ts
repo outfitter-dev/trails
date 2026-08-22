@@ -3,7 +3,6 @@ import {
   wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
-  wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindOverlayTrail,
@@ -17,6 +16,7 @@ import {
 } from '@ontrails/topography';
 
 import { operatorApp } from './app.js';
+import { wayfindDiffTrail } from './trails/wayfind.js';
 import { wayfindOutlineTrail } from './trails/wayfind-outline.js';
 
 const operatorTrails = Object.fromEntries(

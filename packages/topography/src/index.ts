@@ -86,23 +86,6 @@ export {
   workspaceTrailIndexSchema,
 } from './types.js';
 
-// Workspace-wide trail-id index (compose-app resolution for `trails run <id>`).
-export {
-  buildWorkspaceTrailIndex,
-  defaultLoadTopo,
-  isAppManifest,
-  isRootManifest,
-  readAppManifest,
-  readWorkspacesGlobs,
-} from './workspace-topos.js';
-export type {
-  AppManifest,
-  BuildWorkspaceTrailIndexOptions,
-  RootManifest,
-  WorkspaceTopoLoader,
-  WorkspaceTrailIndexResult,
-} from './workspace-topos.js';
-
 // Types
 export type {
   TopoGraph,

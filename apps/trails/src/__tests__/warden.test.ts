@@ -1,7 +1,13 @@
 import type { ActionResultContext } from '@ontrails/cli';
-import { Result } from '@ontrails/core';
+import { deriveTrailsDir, Result, topo } from '@ontrails/core';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphHash,
+  LOCK_MANIFEST_SCHEMA_VERSION,
+  writeLockManifest,
+} from '@ontrails/topography';
 import { describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +24,7 @@ const trailsBinPath = fileURLToPath(
 );
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
 const cliTimeoutMs = 30_000;
+const coreModuleUrl = import.meta.resolve('@ontrails/core');
 
 const makeTempDir = (): string => {
   const dir = join(
@@ -37,6 +44,7 @@ interface WardenJsonOutput {
     readonly severity: 'error' | 'warn';
   }[];
   readonly passed: boolean;
+  readonly project?: unknown;
   readonly summary: {
     readonly errors: number;
     readonly warnings: number;
@@ -176,6 +184,46 @@ const writeAllDepthWarningFixture = (dir: string): void => {
   );
 };
 
+const writeConfiguredWorkspaceFixture = (dir: string): void => {
+  writeFileSync(
+    join(dir, 'trails.config.json'),
+    `${JSON.stringify(
+      {
+        workspace: {
+          apps: {
+            alpha: { root: 'apps/alpha' },
+            beta: { root: 'apps/beta' },
+          },
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
+  for (const appId of ['alpha', 'beta']) {
+    mkdirSync(join(dir, 'apps', appId, 'src'), { recursive: true });
+    writeFileSync(
+      join(dir, 'apps', appId, 'src', 'app.ts'),
+      `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const app = topo('${appId}', []);\n`
+    );
+  }
+};
+
+const writeAppManifest = (
+  rootDir: string,
+  appId: string,
+  hash: string
+): Promise<string> =>
+  writeLockManifest(
+    {
+      artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+      scope: { app: appId },
+      summary: { entities: 0, resources: 0, signals: 0, trails: 0 },
+      version: LOCK_MANIFEST_SCHEMA_VERSION,
+    },
+    { dir: deriveTrailsDir({ rootDir }) }
+  );
+
 describe('trails warden', () => {
   test('declares write intent because --fix can mutate source files', () => {
     expect(wardenTrail.intent).toBe('write');
@@ -279,8 +327,309 @@ describe('trails warden', () => {
       }
       expect(JSON.parse(result.value.formatted)).toMatchObject({
         passed: true,
+        project: {
+          configuredAppIds: [],
+          selectedExtent: 'standalone-app',
+        },
         summary: { errors: 0, warnings: 0 },
       });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('renders selection through the effective environment format', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(join(dir, 'empty.ts'), 'export {};');
+
+      const result = await wardenTrail.implementation(
+        { depth: 'source', lock: 'skip', rootDir: dir },
+        { cwd: dir, env: { TRAILS_FORMAT: 'json' } } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(JSON.parse(result.value.formatted)).toMatchObject({
+        passed: true,
+        project: { selectedExtent: 'standalone-app' },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('uses the effective github alias when raw format conflicts', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(join(dir, 'empty.ts'), 'export {};');
+
+      const result = await wardenTrail.implementation(
+        {
+          depth: 'source',
+          format: 'json',
+          github: true,
+          lock: 'skip',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.formatted).toContain(
+        'Selection: standalone-app (root-dir)'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('selects a Config-owned app while preserving project-wide source scope', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      writeFileSync(
+        join(dir, 'apps', 'beta', 'bad.ts'),
+        `trail('beta.fail', {
+  implementation: () => {
+    throw new Error('still project governed');
+  },
+});\n`
+      );
+
+      const result = await wardenTrail.implementation(
+        {
+          app: 'alpha',
+          depth: 'source',
+          format: 'summary',
+          lock: 'skip',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.project).toMatchObject({
+        app: { appId: 'alpha' },
+        configuredAppIds: ['alpha', 'beta'],
+        projectRoot: dir,
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'app',
+      });
+      expect(result.value.errorCount).toBe(1);
+      expect(result.value.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('checks configured workspace drift against each app-local lock', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      for (const appId of ['alpha', 'beta']) {
+        const app = topo(appId, []);
+        await writeAppManifest(
+          join(dir, 'apps', appId),
+          appId,
+          deriveTopoGraphHash(deriveTopoGraph(app))
+        );
+      }
+
+      const fresh = await wardenTrail.implementation(
+        { depth: 'all', rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+      await writeAppManifest(
+        join(dir, 'apps', 'alpha'),
+        'alpha',
+        '0'.repeat(64)
+      );
+      const stale = await wardenTrail.implementation(
+        { depth: 'all', rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(fresh.isOk()).toBe(true);
+      expect(fresh.value?.drift).toMatchObject({ stale: false });
+      expect(fresh.value?.passed).toBe(true);
+      expect(stale.isOk()).toBe(true);
+      expect(stale.value?.drift).toMatchObject({ stale: true });
+      expect(stale.value?.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocks configured workspace drift when app-local locks are missing', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+
+      const result = await wardenTrail.implementation(
+        { depth: 'all', rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value?.drift).toMatchObject({
+        committedHash: null,
+        currentHash: 'blocked',
+        stale: true,
+      });
+      expect(result.value?.drift?.blockedReason).toContain('alpha');
+      expect(result.value?.drift?.blockedReason).toContain('beta');
+      expect(result.value?.drift?.blockedReason).toContain(
+        join(dir, 'apps', 'alpha', 'trails.lock')
+      );
+      expect(result.value?.drift?.blockedReason).toContain(
+        join(dir, 'apps', 'beta', 'trails.lock')
+      );
+      expect(result.value?.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects legacy --apps as a second configured-workspace catalog', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+
+      const result = await wardenTrail.implementation(
+        {
+          apps: ['alpha'],
+          depth: 'source',
+          lock: 'skip',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isOk()) {
+        throw new Error('Expected configured workspace --apps to fail.');
+      }
+      expect(result.error.message).toContain(
+        'derive Warden app targets from workspace.apps'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects a configured app whose live topo has another name', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      const sourcePath = join(dir, 'legacy.ts');
+      const source = 'export const play = trail("play", { crosses: [] });\n';
+      writeFileSync(
+        join(dir, 'apps', 'alpha', 'src', 'app.ts'),
+        `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const app = topo('other', []);\n`
+      );
+      writeFileSync(sourcePath, source);
+
+      const result = await wardenTrail.implementation(
+        {
+          app: 'alpha',
+          depth: 'topo',
+          fix: true,
+          lock: 'skip',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Loaded topo "other"');
+      }
+      expect(readFileSync(sourcePath, 'utf8')).toBe(source);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('does not boot configured apps before source analysis', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      writeFileSync(
+        join(dir, 'apps', 'alpha', 'src', 'app.ts'),
+        `throw new Error('boot fails');\n`
+      );
+      writeFileSync(
+        join(dir, 'bad.ts'),
+        `trail('source.fail', {
+  implementation: () => {
+    throw new Error('still governed');
+  },
+});\n`
+      );
+
+      const result = await wardenTrail.implementation(
+        {
+          app: 'alpha',
+          depth: 'source',
+          format: 'summary',
+          lock: 'skip',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.errorCount).toBe(1);
+      expect(result.value.diagnostics[0]?.rule).toBe(
+        'no-throw-in-implementation'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects a configured app boot failure before applying source fixes', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      const sourcePath = join(dir, 'legacy.ts');
+      const source = 'export const play = trail("play", { crosses: [] });\n';
+      writeFileSync(
+        join(dir, 'apps', 'alpha', 'src', 'app.ts'),
+        `throw new Error('boot fails');\n`
+      );
+      writeFileSync(sourcePath, source);
+
+      const result = await wardenTrail.implementation(
+        {
+          app: 'alpha',
+          depth: 'topo',
+          fix: true,
+          lock: 'skip',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain(
+          'Unable to prove the Config-owned identity "alpha"'
+        );
+      }
+      expect(readFileSync(sourcePath, 'utf8')).toBe(source);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -337,10 +686,50 @@ describe('trails warden', () => {
       fixes: undefined,
       formatted: 'Result: FAIL',
       passed: false,
+      project: {
+        app: {
+          appRoot: '.',
+          artifactPath: '/repo/trails.lock',
+          configured: false,
+          modulePath: 'src/app.ts',
+          moduleSource: 'convention',
+        },
+        configuredAppIds: [],
+        projectRoot: '/repo',
+        selectedExtent: 'standalone-app',
+        selectionProvenance: 'cwd',
+      },
       warnCount: 0,
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  test('warden output schema rejects impossible selection provenance', () => {
+    const parsed = wardenTrail.output.safeParse({
+      diagnostics: [],
+      drift: null,
+      errorCount: 0,
+      formatted: 'Result: PASS',
+      passed: true,
+      project: {
+        app: {
+          appId: 'impossible',
+          appRoot: '.',
+          artifactPath: '/repo/trails.lock',
+          configured: false,
+          modulePath: 'src/app.ts',
+          moduleSource: 'convention',
+        },
+        configuredAppIds: [],
+        projectRoot: '/repo',
+        selectedExtent: 'standalone-app',
+        selectionProvenance: 'app',
+      },
+      warnCount: 0,
+    });
+
+    expect(parsed.success).toBe(false);
   });
 
   test('warden guide format aliases work through the CLI', () => {
@@ -584,7 +973,12 @@ describe('trails warden', () => {
         expect(trails.exitCode).toBe(expectedExitCode);
         expect(warden.stderr).toBe('');
         expect(trails.stderr).toBe('');
-        expect(warden.json).toEqual(trails.json);
+        const { project, ...trailsReport } = trails.json;
+        expect(trailsReport).toEqual(warden.json);
+        expect(project).toMatchObject({
+          configuredAppIds: [],
+          selectedExtent: 'standalone-app',
+        });
         expect(warden.json.passed).toBe(expectedExitCode === 0);
         expect(warden.json.summary).toMatchObject({
           errors: expectedErrors,

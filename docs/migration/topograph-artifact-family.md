@@ -45,7 +45,7 @@ const view = await deriveWorkspaceView({ identity });
 
 Missing, invalid, mismatched, and stale configured locks remain typed app evidence. A nested `trails.lock` outside `workspace.apps` is reported as an unowned artifact with declare-or-remove coaching. A lock at the configured workspace root is reported as a forbidden aggregate when no root app is declared. Neither path derives app identity, and the read never compiles or writes artifacts.
 
-`buildWorkspaceTrailIndex()` remains temporarily for existing operator run and completion consumers. It is a migration bridge, not an app catalog. Do not use its package-workspace discovery or root aggregate metadata in new code; the shared project-context consumer cutover removes that authority.
+`buildWorkspaceTrailIndex()` has been removed. Operator run, completion, Wayfinder, and Warden consumers now resolve `workspace.apps` through the shared Config-owned context and load only the selected app or an explicitly complete workspace view.
 
 ## Rename Map
 

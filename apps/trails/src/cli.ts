@@ -56,8 +56,7 @@ import {
 import { tryWardenOutput } from './run-warden.js';
 import { tryWayfindOutlineOutput } from './run-wayfind-outline.js';
 import { tryLoadFreshAppLease } from './trails/load-app.js';
-import { resolveRunModulePath } from './trails/run.js';
-import { resolveTrailRootDir } from './trails/root-dir.js';
+import { resolveRunTargetProject } from './trails/run.js';
 import { trailsPackageVersion } from './versions.js';
 
 const buildOnResult =
@@ -184,18 +183,14 @@ const resolveWatchDirectorySourcePath = async (
   target: WatchRunTarget | null
 ): Promise<string> => {
   if (target !== null) {
-    const rootDirResult = resolveTrailRootDir(target.rootDir, process.cwd());
-    if (rootDirResult.isErr()) {
-      throw rootDirResult.error;
-    }
-    const moduleResult = await resolveRunModulePath(
-      rootDirResult.value,
-      target.module,
-      target.id,
-      target.app
-    );
-    if (moduleResult.isOk()) {
-      return toWatchSourcePath(rootDirResult.value, moduleResult.value);
+    const targetResult = await resolveRunTargetProject(target, target.id, {
+      cwd: process.cwd(),
+    });
+    if (targetResult.isOk()) {
+      return toWatchSourcePath(
+        targetResult.value.rootDir,
+        targetResult.value.modulePath
+      );
     }
   }
   const cwd = process.cwd();
@@ -212,21 +207,16 @@ const readWatchTopoGraphEntryHash = async (
   if (target === null) {
     return null;
   }
-  const rootDirResult = resolveTrailRootDir(target.rootDir, process.cwd());
-  if (rootDirResult.isErr()) {
-    throw rootDirResult.error;
+  const targetResult = await resolveRunTargetProject(target, target.id, {
+    cwd: process.cwd(),
+  });
+  if (targetResult.isErr()) {
+    throw targetResult.error;
   }
-  const rootDir = rootDirResult.value;
-  const moduleResult = await resolveRunModulePath(
-    rootDir,
-    target.module,
-    target.id,
-    target.app
+  const leaseResult = await tryLoadFreshAppLease(
+    targetResult.value.modulePath,
+    targetResult.value.rootDir
   );
-  if (moduleResult.isErr()) {
-    throw moduleResult.error;
-  }
-  const leaseResult = await tryLoadFreshAppLease(moduleResult.value, rootDir);
   if (leaseResult.isErr()) {
     throw leaseResult.error;
   }

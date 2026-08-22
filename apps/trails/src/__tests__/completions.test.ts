@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { executeTrail, ValidationError } from '@ontrails/core';
 
 import {
+  renderAppIdCompletions,
   renderCompletionScript,
   renderTrailIdCompletions,
 } from '../completions.js';
@@ -36,6 +37,20 @@ const writeWorkspace = (root: string, apps: readonly AppSpec[]): void => {
       2
     )}\n`
   );
+  writeFile(
+    join(root, 'trails.config.json'),
+    `${JSON.stringify(
+      {
+        workspace: {
+          apps: Object.fromEntries(
+            apps.map((app) => [app.name, { root: `apps/${app.name}` }])
+          ),
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
   for (const spec of apps) {
     const appDir = join(root, 'apps', spec.name);
     writeFile(
@@ -57,7 +72,9 @@ const writeWorkspace = (root: string, apps: readonly AppSpec[]): void => {
         `const trailIds = ${JSON.stringify(spec.trailIds)};`,
         `export const app = {`,
         `  name: '${spec.name}',`,
+        `  trails: new Map(trailIds.map((id) => [id, { id }])),`,
         `  ids: () => trailIds,`,
+        `  get: (id) => trailIds.includes(id) ? { id } : undefined,`,
         `};`,
         '',
       ].join('\n')
@@ -174,6 +191,52 @@ describe('renderTrailIdCompletions', () => {
     const matches = await renderTrailIdCompletions(workspaceRoot, '');
     expect(matches).toEqual(['a.only', 'b.only', 'shared.id']);
   });
+
+  test('keeps healthy app ids when configured siblings are unavailable', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'healthy', trailIds: ['healthy.id'] },
+      { name: 'broken', trailIds: ['broken.id'] },
+      { name: 'mismatch', trailIds: ['mismatch.id'] },
+    ]);
+    writeFile(
+      join(workspaceRoot, 'apps/broken/src/app.ts'),
+      `throw new Error('broken boot');\n`
+    );
+    const mismatchPath = join(workspaceRoot, 'apps/mismatch/src/app.ts');
+    writeFile(
+      mismatchPath,
+      readFileSync(mismatchPath, 'utf8').replace(
+        "name: 'mismatch'",
+        "name: 'other'"
+      )
+    );
+
+    expect(await renderTrailIdCompletions(workspaceRoot, '')).toEqual([
+      'healthy.id',
+    ]);
+  });
+
+  test('rejects live topos whose names do not match Config app IDs', async () => {
+    writeWorkspace(workspaceRoot, [{ name: 'docs', trailIds: ['book.read'] }]);
+    const appPath = join(workspaceRoot, 'apps/docs/src/app.ts');
+    writeFileSync(
+      appPath,
+      readFileSync(appPath, 'utf8').replace("name: 'docs'", "name: 'other'")
+    );
+
+    expect(await renderTrailIdCompletions(workspaceRoot, '')).toEqual([]);
+  });
+});
+
+describe('renderAppIdCompletions', () => {
+  test('returns matching Config-owned IDs without loading app modules', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'alpha', trailIds: [] },
+      { name: 'beta', trailIds: [] },
+    ]);
+
+    expect(await renderAppIdCompletions(workspaceRoot, 'a')).toEqual(['alpha']);
+  });
 });
 
 describe('completionsTrail', () => {
@@ -204,6 +267,41 @@ describe('completionsTrail', () => {
 });
 
 describe('completionsCompleteTrail', () => {
+  test('completes separated and inline --app values', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'alpha', trailIds: [] },
+      { name: 'beta', trailIds: [] },
+    ]);
+
+    const separated = await executeTrail(completionsCompleteTrail, {
+      args: ['wayfind', '--app', 'a'],
+      rootDir: workspaceRoot,
+    });
+    const inline = await executeTrail(completionsCompleteTrail, {
+      args: ['warden', '--app=b'],
+      rootDir: workspaceRoot,
+    });
+
+    expect(separated.unwrap()).toBe('alpha');
+    expect(inline.unwrap()).toBe('--app=beta');
+  });
+
+  test('finds Config-owned app IDs from a nested app working directory', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'alpha', trailIds: [] },
+      { name: 'beta', trailIds: [] },
+    ]);
+
+    const result = await completionsCompleteTrail.implementation(
+      completionsCompleteTrail.input.parse({
+        args: ['wayfind', '--app', 'a'],
+      }),
+      { cwd: join(workspaceRoot, 'apps/alpha/src') } as never
+    );
+
+    expect(result.unwrap()).toBe('alpha');
+  });
+
   test('returns trail-id suggestions for `trails run <prefix>`', async () => {
     writeWorkspace(workspaceRoot, [
       {

@@ -14,7 +14,7 @@ import type {
 } from '@ontrails/cli';
 import { resolveTrailsOverlays } from '@ontrails/adapter-kit';
 import type { Topo } from '@ontrails/core';
-import { AmbiguousError, NotFoundError } from '@ontrails/core';
+import { AmbiguousError, NotFoundError, ValidationError } from '@ontrails/core';
 import type { TopoGraphOverlayRegistration } from '@ontrails/topography';
 import {
   loadTrailsConfigValue,
@@ -748,46 +748,127 @@ const missingTopoDiagnostic = (
     severity: 'error',
   });
 
+export interface WardenExpectedAppBinding {
+  /** App selector passed through Warden's existing app-resolution path. */
+  readonly app: string;
+  /** Config-owned stable identity the loaded topo must declare. */
+  readonly expectedAppId: string;
+  /** App-local root that owns this target's committed lock. */
+  readonly rootDir?: string | undefined;
+}
+
 interface ResolveTopoTargetsOptions {
   readonly apps?: readonly string[] | undefined;
+  readonly expectedAppBindings?:
+    | readonly WardenExpectedAppBinding[]
+    | undefined;
   readonly rootDir: string;
   readonly strict: boolean;
 }
 
 interface ResolvedTopoTargets {
   readonly diagnostics: readonly WardenDiagnostic[];
+  readonly preflightError?: ValidationError | undefined;
   readonly topos: readonly WardenTopoTarget[];
 }
 
+const expectedAppIdFor = (
+  bindings: ReadonlyMap<string, WardenExpectedAppBinding>,
+  app: string
+): string | undefined => bindings.get(app)?.expectedAppId;
+
+const configuredTopoTarget = (
+  appName: string,
+  loaded: Awaited<ReturnType<typeof importTopoFromModulePath>>,
+  binding: WardenExpectedAppBinding | undefined
+): WardenTopoTarget => {
+  const target = {
+    name: binding?.expectedAppId ?? appName,
+    overlays: loaded.overlays,
+    ...(binding === undefined ? {} : { requireCommittedLock: true }),
+    topo: loaded.topo,
+  };
+  return binding?.rootDir === undefined
+    ? target
+    : { ...target, rootDir: binding.rootDir };
+};
+
 export const resolveWardenTopoTargets = async ({
   apps,
+  expectedAppBindings,
   rootDir,
   strict,
 }: ResolveTopoTargetsOptions): Promise<ResolvedTopoTargets> => {
   const diagnostics: WardenDiagnostic[] = [];
   const topos: WardenTopoTarget[] = [];
+  let preflightError: ValidationError | undefined;
+  const expectedBindings = new Map(
+    (expectedAppBindings ?? []).map((binding) => [binding.app, binding])
+  );
 
   if (apps !== undefined && apps.length > 0) {
     for (const appName of apps) {
       try {
         const modulePath = resolveNamedAppModulePath(rootDir, appName);
         const loaded = await importTopoFromModulePath(modulePath);
-        topos.push({
-          name: appName,
-          overlays: loaded.overlays,
-          topo: loaded.topo,
-        });
+        const expectedBinding = expectedBindings.get(appName);
+        const expectedAppId = expectedAppIdFor(expectedBindings, appName);
+        if (
+          expectedAppBindings !== undefined &&
+          loaded.topo.name !== expectedAppId
+        ) {
+          const error = new ValidationError(
+            `Loaded topo "${loaded.topo.name}" does not match the Config-owned identity "${expectedAppId ?? '<missing>'}" for Warden app target "${appName}".`,
+            {
+              context: {
+                actualAppId: loaded.topo.name,
+                app: appName,
+                expectedAppId,
+                reason: 'invalid-binding',
+              },
+            }
+          );
+          preflightError ??= error;
+          diagnostics.push(
+            topoLoadDiagnostic({
+              filePath: modulePath,
+              message: error.message,
+              severity: 'error',
+            })
+          );
+          continue;
+        }
+        topos.push(configuredTopoTarget(appName, loaded, expectedBinding));
       } catch (error) {
+        const message = `Failed to load Trails app "${appName}" for Warden checks: ${errorMessage(error)}`;
+        if (expectedAppBindings !== undefined) {
+          const expectedAppId = expectedAppIdFor(expectedBindings, appName);
+          preflightError ??= new ValidationError(
+            `Unable to prove the Config-owned identity "${expectedAppId ?? '<missing>'}" for Warden app target "${appName}". ${message}`,
+            {
+              cause: error instanceof Error ? error : new Error(String(error)),
+              context: {
+                app: appName,
+                expectedAppId,
+                reason: 'invalid-binding',
+              },
+            }
+          );
+        }
         diagnostics.push(
           topoLoadDiagnostic({
             filePath: rootDir,
-            message: `Failed to load Trails app "${appName}" for Warden checks: ${errorMessage(error)}`,
+            message,
             severity: 'error',
           })
         );
       }
     }
-    return { diagnostics, topos };
+    return {
+      diagnostics,
+      ...(preflightError === undefined ? {} : { preflightError }),
+      topos,
+    };
   }
 
   try {
@@ -919,6 +1000,7 @@ export const formatWardenCommandOutput = (report: WardenReport): string => {
 export interface WardenCommandResult {
   readonly exitCode: 0 | 1;
   readonly output: string;
+  readonly preflightError?: ValidationError | undefined;
   readonly report: WardenReport;
   readonly summary: string;
   readonly writeStepSummary: boolean;
@@ -928,12 +1010,16 @@ export interface RunWardenCommandOptions {
   readonly args?: readonly string[] | undefined;
   readonly cwd: string;
   readonly env?: EnvRecord | undefined;
+  readonly expectedAppBindings?:
+    | readonly WardenExpectedAppBinding[]
+    | undefined;
 }
 
 export const runWardenCommand = async ({
   args = [],
   cwd,
   env = {},
+  expectedAppBindings,
 }: RunWardenCommandOptions): Promise<WardenCommandResult> => {
   const parsed = parseWardenCommandArgs(args);
   const { rootDir } = resolveTrailsProjectRoot({
@@ -950,22 +1036,25 @@ export const runWardenCommand = async ({
     config: loadedConfig.config,
     env,
   });
-  const topoResolution = effectiveConfigNeedsTopo(
-    preflight.effectiveConfig.depth
-  )
-    ? await resolveWardenTopoTargets({
-        apps: preflight.effectiveConfig.apps,
-        rootDir,
-        strict: parsed.ci,
-      })
-    : { diagnostics: [], topos: [] };
+  const needsExpectedBindingPreflight =
+    parsed.fix && expectedAppBindings !== undefined;
+  const topoResolution =
+    effectiveConfigNeedsTopo(preflight.effectiveConfig.depth) ||
+    needsExpectedBindingPreflight
+      ? await resolveWardenTopoTargets({
+          apps: preflight.effectiveConfig.apps,
+          expectedAppBindings,
+          rootDir,
+          strict: parsed.ci,
+        })
+      : { diagnostics: [], topos: [] };
   const report = await runWarden(
     buildRunOptions({
       adapterCheck: parsed.adapterCheck,
       cli: parsed.cli,
       config: loadedConfig.config,
       env,
-      fix: parsed.fix,
+      fix: parsed.fix && topoResolution.preflightError === undefined,
       rootDir,
       topos: topoResolution.topos,
     })
@@ -979,6 +1068,9 @@ export const runWardenCommand = async ({
   return {
     exitCode: finalReport.passed ? 0 : 1,
     output: formatWardenCommandOutput(finalReport),
+    ...(topoResolution.preflightError === undefined
+      ? {}
+      : { preflightError: topoResolution.preflightError }),
     report: finalReport,
     summary: formatSummary(finalReport),
     writeStepSummary: parsed.ci,
