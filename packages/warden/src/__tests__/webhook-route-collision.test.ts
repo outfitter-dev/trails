@@ -68,7 +68,7 @@ describe('webhook-route-collision', () => {
         filePath: '<topo>',
         line: 1,
         message:
-          'HTTP webhook route collision on POST /webhooks/payment: webhook source "webhook.payment.duplicate" on trail "payment.duplicate-receive", webhook source "webhook.payment.received" on trail "payment.receive". Give each webhook source a distinct method/path pair or move the direct trail route before materializing the HTTP surface.',
+          'HTTP webhook route collision on POST /webhooks/payment: webhook source "webhook.payment.duplicate" on trail "payment.duplicate-receive", webhook source "webhook.payment.received" on trail "payment.receive". Give each webhook source a distinct method/path pair; if a derived trail route is part of the collision, change the webhook path or rename the trail so its derived route differs.',
         rule: 'webhook-route-collision',
         severity: 'error',
       },

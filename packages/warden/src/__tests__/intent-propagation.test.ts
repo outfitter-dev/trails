@@ -26,6 +26,10 @@ trail('entity.refresh', {
     expect(diagnostics[0]?.severity).toBe('warn');
     expect(diagnostics[0]?.message).toContain('entity.refresh');
     expect(diagnostics[0]?.message).toContain("intent: 'write'");
+    expect(diagnostics[0]?.message).toContain(
+      "Raise this trail's intent to the strongest intent among everything it composes (at least 'write')"
+    );
+    expect(diagnostics[0]?.message).toContain('or stop composing');
   });
 
   test('warns when project context resolves a composed trail to destroy intent', () => {

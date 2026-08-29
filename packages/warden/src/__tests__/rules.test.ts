@@ -65,6 +65,9 @@ trail("entity.show", {
     expect(diagnostics.length).toBe(1);
     expect(diagnostics[0]?.rule).toBe('context-no-surface-types');
     expect(diagnostics[0]?.message).toContain('express');
+    expect(diagnostics[0]?.message).toContain(
+      'keep express wiring in the surface entry module'
+    );
   });
 
   test('flags McpSession import in trail file', () => {

@@ -21,7 +21,7 @@ const buildDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Resource "${resourceId}" is invalid because resource ids may not contain ":".`,
+  message: `Resource "${resourceId}" is invalid because resource ids may not contain ":" — it is reserved as the scope separator. Rename the resource using "." segments instead, e.g. resource('${resourceId.replaceAll(':', '.')}', ...).`,
   rule: 'resource-id-grammar',
   severity: 'error',
 });

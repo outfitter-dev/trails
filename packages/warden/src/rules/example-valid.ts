@@ -29,7 +29,7 @@ const buildInvalidExampleDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Entity "${entityName}" has invalid examples: ${message}`,
+  message: `Entity "${entityName}" has invalid examples: ${message}. Update the example to match the entity schema, or update the schema if the example shows the intended contract.`,
   rule: 'example-valid',
   severity: 'error',
 });

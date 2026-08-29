@@ -33,7 +33,7 @@ export const scheduledDestroyIntentTrail = wrapTopoRule({
             filePath: '<topo>',
             line: 1,
             message:
-              'Trail "billing.purge-expired" declares intent: \'destroy\' and is activated by schedule source "schedule.billing.purge-expired". Scheduled destroy work should make cadence, permit scope, idempotency, and recovery explicit before it runs unattended.',
+              'Trail "billing.purge-expired" declares intent: \'destroy\' and is activated by schedule source "schedule.billing.purge-expired". Before this runs unattended, confirm the schedule cadence, that the declared permit scopes cover the destroy, that idempotent: true is set only if a repeat run is safe, and that detours cover the failure modes you expect to recover.',
             rule: 'scheduled-destroy-intent',
             severity: 'warn',
           },

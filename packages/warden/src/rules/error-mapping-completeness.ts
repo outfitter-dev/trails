@@ -191,7 +191,7 @@ const createDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Surface error mapper is missing mappings for: ${missingCategories.join(', ')}. Registered createSurfaceErrorMapper() calls must cover every ErrorCategory.`,
+  message: `Surface error mapper is missing mappings for: ${missingCategories.join(', ')}. Add an entry for each missing category to the object passed to createSurfaceErrorMapper() — registered mappers must cover every ErrorCategory so each error renders deterministically on this surface.`,
   rule: 'error-mapping-completeness',
   severity: 'error',
 });

@@ -22,7 +22,7 @@ const buildOrphanedSignalDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Store table "${tableId}" derives change signals with no trail on: consumers: ${missingSignalIds.join(', ')}. Add trail on: consumers or remove the unused reactive pattern.`,
+  message: `Store table "${tableId}" derives change signals with no trail on: consumers: ${missingSignalIds.join(', ')}. Consume them with trail on: declarations — prefer the table's typed signal handles (table.signals.created / .updated / .removed), which carry the store-bound identity; a string id must be fully scoped when the store is bound to a resource — or remove the unused reactive pattern if nothing should react to this table's changes.`,
   rule: 'orphaned-signal',
   severity: 'warn',
 });

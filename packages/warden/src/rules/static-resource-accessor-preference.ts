@@ -521,7 +521,8 @@ const buildInlineDependencyDiagnostic = (
   line: offsetToLine(sourceCode, construction.start),
   message:
     `Trail "${trailId}": ${construction.rendered} constructs an external dependency ` +
-    'inside implementation logic. Move the client behind a resource definition and declare it in resources.',
+    `inside implementation logic. Wrap the client in a resource definition — resource(id, { create: () => Result.ok(new ${construction.name}(...)), ... }) — ` +
+    "declare it on the trail with resources: [...], and access it through the resource's .from(ctx) helper.",
   rule: RULE_NAME,
   severity: 'warn',
 });

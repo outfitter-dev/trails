@@ -157,7 +157,7 @@ const checkSpecifiersForSurfaceTypes = (
     filePath,
     sourceCode,
     node,
-    `Do not import surface type "${typeName}" in trail files.`
+    `Do not import surface type "${typeName}" in trail files. Trail logic stays surface-agnostic: extract what the trail needs from ${typeName} at the surface boundary and pass it through the trail's input schema.`
   );
 };
 
@@ -176,7 +176,7 @@ const classifyImport = (
       filePath,
       sourceCode,
       node,
-      `Do not import from surface module "${moduleName}" in trail files.`
+      `Do not import from surface module "${moduleName}" in trail files. Trail logic stays surface-agnostic: keep ${moduleName} wiring in the surface entry module and pass what the trail needs through its input schema.`
     );
   }
 

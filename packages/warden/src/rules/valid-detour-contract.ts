@@ -47,7 +47,7 @@ const collectTrailDiagnostics = (topo: Topo): readonly WardenDiagnostic[] => {
       if (!isErrorConstructor(candidate.on)) {
         diagnostics.push(
           buildDiagnostic(
-            `Trail "${trail.id}" detour[${index}] must declare an error constructor in on:. Received ${describeOnValue(candidate.on)}.`,
+            `Trail "${trail.id}" detour[${index}] must declare an error constructor in on:. Received ${describeOnValue(candidate.on)}. Pass the error class itself, such as on: TimeoutError — not an error instance, a string name, or an error category.`,
             'valid-detour-contract'
           )
         );

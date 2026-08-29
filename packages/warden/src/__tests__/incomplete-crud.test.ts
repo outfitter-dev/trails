@@ -133,6 +133,9 @@ export const readNote = deriveTrail(note, 'read', {
     expect(diagnostics[0]?.message).toContain('note');
     expect(diagnostics[0]?.message).toContain('create');
     expect(diagnostics[0]?.message).toContain('read');
+    expect(diagnostics[0]?.message).toContain(
+      'Add the missing operations here or in sibling per-operation files'
+    );
   });
 
   test('warns when crud() tuple destructuring captures only part of the standard trails', () => {

@@ -906,7 +906,7 @@ export const versionPinnedCompose: WardenRule = {
             filePath,
             sourceCode,
             node,
-            'ctx.compose() version pins are temporary migration debt. Prefer keeping composition current, or document why this pin can be removed later.'
+            'ctx.compose() version pins are temporary migration debt. Finish the migration and drop the { version } option so the call composes the current trail, or document why the pin must stay and when it can be removed.'
           )
         );
       });

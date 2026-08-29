@@ -14,7 +14,8 @@ const createDiagnostic = (
   line: offsetToLine(sourceCode, match.start),
   message:
     `Draft id "${match.value}" is still visible debt. ` +
-    'Established surfaces, lock export, and OpenAPI generation will reject it until it is promoted.',
+    'Established surfaces, lock export, and OpenAPI generation will reject it until it is promoted. ' +
+    'When the contract is ready, promote it with the built-in workflow (trails draft promote) so inbound references are rewritten together.',
   rule: 'draft-visible-debt',
   severity: 'warn',
 });

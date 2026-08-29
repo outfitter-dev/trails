@@ -526,7 +526,7 @@ const buildIncompleteCrudDiagnostic = (
   return {
     filePath,
     line: coverage.line,
-    message: `Factory coverage for "${formatEntityLabel(coverage.entityId)}" is incomplete: found ${present.join(', ')} but missing ${missing.join(', ')}. Prefer the full CRUD set or document the intentional omission.`,
+    message: `Factory coverage for "${formatEntityLabel(coverage.entityId)}" is incomplete: found ${present.join(', ')} but missing ${missing.join(', ')}. Add the missing operations here or in sibling per-operation files to complete the create/read/update/delete/list set, or document the intentional omission where the entity is defined.`,
     rule: 'incomplete-crud',
     severity: 'warn',
   };

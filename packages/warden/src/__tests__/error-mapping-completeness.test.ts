@@ -52,6 +52,9 @@ const cliMapper = createSurfaceErrorMapper(surfaceErrorMap.cli);
     expect(diagnostics[0]?.severity).toBe('error');
     expect(diagnostics[0]?.message).toContain('auth');
     expect(diagnostics[0]?.message).toContain('cancelled');
+    expect(diagnostics[0]?.message).toContain(
+      'Add an entry for each missing category'
+    );
     expect(diagnostics[0]?.line).toBeGreaterThan(0);
   });
 });

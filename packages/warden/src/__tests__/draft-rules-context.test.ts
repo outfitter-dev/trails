@@ -191,6 +191,7 @@ describe('draft-visible-debt context-awareness', () => {
     const diagnostics = draftVisibleDebt.check(code, '_draft.something.ts');
     expect(diagnostics.length).toBe(1);
     expect(diagnostics[0]?.severity).toBe('warn');
+    expect(diagnostics[0]?.message).toContain('trails draft promote');
   });
 
   test('fires when DRAFT_FILE_PREFIX is reused in a non-framework file', () => {

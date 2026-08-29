@@ -39,6 +39,9 @@ const noteTrails = crud(definition.tables.notes, notesResource);
     expect(diagnostics[0]?.message).toContain('notes.created');
     expect(diagnostics[0]?.message).toContain('notes.updated');
     expect(diagnostics[0]?.message).toContain('notes.removed');
+    expect(diagnostics[0]?.message).toContain(
+      'Consume them with trail on: declarations'
+    );
   });
 
   test('stays quiet when all derived change signals are consumed elsewhere in the project', () => {

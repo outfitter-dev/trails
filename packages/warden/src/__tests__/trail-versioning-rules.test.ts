@@ -60,6 +60,7 @@ trail('parent', {
 
     expect(diagnostics).toEqual([
       expect.objectContaining({
+        message: expect.stringContaining('drop the { version } option'),
         rule: 'version-pinned-compose',
         severity: 'warn',
       }),

@@ -235,7 +235,11 @@ const buildDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares detour on "${shadowedType}" after earlier detour on "${shadowingType}". Because "${shadowingType}" matches "${shadowedType}" first, the later detour is unreachable.`,
+  message: `Trail "${trailId}" declares detour on "${shadowedType}" after earlier detour on "${shadowingType}". Because "${shadowingType}" matches "${shadowedType}" first, the later detour is unreachable. ${
+    shadowedType === shadowingType
+      ? `Remove or consolidate the duplicate "${shadowedType}" detour — only the first can ever run.`
+      : `Move the "${shadowedType}" detour before "${shadowingType}" so the more specific recovery runs, or remove it if the broader detour should own this case.`
+  }`,
   rule: 'unreachable-detour-shadowing',
   severity: 'error',
 });

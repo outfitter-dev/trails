@@ -32,6 +32,9 @@ const db = resource('billing:primary', {
     expect(diagnostics[0]?.rule).toBe('resource-id-grammar');
     expect(diagnostics[0]?.severity).toBe('error');
     expect(diagnostics[0]?.message).toContain('billing:primary');
+    expect(diagnostics[0]?.message).toContain(
+      "resource('billing.primary', ...)"
+    );
   });
 
   test('skips test files', () => {

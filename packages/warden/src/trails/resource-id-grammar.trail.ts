@@ -20,7 +20,7 @@ export const resourceIdGrammarTrail = wrapRule({
             filePath: 'invalid.ts',
             line: 1,
             message:
-              'Resource "billing:primary" is invalid because resource ids may not contain ":".',
+              'Resource "billing:primary" is invalid because resource ids may not contain ":" — it is reserved as the scope separator. Rename the resource using "." segments instead, e.g. resource(\'billing.primary\', ...).',
             rule: 'resource-id-grammar',
             severity: 'error',
           },

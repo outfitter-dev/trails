@@ -262,8 +262,12 @@ trail('entity.show', {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.message).toContain('new PrismaClient(...)');
     expect(diagnostics[0]?.message).toContain(
-      'Move the client behind a resource definition'
+      'Wrap the client in a resource definition'
     );
+    expect(diagnostics[0]?.message).toContain(
+      'create: () => Result.ok(new PrismaClient(...))'
+    );
+    expect(diagnostics[0]?.message).toContain('.from(ctx)');
   });
 
   test('warns for renamed AWS SDK client constructors inside implementation', () => {

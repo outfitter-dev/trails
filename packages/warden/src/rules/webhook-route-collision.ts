@@ -135,7 +135,7 @@ const buildDiagnostic = (
     .map(claimLabel)
     .join(
       ', '
-    )}. Give each webhook source a distinct method/path pair or move the direct trail route before materializing the HTTP surface.`,
+    )}. Give each webhook source a distinct method/path pair; if a derived trail route is part of the collision, change the webhook path or rename the trail so its derived route differs.`,
   rule: RULE_NAME,
   severity: 'error',
 });
@@ -253,7 +253,7 @@ const collectPatternOverlapDiagnostics = (
           .map(claimLabel)
           .join(
             ', '
-          )}. Both patterns can match one request path; make the patterns disjoint or merge the sources.`,
+          )}. Both patterns can match one request path; make the path patterns disjoint, or reuse one shared WebhookSource if both consumers should receive the same requests.`,
         rule: RULE_NAME,
         severity: 'error',
       });

@@ -24,7 +24,7 @@ const buildDiagnostic = (
 ): WardenDiagnostic => ({
   filePath: TOPO_FILE,
   line: 1,
-  message: `Trail "${trail.id}" declares intent: 'destroy' and is activated by schedule source${sourceIds.length === 1 ? '' : 's'} ${sourceIds.map((id) => `"${id}"`).join(', ')}. Scheduled destroy work should make cadence, permit scope, idempotency, and recovery explicit before it runs unattended.`,
+  message: `Trail "${trail.id}" declares intent: 'destroy' and is activated by schedule source${sourceIds.length === 1 ? '' : 's'} ${sourceIds.map((id) => `"${id}"`).join(', ')}. Before this runs unattended, confirm the schedule cadence, that the declared permit scopes cover the destroy, that idempotent: true is set only if a repeat run is safe, and that detours cover the failure modes you expect to recover.`,
   rule: RULE_NAME,
   severity: 'warn',
 });

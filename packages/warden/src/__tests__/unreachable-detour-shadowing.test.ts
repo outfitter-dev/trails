@@ -35,6 +35,9 @@ trail('entity.save', {
     expect(diagnostics[0]?.severity).toBe('error');
     expect(diagnostics[0]?.message).toContain('TrailsError');
     expect(diagnostics[0]?.message).toContain('ConflictError');
+    expect(diagnostics[0]?.message).toContain(
+      'Move the "ConflictError" detour before "TrailsError"'
+    );
   });
 
   test('flags a later local subclass shadowed by its parent detour', () => {
@@ -87,6 +90,10 @@ trail('entity.derive', {
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.message).toContain('DerivationError');
+    expect(diagnostics[0]?.message).toContain(
+      'Remove or consolidate the duplicate "DerivationError" detour'
+    );
+    expect(diagnostics[0]?.message).not.toContain('Move the');
   });
 
   test('flags a later detour shadowed by a ClassExpression-bound local subclass', () => {

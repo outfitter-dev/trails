@@ -22,7 +22,7 @@ const buildIntentPropagationDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares intent: 'read' but composes "${targetTrailId}" with intent: '${targetIntent}'. Read trails must not compose write or destroy side effects.`,
+  message: `Trail "${trailId}" declares intent: 'read' but composes "${targetTrailId}" with intent: '${targetIntent}'. Read trails must not compose write or destroy side effects. Raise this trail's intent to the strongest intent among everything it composes (at least '${targetIntent}') so surfaces and permits see the real side effects, or stop composing "${targetTrailId}" if it should stay read-only.`,
   rule: 'intent-propagation',
   severity: 'warn',
 });

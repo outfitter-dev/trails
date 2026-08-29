@@ -23,7 +23,7 @@ export const unreachableDetourShadowingTrail = wrapRule({
             filePath: 'shadowed.ts',
             line: 4,
             message:
-              'Trail "entity.save" declares detour on "ConflictError" after earlier detour on "TrailsError". Because "TrailsError" matches "ConflictError" first, the later detour is unreachable.',
+              'Trail "entity.save" declares detour on "ConflictError" after earlier detour on "TrailsError". Because "TrailsError" matches "ConflictError" first, the later detour is unreachable. Move the "ConflictError" detour before "TrailsError" so the more specific recovery runs, or remove it if the broader detour should own this case.',
             rule: 'unreachable-detour-shadowing',
             severity: 'error',
           },

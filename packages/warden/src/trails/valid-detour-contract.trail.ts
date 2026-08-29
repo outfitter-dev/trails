@@ -45,7 +45,7 @@ export const validDetourContractTrail = wrapTopoRule({
             filePath: '<topo>',
             line: 1,
             message:
-              'Trail "entity.save" detour[0] must declare an error constructor in on:. Received ConflictError.',
+              'Trail "entity.save" detour[0] must declare an error constructor in on:. Received ConflictError. Pass the error class itself, such as on: TimeoutError — not an error instance, a string name, or an error category.',
             rule: 'valid-detour-contract',
             severity: 'error',
           },

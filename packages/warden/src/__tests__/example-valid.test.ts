@@ -47,6 +47,9 @@ const user = entity('user', {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('example-valid');
     expect(diagnostics[0]?.message).toContain('example 0 is invalid');
+    expect(diagnostics[0]?.message).toContain(
+      'Update the example to match the entity schema'
+    );
   });
 
   test('skips unsupported example expressions instead of guessing', () => {
