@@ -11,8 +11,13 @@ import {
 import type { StructuredTrailExample, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
-import { resolveRunModulePath } from './run.js';
+import { withFreshAppLease } from './operator-context.js';
+import { assertConfiguredAppBinding } from './project-context.js';
+import {
+  operatorProjectContextOutput,
+  operatorProjectContextOutputSchema,
+} from './project-context-output.js';
+import { resolveRunTargetProject } from './run.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLES_LISTING_KIND = 'examples-listing' as const;
@@ -43,7 +48,9 @@ export const structuredTrailExampleSchema = z
 
 export const runExamplesListingSchema = z.object({
   examples: z.array(structuredTrailExampleSchema).readonly(),
+  executedAppId: z.string(),
   kind: z.literal(RUN_EXAMPLES_LISTING_KIND),
+  project: operatorProjectContextOutputSchema,
   trailId: z.string(),
 });
 
@@ -60,7 +67,8 @@ const buildHappyExampleInput = (): {
 
 const buildExamplesListing = (
   app: Topo,
-  trailId: string
+  trailId: string,
+  project: RunExamplesListing['project']
 ): Result<RunExamplesListing, Error> => {
   const target = app.get(trailId);
   if (target === undefined) {
@@ -78,7 +86,9 @@ const buildExamplesListing = (
       | undefined) ?? [];
   return Result.ok({
     examples: structured as unknown as RunExamplesListing['examples'],
+    executedAppId: app.name,
     kind: RUN_EXAMPLES_LISTING_KIND,
+    project,
     trailId,
   });
 };
@@ -107,22 +117,32 @@ export const runExamplesTrail = trail('run.examples', {
       name: 'List trail examples',
     },
   ],
-  implementation: async (input: RunExamplesTrailInput, ctx) =>
-    withOperatorRootDir(input, ctx, async (rootDir) => {
-      const moduleResolution = await resolveRunModulePath(
-        rootDir,
-        input.module,
-        input.id,
-        input.app
-      );
-      if (moduleResolution.isErr()) {
-        return moduleResolution;
+  implementation: async (input: RunExamplesTrailInput, ctx) => {
+    const target = await resolveRunTargetProject(input, input.id, {
+      cwd: ctx.cwd,
+    });
+    if (target.isErr()) {
+      return target;
+    }
+    return withFreshAppLease(
+      target.value.modulePath,
+      target.value.rootDir,
+      (lease) => {
+        const binding = assertConfiguredAppBinding(
+          target.value.context,
+          lease.app.name
+        );
+        if (binding.isErr()) {
+          return binding;
+        }
+        return buildExamplesListing(
+          lease.app,
+          input.id,
+          operatorProjectContextOutput(target.value.context)
+        );
       }
-
-      return withFreshAppLease(moduleResolution.value, rootDir, (lease) =>
-        buildExamplesListing(lease.app, input.id)
-      );
-    }),
+    );
+  },
   input: runExamplesTrailInputSchema,
   intent: 'read',
   output: runExamplesListingSchema,

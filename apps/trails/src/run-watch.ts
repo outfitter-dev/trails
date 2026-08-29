@@ -29,6 +29,8 @@ import { dirname, extname } from 'node:path';
 
 import type { TopoGraphEntry } from '@ontrails/topography';
 
+export { readRunTrailId } from './run-argv.js';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -84,59 +86,6 @@ const WATCH_TRAIL_REMOVED_MESSAGE = '[watch] trail removed; awaiting return\n';
  */
 export const argvHasWatchFlag = (argv: readonly string[]): boolean =>
   argv.includes('--watch');
-
-const RUN_FLAGS_WITH_VALUES: ReadonlySet<string> = new Set([
-  '--app',
-  '--input',
-  '--input-json',
-  '--module',
-  '--output',
-  '--root-dir',
-  '--token',
-  '--permit',
-]);
-
-const RUN_SHORT_FLAGS_WITH_VALUES: ReadonlySet<string> = new Set(['-o']);
-
-/**
- * Read the target trail id from a `trails run ...` argv slice.
- *
- * Accepts args after the binary name (for example
- * `['run', '-o', 'json', 'trail.id', '--watch']`). The parser is intentionally
- * small and conservative: it skips known CLI meta flags and their values so the
- * watch loop resolves the same trail the run command will execute.
- */
-export const readRunTrailId = (args: readonly string[]): string | undefined => {
-  const runIndex = args.indexOf('run');
-  if (runIndex === -1) {
-    return undefined;
-  }
-  const positionals: string[] = [];
-  for (let i = runIndex + 1; i < args.length; i += 1) {
-    const arg = args[i];
-    if (arg === undefined) {
-      continue;
-    }
-    if (arg.startsWith('--')) {
-      if (!arg.includes('=') && RUN_FLAGS_WITH_VALUES.has(arg)) {
-        i += 1;
-      }
-      continue;
-    }
-    if (arg.startsWith('-')) {
-      if (RUN_SHORT_FLAGS_WITH_VALUES.has(arg)) {
-        i += 1;
-      }
-      continue;
-    }
-    positionals.push(arg);
-  }
-  const [first, second] = positionals;
-  if (first === 'examples' || first === 'example') {
-    return second;
-  }
-  return first;
-};
 
 // ---------------------------------------------------------------------------
 // Helpers

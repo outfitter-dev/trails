@@ -98,6 +98,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(navigate?.flags.map((flag) => flag.name)).toEqual(
       expect.arrayContaining([
         'adapter',
+        'app',
         'contract',
         'entities',
         'depth',
@@ -130,6 +131,7 @@ describe('Trails Wayfinder CLI surface', () => {
     const pattern = commands.find(
       (command) => command.trail.id === 'wayfind.pattern'
     );
+    expect(pattern?.flags.map((flag) => flag.name)).toContain('app');
     expect(pattern?.flags.map((flag) => flag.name)).not.toContain('view');
     expect(pattern?.flags.map((flag) => flag.name)).not.toContain('outline');
     expect(pattern?.routes).toEqual([
@@ -144,8 +146,16 @@ describe('Trails Wayfinder CLI surface', () => {
     const query = commands.find(
       (command) => command.trail.id === 'wayfind.query'
     );
+    expect(query?.flags.map((flag) => flag.name)).toContain('app');
     expect(query?.flags.map((flag) => flag.name)).not.toContain('view');
     expect(query?.flags.map((flag) => flag.name)).not.toContain('outline');
+
+    expect(file?.flags.map((flag) => flag.name)).not.toContain('app');
+
+    const diff = commands.find(
+      (command) => command.trail.id === 'wayfind.diff'
+    );
+    expect(diff?.flags.map((flag) => flag.name)).toContain('app');
   });
 
   test('guards against conflicting relational wayfind targets', async () => {
@@ -267,8 +277,9 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('dispatches --overlay through the generic overlay read', async () => {
     const facts = fakeWayfindContext();
+    const rootDir = process.cwd();
     const result = await wayfindTrail.implementation(
-      parseWayfindInput({ overlay: 'cloudflare', rootDir: '/repo' }),
+      parseWayfindInput({ overlay: 'cloudflare', rootDir }),
       facts.ctx
     );
 
@@ -279,7 +290,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(facts.calls).toEqual([
       {
         id: 'wayfind.overlay',
-        input: { namespace: 'cloudflare', rootDir: '/repo' },
+        input: { namespace: 'cloudflare', rootDir },
       },
     ]);
     expect(result.value).toMatchObject({

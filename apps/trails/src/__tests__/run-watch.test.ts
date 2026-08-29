@@ -17,6 +17,7 @@ import {
   hashTopoGraphEntry,
   readRunTrailId,
 } from '../run-watch.js';
+import { parseRunArgv, parseSelectionControls } from '../run-argv.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -185,6 +186,66 @@ describe('readRunTrailId', () => {
     expect(
       readRunTrailId(['run', '-o', 'json', 'example', 'entity.show', 'happy'])
     ).toBe('entity.show');
+  });
+
+  test('shares normalized positionals and selection controls with completion', () => {
+    expect(
+      parseRunArgv([
+        'run',
+        '--root-dir',
+        '/workspace',
+        'example',
+        '--app=alpha',
+        '--input-json',
+        '{"ok":true}',
+        'entity.show',
+        '-o',
+        'json',
+        'happy',
+      ])
+    ).toEqual({
+      positionals: ['example', 'entity.show', 'happy'],
+      selection: { app: 'alpha', rootDir: '/workspace' },
+    });
+  });
+
+  test('normalizes separated and inline selection values with last-value precedence', () => {
+    expect(
+      parseRunArgv([
+        'run',
+        '--app',
+        'alpha',
+        '--module=src/first.ts',
+        '--app=beta',
+        '--module',
+        'src/app.ts',
+        'beta.show',
+      ])
+    ).toEqual({
+      positionals: ['beta.show'],
+      selection: { app: 'beta', module: 'src/app.ts' },
+    });
+  });
+
+  test('scans generic command selection controls with separated, inline, and last-value precedence', () => {
+    expect(
+      parseSelectionControls([
+        'wayfind',
+        '--root-dir',
+        '/first',
+        '--app=alpha',
+        '--module',
+        'src/first.ts',
+        '--root-dir=/second',
+        '--app',
+        'beta',
+        '--module=src/app.ts',
+      ])
+    ).toEqual({
+      app: 'beta',
+      module: 'src/app.ts',
+      rootDir: '/second',
+    });
   });
 });
 

@@ -40,6 +40,23 @@ const writeWorkspace = (root: string, apps: readonly AppSpec[]): void => {
       2
     )}\n`
   );
+  writeFile(
+    join(root, 'trails.config.json'),
+    `${JSON.stringify(
+      {
+        workspace: {
+          apps: Object.fromEntries(
+            apps.map((appSpec) => [
+              appSpec.name,
+              { root: `apps/${appSpec.name}` },
+            ])
+          ),
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
   for (const spec of apps) {
     const appDir = join(root, 'apps', spec.name);
     writeFile(
@@ -61,7 +78,9 @@ const writeWorkspace = (root: string, apps: readonly AppSpec[]): void => {
         `const trailIds = ${JSON.stringify(spec.trailIds)};`,
         `export const app = {`,
         `  name: '${spec.name}',`,
+        `  trails: new Map(trailIds.map((id) => [id, { id }])),`,
         `  ids: () => trailIds,`,
+        `  get: (id) => trailIds.includes(id) ? { id } : undefined,`,
         `};`,
         '',
       ].join('\n')
@@ -155,13 +174,10 @@ describe('tryRecoverFromRunCollision', () => {
     expect(promptedTrailId).toBe('shared.id');
     expect(recovered).toBeDefined();
 
-    // The fixture apps export stub topos that lack the `trails` field, so the
-    // load-app boundary surfaces a ValidationError. That is the *correct*
-    // post-recovery outcome here: the prompt produced a single-owner
-    // resolution, then real loading kicked in. The collision is no longer
-    // surfaced as Ambiguous.
+    // The prompt produced a single-owner resolution, then execution reached
+    // the intentionally minimal fixture trail. Whatever that fixture-level
+    // failure is, the collision itself must no longer be surfaced.
     if (recovered !== undefined && recovered.isErr()) {
-      expect(recovered.error).toBeInstanceOf(ValidationError);
       expect(recovered.error).not.toBeInstanceOf(AmbiguousError);
     }
   });

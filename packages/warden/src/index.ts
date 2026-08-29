@@ -92,6 +92,7 @@ export type {
   WardenOptions,
   WardenReport,
   WardenRunOptions,
+  WardenTopoDriftResult,
   WardenTopoTarget,
 } from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
@@ -106,6 +107,7 @@ export {
 export type {
   ParsedWardenCommand,
   RunWardenCommandOptions,
+  WardenExpectedAppBinding,
   WardenCommandResult,
 } from './command.js';
 export {

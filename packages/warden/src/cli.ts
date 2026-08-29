@@ -103,6 +103,10 @@ export interface WardenTopoTarget {
    * derivations carry the same overlays the committed lock embeds.
    */
   readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
+  /** Whether this configured app must have committed lock evidence. */
+  readonly requireCommittedLock?: boolean | undefined;
+  /** App-local root used only when reading that target's committed lock. */
+  readonly rootDir?: string | undefined;
   /** Resolved topo module to inspect. */
   readonly topo: Topo;
 }
@@ -216,6 +220,13 @@ export interface WardenFixApplication extends WardenFixSummary {
   readonly appliedDiagnostics: readonly WardenDiagnostic[];
 }
 
+/** Drift evidence for one named topo target before workspace aggregation. */
+export interface WardenTopoDriftResult {
+  readonly drift: DriftResult;
+  readonly name: string;
+  readonly rootDir: string;
+}
+
 /**
  * Result of a warden run.
  */
@@ -234,6 +245,8 @@ export interface WardenReport {
   readonly effectiveConfig?: EffectiveWardenConfig | undefined;
   /** Resolved topo/app labels governed by this run. */
   readonly topoNames?: readonly string[] | undefined;
+  /** Per-target drift evidence retained before workspace aggregation. */
+  readonly topoDrift?: readonly WardenTopoDriftResult[] | undefined;
   /** Safe-fix application summary, present only when a `--fix` pass ran. */
   readonly fixes?: WardenFixSummary | undefined;
 }
@@ -1471,6 +1484,34 @@ const aggregateDriftHash = (
   return hasher.digest('hex');
 };
 
+const aggregateNamedHashes = (
+  topoTargets: readonly WardenTopoTarget[],
+  hashes: readonly string[]
+): string => {
+  const payload = hashes
+    .map((hash, index) => {
+      const target = topoTargets[index];
+      return {
+        hash,
+        topoName: target?.name ?? target?.topo.name ?? `topo-${String(index)}`,
+      };
+    })
+    .toSorted((left, right) => left.topoName.localeCompare(right.topoName));
+  const hasher = new Bun.CryptoHasher('sha256');
+  hasher.update(JSON.stringify(payload));
+  return hasher.digest('hex');
+};
+
+const aggregateCommittedHashes = (
+  topoTargets: readonly WardenTopoTarget[],
+  driftResults: readonly DriftResult[]
+): string | null => {
+  const hashes = driftResults.map((result) => result.committedHash);
+  return hashes.some((hash) => hash === null)
+    ? null
+    : aggregateNamedHashes(topoTargets, hashes as string[]);
+};
+
 const describeTopoDriftHash = (
   topoTargets: readonly WardenTopoTarget[],
   driftResults: readonly DriftResult[]
@@ -1484,36 +1525,104 @@ const describeTopoDriftHash = (
     })
     .join(', ');
 
+const requireCommittedLockEvidence = (
+  rootDir: string,
+  target: WardenTopoTarget | undefined,
+  drift: DriftResult
+): DriftResult => {
+  if (
+    target?.requireCommittedLock !== true ||
+    drift.committedHash !== null ||
+    drift.blockedReason !== undefined
+  ) {
+    return drift;
+  }
+
+  const appId = target.name ?? target.topo.name;
+  const lockPath = resolve(target.rootDir ?? rootDir, 'trails.lock');
+  return {
+    blockedReason: `Required app "${appId}" has no committed trails.lock at ${lockPath}. Regenerate with \`trails compile --app ${appId}\` from the workspace root.`,
+    committedHash: null,
+    currentHash: 'blocked',
+    stale: true,
+  };
+};
+
+interface WardenDriftCheck {
+  readonly drift: DriftResult;
+  readonly topoDrift?: readonly WardenTopoDriftResult[] | undefined;
+}
+
 const checkDriftForTopoTargets = async (
   rootDir: string,
   topoTargets: readonly WardenTopoTarget[]
-): Promise<DriftResult> => {
+): Promise<WardenDriftCheck> => {
   if (topoTargets.length <= 1) {
     const [target] = topoTargets;
-    return checkDrift(
+    const drift = requireCommittedLockEvidence(
       rootDir,
-      target?.topo,
-      target === undefined ? undefined : { overlays: target.overlays }
+      target,
+      await checkDrift(
+        resolve(target?.rootDir ?? rootDir),
+        target?.topo,
+        target === undefined ? undefined : { overlays: target.overlays }
+      )
     );
-  }
-
-  const driftResults = await Promise.all(
-    topoTargets.map((target) =>
-      checkDrift(rootDir, target.topo, { overlays: target.overlays })
-    )
-  );
-  const committedHashes = new Set(
-    driftResults.map((result) => result.committedHash)
-  );
-  if (committedHashes.size > 1) {
     return {
-      blockedReason: `multi-topo drift expected one committed trails.lock hash but found conflicting hashes: ${describeTopoDriftHash(topoTargets, driftResults)}`,
-      committedHash: null,
-      currentHash: 'blocked',
-      stale: true,
+      drift,
+      ...(target === undefined
+        ? {}
+        : {
+            topoDrift: [
+              {
+                drift,
+                name: target.name ?? target.topo.name,
+                rootDir: resolve(target.rootDir ?? rootDir),
+              },
+            ],
+          }),
     };
   }
-  const committedHash = driftResults[0]?.committedHash ?? null;
+
+  const targetRoots = topoTargets.map((target) =>
+    resolve(target.rootDir ?? rootDir)
+  );
+  const uncheckedDriftResults = await Promise.all(
+    topoTargets.map((target, index) =>
+      checkDrift(targetRoots[index] as string, target.topo, {
+        overlays: target.overlays,
+      })
+    )
+  );
+  const driftResults = uncheckedDriftResults.map((drift, index) =>
+    requireCommittedLockEvidence(rootDir, topoTargets[index], drift)
+  );
+  const topoDrift = topoTargets.map((target, index) => ({
+    drift: driftResults[index] as DriftResult,
+    name: target.name ?? target.topo.name,
+    rootDir: targetRoots[index] as string,
+  }));
+  const sharedLockRoot = new Set(targetRoots).size === 1;
+  let committedHash: string | null;
+  if (sharedLockRoot) {
+    const committedHashes = new Set(
+      driftResults.map((result) => result.committedHash)
+    );
+    if (committedHashes.size > 1) {
+      return {
+        drift: {
+          blockedReason: `multi-topo drift expected one committed trails.lock hash but found conflicting hashes: ${describeTopoDriftHash(topoTargets, driftResults)}`,
+          committedHash: null,
+          currentHash: 'blocked',
+          stale: true,
+        },
+        topoDrift,
+      };
+    }
+    committedHash = driftResults[0]?.committedHash ?? null;
+  } else {
+    committedHash = aggregateCommittedHashes(topoTargets, driftResults);
+  }
   const blockedReasons = driftResults.flatMap((result, index) => {
     if (result.blockedReason === undefined) {
       return [];
@@ -1526,26 +1635,39 @@ const checkDriftForTopoTargets = async (
 
   if (blockedReasons.length > 0) {
     return {
-      blockedReason: blockedReasons.join('; '),
-      committedHash,
-      currentHash: 'blocked',
-      stale: true,
+      drift: {
+        blockedReason: blockedReasons.join('; '),
+        committedHash,
+        currentHash: 'blocked',
+        stale: true,
+      },
+      topoDrift,
     };
   }
 
-  const currentHash = aggregateDriftHash(topoTargets, driftResults);
+  const currentHash = sharedLockRoot
+    ? aggregateDriftHash(topoTargets, driftResults)
+    : aggregateNamedHashes(
+        topoTargets,
+        driftResults.map((result) => result.currentHash)
+      );
   const driftedOverlayNamespaces = [
     ...new Set(
       driftResults.flatMap((result) => result.driftedOverlayNamespaces ?? [])
     ),
   ].toSorted();
   return {
-    committedHash,
-    currentHash,
-    ...(driftedOverlayNamespaces.length === 0
-      ? {}
-      : { driftedOverlayNamespaces }),
-    stale: committedHash !== null && committedHash !== currentHash,
+    drift: {
+      committedHash,
+      currentHash,
+      ...(driftedOverlayNamespaces.length === 0
+        ? {}
+        : { driftedOverlayNamespaces }),
+      stale: sharedLockRoot
+        ? committedHash !== null && committedHash !== currentHash
+        : driftResults.some((result) => result.stale),
+    },
+    topoDrift,
   };
 };
 
@@ -1767,11 +1889,15 @@ export const runWarden = async (
     fixApplication?.appliedDiagnostics ?? []
   );
   let drift: DriftResult | null = null;
+  let topoDrift: readonly WardenTopoDriftResult[] | undefined;
   if (runDrift) {
-    drift =
-      fixApplication !== undefined && fixApplication.filesChanged > 0
-        ? blockedDriftAfterSourceFixes()
-        : await checkDriftForTopoTargets(rootDir, topoTargets);
+    if (fixApplication !== undefined && fixApplication.filesChanged > 0) {
+      drift = blockedDriftAfterSourceFixes();
+    } else {
+      const checked = await checkDriftForTopoTargets(rootDir, topoTargets);
+      ({ drift } = checked);
+      ({ topoDrift } = checked);
+    }
   }
 
   const errorCount = reportDiagnostics.filter(
@@ -1800,6 +1926,7 @@ export const runWarden = async (
       warnCount,
     }),
     ...(topoNames === undefined ? {} : { topoNames }),
+    ...(topoDrift === undefined ? {} : { topoDrift }),
     warnCount,
   };
 };

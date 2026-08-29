@@ -1,11 +1,17 @@
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- result-shape assertions branch on isOk/isErr */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { ActionResultContext } from '@ontrails/cli';
-import { NotFoundError, Result, executeTrail, trail } from '@ontrails/core';
+import {
+  NotFoundError,
+  Result,
+  ValidationError,
+  executeTrail,
+  trail,
+} from '@ontrails/core';
 import type { StructuredTrailExample } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -116,7 +122,21 @@ const buildListing = (
   examples: readonly StructuredTrailExample[]
 ): RunExamplesListing => ({
   examples,
+  executedAppId: 'app-a',
   kind: RUN_EXAMPLES_LISTING_KIND,
+  project: {
+    app: {
+      appRoot: '.',
+      artifactPath: '/project/trails.lock',
+      configured: false,
+      modulePath: 'src/app.ts',
+      moduleSource: 'convention',
+    },
+    configuredAppIds: [],
+    projectRoot: '/project',
+    selectedExtent: 'standalone-app',
+    selectionProvenance: 'root-dir',
+  },
   trailId: 'run',
 });
 
@@ -214,7 +234,7 @@ describe('tryExamplesRunOutput', () => {
     expect(io.stdout.join('')).toBe('No examples defined\n');
   });
 
-  test('json mode emits the structured examples array (no envelope)', async () => {
+  test('json mode emits examples with selected project provenance', async () => {
     const ctx = buildCtx(
       stubRunTrail,
       { json: true },
@@ -226,19 +246,20 @@ describe('tryExamplesRunOutput', () => {
     });
     const out = io.stdout.join('');
     const parsed: unknown = JSON.parse(out);
-    expect(Array.isArray(parsed)).toBe(true);
-    if (Array.isArray(parsed)) {
-      expect(parsed).toHaveLength(2);
-      expect(parsed[0]).toMatchObject({
-        kind: 'success',
-        name: 'Run trail by ID',
-      });
-      expect(parsed[1]).toMatchObject({
-        error: 'NotFoundError',
-        kind: 'error',
-        name: 'Reject unknown trail ID',
-      });
-    }
+    expect(parsed).toMatchObject({
+      examples: [
+        { kind: 'success', name: 'Run trail by ID' },
+        {
+          error: 'NotFoundError',
+          kind: 'error',
+          name: 'Reject unknown trail ID',
+        },
+      ],
+      project: {
+        projectRoot: '/project',
+        selectedExtent: 'standalone-app',
+      },
+    });
   });
 
   test('json mode emits an empty array when the listing has no examples', async () => {
@@ -251,10 +272,10 @@ describe('tryExamplesRunOutput', () => {
       const handled = tryExamplesRunOutput(ctx);
       expect(handled).toBe(true);
     });
-    expect(io.stdout.join('').trim()).toBe('[]');
+    expect(JSON.parse(io.stdout.join(''))).toMatchObject({ examples: [] });
   });
 
-  test('jsonl mode emits one structured example per line', async () => {
+  test('jsonl mode emits one provenance-bearing listing', async () => {
     const ctx = buildCtx(
       stubRunTrail,
       { jsonl: true },
@@ -268,14 +289,13 @@ describe('tryExamplesRunOutput', () => {
       .join('')
       .split('\n')
       .filter((line) => line.length > 0);
-    expect(lines).toHaveLength(2);
+    expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] ?? '')).toMatchObject({
-      kind: 'success',
-      name: 'Run trail by ID',
-    });
-    expect(JSON.parse(lines[1] ?? '')).toMatchObject({
-      kind: 'error',
-      name: 'Reject unknown trail ID',
+      examples: [
+        { kind: 'success', name: 'Run trail by ID' },
+        { kind: 'error', name: 'Reject unknown trail ID' },
+      ],
+      project: { selectedExtent: 'standalone-app' },
     });
   });
 
@@ -358,6 +378,22 @@ const writeWorkspace = (
       2
     )}\n`
   );
+  if (apps.length > 1) {
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify(
+        {
+          workspace: {
+            apps: Object.fromEntries(
+              apps.map((app) => [app.name, { root: `apps/${app.name}` }])
+            ),
+          },
+        },
+        null,
+        2
+      )}\n`
+    );
+  }
 
   for (const spec of apps) {
     const appDir = join(workspaceRoot, 'apps', spec.name);
@@ -435,6 +471,35 @@ const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
 };
 
 describe('run.examples trail', () => {
+  test('discovers a sole nested standalone app without --module', async () => {
+    writeWorkspace(workspaceRoot, [
+      {
+        examplesByTrail: {
+          'demo.alpha': [{ description: 'happy path', name: 'Alpha happy' }],
+        },
+        name: 'app-a',
+        trailIds: ['demo.alpha'],
+      },
+    ]);
+
+    const result = await executeTrail(runExamplesTrail, {
+      id: 'demo.alpha',
+      rootDir: workspaceRoot,
+    });
+
+    const value = expectOk(result) as RunExamplesListing;
+    expect(value.trailId).toBe('demo.alpha');
+    expect(value.examples.map((example) => example.name)).toEqual([
+      'Alpha happy',
+    ]);
+    expect(value.executedAppId).toBe('app-a');
+    expect(value.project).toMatchObject({
+      projectRoot: workspaceRoot,
+      selectedExtent: 'standalone-app',
+      selectionProvenance: 'root-dir',
+    });
+  });
+
   test('returns the structured examples listing without executing the trail', async () => {
     writeWorkspace(workspaceRoot, [
       {
@@ -501,6 +566,103 @@ describe('run.examples trail', () => {
     const value = expectOk(result) as RunExamplesListing;
     expect(value.trailId).toBe('shared.demo');
     expect(value.examples.map((example) => example.name)).toEqual(['App B']);
+    expect(value.executedAppId).toBe('app-b');
+    expect(value.project).toMatchObject({
+      app: { appId: 'app-b', appRoot: 'apps/app-b' },
+      projectRoot: workspaceRoot,
+      selectedExtent: 'configured-app',
+      selectionProvenance: 'app',
+    });
+  });
+
+  test('lists configured examples without reading the selected saved lock', async () => {
+    writeWorkspace(workspaceRoot, [
+      {
+        examplesByTrail: {
+          'demo.alpha': [{ name: 'Alpha happy' }],
+        },
+        name: 'app-a',
+        trailIds: ['demo.alpha'],
+      },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify({ workspace: { apps: { 'app-a': { root: 'apps/app-a' } } } }, null, 2)}\n`
+    );
+    mkdirSync(join(workspaceRoot, 'apps/app-a/trails.lock'));
+
+    const result = await executeTrail(runExamplesTrail, {
+      app: 'app-a',
+      id: 'demo.alpha',
+      rootDir: workspaceRoot,
+    });
+
+    const value = expectOk(result) as RunExamplesListing;
+    expect(value.examples.map((example) => example.name)).toEqual([
+      'Alpha happy',
+    ]);
+    expect(value.project).toMatchObject({
+      app: { appId: 'app-a' },
+      selectedExtent: 'configured-app',
+    });
+  });
+
+  test('preserves configured selection from a nested CWD without root-dir', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['alpha.only'] },
+      {
+        examplesByTrail: {
+          'beta.only': [{ name: 'Beta example' }],
+        },
+        name: 'app-b',
+        trailIds: ['beta.only'],
+      },
+    ]);
+
+    const result = await executeTrail(
+      runExamplesTrail,
+      { id: 'beta.only' },
+      { ctx: { cwd: join(workspaceRoot, 'apps', 'app-b', 'src') } }
+    );
+
+    const value = expectOk(result) as RunExamplesListing;
+    expect(value.examples.map((example) => example.name)).toEqual([
+      'Beta example',
+    ]);
+  });
+
+  test('revalidates configured app identity on the listing lease', async () => {
+    writeWorkspace(workspaceRoot, [
+      {
+        examplesByTrail: { 'demo.reload': [{ name: 'Reload' }] },
+        name: 'app-a',
+        trailIds: ['demo.reload'],
+      },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify({ workspace: { apps: { 'app-a': { root: 'apps/app-a' } } } }, null, 2)}\n`
+    );
+    const modulePath = join(workspaceRoot, 'apps/app-a/src/app.ts');
+    const counterKey = `run-examples-binding-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    writeFileSync(
+      modulePath,
+      readFileSync(modulePath, 'utf8').replace(
+        "  name: 'app-a',",
+        `  name: ((globalThis[${JSON.stringify(counterKey)}] = ((globalThis[${JSON.stringify(counterKey)}] ?? 0) + 1)) === 1 ? 'app-a' : 'other'),`
+      )
+    );
+
+    const result = await executeTrail(runExamplesTrail, {
+      app: 'app-a',
+      id: 'demo.reload',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.message).toContain('Configured app "app-a"');
+    expect(error.message).toContain('loaded topo "other"');
   });
 
   test('returns an empty examples array when the resolved trail has no examples', async () => {

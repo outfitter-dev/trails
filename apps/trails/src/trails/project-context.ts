@@ -465,8 +465,16 @@ export const compileNeedsAppError = (
   );
 };
 
+interface ConfiguredAppBindingExpectation {
+  readonly app: {
+    readonly id?: string | undefined;
+    readonly modulePath: string;
+  };
+  readonly projectRoot: string;
+}
+
 export const assertConfiguredAppBinding = (
-  context: OperatorAppProjectContext,
+  context: ConfiguredAppBindingExpectation,
   actualAppId: string
 ): Result<void, ValidationError> => {
   const expectedAppId = context.app.id;
@@ -531,6 +539,61 @@ export const assertObservableProjectApps = async (
         collectionSkips: view.evidence.collectionSkips,
         projectRoot: context.projectRoot,
         unavailable,
+      }
+    )
+  );
+};
+
+/**
+ * Require a configured app's saved artifact to belong to that Config ID.
+ *
+ * @remarks Collection observability and artifact identity are separate facts:
+ * a lock can be readable while naming a different app. Saved app-scoped
+ * consumers must fail closed on that mismatch instead of presenting the
+ * foreign graph under the requested `--app` identity.
+ */
+export const assertSelectedArtifactBinding = async (
+  context: OperatorAppProjectContext
+): Promise<Result<void, ValidationError>> => {
+  if (!context.app.configured || context.app.id === undefined) {
+    return Result.ok();
+  }
+  const view = await deriveWorkspaceView({
+    identity: context.identity,
+    selectedAppIds: [context.app.id],
+  });
+  const observation = view.evidence.apps.find(
+    (candidate) => candidate.id === context.app.id
+  );
+  if (
+    observation !== undefined &&
+    observation.binding !== 'mismatched' &&
+    observation.status !== 'invalid'
+  ) {
+    return Result.ok();
+  }
+  if (observation === undefined) {
+    return Result.err(
+      projectContextError(
+        `Unable to inspect saved artifact binding for configured app "${context.app.id}".`,
+        'invalid-binding',
+        {
+          appId: context.app.id,
+          artifactPath: context.app.lockPath,
+          projectRoot: context.projectRoot,
+        }
+      )
+    );
+  }
+  return Result.err(
+    projectContextError(
+      `Saved artifact for configured app "${context.app.id}" is invalid or does not match its Config-owned identity.`,
+      'invalid-binding',
+      {
+        appId: context.app.id,
+        artifactPath: context.app.lockPath,
+        evidence: observation,
+        projectRoot: context.projectRoot,
       }
     )
   );

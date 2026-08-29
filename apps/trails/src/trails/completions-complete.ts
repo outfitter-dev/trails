@@ -23,16 +23,20 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
+  renderAppIdCompletions,
   renderTrailExampleCompletions,
   renderTrailIdCompletions,
 } from '../completions.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { parseRunArgv, parseSelectionControls } from '../run-argv.js';
+import { resolveOperatorProjectContext } from './project-context.js';
 
 const EMPTY_SUGGESTIONS = '';
 
 interface CompleteContext {
   readonly args: readonly string[];
   readonly rootDir: string;
+  readonly selectedAppId?: string | undefined;
+  readonly selectedModulePath?: string | undefined;
 }
 
 type CompletionHandler = (ctx: CompleteContext) => Promise<readonly string[]>;
@@ -45,7 +49,7 @@ type CompletionHandler = (ctx: CompleteContext) => Promise<readonly string[]>;
  * being completed. We recognize the `run example <trail-id> <TAB>` shape when:
  *
  *  - the command family is `run example`, and
- *  - a non-flag positional (the trail ID) sits at `args[2]`.
+ *  - a non-flag positional (the trail ID) follows `example`.
  *
  * Returns the trail ID + prefix to complete, or `null` if the cursor is not
  * in an example-name value position.
@@ -53,17 +57,17 @@ type CompletionHandler = (ctx: CompleteContext) => Promise<readonly string[]>;
 const detectExampleValueCompletion = (
   args: readonly string[]
 ): { readonly trailId: string; readonly prefix: string } | null => {
-  if (args.length < 4) {
+  if (args.length < 3) {
     return null;
   }
-  const [, subcommand, trailId] = args;
+  const [subcommand, trailId] = args;
   if (subcommand !== 'example') {
     return null;
   }
   if (trailId === undefined || trailId.startsWith('-')) {
     return null;
   }
-  const prefix = args[3] ?? '';
+  const prefix = args[2] ?? '';
   return { prefix, trailId };
 };
 
@@ -80,25 +84,51 @@ const detectExampleValueCompletion = (
  * returns no suggestions so completed positional values are not suggested
  * again.
  */
-const completeRunPosition: CompletionHandler = async ({ args, rootDir }) => {
+const completeRunPosition: CompletionHandler = async ({
+  args,
+  rootDir,
+  selectedAppId,
+  selectedModulePath,
+}) => {
   const exampleContext = detectExampleValueCompletion(args);
   if (exampleContext !== null) {
     const suggestionsResult = await renderTrailExampleCompletions(
       rootDir,
       exampleContext.trailId,
-      exampleContext.prefix
+      exampleContext.prefix,
+      selectedAppId,
+      selectedModulePath
     );
     return suggestionsResult.unwrapOr([]);
   }
-  if (args.length !== 2) {
+  if (args.length !== 1) {
     return [];
   }
-  const prefix = args[1] ?? '';
-  return await renderTrailIdCompletions(rootDir, prefix);
+  const prefix = args[0] ?? '';
+  return await renderTrailIdCompletions(
+    rootDir,
+    prefix,
+    selectedAppId,
+    selectedModulePath
+  );
 };
 
 const renderSuggestions = (suggestions: readonly string[]): string =>
   suggestions.join('\n');
+
+const detectAppValueCompletion = (
+  args: readonly string[]
+): { readonly inline: boolean; readonly prefix: string } | null => {
+  const token = args.at(-1) ?? '';
+  const previous = args.at(-2);
+  if (previous === '--app') {
+    return { inline: false, prefix: token };
+  }
+  if (token.startsWith('--app=')) {
+    return { inline: true, prefix: token.slice('--app='.length) };
+  }
+  return null;
+};
 
 /**
  * Subcommand → handler dispatch table.
@@ -128,11 +158,47 @@ export const completionsCompleteTrail = trail('completions.__complete', {
     },
   ],
   implementation: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
+    const appContext = detectAppValueCompletion(input.args);
+    const typedSelection = parseSelectionControls(input.args);
+    const parsedRun = parseRunArgv(input.args);
+    const selectionRootDir = typedSelection.rootDir ?? input.rootDir;
+    const selectedContextInput = appContext === null ? typedSelection : {};
+    const context = await resolveOperatorProjectContext(
+      {
+        ...selectedContextInput,
+        ...(selectionRootDir === undefined
+          ? {}
+          : { rootDir: selectionRootDir }),
+      },
+      { cwd: ctx.cwd }
+    );
+    if (context.isErr()) {
+      return context;
     }
-    const rootDir = rootDirResult.value;
+    const rootDir = context.value.projectRoot;
+    const selectedAppId =
+      context.value.selectedExtent === 'configured-app'
+        ? context.value.app.id
+        : undefined;
+    const selectedModulePath =
+      context.value.selectedExtent !== 'workspace' &&
+      context.value.app.moduleSource === 'module'
+        ? context.value.app.modulePath
+        : undefined;
+
+    if (appContext !== null) {
+      const suggestions = await renderAppIdCompletions(
+        rootDir,
+        appContext.prefix
+      );
+      return Result.ok(
+        renderSuggestions(
+          appContext.inline
+            ? suggestions.map((suggestion) => `--app=${suggestion}`)
+            : suggestions
+        )
+      );
+    }
 
     const [subcommand] = input.args;
     if (subcommand === undefined) {
@@ -144,7 +210,12 @@ export const completionsCompleteTrail = trail('completions.__complete', {
       return Result.ok(EMPTY_SUGGESTIONS);
     }
 
-    const suggestions = await handler({ args: input.args, rootDir });
+    const suggestions = await handler({
+      args: parsedRun.positionals,
+      rootDir,
+      selectedAppId,
+      selectedModulePath,
+    });
     return Result.ok(renderSuggestions(suggestions));
   },
   input: z.object({

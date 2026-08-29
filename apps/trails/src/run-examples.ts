@@ -141,8 +141,8 @@ export const tryExamplesRunOutput = (ctx: ActionResultContext): boolean => {
     return true;
   }
 
-  // JSON / JSONL: emit the structured examples array directly so downstream
-  // consumers can parse the full structured shape per example.
-  output(listing.data.examples, mode);
+  // Machine-readable modes retain the selection provenance alongside
+  // the authored examples so callers never have to infer which app was read.
+  output(listing.data, mode);
   return true;
 };

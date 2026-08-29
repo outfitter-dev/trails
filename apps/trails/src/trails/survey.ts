@@ -34,6 +34,7 @@ import { z } from 'zod';
 import { writeIsolatedExampleJsonFile } from '../local-state-io.js';
 
 import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
+import { assertConfiguredAppBinding } from './project-context.js';
 import {
   deriveCurrentTopoBrief,
   deriveCurrentTopoList,
@@ -631,19 +632,50 @@ const detailInputSchema = z.object({
 });
 
 const withFreshSurveyApp = async <T>(
-  input: { readonly module?: string | undefined },
+  input: {
+    readonly configuredApp?:
+      | {
+          readonly id: string;
+          readonly modulePath: string;
+          readonly projectRoot: string;
+        }
+      | undefined;
+    readonly module?: string | undefined;
+  },
   rootDir: string,
   consume: (
     app: Topo,
     overlays: readonly TopoGraphOverlayRegistration[] | undefined
   ) => Promise<Result<T, Error>> | Result<T, Error>
 ): Promise<Result<T, Error>> =>
-  withFreshAppLease(input.module, rootDir, (lease) =>
-    consume(lease.app, lease.overlays)
-  );
+  withFreshAppLease(input.module, rootDir, async (lease) => {
+    if (input.configuredApp !== undefined) {
+      const binding = assertConfiguredAppBinding(
+        {
+          app: {
+            id: input.configuredApp.id,
+            modulePath: input.configuredApp.modulePath,
+          },
+          projectRoot: input.configuredApp.projectRoot,
+        },
+        lease.app.name
+      );
+      if (binding.isErr()) {
+        return binding;
+      }
+    }
+    return await consume(lease.app, lease.overlays);
+  });
 
 const withResolvedSurveyApp = async <T>(
   input: {
+    readonly configuredApp?:
+      | {
+          readonly id: string;
+          readonly modulePath: string;
+          readonly projectRoot: string;
+        }
+      | undefined;
     readonly module?: string | undefined;
     readonly rootDir?: string | undefined;
   },
@@ -663,6 +695,16 @@ const withResolvedSurveyApp = async <T>(
 const moduleInputSchema = z.object({
   module: z.string().optional().describe('Path to the app module'),
   rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+const surveyComposeInputSchema = z.object({
+  configuredApp: z
+    .object({
+      id: z.string(),
+      modulePath: z.string(),
+      projectRoot: z.string(),
+    })
+    .optional(),
 });
 
 const diffEntryOutput = z.object({
@@ -729,6 +771,7 @@ const surveyMatchOutput = z.discriminatedUnion('kind', [
 
 export const surveyTrail = trail('survey', {
   args: ['id'],
+  composeInput: surveyComposeInputSchema,
   description: 'Full topo introspection',
   examples: [
     {

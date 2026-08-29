@@ -20,7 +20,6 @@ import { createProgram } from '@ontrails/commander';
 import type { CreateProgramOptions } from '@ontrails/commander';
 import { createTrailContext } from '@ontrails/core';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
-import { deriveTopoGraph } from '@ontrails/topography';
 
 import { app, trailsCliIncludedTrails, trailsOverlays } from './app.js';
 import { resolveInputWithClack } from './clack.js';
@@ -47,17 +46,12 @@ import {
   writeTraceTreeToStderr,
 } from './run-trace.js';
 import type { TraceSession } from './run-trace.js';
-import {
-  argvHasWatchFlag,
-  hashTopoGraphEntry,
-  readRunTrailId,
-  runWatchLoop,
-} from './run-watch.js';
+import { argvHasWatchFlag, readRunTrailId, runWatchLoop } from './run-watch.js';
+import { readWatchTopoGraphEntryHash } from './run-watch-project.js';
+import type { WatchRunTarget } from './run-watch-project.js';
 import { tryWardenOutput } from './run-warden.js';
 import { tryWayfindOutlineOutput } from './run-wayfind-outline.js';
-import { tryLoadFreshAppLease } from './trails/load-app.js';
-import { resolveRunModulePath } from './trails/run.js';
-import { resolveTrailRootDir } from './trails/root-dir.js';
+import { resolveRunTargetProject } from './trails/run.js';
 import { trailsPackageVersion } from './versions.js';
 
 const buildOnResult =
@@ -127,13 +121,6 @@ const resolveCliPermitFromToken: ResolveCliPermitFromToken = (input) =>
     surface: 'cli',
   });
 
-interface WatchRunTarget {
-  readonly app?: string | undefined;
-  readonly id: string;
-  readonly module?: string | undefined;
-  readonly rootDir?: string | undefined;
-}
-
 const readFlagValue = (
   args: readonly string[],
   flagName: string
@@ -184,18 +171,14 @@ const resolveWatchDirectorySourcePath = async (
   target: WatchRunTarget | null
 ): Promise<string> => {
   if (target !== null) {
-    const rootDirResult = resolveTrailRootDir(target.rootDir, process.cwd());
-    if (rootDirResult.isErr()) {
-      throw rootDirResult.error;
-    }
-    const moduleResult = await resolveRunModulePath(
-      rootDirResult.value,
-      target.module,
-      target.id,
-      target.app
-    );
-    if (moduleResult.isOk()) {
-      return toWatchSourcePath(rootDirResult.value, moduleResult.value);
+    const targetResult = await resolveRunTargetProject(target, target.id, {
+      cwd: process.cwd(),
+    });
+    if (targetResult.isOk()) {
+      return toWatchSourcePath(
+        targetResult.value.rootDir,
+        targetResult.value.modulePath
+      );
     }
   }
   const cwd = process.cwd();
@@ -204,42 +187,6 @@ const resolveWatchDirectorySourcePath = async (
     return join(srcDir, 'app.ts');
   }
   return join(cwd, 'app.ts');
-};
-
-const readWatchTopoGraphEntryHash = async (
-  target: WatchRunTarget | null
-): Promise<string | null> => {
-  if (target === null) {
-    return null;
-  }
-  const rootDirResult = resolveTrailRootDir(target.rootDir, process.cwd());
-  if (rootDirResult.isErr()) {
-    throw rootDirResult.error;
-  }
-  const rootDir = rootDirResult.value;
-  const moduleResult = await resolveRunModulePath(
-    rootDir,
-    target.module,
-    target.id,
-    target.app
-  );
-  if (moduleResult.isErr()) {
-    throw moduleResult.error;
-  }
-  const leaseResult = await tryLoadFreshAppLease(moduleResult.value, rootDir);
-  if (leaseResult.isErr()) {
-    throw leaseResult.error;
-  }
-  const lease = leaseResult.value;
-  try {
-    const topoGraph = deriveTopoGraph(lease.app);
-    const entry = topoGraph.entries.find(
-      (candidate) => candidate.kind === 'trail' && candidate.id === target.id
-    );
-    return entry === undefined ? null : hashTopoGraphEntry(entry);
-  } finally {
-    lease.release();
-  }
 };
 
 const wardenValueFlags = new Set([

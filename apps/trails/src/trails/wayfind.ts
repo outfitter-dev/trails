@@ -1,6 +1,7 @@
-import { Result, ValidationError, trail } from '@ontrails/core';
+import { NotFoundError, Result, ValidationError, trail } from '@ontrails/core';
 import type { Result as TrailResult, TrailContext } from '@ontrails/core';
 import {
+  deriveWorkspaceView,
   wayfinderIncludeSchema,
   wayfinderResolverSchema,
   wayfinderSourceModeSchema,
@@ -13,12 +14,30 @@ import type {
 } from '@ontrails/topography';
 import { z } from 'zod';
 
+import {
+  assertObservableProjectApps,
+  assertSelectedArtifactBinding,
+  resolveOperatorAppModuleContext,
+  resolveOperatorProjectContext,
+} from './project-context.js';
+import type {
+  OperatorProjectApp,
+  OperatorProjectContext,
+} from './project-context.js';
+import {
+  operatorProjectContextOutput,
+  operatorProjectContextOutputSchema,
+} from './project-context-output.js';
+
+export { wayfindDiffTrail } from './wayfind-diff.js';
+
 const wayfindInputSchema = z
   .object({
     adapter: z
       .string()
       .optional()
       .describe('Filter graph facts delivered through an adapter package'),
+    app: z.string().optional().describe('Configured workspace app ID'),
     contract: z
       .boolean()
       .default(false)
@@ -99,6 +118,11 @@ const wayfindInputSchema = z
   .refine((input) => !(input.deps && input.impact), {
     message: 'Provide only one relation flag: --deps or --impact.',
     path: ['deps'],
+  })
+  .refine((input) => input.source === 'live' || input.module === undefined, {
+    message:
+      '--module selects live source only. Remove --module or add --source live.',
+    path: ['module'],
   })
   .refine(
     (input) => !(input.deps || input.impact) || input.target !== undefined,
@@ -201,13 +225,22 @@ const wayfindComposeInputSchema = z
 
 const wayfindOutputSchema = z.object({
   includes: z.record(z.string(), z.unknown()).optional(),
+  project: operatorProjectContextOutputSchema.optional(),
   result: z.unknown(),
   source: wayfinderSourceModeSchema,
   target: z.string().optional(),
   view: wayfinderViewSchema,
 });
 
+type WayfindOutput = z.output<typeof wayfindOutputSchema>;
 type WayfindInput = z.output<typeof wayfindInputSchema> & {
+  readonly configuredApp?:
+    | {
+        readonly id: string;
+        readonly modulePath: string;
+        readonly projectRoot: string;
+      }
+    | undefined;
   readonly resolver?: WayfinderResolver | undefined;
 };
 type TrailContextWithCompose = TrailContext & {
@@ -406,53 +439,50 @@ const viewFor = (input: WayfindInput): WayfinderView => {
   return input.view;
 };
 
+const liveSourceInputError = (
+  input: WayfindInput
+): ValidationError | undefined => {
+  if (input.deps || input.impact) {
+    return liveSourceError(
+      '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for relational graph views.'
+    );
+  }
+  if (hasLiveTypedFilter(input)) {
+    return liveSourceError(
+      '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for typed filters.'
+    );
+  }
+  if (input.target !== undefined && targetLooksLikeFile(input.target)) {
+    return liveSourceError(
+      '`trails wayfind --source live` does not support source file targets; use locked artifacts for file outlines.'
+    );
+  }
+  const view = viewFor(input);
+  if (view === 'contract' || view === 'map' || view === 'outline') {
+    return liveSourceError(
+      '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for this view.'
+    );
+  }
+  return undefined;
+};
+
 const viewLiveSource = async (
   input: WayfindInput,
   ctx: TrailContextWithCompose
 ) => {
   const view = viewFor(input);
-  if (input.deps || input.impact) {
+  const inputError = liveSourceInputError(input);
+  if (inputError !== undefined) {
     return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for relational graph views.'
-        )
-      ),
-      view,
-    };
-  }
-  if (hasLiveTypedFilter(input)) {
-    return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for typed filters.'
-        )
-      ),
-      view,
-    };
-  }
-  if (input.target !== undefined && targetLooksLikeFile(input.target)) {
-    return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` does not support source file targets; use locked artifacts for file outlines.'
-        )
-      ),
-      view,
-    };
-  }
-  if (view === 'contract' || view === 'map' || view === 'outline') {
-    return {
-      result: Result.err(
-        liveSourceError(
-          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for this view.'
-        )
-      ),
+      result: Result.err(inputError),
       view,
     };
   }
   return {
     result: ctx.compose('survey', {
+      ...(input.configuredApp === undefined
+        ? {}
+        : { configuredApp: input.configuredApp }),
       ...(input.target === undefined ? {} : { id: input.target }),
       ...liveModuleInput(input),
     }),
@@ -789,6 +819,201 @@ const viewPopulation = async (
   };
 };
 
+const isFileOutlineException = (input: WayfindInput): boolean =>
+  input.target !== undefined &&
+  targetLooksLikeFile(input.target) &&
+  (input.resolver === 'file' || viewFor(input) === 'outline');
+
+const appWayfindInput = (
+  input: WayfindInput,
+  app: OperatorProjectApp,
+  projectRoot: string
+): WayfindInput => ({
+  ...input,
+  app: undefined,
+  ...(input.source !== 'live' || !app.configured || app.id === undefined
+    ? {}
+    : {
+        configuredApp: {
+          id: app.id,
+          modulePath: app.modulePath,
+          projectRoot,
+        },
+      }),
+  module: input.source === 'live' ? app.modulePath : undefined,
+  rootDir: app.rootDir,
+});
+
+const dispatchWayfind = async (
+  input: WayfindInput,
+  ctx: TrailContextWithCompose
+): Promise<Result<WayfindOutput, Error>> => {
+  if (input.source === 'live') {
+    const dispatched = await viewLiveSource(input, ctx);
+    if (dispatched !== undefined) {
+      return await envelopeFor(
+        await dispatched.result,
+        input,
+        ctx,
+        dispatched.view
+      );
+    }
+  }
+  if (input.overlay !== undefined) {
+    return await envelopeFor(
+      await ctx.compose('wayfind.overlay', {
+        namespace: input.overlay,
+        ...sourceInput(input),
+      }),
+      input,
+      ctx,
+      'list'
+    );
+  }
+  const dispatched =
+    (await viewRelation(input, ctx)) ??
+    (await (input.target === undefined
+      ? viewPopulation(input, ctx)
+      : viewTarget(input, ctx)));
+  if (dispatched === undefined) {
+    return Result.err(
+      new ValidationError('Provide a Wayfinder target or population filter.')
+    );
+  }
+  return await envelopeFor(
+    await dispatched.result,
+    input,
+    ctx,
+    dispatched.view
+  );
+};
+
+const workspaceAppsForWayfind = async (
+  context: Extract<OperatorProjectContext, { selectedExtent: 'workspace' }>,
+  source: WayfindInput['source']
+) => {
+  if (source === 'live') {
+    return {
+      apps: context.apps,
+      collisions: undefined,
+      evidence: {
+        configuredAppIds: context.apps.map((app) => app.id as string),
+        configuredCompleteness: 'complete' as const,
+        source: 'live' as const,
+      },
+      workspaceViewHash: undefined,
+    };
+  }
+  const view = await deriveWorkspaceView({ identity: context.identity });
+  const availableIds = new Set(view.content.apps.map((app) => app.id));
+  return {
+    apps: context.apps.filter((app) => availableIds.has(app.id as string)),
+    collisions: view.content.collisions,
+    evidence: view.evidence,
+    workspaceViewHash: view.workspaceViewHash,
+  };
+};
+
+const executeWorkspaceWayfind = async (
+  input: WayfindInput,
+  context: Extract<OperatorProjectContext, { selectedExtent: 'workspace' }>,
+  ctx: TrailContextWithCompose
+): Promise<Result<WayfindOutput, Error>> => {
+  const selected = await workspaceAppsForWayfind(context, input.source);
+  const lookup = input.target !== undefined || input.overlay !== undefined;
+  const apps: { appId: string; appRoot: string; result: unknown }[] = [];
+  let notFound: NotFoundError | undefined;
+  let resolvedView: WayfinderView | undefined;
+  for (const app of selected.apps) {
+    const result = await dispatchWayfind(
+      appWayfindInput(input, app, context.projectRoot),
+      ctx
+    );
+    if (result.isErr()) {
+      if (lookup && result.error instanceof NotFoundError) {
+        notFound ??= result.error;
+        continue;
+      }
+      return result;
+    }
+    if (resolvedView !== undefined && resolvedView !== result.value.view) {
+      return Result.err(
+        new ValidationError(
+          `Workspace Wayfinder apps resolved conflicting views: ${resolvedView}, ${result.value.view}.`,
+          {
+            context: {
+              appId: app.id,
+              expectedView: resolvedView,
+              reason: 'workspace-view-divergence',
+              resolvedView: result.value.view,
+            },
+          }
+        )
+      );
+    }
+    resolvedView = result.value.view;
+    apps.push({
+      appId: app.id as string,
+      appRoot: app.root,
+      result: result.value,
+    });
+  }
+  if (apps.length === 0 && lookup) {
+    const lookupContext =
+      input.target === undefined
+        ? { overlay: input.overlay }
+        : { target: input.target };
+    const lookupLabel =
+      input.target === undefined
+        ? `overlay namespace "${input.overlay}"`
+        : `target "${input.target}"`;
+    if (selected.evidence.configuredCompleteness === 'partial') {
+      return Result.err(
+        new ValidationError(
+          `Wayfinder cannot determine whether ${lookupLabel} exists because configured app evidence is incomplete.`,
+          {
+            context: {
+              evidence: selected.evidence,
+              reason: 'workspace-incomplete',
+              ...lookupContext,
+            },
+          }
+        )
+      );
+    }
+    return Result.err(
+      notFound ??
+        new NotFoundError(
+          `Wayfinder ${lookupLabel} was not found in any available configured app artifact.`,
+          {
+            context: {
+              configuredAppIds: selected.evidence.configuredAppIds,
+              ...lookupContext,
+            },
+          }
+        )
+    );
+  }
+  return Result.ok({
+    project: operatorProjectContextOutput(context),
+    result: {
+      apps,
+      ...(selected.collisions === undefined
+        ? {}
+        : { collisions: selected.collisions }),
+      ...(selected.evidence === undefined
+        ? {}
+        : { evidence: selected.evidence }),
+      ...(selected.workspaceViewHash === undefined
+        ? {}
+        : { workspaceViewHash: selected.workspaceViewHash }),
+    },
+    source: input.source,
+    ...(input.target === undefined ? {} : { target: input.target }),
+    view: resolvedView ?? viewFor(input),
+  });
+};
+
 export const wayfindTrail = trail('wayfind.navigate', {
   args: ['target'],
   cli: {
@@ -891,40 +1116,69 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List read trails',
     },
   ],
-  implementation: async (input, ctx) => {
-    if (input.source === 'live') {
-      const dispatched = await viewLiveSource(input, ctx);
-      if (dispatched !== undefined) {
-        return envelopeFor(
-          await dispatched.result,
-          input,
-          ctx,
-          dispatched.view
+  implementation: async (input, ctx): Promise<Result<WayfindOutput, Error>> => {
+    if (isFileOutlineException(input)) {
+      if (input.app !== undefined) {
+        return Result.err(
+          new ValidationError(
+            'Source-file outlines are the explicit live-source exception and do not accept --app. Remove --app or navigate saved app facts without --outline.'
+          )
         );
       }
+      const outlined = await dispatchWayfind(input, ctx);
+      return outlined;
     }
-    if (input.overlay !== undefined) {
-      return envelopeFor(
-        await ctx.compose('wayfind.overlay', {
-          namespace: input.overlay,
-          ...sourceInput(input),
-        }),
+    if (input.source === 'live') {
+      const inputError = liveSourceInputError(input);
+      if (inputError !== undefined) {
+        return Result.err(inputError);
+      }
+    }
+    const contextResult = await resolveOperatorProjectContext(input, {
+      cwd: ctx.cwd,
+    });
+    if (contextResult.isErr()) {
+      return contextResult;
+    }
+    let context = contextResult.value;
+    if (input.source === 'live' && context.selectedExtent !== 'workspace') {
+      const moduleContext = resolveOperatorAppModuleContext(context);
+      if (moduleContext.isErr()) {
+        return moduleContext;
+      }
+      context = moduleContext.value;
+    }
+    if (context.selectedExtent !== 'workspace' && input.source !== 'live') {
+      const observable = await assertObservableProjectApps(context);
+      if (observable.isErr()) {
+        return observable;
+      }
+    }
+    if (context.selectedExtent !== 'workspace' && input.source !== 'live') {
+      const binding = await assertSelectedArtifactBinding(context);
+      if (binding.isErr()) {
+        return binding;
+      }
+    }
+    if (context.selectedExtent === 'workspace') {
+      const workspaceResult = await executeWorkspaceWayfind(
         input,
-        ctx,
-        'list'
+        context,
+        ctx
       );
+      return workspaceResult;
     }
-    const dispatched =
-      (await viewRelation(input, ctx)) ??
-      (await (input.target === undefined
-        ? viewPopulation(input, ctx)
-        : viewTarget(input, ctx)));
-    if (dispatched === undefined) {
-      return Result.err(
-        new ValidationError('Provide a Wayfinder target or population filter.')
-      );
+    const result = await dispatchWayfind(
+      appWayfindInput(input, context.app, context.projectRoot),
+      ctx
+    );
+    if (result.isErr()) {
+      return result;
     }
-    return envelopeFor(await dispatched.result, input, ctx, dispatched.view);
+    return Result.ok({
+      ...result.value,
+      project: operatorProjectContextOutput(context),
+    });
   },
   input: wayfindInputSchema,
   intent: 'read',
@@ -935,6 +1189,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
 const wayfindSelectorBaseInputSchema = (selectorDescription: string) =>
   z
     .object({
+      app: z.string().optional().describe('Configured workspace app ID'),
       limit: z.number().int().positive().max(500).default(100),
       rootDir: z.string().optional().describe('Workspace root directory'),
       selector: z.string().min(1).describe(selectorDescription),
@@ -947,19 +1202,30 @@ const wayfindPatternInputSchema = wayfindSelectorBaseInputSchema(
 const wayfindQueryInputSchema = wayfindSelectorBaseInputSchema(
   'Wayfinder indexed text query'
 );
-const wayfindFileInputSchema = wayfindSelectorBaseInputSchema(
-  'Wayfinder source file path'
-).extend({
-  outline: z
-    .boolean()
-    .default(false)
-    .describe('Render the outline view for a source file target'),
-});
+const wayfindFileInputSchema = z
+  .object({
+    limit: z.number().int().positive().max(500).default(100),
+    outline: z
+      .boolean()
+      .default(false)
+      .describe('Render the outline view for a source file target'),
+    rootDir: z.string().optional().describe('Workspace root directory'),
+    selector: z.string().min(1).describe('Wayfinder source file path'),
+  })
+  .strict();
 
 const selectorSourceInput = (
-  input: Readonly<{ rootDir?: string | undefined }>
-): { readonly rootDir?: string | undefined } =>
-  input.rootDir === undefined ? {} : { rootDir: input.rootDir };
+  input: Readonly<{
+    app?: string | undefined;
+    rootDir?: string | undefined;
+  }>
+): {
+  readonly app?: string | undefined;
+  readonly rootDir?: string | undefined;
+} => ({
+  ...(input.app === undefined ? {} : { app: input.app }),
+  ...(input.rootDir === undefined ? {} : { rootDir: input.rootDir }),
+});
 
 export const wayfindPatternTrail = trail('wayfind.pattern', {
   args: ['selector'],

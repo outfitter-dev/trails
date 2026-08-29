@@ -935,6 +935,196 @@ export const second = entity('second', {
       expect(report.drift?.committedHash).toBe(primaryHash);
       expect(report.drift?.currentHash).not.toBe(primaryHash);
       expect(report.drift?.stale).toBe(true);
+      expect(report.topoDrift).toEqual([
+        expect.objectContaining({
+          name: 'primary',
+          rootDir: dir,
+        }),
+        expect.objectContaining({
+          name: 'admin',
+          rootDir: dir,
+        }),
+      ]);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('multi-topo drift reads and aggregates distinct app-local locks', async () => {
+    const dir = makeTempDir();
+    try {
+      const primaryRoot = join(dir, 'apps', 'primary');
+      const adminRoot = join(dir, 'apps', 'admin');
+      mkdirSync(primaryRoot, { recursive: true });
+      mkdirSync(adminRoot, { recursive: true });
+      const primary = buildFixtureTopo('fixture.primary');
+      const admin = buildFixtureTopo('fixture.admin');
+      await writeManifest(
+        primaryRoot,
+        deriveTopoGraphHash(deriveTopoGraph(primary))
+      );
+      await writeManifest(
+        adminRoot,
+        deriveTopoGraphHash(deriveTopoGraph(admin))
+      );
+      const targets = [
+        { name: 'primary', rootDir: primaryRoot, topo: primary },
+        { name: 'admin', rootDir: adminRoot, topo: admin },
+      ];
+
+      const fresh = await runWarden({
+        depth: 'all',
+        rootDir: dir,
+        topos: targets,
+      });
+      const stale = await runWarden({
+        depth: 'all',
+        rootDir: dir,
+        topos: [
+          targets[0] as (typeof targets)[number],
+          {
+            name: 'admin',
+            rootDir: adminRoot,
+            topo: buildFixtureTopo('fixture.admin.changed'),
+          },
+        ],
+      });
+
+      expect(fresh.drift).toMatchObject({ stale: false });
+      expect(fresh.drift?.committedHash).not.toBeNull();
+      expect(fresh.drift?.committedHash).toBe(fresh.drift?.currentHash);
+      expect(stale.drift).toMatchObject({ stale: true });
+      expect(stale.drift?.committedHash).not.toBe(stale.drift?.currentHash);
+      expect(stale.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('configured topo drift blocks when its required app lock is missing', async () => {
+    const dir = makeTempDir();
+    try {
+      const appRoot = join(dir, 'apps', 'primary');
+      mkdirSync(appRoot, { recursive: true });
+
+      const report = await runWarden({
+        depth: 'all',
+        rootDir: dir,
+        topos: [
+          {
+            name: 'primary',
+            requireCommittedLock: true,
+            rootDir: appRoot,
+            topo: buildFixtureTopo('fixture.primary'),
+          },
+        ],
+      });
+
+      expect(report.drift).toMatchObject({
+        committedHash: null,
+        currentHash: 'blocked',
+        stale: true,
+      });
+      expect(report.drift?.blockedReason).toContain('primary');
+      expect(report.drift?.blockedReason).toContain(
+        join(appRoot, 'trails.lock')
+      );
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('configured multi-topo drift blocks when one required app lock is missing', async () => {
+    const dir = makeTempDir();
+    try {
+      const primaryRoot = join(dir, 'apps', 'primary');
+      const adminRoot = join(dir, 'apps', 'admin');
+      mkdirSync(primaryRoot, { recursive: true });
+      mkdirSync(adminRoot, { recursive: true });
+      const primary = buildFixtureTopo('fixture.primary');
+      await writeManifest(
+        primaryRoot,
+        deriveTopoGraphHash(deriveTopoGraph(primary))
+      );
+
+      const report = await runWarden({
+        depth: 'all',
+        rootDir: dir,
+        topos: [
+          {
+            name: 'primary',
+            requireCommittedLock: true,
+            rootDir: primaryRoot,
+            topo: primary,
+          },
+          {
+            name: 'admin',
+            requireCommittedLock: true,
+            rootDir: adminRoot,
+            topo: buildFixtureTopo('fixture.admin'),
+          },
+        ],
+      });
+
+      expect(report.drift).toMatchObject({
+        currentHash: 'blocked',
+        stale: true,
+      });
+      expect(report.drift?.blockedReason).toContain('admin');
+      expect(report.drift?.blockedReason).toContain(
+        join(adminRoot, 'trails.lock')
+      );
+      expect(report.drift?.blockedReason).not.toContain(
+        join(primaryRoot, 'trails.lock')
+      );
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('configured multi-topo drift blocks when every required app lock is missing', async () => {
+    const dir = makeTempDir();
+    try {
+      const primaryRoot = join(dir, 'apps', 'primary');
+      const adminRoot = join(dir, 'apps', 'admin');
+      mkdirSync(primaryRoot, { recursive: true });
+      mkdirSync(adminRoot, { recursive: true });
+
+      const report = await runWarden({
+        depth: 'all',
+        rootDir: dir,
+        topos: [
+          {
+            name: 'primary',
+            requireCommittedLock: true,
+            rootDir: primaryRoot,
+            topo: buildFixtureTopo('fixture.primary'),
+          },
+          {
+            name: 'admin',
+            requireCommittedLock: true,
+            rootDir: adminRoot,
+            topo: buildFixtureTopo('fixture.admin'),
+          },
+        ],
+      });
+
+      expect(report.drift).toMatchObject({
+        committedHash: null,
+        currentHash: 'blocked',
+        stale: true,
+      });
+      expect(report.drift?.blockedReason).toContain('primary');
+      expect(report.drift?.blockedReason).toContain('admin');
+      expect(report.drift?.blockedReason).toContain(
+        join(primaryRoot, 'trails.lock')
+      );
+      expect(report.drift?.blockedReason).toContain(
+        join(adminRoot, 'trails.lock')
+      );
       expect(report.passed).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });

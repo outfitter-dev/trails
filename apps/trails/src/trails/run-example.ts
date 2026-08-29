@@ -13,8 +13,13 @@ import {
 import type { BasePermit, StructuredTrailExample, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
-import { resolveRunModulePath } from './run.js';
+import { withFreshAppLease } from './operator-context.js';
+import { assertConfiguredAppBinding } from './project-context.js';
+import {
+  operatorProjectContextOutput,
+  operatorProjectContextOutputSchema,
+} from './project-context-output.js';
+import { resolveRunTargetProject } from './run.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLE_COMPARISON_KIND = 'example-comparison' as const;
@@ -23,6 +28,7 @@ export const runExampleComparisonSchema = z.object({
   actual: z.unknown(),
   diff: z.array(z.string()).readonly().optional(),
   exampleName: z.string(),
+  executedAppId: z.string(),
   expected: z.unknown(),
   input: z.unknown(),
   kind: z.literal(RUN_EXAMPLE_COMPARISON_KIND),
@@ -33,6 +39,7 @@ export const runExampleComparisonSchema = z.object({
     z.literal('error'),
     z.literal('none'),
   ]),
+  project: operatorProjectContextOutputSchema,
   trailId: z.string(),
 });
 
@@ -350,7 +357,9 @@ const buildComparisonEnvelope = async (
   app: Topo,
   trailId: string,
   exampleName: string,
-  permit: BasePermit | undefined
+  permit: BasePermit | undefined,
+  cwd: string,
+  project: RunExampleComparison['project']
 ): Promise<Result<RunExampleComparison, Error>> => {
   const exampleResult = findExample(app, trailId, exampleName);
   if (exampleResult.isErr()) {
@@ -359,7 +368,7 @@ const buildComparisonEnvelope = async (
   const example = exampleResult.value;
   const mode = determineMode(example);
   const executed = await run(app, trailId, example.input, {
-    ctx: permit === undefined ? {} : { permit },
+    ctx: { cwd, ...(permit === undefined ? {} : { permit }) },
   });
   const actual = deriveActualOutcome(executed);
 
@@ -370,11 +379,13 @@ const buildComparisonEnvelope = async (
       actual,
       diff,
       exampleName,
+      executedAppId: app.name,
       expected: { errorClassName: expectedName },
       input: example.input,
       kind: RUN_EXAMPLE_COMPARISON_KIND,
       match,
       mode,
+      project,
       trailId,
     });
   }
@@ -387,11 +398,13 @@ const buildComparisonEnvelope = async (
       actual,
       diff,
       exampleName,
+      executedAppId: app.name,
       expected: example.expectedMatch,
       input: example.input,
       kind: RUN_EXAMPLE_COMPARISON_KIND,
       match,
       mode,
+      project,
       trailId,
     });
   }
@@ -399,11 +412,13 @@ const buildComparisonEnvelope = async (
     return Result.ok({
       actual,
       exampleName,
+      executedAppId: app.name,
       expected: undefined,
       input: example.input,
       kind: RUN_EXAMPLE_COMPARISON_KIND,
       match: true,
       mode,
+      project,
       trailId,
     });
   }
@@ -413,11 +428,13 @@ const buildComparisonEnvelope = async (
     actual,
     diff,
     exampleName,
+    executedAppId: app.name,
     expected: example.expected,
     input: example.input,
     kind: RUN_EXAMPLE_COMPARISON_KIND,
     match,
     mode,
+    project,
     trailId,
   });
 };
@@ -447,27 +464,35 @@ export const runExampleTrail = trail('run.example', {
       name: 'Run named example',
     },
   ],
-  implementation: async (input: RunExampleTrailInput, ctx) =>
-    withOperatorRootDir(input, ctx, async (rootDir) => {
-      const moduleResolution = await resolveRunModulePath(
-        rootDir,
-        input.module,
-        input.id,
-        input.app
-      );
-      if (moduleResolution.isErr()) {
-        return moduleResolution;
-      }
-
-      return withFreshAppLease(moduleResolution.value, rootDir, (lease) =>
-        buildComparisonEnvelope(
+  implementation: async (input: RunExampleTrailInput, ctx) => {
+    const target = await resolveRunTargetProject(input, input.id, {
+      cwd: ctx.cwd,
+    });
+    if (target.isErr()) {
+      return target;
+    }
+    return withFreshAppLease(
+      target.value.modulePath,
+      target.value.rootDir,
+      (lease) => {
+        const binding = assertConfiguredAppBinding(
+          target.value.context,
+          lease.app.name
+        );
+        if (binding.isErr()) {
+          return binding;
+        }
+        return buildComparisonEnvelope(
           lease.app,
           input.id,
           input.exampleName,
-          ctx.permit
-        )
-      );
-    }),
+          ctx.permit,
+          target.value.rootDir,
+          operatorProjectContextOutput(target.value.context)
+        );
+      }
+    );
+  },
   input: runExampleTrailInputSchema,
   intent: 'write',
   output: runExampleComparisonSchema,

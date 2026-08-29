@@ -11,7 +11,7 @@ import {
 } from '@ontrails/core';
 import type { Result } from '@ontrails/core';
 
-import { resolveRunModulePath, runTrail } from '../trails/run.js';
+import { resolveRunTargetProject, runTrail } from '../trails/run.js';
 
 interface AppSpec {
   readonly name: string;
@@ -40,6 +40,20 @@ const writeWorkspace = (
       2
     )}\n`
   );
+  writeFixture(
+    join(workspaceRoot, 'trails.config.json'),
+    `${JSON.stringify(
+      {
+        workspace: {
+          apps: Object.fromEntries(
+            apps.map((app) => [app.name, { root: `apps/${app.name}` }])
+          ),
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
 
   for (const spec of apps) {
     const appDir = join(workspaceRoot, 'apps', spec.name);
@@ -56,15 +70,18 @@ const writeWorkspace = (
         2
       )}\n`
     );
-    // Stub Topo shape: only `ids()` and `name` are read by the discovery layer.
+    const trails = spec.trailIds
+      .map(
+        (id, index) =>
+          `const trail${index} = trail(${JSON.stringify(id)}, { implementation: () => Result.ok(null), intent: 'read' });`
+      )
+      .join('\n');
     writeFixture(
       join(appDir, 'src/app.ts'),
       [
-        `const trailIds = ${JSON.stringify(spec.trailIds)};`,
-        `export const app = {`,
-        `  name: '${spec.name}',`,
-        `  ids: () => trailIds,`,
-        `};`,
+        `import { Result, topo, trail } from '@ontrails/core';`,
+        trails,
+        `export const app = topo(${JSON.stringify(spec.name)}, [${spec.trailIds.map((_, index) => `trail${index}`).join(', ')}]);`,
         '',
       ].join('\n')
     );
@@ -118,7 +135,14 @@ const writeExecutableWorkspace = (workspaceRoot: string): void => {
       `  permit: { scopes: ['entity:write'] },`,
       `});`,
       ``,
-      `export const app = topo('app-a', [add]);`,
+      `const currentRoot = trail('context.cwd', {`,
+      `  implementation: (_input, ctx) => Result.ok(ctx.cwd),`,
+      `  input: z.undefined(),`,
+      `  intent: 'read',`,
+      `  output: z.string(),`,
+      `});`,
+      ``,
+      `export const app = topo('app-a', [add, currentRoot]);`,
       ``,
     ].join('\n')
   );
@@ -176,7 +200,7 @@ describe('runTrail collision resolution', () => {
     const error = expectErr(result);
     expect(error).toBeInstanceOf(AmbiguousError);
     expect(error.message).toBe(
-      "Trail ID 'shared.id' exists in apps: app-a, app-b. Re-run with --app <name>."
+      "Trail ID 'shared.id' exists in apps: app-a, app-b. Re-run with --app <id>."
     );
     if (error instanceof AmbiguousError) {
       expect(error.context).toEqual({
@@ -225,6 +249,85 @@ describe('runTrail collision resolution', () => {
         trailId: 'never.here',
       });
     }
+  });
+
+  test('isolates an explicit app miss from an unavailable unrelated app', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-b/src/app.ts'),
+      `throw new Error('BETA_BOOT_SENTINEL');\n`
+    );
+
+    const result = await executeRunTrail({
+      app: 'app-a',
+      id: 'never.here',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.message).not.toContain('BETA_BOOT_SENTINEL');
+    expect(error.message).toContain('Ownership coaching is incomplete');
+    if (error instanceof NotFoundError) {
+      expect(error.context).toEqual({
+        requestedApp: 'app-a',
+        rootDir: workspaceRoot,
+        trailId: 'never.here',
+        unavailableAppIds: ['app-b'],
+      });
+    }
+  });
+
+  test('does not make definitive wrong-owner claims from an incomplete scan', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['target.id'] },
+      { name: 'app-c', trailIds: ['c.only'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-c/src/app.ts'),
+      `throw new Error('CHARLIE_BOOT_SENTINEL');\n`
+    );
+
+    const result = await executeRunTrail({
+      app: 'app-a',
+      id: 'target.id',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.message).toContain('Ownership coaching is incomplete');
+    expect(error.message).not.toContain("owned by 'app-b'");
+    if (error instanceof NotFoundError) {
+      expect(error.context).toMatchObject({
+        requestedApp: 'app-a',
+        unavailableAppIds: ['app-c'],
+      });
+    }
+  });
+
+  test('keeps workspace ownership discovery fail-closed when an app is unavailable', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-b/src/app.ts'),
+      `throw new Error('BETA_BOOT_SENTINEL');\n`
+    );
+
+    const result = await executeRunTrail({
+      id: 'never.here',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.message).toContain('BETA_BOOT_SENTINEL');
   });
 
   test('rejects an --app override that does not own the requested trail id with AmbiguousError', async () => {
@@ -276,22 +379,334 @@ describe('runTrail collision resolution', () => {
     }
   });
 
+  test('coaches a same-app module override that omits a trail from the default entry', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-a/src/alternate.ts'),
+      [
+        `import { topo } from '@ontrails/core';`,
+        `export const app = topo('app-a', []);`,
+        '',
+      ].join('\n')
+    );
+
+    const result = await executeRunTrail({
+      app: 'app-a',
+      id: 'a.only',
+      module: 'src/alternate.ts',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.message).toContain("module 'src/alternate.ts'");
+    expect(error.message).toContain("app 'app-a'");
+    expect(error.message).toContain('default entry does expose it');
+    expect(error.message).not.toContain("owned by 'app-a', not 'app-a'");
+    if (error instanceof NotFoundError) {
+      expect(error.context).toEqual({
+        modulePath: 'src/alternate.ts',
+        requestedApp: 'app-a',
+        trailId: 'a.only',
+      });
+    }
+  });
+
+  test('keeps same-app module coaching ahead of workspace owner ambiguity', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['shared.id'] },
+      { name: 'app-b', trailIds: ['shared.id'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-a/src/alternate.ts'),
+      [
+        `import { topo } from '@ontrails/core';`,
+        `export const app = topo('app-a', []);`,
+        '',
+      ].join('\n')
+    );
+
+    const result = await executeRunTrail({
+      app: 'app-a',
+      id: 'shared.id',
+      module: 'src/alternate.ts',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).not.toBeInstanceOf(AmbiguousError);
+    expect(error.message).toContain("module 'src/alternate.ts'");
+    expect(error.message).toContain("app 'app-a'");
+    expect(error.message).toContain('default entry does expose it');
+  });
+
+  test('preserves same-app module coaching when an unrelated app is unavailable', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-a/src/alternate.ts'),
+      [
+        `import { topo } from '@ontrails/core';`,
+        `export const app = topo('app-a', []);`,
+        '',
+      ].join('\n')
+    );
+    writeFixture(
+      join(workspaceRoot, 'apps/app-b/src/app.ts'),
+      `throw new Error('BETA_BOOT_SENTINEL');\n`
+    );
+
+    const result = await executeRunTrail({
+      app: 'app-a',
+      id: 'a.only',
+      module: 'src/alternate.ts',
+      rootDir: workspaceRoot,
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.message).toContain('default entry does expose it');
+    expect(error.message).not.toContain('BETA_BOOT_SENTINEL');
+  });
+
   test('resolves a colliding trail id through an owning --app override', async () => {
     writeWorkspace(workspaceRoot, [
       { name: 'app-a', trailIds: ['shared.id'] },
       { name: 'app-b', trailIds: ['shared.id'] },
     ]);
 
-    const result = await resolveRunModulePath(
-      workspaceRoot,
-      undefined,
+    const result = await resolveRunTargetProject(
+      { app: 'app-b', rootDir: workspaceRoot },
       'shared.id',
-      'app-b'
+      { cwd: workspaceRoot }
     );
 
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      expect(result.value).toBe('apps/app-b/src/app.ts');
+      expect(result.value).toMatchObject({
+        context: {
+          app: { id: 'app-b' },
+          selectedExtent: 'configured-app',
+        },
+        modulePath: 'src/app.ts',
+        rootDir: join(workspaceRoot, 'apps', 'app-b'),
+      });
+    }
+  });
+
+  test('resolves a live run target without reading saved app locks', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    for (const appId of ['app-a', 'app-b']) {
+      mkdirSync(join(workspaceRoot, 'apps', appId, 'trails.lock'));
+    }
+
+    const result = await resolveRunTargetProject(
+      { app: 'app-a', rootDir: workspaceRoot },
+      'a.only',
+      { cwd: workspaceRoot }
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toMatchObject({
+        context: {
+          app: { id: 'app-a' },
+          selectedExtent: 'configured-app',
+        },
+        modulePath: 'src/app.ts',
+        rootDir: join(workspaceRoot, 'apps', 'app-a'),
+      });
+    }
+  });
+
+  test('preserves the configured app root for target resolution from nested CWD', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    const initialized = Bun.spawnSync({
+      cmd: ['git', 'init', '--quiet', workspaceRoot],
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    if (!initialized.success) {
+      throw new Error(Buffer.from(initialized.stderr).toString('utf8'));
+    }
+
+    const result = await resolveRunTargetProject({}, 'b.only', {
+      cwd: join(workspaceRoot, 'apps', 'app-b', 'src'),
+    });
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toMatchObject({
+        context: {
+          app: { id: 'app-b' },
+          selectedExtent: 'configured-app',
+        },
+        modulePath: 'src/app.ts',
+        rootDir: join(workspaceRoot, 'apps', 'app-b'),
+      });
+    }
+  });
+
+  test('isolates a nested-CWD app miss from an unavailable sibling app', async () => {
+    writeWorkspace(workspaceRoot, [
+      { name: 'app-a', trailIds: ['a.only'] },
+      { name: 'app-b', trailIds: ['b.only'] },
+    ]);
+    writeFixture(
+      join(workspaceRoot, 'apps/app-b/src/app.ts'),
+      `throw new Error('BETA_BOOT_SENTINEL');\n`
+    );
+    const initialized = Bun.spawnSync({
+      cmd: ['git', 'init', '--quiet', workspaceRoot],
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    if (!initialized.success) {
+      throw new Error(Buffer.from(initialized.stderr).toString('utf8'));
+    }
+
+    const result = await resolveRunTargetProject({}, 'never.here', {
+      cwd: join(workspaceRoot, 'apps', 'app-a', 'src'),
+    });
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.message).not.toContain('BETA_BOOT_SENTINEL');
+    if (error instanceof NotFoundError) {
+      expect(error.context).toMatchObject({
+        requestedApp: 'app-a',
+        unavailableAppIds: ['app-b'],
+      });
+    }
+  });
+
+  test('executes a selected trail with the app root as inner CWD', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify({ workspace: { apps: { 'app-a': { root: 'apps/app-a' } } } })}\n`
+    );
+
+    const result = await executeTrail(
+      runTrail,
+      { app: 'app-a', id: 'context.cwd', rootDir: workspaceRoot },
+      { ctx: { permit: trailsRunPermit } }
+    );
+
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect((result.value as { value: unknown }).value).toBe(
+        join(workspaceRoot, 'apps', 'app-a')
+      );
+    }
+  });
+
+  test('executes a live run without reading the selected saved lock', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify({ workspace: { apps: { 'app-a': { root: 'apps/app-a' } } } })}\n`
+    );
+    mkdirSync(join(workspaceRoot, 'apps', 'app-a', 'trails.lock'));
+
+    const result = await executeTrail(
+      runTrail,
+      { app: 'app-a', id: 'context.cwd', rootDir: workspaceRoot },
+      { ctx: { permit: trailsRunPermit } }
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect((result.value as { value: unknown }).value).toBe(
+        join(workspaceRoot, 'apps', 'app-a')
+      );
+    }
+  });
+
+  test('reports the selected configured owner for an unqualified workspace run', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+    writeFixture(
+      join(workspaceRoot, 'trails.config.json'),
+      `${JSON.stringify({ workspace: { apps: { 'app-a': { root: 'apps/app-a' } } } })}\n`
+    );
+
+    const result = await executeTrail(
+      runTrail,
+      { id: 'context.cwd', rootDir: workspaceRoot },
+      { ctx: { permit: trailsRunPermit } }
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toMatchObject({
+        project: {
+          app: {
+            appId: 'app-a',
+            appRoot: 'apps/app-a',
+            modulePath: 'src/app.ts',
+            moduleSource: 'convention',
+          },
+          selectedExtent: 'configured-app',
+        },
+      });
+    }
+  });
+
+  test('discovers a sole nested standalone app for run targets', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+    const initialized = Bun.spawnSync({
+      cmd: ['git', 'init', '--quiet', workspaceRoot],
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    if (!initialized.success) {
+      throw new Error(Buffer.from(initialized.stderr).toString('utf8'));
+    }
+
+    const target = await resolveRunTargetProject({}, 'context.cwd', {
+      cwd: workspaceRoot,
+    });
+    const result = await executeTrail(
+      runTrail,
+      { id: 'context.cwd', rootDir: workspaceRoot },
+      { ctx: { permit: trailsRunPermit } }
+    );
+
+    expect(target.isOk()).toBe(true);
+    if (target.isOk()) {
+      expect(target.value).toMatchObject({
+        context: { selectedExtent: 'standalone-app' },
+        modulePath: 'apps/app-a/src/app.ts',
+        rootDir: workspaceRoot,
+      });
+    }
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect((result.value as { value: unknown }).value).toBe(workspaceRoot);
+      expect(result.value).toMatchObject({
+        project: {
+          app: {
+            modulePath: 'apps/app-a/src/app.ts',
+            moduleSource: 'convention',
+          },
+          selectedExtent: 'standalone-app',
+        },
+      });
     }
   });
 
@@ -310,8 +725,10 @@ describe('runTrail collision resolution', () => {
 
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      expect(result.value).toEqual({
+      expect(result.value).toMatchObject({
+        executedAppId: 'app-a',
         kind: 'inner-trail-result',
+        project: { selectedExtent: 'standalone-app' },
         trailId: 'entity.add',
         value: { name: 'Alpha' },
       });
@@ -333,8 +750,10 @@ describe('runTrail collision resolution', () => {
 
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      expect(result.value).toEqual({
+      expect(result.value).toMatchObject({
+        executedAppId: 'app-a',
         kind: 'inner-trail-result',
+        project: { selectedExtent: 'standalone-app' },
         trailId: 'entity.add',
         value: { name: 'Alpha' },
       });

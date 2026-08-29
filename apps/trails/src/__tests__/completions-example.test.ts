@@ -1,6 +1,6 @@
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- result-shape assertions branch on isOk */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { executeTrail, RecoverableCompletionError } from '@ontrails/core';
@@ -42,7 +42,8 @@ const buildExampleLiteral = (ex: ExampleSpec): string => {
 const writeWorkspace = (
   workspaceRoot: string,
   trailId: string,
-  examples: readonly ExampleSpec[]
+  examples: readonly ExampleSpec[],
+  appId = 'app-a'
 ): void => {
   writeFixture(
     join(workspaceRoot, 'package.json'),
@@ -58,12 +59,12 @@ const writeWorkspace = (
     )}\n`
   );
 
-  const appDir = join(workspaceRoot, 'apps', 'app-a');
+  const appDir = join(workspaceRoot, 'apps', appId);
   writeFixture(
     join(appDir, 'package.json'),
     `${JSON.stringify(
       {
-        name: 'app-a',
+        name: appId,
         private: true,
         trails: { module: 'src/app.ts' },
         type: 'module',
@@ -92,9 +93,36 @@ const writeWorkspace = (
       `  implementation: () => Result.ok({}),`,
       `});`,
       '',
-      `export const app = topo('app-a', [targetTrail]);`,
+      `export const app = topo(${JSON.stringify(appId)}, [targetTrail]);`,
       '',
     ].join('\n')
+  );
+};
+
+const writeConfiguredApps = (
+  workspaceRoot: string,
+  appIds: readonly string[]
+): void => {
+  writeFixture(
+    join(workspaceRoot, 'trails.config.json'),
+    `${JSON.stringify(
+      {
+        workspace: {
+          apps: Object.fromEntries(
+            appIds.map((appId) => [appId, { root: `apps/${appId}` }])
+          ),
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
+};
+
+const breakAppBoot = (workspaceRoot: string, appId: string): void => {
+  writeFixture(
+    join(workspaceRoot, 'apps', appId, 'src', 'app.ts'),
+    `throw new Error(${JSON.stringify(`${appId} boot failed`)});\n`
   );
 };
 
@@ -228,6 +256,123 @@ describe('completionsCompleteTrail run example value position', () => {
     ]);
 
     expect(suggestions).toBe('');
+  });
+
+  test('keeps healthy example names beside unavailable configured apps', async () => {
+    writeWorkspace(
+      workspaceRoot,
+      'demo.alpha',
+      [{ expected: { ok: true }, name: 'Healthy example' }],
+      'healthy'
+    );
+    writeWorkspace(workspaceRoot, 'broken.id', [], 'broken');
+    writeWorkspace(workspaceRoot, 'mismatch.id', [], 'mismatch');
+    breakAppBoot(workspaceRoot, 'broken');
+    const mismatchPath = join(
+      workspaceRoot,
+      'apps',
+      'mismatch',
+      'src',
+      'app.ts'
+    );
+    writeFileSync(
+      mismatchPath,
+      readFileSync(mismatchPath, 'utf8').replace(
+        'topo("mismatch"',
+        'topo("other"'
+      )
+    );
+    writeConfiguredApps(workspaceRoot, ['healthy', 'broken', 'mismatch']);
+
+    const result = await renderTrailExampleCompletions(
+      workspaceRoot,
+      'demo.alpha',
+      ''
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toEqual(['Healthy example']);
+    }
+  });
+
+  test('returns unavailable app evidence when no live owner is observable', async () => {
+    writeWorkspace(workspaceRoot, 'demo.alpha', [], 'broken-a');
+    writeWorkspace(workspaceRoot, 'demo.alpha', [], 'broken-b');
+    breakAppBoot(workspaceRoot, 'broken-a');
+    breakAppBoot(workspaceRoot, 'broken-b');
+    writeConfiguredApps(workspaceRoot, ['broken-a', 'broken-b']);
+
+    const result = await renderTrailExampleCompletions(
+      workspaceRoot,
+      'demo.alpha',
+      ''
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(RecoverableCompletionError);
+      expect(result.error.context).toMatchObject({
+        unavailableAppIds: ['broken-a', 'broken-b'],
+      });
+    }
+  });
+
+  test('preserves recoverable evidence when the selected owner reload fails', async () => {
+    writeWorkspace(
+      workspaceRoot,
+      'demo.alpha',
+      [{ expected: { ok: true }, name: 'Flaky example' }],
+      'flaky'
+    );
+    writeConfiguredApps(workspaceRoot, ['flaky']);
+    const appPath = join(workspaceRoot, 'apps', 'flaky', 'src', 'app.ts');
+    const counterKey = `__trails_completion_reload_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+    writeFileSync(
+      appPath,
+      [
+        `const completionState = globalThis as Record<string, number>;`,
+        `const completionKey = ${JSON.stringify(counterKey)};`,
+        `completionState[completionKey] = (completionState[completionKey] ?? 0) + 1;`,
+        `if (completionState[completionKey] > 1) throw new Error('owner reload failed');`,
+        readFileSync(appPath, 'utf8'),
+      ].join('\n')
+    );
+
+    try {
+      const result = await renderTrailExampleCompletions(
+        workspaceRoot,
+        'demo.alpha',
+        ''
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(RecoverableCompletionError);
+        expect(result.error.message).toBe(
+          'Cannot load app while completing example names'
+        );
+      }
+    } finally {
+      Reflect.deleteProperty(globalThis, counterKey);
+    }
+  });
+
+  test('keeps example completion empty for healthy owner collisions', async () => {
+    writeWorkspace(workspaceRoot, 'demo.alpha', [], 'app-a');
+    writeWorkspace(workspaceRoot, 'demo.alpha', [], 'app-b');
+    writeConfiguredApps(workspaceRoot, ['app-a', 'app-b']);
+
+    const result = await renderTrailExampleCompletions(
+      workspaceRoot,
+      'demo.alpha',
+      ''
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toEqual([]);
+    }
   });
 
   test('empty prefix returns all example names sorted', async () => {
