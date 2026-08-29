@@ -49,6 +49,12 @@ Missing, invalid, mismatched, and stale configured locks remain typed app eviden
 
 `buildWorkspaceTrailIndex()` has been removed. Operator run, completion, Wayfinder, and Warden consumers now resolve `workspace.apps` through the shared Config-owned context and load only the selected app or an explicitly complete workspace view.
 
+The operator now owns `trails config explain` for this source-static workspace identity. `@ontrails/config` no longer exports the older `configExplain` trail, whose resolved deployment-value contract could not represent `workspace.apps` without conflating the two Config lifecycles. Library consumers that need resolved field provenance should call `deriveConfigProvenance()`; operators and agents that need app roots, entries, selected extent, or selection provenance should run:
+
+```bash
+trails config explain --json
+```
+
 ## Rename Map
 
 | Retired | Current |
@@ -82,11 +88,11 @@ If an old workspace still has committed `.trails/trails.lock` and `.trails/topo.
 trails compile
 ```
 
-Review the new root `trails.lock` diff, then remove the legacy committed artifacts from `.trails/`.
+Review the selected app root's new `trails.lock` diff, then remove the legacy committed artifacts from `.trails/`.
 
 ## Consumer Updates
 
-Consumers that previously parsed `_surface.json` or `.trails/topo.lock` should read root `trails.lock` through `readTopoGraph()` or use the typed topo-store views:
+Consumers that previously parsed `_surface.json` or `.trails/topo.lock` should read the selected app root's `trails.lock` through `readTopoGraph()` or use the typed topo-store views:
 
 ```typescript
 import { createTopoStore, readTopoGraph } from '@ontrails/topography';

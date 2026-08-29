@@ -1,6 +1,9 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import { Result } from '@ontrails/core';
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   app,
@@ -10,6 +13,16 @@ import {
 } from '../app.js';
 import { formatWayfindOutlineText } from '../run-wayfind-outline.js';
 import { wayfindTrail } from '../trails/wayfind.js';
+
+let wayfindProjectRoot: string;
+
+beforeEach(() => {
+  wayfindProjectRoot = mkdtempSync(join(tmpdir(), 'trails-wayfind-cli-'));
+});
+
+afterEach(() => {
+  rmSync(wayfindProjectRoot, { force: true, recursive: true });
+});
 
 const unwrapCommands = () => {
   const result = deriveCliCommands(app, {
@@ -39,7 +52,7 @@ const fakeWayfindContext = () => {
         calls.push({ id, input });
         return Result.ok({ id, input });
       },
-      cwd: process.cwd(),
+      cwd: wayfindProjectRoot,
     },
   };
 };
@@ -277,7 +290,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('dispatches --overlay through the generic overlay read', async () => {
     const facts = fakeWayfindContext();
-    const rootDir = process.cwd();
+    const rootDir = wayfindProjectRoot;
     const result = await wayfindTrail.implementation(
       parseWayfindInput({ overlay: 'cloudflare', rootDir }),
       facts.ctx

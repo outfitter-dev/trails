@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { resetDevState } from './dev-support.js';
 import { resolveTrailRootDir } from './root-dir.js';
-import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devResetTrail = trail('dev.reset', {
   description: 'Remove local Trails database artifacts',
@@ -11,7 +10,6 @@ export const devResetTrail = trail('dev.reset', {
     {
       input: {
         dryRun: true,
-        rootDir: createIsolatedExampleInput('dev-reset').rootDir,
       },
       name: 'Preview local reset',
     },

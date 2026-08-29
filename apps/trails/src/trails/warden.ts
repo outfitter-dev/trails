@@ -25,11 +25,6 @@ import { deriveWorkspaceView } from '@ontrails/topography';
 import { z } from 'zod';
 
 import {
-  createIsolatedExampleRoot,
-  writeIsolatedExampleTextFile,
-} from '../local-state-io.js';
-
-import {
   assertObservableProjectApps,
   resolveOperatorProjectContext,
 } from './project-context.js';
@@ -42,6 +37,7 @@ import {
   operatorProjectContextOutputSchema,
 } from './project-context-output.js';
 import type { OperatorProjectContextOutput } from './project-context-output.js';
+import { markCurrentAppExampleInput } from './topo-support.js';
 
 const wardenWorkspaceAppEvidenceSchema = z.object({
   appId: z.string(),
@@ -253,14 +249,6 @@ const inputSkipsLockEvidence = (input: WardenTrailInput): boolean => {
 const fixRunNeedsArtifactPreflight = (input: WardenTrailInput): boolean =>
   input.fix === true &&
   !(inputSkipsLockEvidence(input) && input.depth === 'source');
-
-const createIsolatedWardenExampleRoot = (name: string): string => {
-  const rootDir = createIsolatedExampleRoot(
-    `warden-${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-  );
-  writeIsolatedExampleTextFile(rootDir, 'src/clean.ts', 'export {};\n');
-  return rootDir;
-};
 
 const pushFlag = (args: string[], condition: boolean, flag: string): void => {
   if (condition) {
@@ -491,20 +479,26 @@ export const wardenTrail = trail('warden', {
   description: 'Run governance checks (lint + drift)',
   examples: [
     {
-      input: {
-        depth: 'source',
-        lock: 'skip',
-        rootDir: createIsolatedWardenExampleRoot('default'),
-      },
+      input: markCurrentAppExampleInput(
+        {
+          depth: 'source',
+          lock: 'skip',
+          rootDir: '.',
+        },
+        { selection: 'configured-project' }
+      ),
       name: 'Default warden run',
     },
     {
-      input: {
-        depth: 'source',
-        format: 'github',
-        lock: 'skip',
-        rootDir: createIsolatedWardenExampleRoot('github'),
-      },
+      input: markCurrentAppExampleInput(
+        {
+          depth: 'source',
+          format: 'github',
+          lock: 'skip',
+          rootDir: '.',
+        },
+        { selection: 'configured-project' }
+      ),
       name: 'GitHub Actions annotations',
     },
   ],

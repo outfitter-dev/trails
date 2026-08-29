@@ -1,5 +1,0 @@
-# Rebuildable cache
-cache/
-
-# Mutable runtime state
-state/

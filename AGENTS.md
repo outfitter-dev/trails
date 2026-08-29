@@ -111,7 +111,7 @@ See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) 
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 75
+- Rule count: 76
 
 ### Rule Index
 
@@ -153,6 +153,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `valid-describe-refs` (warn, all/project-static, advisory): Describe references point at known Trails concepts.
 - `warden-export-symmetry` (error, source/source-static, repo-local): The Warden package exports trail wrappers, not raw rules.
 - `warden-rules-use-ast` (error, source/source-static, repo-local): Warden source rules use AST helpers instead of ad hoc parsing or raw node-field casts.
+- `workspace-lock-ownership` (warn, project/project-static, external): Nested locks outside configured app ownership warn, while workspace-root aggregate locks error.
 
 #### Lifecycle
 
@@ -238,6 +239,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `surface-trailhead-coherence`: Keep trailhead maps reviewable before they reach MCP rendering.
 - `trail-fork-coaching`: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 - `trailhead-override-divergence`: Keep call-site MCP trailhead overrides aligned with the authored overlay default.
+- `workspace-lock-ownership`: Warn on nested locks outside configured app ownership and reject workspace-root aggregate locks.
 
 <!-- warden-guide:end -->
 

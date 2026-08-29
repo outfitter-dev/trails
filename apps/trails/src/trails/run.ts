@@ -23,8 +23,7 @@
  * invocation can target any trail in the loaded app.
  */
 
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 
 import {
   AmbiguousError,
@@ -35,12 +34,6 @@ import {
   trail,
 } from '@ontrails/core';
 import { z } from 'zod';
-
-import {
-  createIsolatedExampleRoot,
-  writeIsolatedExampleJsonFile,
-  writeIsolatedExampleTextFile,
-} from '../local-state-io.js';
 
 import { withFreshAppLease } from './operator-context.js';
 import {
@@ -58,7 +51,7 @@ import {
   operatorProjectContextOutput,
   operatorProjectContextOutputSchema,
 } from './project-context-output.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import { createCurrentAppExampleInput } from './topo-support.js';
 
 export const INNER_TRAIL_RESULT_KIND = 'inner-trail-result' as const;
 
@@ -346,63 +339,6 @@ export const resolveRunTargetProject = async (
 };
 
 // ---------------------------------------------------------------------------
-// Ambiguous-example workspace fixture
-// ---------------------------------------------------------------------------
-
-const buildStubTopoSource = (appName: string): string => {
-  // Keep example fixture construction cold-startable in the bundled CLI. The
-  // absolute source URL is only imported if this repo-local example runs; it
-  // does not ask the extracted release archive to resolve a workspace package
-  // while merely rendering `--help` or `--version`.
-  const core = pathToFileURL(
-    resolve(import.meta.dir, '../../../../packages/core/src/index.ts')
-  ).href;
-  return [
-    `import { Result, topo, trail } from ${JSON.stringify(core)};`,
-    `const shared = trail('shared.id', { implementation: () => Result.ok(${JSON.stringify(appName)}), intent: 'read' });`,
-    `export const app = topo(${JSON.stringify(appName)}, [shared]);`,
-    '',
-  ].join('\n');
-};
-
-const writeAmbiguousWorkspaceFixture = (workspaceRoot: string): void => {
-  // Root package.json declaring two workspace apps.
-  writeIsolatedExampleJsonFile(workspaceRoot, 'package.json', {
-    name: 'run-ambiguous-fixture',
-    private: true,
-    type: 'module',
-    workspaces: ['apps/*'],
-  });
-  writeIsolatedExampleTextFile(
-    workspaceRoot,
-    'trails.config.ts',
-    `export default { workspace: { apps: { 'app-a': { root: 'apps/app-a' }, 'app-b': { root: 'apps/app-b' } } } };\n`
-  );
-
-  // Each app declares a Trails-app shape so discovery picks it up. The
-  // discovery layer only calls `topo.ids()` and reads `topo.name`, so a
-  // hand-rolled stub satisfies the `isTopo` shape without pulling in
-  // `@ontrails/core` from a temp directory that has no node_modules.
-  for (const appName of ['app-a', 'app-b'] as const) {
-    writeIsolatedExampleJsonFile(
-      workspaceRoot,
-      join('apps', appName, 'package.json'),
-      {
-        name: appName,
-        private: true,
-        trails: { module: 'src/app.ts' },
-        type: 'module',
-      }
-    );
-    writeIsolatedExampleTextFile(
-      workspaceRoot,
-      join('apps', appName, 'src/app.ts'),
-      buildStubTopoSource(appName)
-    );
-  }
-};
-
-// ---------------------------------------------------------------------------
 // Example input helpers
 // ---------------------------------------------------------------------------
 
@@ -412,12 +348,14 @@ const buildHappyExampleInput = (): {
   readonly module: string;
   readonly rootDir: string;
 } => {
-  const isolated = createIsolatedExampleInput('run-happy');
+  const isolated = createCurrentAppExampleInput();
+  const configured = createCurrentAppExampleInput({
+    selection: 'configured-project',
+  });
   return {
     id: 'survey.brief',
-    input: { module: isolated.module, rootDir: isolated.rootDir },
-    module: isolated.module,
-    rootDir: isolated.rootDir,
+    input: isolated,
+    ...configured,
   };
 };
 
@@ -426,21 +364,9 @@ const buildNotFoundExampleInput = (): {
   readonly module: string;
   readonly rootDir: string;
 } => ({
-  ...createIsolatedExampleInput('run-not-found'),
+  ...createCurrentAppExampleInput({ selection: 'configured-project' }),
   id: 'does.not.exist',
 });
-
-const uniqueAmbiguousExampleName = (): string =>
-  `run-ambiguous-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-
-const buildAmbiguousExampleInput = (): {
-  readonly id: string;
-  readonly rootDir: string;
-} => {
-  const root = createIsolatedExampleRoot(uniqueAmbiguousExampleName());
-  writeAmbiguousWorkspaceFixture(root);
-  return { id: 'shared.id', rootDir: root };
-};
 
 const runTrailInputSchema = z
   .object({
@@ -514,13 +440,6 @@ export const runTrail = trail('run', {
       error: 'NotFoundError',
       input: buildNotFoundExampleInput(),
       name: 'Reject unknown trail ID',
-    },
-    {
-      description:
-        'Reject an ambiguous trail ID without --app with AmbiguousError so non-TTY callers see exit code 1',
-      error: 'AmbiguousError',
-      input: buildAmbiguousExampleInput(),
-      name: 'Reject ambiguous trail ID without --app',
     },
   ],
   implementation: async (

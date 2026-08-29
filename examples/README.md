@@ -38,4 +38,4 @@ Because app builds cannot touch framework surfaces, the wayfinder-dogfood smoke 
 
 Example workspaces run in the normal gates: turbo picks up `build`, `test`, `typecheck`, and `lint` from each example's package scripts, and `bun run check` covers the repo-wide checks. An example app never needs a changeset; the release check only tracks publishable `@ontrails/*` workspaces.
 
-Example topos also get first-class Warden coverage: root `trails.config.ts` lists each example's app module in `warden.apps`, so `bun run check` → `bun trails warden` loads the example topos and runs topo-aware rules against them. Because app build runs cannot touch root config, adding a new example to `warden.apps` happens in a separate framework-side branch, like any other framework change.
+Example topos also get first-class Warden coverage: root `trails.config.ts` catalogs each example app root in Config-owned `workspace.apps`, so `bun run check` → `bun trails warden` derives its topo-aware targets from that catalog. Because app build runs cannot touch root config, adding a new example to `workspace.apps` happens in a separate framework-side branch, like any other framework change.

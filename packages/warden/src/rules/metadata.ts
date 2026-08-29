@@ -864,6 +864,27 @@ const builtinWardenRuleMetadataInput = {
       'Webhook routes do not collide with each other or direct HTTP trail routes.',
     tier: 'topo-aware',
   },
+  'workspace-lock-ownership': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'TopoGraph Artifact Family Migration',
+          path: 'docs/migration/topograph-artifact-family.md',
+        },
+      ],
+      steps: [
+        'Declare the lock-owning app root in workspace.apps when the artifact belongs to a runnable app.',
+        'Otherwise remove or relocate stale lock evidence; do not use the artifact to infer app identity.',
+        'Remove workspace-root aggregate locks from configured workspaces.',
+      ],
+      summary:
+        'Warn on nested locks outside configured app ownership and reject workspace-root aggregate locks.',
+    },
+    invariant:
+      'Nested locks outside configured app ownership warn, while workspace-root aggregate locks error.',
+    tier: 'project-static',
+  },
 } as const satisfies Record<string, BuiltinWardenRuleMetadataInput>;
 
 export type BuiltinWardenRuleName = keyof typeof builtinWardenRuleMetadataInput;

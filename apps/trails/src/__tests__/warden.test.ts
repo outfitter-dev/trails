@@ -16,7 +16,7 @@ import {
 import { describe, expect, test } from 'bun:test';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { tryWardenOutput } from '../run-warden.js';
@@ -31,6 +31,8 @@ const trailsBinPath = fileURLToPath(
 );
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
 const cliTimeoutMs = 30_000;
+const wardenExampleReplayCliTimeoutMs = 45_000;
+const wardenExampleReplayTestTimeoutMs = 60_000;
 const coreModuleUrl = import.meta.resolve('@ontrails/core');
 
 const makeTempDir = (): string => {
@@ -74,7 +76,8 @@ interface RawCliRun {
 const runRawCli = (
   binPath: string,
   args: readonly string[],
-  cwd: string
+  cwd: string,
+  timeoutMs: number = cliTimeoutMs
 ): RawCliRun => {
   const command = [process.execPath, binPath, ...args];
   const proc = Bun.spawnSync({
@@ -83,7 +86,7 @@ const runRawCli = (
     env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
     stderr: 'pipe',
     stdout: 'pipe',
-    timeout: cliTimeoutMs,
+    timeout: timeoutMs,
   });
   const stdout = proc.stdout.toString();
   const stderr = proc.stderr.toString();
@@ -94,7 +97,7 @@ const runRawCli = (
         `Warden CLI subprocess ${proc.exitedDueToTimeout ? 'timed out' : 'terminated'} before producing raw output.`,
         `command: ${command.join(' ')}`,
         `cwd: ${cwd}`,
-        ...(proc.exitedDueToTimeout ? [`timeoutMs: ${cliTimeoutMs}`] : []),
+        ...(proc.exitedDueToTimeout ? [`timeoutMs: ${timeoutMs}`] : []),
         `exitCode: ${proc.exitCode ?? 'null'}`,
         `signal: ${signalCode ?? 'null'}`,
         `stdout: ${stdout}`,
@@ -1079,6 +1082,52 @@ describe('trails warden', () => {
       'no-throw-in-implementation'
     );
   });
+
+  test.each(['Default warden run', 'GitHub Actions annotations'] as const)(
+    'replays the %s example in the configured Trails project',
+    (exampleName) => {
+      const raw = runRawCli(
+        trailsBinPath,
+        [
+          'run',
+          'example',
+          'warden',
+          exampleName,
+          '--app',
+          'trails',
+          '--root-dir',
+          repoRoot,
+          '--permit',
+          '{"id":"test","scopes":["trails:run"]}',
+          '--json',
+        ],
+        repoRoot,
+        wardenExampleReplayCliTimeoutMs
+      );
+      const parsed = JSON.parse(raw.stdout) as {
+        readonly actual: {
+          readonly outcome: string;
+          readonly value: { readonly project: unknown };
+        };
+        readonly project: unknown;
+      };
+      const expectedProject = {
+        app: { appId: 'trails', configured: true },
+        configuredAppIds: expect.arrayContaining(['trails']),
+        projectRoot: resolve(repoRoot),
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'app',
+      };
+
+      expect(raw.exitCode).toBe(0);
+      expect(raw.stderr).toBe('');
+      expect(parsed.actual.outcome).toBe('ok');
+      expect(parsed.project).toMatchObject(expectedProject);
+      expect(parsed.actual.value.project).toMatchObject(expectedProject);
+      expect(raw.stdout).not.toContain('"selectedExtent": "standalone-app"');
+    },
+    wardenExampleReplayTestTimeoutMs
+  );
 
   test('trails warden forwards scope exclude value flags', () => {
     const dir = makeTempDir();

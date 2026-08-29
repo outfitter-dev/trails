@@ -20,7 +20,12 @@ import {
   operatorProjectContextOutputSchema,
 } from './project-context-output.js';
 import { resolveRunTargetProject } from './run.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import type { RunTargetProject } from './run.js';
+import {
+  createCurrentAppExampleInput,
+  readCurrentAppExampleSelection,
+} from './topo-support.js';
+import type { CurrentAppExampleSelection } from './topo-support.js';
 
 export const RUN_EXAMPLE_COMPARISON_KIND = 'example-comparison' as const;
 
@@ -66,7 +71,7 @@ const buildHappyExampleInput = (): {
   readonly module: string;
   readonly rootDir: string;
 } => ({
-  ...createIsolatedExampleInput('run-example-happy'),
+  ...createCurrentAppExampleInput({ selection: 'configured-project' }),
   exampleName: 'Brief capability report',
   id: 'survey.brief',
 });
@@ -301,11 +306,17 @@ const compareError = (
   };
 };
 
+interface ResolvedExample {
+  readonly example: StructuredTrailExample;
+  readonly selection?: CurrentAppExampleSelection | undefined;
+  readonly nestedInputSelection?: CurrentAppExampleSelection | undefined;
+}
+
 const findExample = (
   app: Topo,
   trailId: string,
   exampleName: string
-): Result<StructuredTrailExample, Error> => {
+): Result<ResolvedExample, Error> => {
   const target = app.get(trailId);
   if (target === undefined) {
     return Result.err(
@@ -319,7 +330,18 @@ const findExample = (
   const structured = deriveStructuredTrailExamples(target.examples) ?? [];
   const match = structured.find((entry) => entry.name === exampleName);
   if (match !== undefined) {
-    return Result.ok(match);
+    const authored = target.examples?.find(
+      (entry) => entry.name === exampleName
+    );
+    const authoredInput = authored?.input;
+    const nestedInput = isPlainObject(authoredInput)
+      ? authoredInput['input']
+      : undefined;
+    return Result.ok({
+      example: match,
+      nestedInputSelection: readCurrentAppExampleSelection(nestedInput),
+      selection: readCurrentAppExampleSelection(authoredInput),
+    });
   }
 
   const available = structured.map((entry) => entry.name);
@@ -353,23 +375,94 @@ const determineMode = (
   return 'none';
 };
 
+const isCurrentAppExampleInput = (input: unknown): boolean =>
+  isPlainObject(input) &&
+  ('rootDir' in input || 'module' in input) &&
+  (!('rootDir' in input) || input['rootDir'] === '.') &&
+  (!('module' in input) || input['module'] === './src/app.ts');
+
+const rebaseCurrentAppMarker = (
+  input: Record<string, unknown>,
+  target: RunTargetProject,
+  selection: CurrentAppExampleSelection
+): Record<string, unknown> => {
+  const configuredAppId =
+    selection === 'configured-project' &&
+    target.context.selectedExtent === 'configured-app'
+      ? target.context.app.id
+      : undefined;
+  return {
+    ...input,
+    ...(configuredAppId === undefined ? {} : { app: configuredAppId }),
+    ...('module' in input ? { module: target.modulePath } : {}),
+    ...('rootDir' in input
+      ? {
+          rootDir:
+            configuredAppId === undefined
+              ? target.rootDir
+              : target.context.projectRoot,
+        }
+      : {}),
+  };
+};
+
+const resolveCurrentAppExampleInput = (
+  input: unknown,
+  target: RunTargetProject,
+  selection: CurrentAppExampleSelection | undefined,
+  nestedInputSelection: CurrentAppExampleSelection | undefined
+): unknown => {
+  if (
+    selection === undefined ||
+    !(isPlainObject(input) && isCurrentAppExampleInput(input))
+  ) {
+    return input;
+  }
+  const resolved = rebaseCurrentAppMarker(input, target, selection);
+  return nestedInputSelection !== undefined &&
+    isPlainObject(input['input']) &&
+    isCurrentAppExampleInput(input['input'])
+    ? {
+        ...resolved,
+        input: rebaseCurrentAppMarker(
+          input['input'],
+          target,
+          nestedInputSelection
+        ),
+      }
+    : resolved;
+};
+
 const buildComparisonEnvelope = async (
   app: Topo,
   trailId: string,
   exampleName: string,
   permit: BasePermit | undefined,
-  cwd: string,
-  project: RunExampleComparison['project']
+  target: RunTargetProject
 ): Promise<Result<RunExampleComparison, Error>> => {
   const exampleResult = findExample(app, trailId, exampleName);
   if (exampleResult.isErr()) {
     return exampleResult;
   }
-  const example = exampleResult.value;
+  const { example, nestedInputSelection, selection } = exampleResult.value;
   const mode = determineMode(example);
-  const executed = await run(app, trailId, example.input, {
-    ctx: { cwd, ...(permit === undefined ? {} : { permit }) },
-  });
+  const executed = await run(
+    app,
+    trailId,
+    resolveCurrentAppExampleInput(
+      example.input,
+      target,
+      selection,
+      nestedInputSelection
+    ),
+    {
+      ctx: {
+        cwd: target.rootDir,
+        ...(permit === undefined ? {} : { permit }),
+      },
+    }
+  );
+  const project = operatorProjectContextOutput(target.context);
   const actual = deriveActualOutcome(executed);
 
   if (mode === 'error') {
@@ -487,8 +580,7 @@ export const runExampleTrail = trail('run.example', {
           input.id,
           input.exampleName,
           ctx.permit,
-          target.value.rootDir,
-          operatorProjectContextOutput(target.value.context)
+          target.value
         );
       }
     );

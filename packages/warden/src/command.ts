@@ -18,6 +18,7 @@ import { AmbiguousError, NotFoundError, ValidationError } from '@ontrails/core';
 import type { TopoGraphOverlayRegistration } from '@ontrails/topography';
 import {
   loadTrailsConfigValue,
+  readTrailsProjectIdentity,
   resolveTrailsProjectRoot,
 } from '@ontrails/config';
 
@@ -719,7 +720,7 @@ const topoLoadDiagnostic = ({
   });
 
 const WARDEN_TOPO_SELECTION_HINT =
-  'Set warden.apps in trails.config.ts or pass --apps NAME,NAME.';
+  'Declare workspace.apps in Trails Config or pass --apps NAME,NAME.';
 
 const cleanDiscoveryMessage = (message: string): string =>
   message
@@ -915,10 +916,79 @@ export const resolveWardenTopoTargets = async ({
 const effectiveConfigNeedsTopo = (depth: WardenDepth): boolean =>
   depth === 'topo' || depth === 'all';
 
+interface WorkspaceTopoSelection {
+  readonly apps?: readonly string[] | undefined;
+  readonly diagnostics: readonly WardenDiagnostic[];
+  readonly expectedAppBindings?:
+    | readonly WardenExpectedAppBinding[]
+    | undefined;
+  readonly preflightError?: ValidationError | undefined;
+}
+
+const resolveWorkspaceTopoSelection = async ({
+  apps,
+  configPath,
+  expectedAppBindings,
+  rootDir,
+}: {
+  readonly apps?: readonly string[] | undefined;
+  readonly configPath?: string | undefined;
+  readonly expectedAppBindings?:
+    | readonly WardenExpectedAppBinding[]
+    | undefined;
+  readonly rootDir: string;
+}): Promise<WorkspaceTopoSelection> => {
+  if (expectedAppBindings !== undefined || apps !== undefined) {
+    return { apps, diagnostics: [], expectedAppBindings };
+  }
+
+  try {
+    const identity = await readTrailsProjectIdentity({
+      boundaryDir: rootDir,
+      configPath,
+      startDir: rootDir,
+    });
+    if (identity.workspace === undefined) {
+      return { apps, diagnostics: [], expectedAppBindings };
+    }
+
+    const bindings = identity.apps.map((app) => ({
+      app: app.entryPath,
+      expectedAppId: app.id,
+      rootDir: app.rootDir,
+    }));
+    return {
+      apps: bindings.map((binding) => binding.app),
+      diagnostics: [],
+      expectedAppBindings: bindings,
+    };
+  } catch (error) {
+    const preflightError = new ValidationError(
+      `Failed to inspect Trails project identity for Warden topo selection: ${errorMessage(error)}`,
+      {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      }
+    );
+    return {
+      apps,
+      diagnostics: [
+        diagnostic({
+          filePath: configPath ?? rootDir,
+          message: preflightError.message,
+          rule: 'warden-config',
+        }),
+      ],
+      expectedAppBindings,
+      preflightError,
+    };
+  }
+};
+
 const buildRunOptions = ({
   adapterCheck,
   cli,
   config,
+  configPath,
   env,
   fix,
   rootDir,
@@ -927,6 +997,7 @@ const buildRunOptions = ({
   readonly adapterCheck: boolean;
   readonly cli: WardenConfigLayer;
   readonly config?: WardenConfigInput | undefined;
+  readonly configPath?: string | undefined;
   readonly env: EnvRecord;
   readonly fix: boolean;
   readonly rootDir: string;
@@ -936,6 +1007,7 @@ const buildRunOptions = ({
     adapterCheck,
     apps: cli.apps,
     config,
+    configPath,
     depth: cli.depth,
     drafts: cli.drafts,
     failOn: cli.failOn,
@@ -1038,21 +1110,38 @@ export const runWardenCommand = async ({
   });
   const needsExpectedBindingPreflight =
     parsed.fix && expectedAppBindings !== undefined;
-  const topoResolution =
+  const needsTopoResolution =
     effectiveConfigNeedsTopo(preflight.effectiveConfig.depth) ||
-    needsExpectedBindingPreflight
+    needsExpectedBindingPreflight;
+  const topoSelection = needsTopoResolution
+    ? await resolveWorkspaceTopoSelection({
+        apps: preflight.effectiveConfig.apps,
+        configPath: loadedConfig.configPath,
+        expectedAppBindings,
+        rootDir,
+      })
+    : { diagnostics: [] };
+  const topoResolution =
+    needsTopoResolution && topoSelection.preflightError === undefined
       ? await resolveWardenTopoTargets({
-          apps: preflight.effectiveConfig.apps,
-          expectedAppBindings,
+          apps: topoSelection.apps,
+          expectedAppBindings: topoSelection.expectedAppBindings,
           rootDir,
           strict: parsed.ci,
         })
-      : { diagnostics: [], topos: [] };
+      : {
+          diagnostics: topoSelection.diagnostics,
+          ...(topoSelection.preflightError === undefined
+            ? {}
+            : { preflightError: topoSelection.preflightError }),
+          topos: [],
+        };
   const report = await runWarden(
     buildRunOptions({
       adapterCheck: parsed.adapterCheck,
       cli: parsed.cli,
       config: loadedConfig.config,
+      configPath: loadedConfig.configPath,
       env,
       fix: parsed.fix && topoResolution.preflightError === undefined,
       rootDir,

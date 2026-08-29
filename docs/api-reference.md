@@ -632,7 +632,6 @@ deriveConfigJsonSchema(schema)       // JSON Schema Draft 2020-12 from the confi
 // Trail definitions
 configCheck                          // validate config values against schema
 configDescribe                       // describe all schema fields
-configExplain                        // show which source won per field
 configInit                           // generate example config files
 
 DefineConfigOptions, TrailsWorkspaceConfig, TrailsWorkspaceAppConfig

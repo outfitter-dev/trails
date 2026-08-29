@@ -73,6 +73,7 @@ export { versionWithoutExamplesTrail } from './version-without-examples.trail.js
 export { wardenExportSymmetryTrail } from './warden-export-symmetry.trail.js';
 export { wardenRulesUseAstTrail } from './warden-rules-use-ast.trail.js';
 export { webhookRouteCollisionTrail } from './webhook-route-collision.trail.js';
+export { workspaceLockOwnershipTrail } from './workspace-lock-ownership.trail.js';
 
 export {
   diagnosticSchema,

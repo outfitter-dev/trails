@@ -26,6 +26,8 @@ Common workflows:
 
 For configured workspaces, migrate package-manager discovery, root aggregate-lock assumptions, and persistent `warden.apps` lists to static `workspace.apps`. `--root-dir` fixes the project boundary, `--app` selects one stable configured ID, and `--module` only refines that app's live entry. Run and completion ownership are derived live from those configured apps; a root aggregate `trails.lock` is neither created nor consulted as workspace identity.
 
+Use `trails config explain --json` to inspect that source-static identity without loading app modules or consulting locks. From a workspace root it reports the configured app catalog; `--app <id>` or an app-root CWD narrows the same Config-authored identity and records how the selection was made.
+
 Scaffolding never writes `trails.lock` itself. Install dependencies, then use the normal compile path with the narrow `topo:write` permit:
 
 ```bash

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { withFreshOperatorApp } from './operator-context.js';
 import { activationOverviewOutput } from './topo-output-schemas.js';
 import { deriveTopoSummary } from './topo-read-support.js';
-import { createIsolatedExampleInput } from './topo-support.js';
+import { createCurrentAppExampleInput } from './topo-support.js';
 
 const summaryOutput = z.object({
   app: z.object({
@@ -75,7 +75,7 @@ export const topoTrail = trail('topo', {
   description: 'Show the current topo summary and entry list',
   examples: [
     {
-      input: createIsolatedExampleInput('topo-summary'),
+      input: createCurrentAppExampleInput(),
       name: 'Show the current topo summary',
     },
   ],

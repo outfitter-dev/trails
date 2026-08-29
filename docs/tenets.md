@@ -139,12 +139,12 @@ Validation is a framework guarantee enforced once at the boundary, not a develop
 
 The resolved topo lock is the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, entity, and surface rendering is inspectable as graph content. Relationships are explicit. An agent reading the committed lock can understand the system without guessing from source code.
 
-`trails.lock` is generated, checked in, and CI-diffable. It embeds the serialized `TopoGraph`, the graph hash, scope, and summary in one root file. Drift between code and the committed lock is a governance finding.
+`trails.lock` is generated, checked in, and CI-diffable. It embeds the serialized `TopoGraph`, the graph hash, scope, and summary in one file at the owning app root. Drift between code and the committed lock is a governance finding.
 
 > ADR-0017 established the right promise. ADR-0046 split the beta artifact
 > family into a compact manifest plus graph content. The v1 substrate collapses
-> those jobs back into one root `trails.lock` envelope so the committed truth is
-> easier for humans and agents to locate.
+> those jobs back into one app-root `trails.lock` envelope so the committed
+> truth is easier for humans and agents to locate.
 
 ## Primitives
 

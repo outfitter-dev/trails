@@ -457,6 +457,173 @@ const writeWorkspaceIdentity = (workspaceRoot: string): void => {
   );
 };
 
+const writeConfiguredEntryWorkspace = (
+  workspaceRoot: string,
+  options: { readonly operatorCompile?: boolean } = {}
+): void => {
+  const appRoot = join(workspaceRoot, 'apps', 'app-a');
+  const appRuntimeProject = {
+    module: 'custom/topo.ts',
+    rootDir: appRoot,
+  };
+  const configuredProject = {
+    app: 'app-a',
+    module: 'custom/topo.ts',
+    rootDir: workspaceRoot,
+  };
+  const compileProject =
+    options.operatorCompile === false
+      ? { module: './src/app.ts', rootDir: '.' }
+      : configuredProject;
+  const topoSupportPath = resolve(import.meta.dir, '../trails/topo-support.ts');
+  writeFixture(
+    join(workspaceRoot, 'package.json'),
+    `${JSON.stringify(
+      {
+        name: 'run-example-configured-entry-fixture',
+        private: true,
+        type: 'module',
+        workspaces: ['apps/*'],
+      },
+      null,
+      2
+    )}\n`
+  );
+  writeFixture(
+    join(appRoot, 'package.json'),
+    `${JSON.stringify(
+      { name: 'app-a', private: true, type: 'module' },
+      null,
+      2
+    )}\n`
+  );
+  writeFixture(
+    join(workspaceRoot, 'trails.config.json'),
+    `${JSON.stringify(
+      {
+        workspace: {
+          apps: {
+            'app-a': { entry: 'custom/topo.ts', root: 'apps/app-a' },
+          },
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
+  writeFixture(
+    join(appRoot, 'custom', 'topo.ts'),
+    [
+      `import { Result, topo, trail } from '@ontrails/core';`,
+      `import { createCurrentAppExampleInput } from ${JSON.stringify(topoSupportPath)};`,
+      `import { z } from 'zod';`,
+      '',
+      `const projectInput = z.object({`,
+      `  app: z.string().optional(),`,
+      `  module: z.string(),`,
+      `  rootDir: z.string(),`,
+      `});`,
+      '',
+      `const surveyBrief = trail('survey.brief', {`,
+      `  description: 'configured entry survey fixture',`,
+      `  examples: [{`,
+      `    expected: ${JSON.stringify(appRuntimeProject)},`,
+      `    input: createCurrentAppExampleInput(),`,
+      `    name: 'Brief capability report',`,
+      `  }],`,
+      `  implementation: (input) => Result.ok(input),`,
+      `  input: projectInput,`,
+      `  output: projectInput,`,
+      `});`,
+      '',
+      `const compile = trail('compile', {`,
+      `  description: 'configured identity compile fixture',`,
+      `  examples: [{`,
+      `    expected: ${JSON.stringify(compileProject)},`,
+      options.operatorCompile === false
+        ? `    input: { module: './src/app.ts', rootDir: '.' },`
+        : `    input: createCurrentAppExampleInput({ selection: 'configured-project' }),`,
+      `    name: 'Compile the current topo to trails.lock',`,
+      `  }],`,
+      `  implementation: (input) => Result.ok(input),`,
+      `  input: projectInput,`,
+      `  output: projectInput,`,
+      `});`,
+      '',
+      `const domainLocation = trail('domain.location', {`,
+      `  description: 'domain input that resembles operator navigation',`,
+      `  examples: [{`,
+      `    expected: { module: './src/app.ts', rootDir: '.' },`,
+      `    input: { module: './src/app.ts', rootDir: '.' },`,
+      `    name: 'Preserve domain location',`,
+      `  }],`,
+      `  implementation: (input) => Result.ok(input),`,
+      `  input: projectInput,`,
+      `  output: projectInput,`,
+      `});`,
+      '',
+      `const run = trail('run', {`,
+      `  description: 'configured entry nested replay fixture',`,
+      `  examples: [`,
+      `    {`,
+      `      expected: {`,
+      `        ...${JSON.stringify(configuredProject)},`,
+      `        input: ${JSON.stringify(appRuntimeProject)},`,
+      `      },`,
+      `      input: {`,
+      `        ...createCurrentAppExampleInput({ selection: 'configured-project' }),`,
+      `        id: 'survey.brief',`,
+      `        input: createCurrentAppExampleInput(),`,
+      `      },`,
+      `      name: 'Run trail by ID',`,
+      `    },`,
+      `    {`,
+      `      expected: {`,
+      `        input: { module: './src/app.ts', rootDir: '.' },`,
+      `        module: './src/app.ts',`,
+      `        rootDir: '.',`,
+      `      },`,
+      `      input: {`,
+      `        id: 'domain.location',`,
+      `        input: { module: './src/app.ts', rootDir: '.' },`,
+      `        module: './src/app.ts',`,
+      `        rootDir: '.',`,
+      `      },`,
+      `      name: 'Preserve nested domain location',`,
+      `    },`,
+      `  ],`,
+      `  implementation: (input) => Result.ok({`,
+      `    ...(input.app === undefined ? {} : { app: input.app }),`,
+      `    input: input.input,`,
+      `    module: input.module,`,
+      `    rootDir: input.rootDir,`,
+      `  }),`,
+      `  input: z.object({`,
+      `    app: z.string().optional(),`,
+      `    id: z.string(),`,
+      `    input: projectInput,`,
+      `    module: z.string(),`,
+      `    rootDir: z.string(),`,
+      `  }),`,
+      `  output: z.object({`,
+      `    app: z.string().optional(),`,
+      `    input: projectInput,`,
+      `    module: z.string(),`,
+      `    rootDir: z.string(),`,
+      `  }),`,
+      `});`,
+      '',
+      `export const app = topo('app-a', [`,
+      `  compile,`,
+      `  domainLocation,`,
+      `  surveyBrief,`,
+      `  run,`,
+      `]);`,
+      '',
+    ].join('\n')
+  );
+};
+
 // Use `.tmp-tests` under the trails app so node_modules resolution from the
 // fixture climbs up to the workspace's node_modules (system tmpdir would
 // break package resolution for `@ontrails/core` and `zod`).
@@ -492,6 +659,145 @@ const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
 };
 
 describe('run.example trail', () => {
+  test('replays a current-app example through its configured entry', async () => {
+    writeConfiguredEntryWorkspace(workspaceRoot);
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'Brief capability report',
+      id: 'survey.brief',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    expect(envelope.match).toBe(true);
+    expect(envelope.project).toMatchObject({
+      app: { appId: 'app-a', configured: true },
+      selectedExtent: 'configured-app',
+    });
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: {
+        module: 'custom/topo.ts',
+        rootDir: join(workspaceRoot, 'apps', 'app-a'),
+      },
+    });
+  });
+
+  test('preserves configured identity through a custom app entry', async () => {
+    writeConfiguredEntryWorkspace(workspaceRoot);
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'Compile the current topo to trails.lock',
+      id: 'compile',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    const configuredProject = {
+      app: 'app-a',
+      module: 'custom/topo.ts',
+      rootDir: workspaceRoot,
+    };
+    expect(envelope.match).toBe(true);
+    expect(envelope.project).toMatchObject({
+      app: { appId: 'app-a', configured: true },
+      selectedExtent: 'configured-app',
+    });
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: configuredProject,
+    });
+  });
+
+  test('does not rebase a user example that collides with an operator example identity', async () => {
+    writeConfiguredEntryWorkspace(workspaceRoot, { operatorCompile: false });
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'Compile the current topo to trails.lock',
+      id: 'compile',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    expect(envelope.match).toBe(true);
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: { module: './src/app.ts', rootDir: '.' },
+    });
+    expect(envelope.input).toEqual({ module: './src/app.ts', rootDir: '.' });
+  });
+
+  test('rebases the nested current-app input in the run example', async () => {
+    writeConfiguredEntryWorkspace(workspaceRoot);
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'Run trail by ID',
+      id: 'run',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    const configuredSelection = {
+      app: 'app-a',
+      module: 'custom/topo.ts',
+      rootDir: workspaceRoot,
+    };
+    const appRuntimeProject = {
+      module: 'custom/topo.ts',
+      rootDir: join(workspaceRoot, 'apps', 'app-a'),
+    };
+    expect(envelope.match).toBe(true);
+    expect(envelope.project).toMatchObject({
+      app: { appId: 'app-a', configured: true },
+      selectedExtent: 'configured-app',
+    });
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: { ...configuredSelection, input: appRuntimeProject },
+    });
+  });
+
+  test('preserves matching module and root fields in domain input', async () => {
+    writeConfiguredEntryWorkspace(workspaceRoot);
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'Preserve domain location',
+      id: 'domain.location',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    expect(envelope.match).toBe(true);
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: { module: './src/app.ts', rootDir: '.' },
+    });
+  });
+
+  test('preserves matching nested fields in a noncanonical run example', async () => {
+    writeConfiguredEntryWorkspace(workspaceRoot);
+
+    const result = await executeRunExampleTrail({
+      app: 'app-a',
+      exampleName: 'Preserve nested domain location',
+      id: 'run',
+      rootDir: workspaceRoot,
+    });
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    const domainProject = { module: './src/app.ts', rootDir: '.' };
+    expect(envelope.match).toBe(true);
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: { ...domainProject, input: domainProject },
+    });
+  });
+
   test('discovers a sole nested standalone app without --module', async () => {
     writeWorkspace(workspaceRoot, 'demo.alpha', [
       {

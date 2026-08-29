@@ -30,22 +30,22 @@ Before creating the version PR:
 4. Pending force audit events are resolved before the version PR leaves draft:
 
    ```bash
-   bun apps/trails/bin/trails.ts compile --root-dir apps/trails --module ./src/app.ts --permit '{"id":"stable-cutover","scopes":["topo:write"]}'
+   bun apps/trails/bin/trails.ts compile --root-dir . --app trails --permit '{"id":"stable-cutover","scopes":["topo:write"]}'
    bun apps/trails/bin/trails.ts diff --forces --root-dir apps/trails --module ./src/app.ts
    bun apps/trails/bin/trails.ts doctor --root-dir apps/trails --module ./src/app.ts
-   bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir apps/trails --apps ./src/app.ts
+   bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir . --app trails
    ```
 
-   The compile command writes root `trails.lock`, so it requires an inline permit
-   with the `topo:write` scope. Run the gate from the repo root, but point the
-   topo commands at the Trails app root with `--root-dir apps/trails --module
+   Compile writes the selected app's `trails.lock`, so it requires an inline
+   permit with the `topo:write` scope. From this configured workspace root,
+   `--app trails` selects `apps/trails`, enforces the configured topo-name
+   binding, and never writes an aggregate root lock. The remaining topo commands
+   still point at the Trails app root with `--root-dir apps/trails --module
    ./src/app.ts`; passing a repo-root module path such as
    `apps/trails/src/app.ts` does not exercise the CLI's fresh app-loading path.
-   The repo ships more than one app module (`apps/trails` and
-   `apps/trails-demo`), so pass an explicit app selector: `--module` for the
-   compile, diff, and doctor commands, and `--apps` for Warden. Without an app
-   selector, discovery finds multiple candidates and aborts before any evidence
-   is produced. `trails diff --forces` compares against the saved
+   Warden derives the app catalog from root `workspace.apps` and narrows
+   topo-aware checks with `--app trails`. `trails diff --forces` compares
+   against the saved
    `apps/trails/trails.lock`, so run `trails compile` first; without a
    saved TopoGraph the diff fails with `NotFoundError` before any force evidence
    can be collected. The diff and doctor output are the saved force-audit
@@ -62,14 +62,9 @@ Before creating the version PR:
    and planned resolution before review starts. Warden `pending-force` output is
    a release-review warning, not an automatic exception.
 
-   `trails compile` writes root `trails.lock`. Remove it before continuing to
-   the clean-main preconditions unless the release branch is intentionally
-   updating that artifact:
-
-   ```bash
-   rm -f apps/trails/trails.lock
-   git status --short -- apps/trails/trails.lock
-   ```
+   `trails compile --app trails` writes the committed
+   `apps/trails/trails.lock`. Review any diff and keep the artifact aligned;
+   never replace it with a repository-root aggregate lock.
 
 5. The stable release doctrine ADR exists and is accepted.
 6. Registry posture is known for every non-private public `@ontrails/*`
@@ -153,10 +148,10 @@ Run the pre-version checks:
 ```bash
 bun scripts/adr.ts map
 bun scripts/adr.ts check
-bun apps/trails/bin/trails.ts compile --root-dir apps/trails --module ./src/app.ts --permit '{"id":"stable-cutover","scopes":["topo:write"]}'
+bun apps/trails/bin/trails.ts compile --root-dir . --app trails --permit '{"id":"stable-cutover","scopes":["topo:write"]}'
 bun apps/trails/bin/trails.ts diff --forces --root-dir apps/trails --module ./src/app.ts
 bun apps/trails/bin/trails.ts doctor --root-dir apps/trails --module ./src/app.ts
-bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir apps/trails --apps ./src/app.ts
+bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir . --app trails
 bun apps/trails/bin/trails.ts release smoke --check wayfinder-dogfood
 bun run check
 bun run build
@@ -165,12 +160,7 @@ bun run publish:registry-check
 bunx changeset status --verbose
 ```
 
-`trails compile` can write `apps/trails/trails.lock`. If the version PR is not intentionally updating that generated artifact, remove the evidence file before continuing:
-
-```bash
-rm -f apps/trails/trails.lock
-git status --short -- apps/trails/trails.lock
-```
+`trails compile --app trails` writes the committed `apps/trails/trails.lock`. Review any diff and keep the artifact aligned; never remove it as temporary evidence or replace it with a repository-root aggregate lock.
 
 Run a registry-backed generated-app smoke before exiting prerelease mode. This proves the current published prerelease package set and the generator still agree:
 

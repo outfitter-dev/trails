@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { withFreshOperatorApp } from './operator-context.js';
 import {
-  createIsolatedExampleInput,
+  createCurrentAppExampleInput,
   pinCurrentTopoSnapshot,
   topoSnapshotOutput,
 } from './topo-support.js';
@@ -13,7 +13,7 @@ export const topoPinTrail = trail('topo.pin', {
   examples: [
     {
       input: {
-        ...createIsolatedExampleInput('topo-pin'),
+        ...createCurrentAppExampleInput(),
         name: 'before-auth-refactor',
       },
       name: 'Pin the current topo',

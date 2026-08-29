@@ -1,0 +1,1671 @@
+{
+  "scope": {
+    "app": "demo"
+  },
+  "summary": {
+    "entities": 0,
+    "resources": 2,
+    "signals": 4,
+    "trails": 8
+  },
+  "topoGraph": {
+    "activationGraph": {
+      "edgeCount": 1,
+      "edges": [
+        {
+          "hasWhere": false,
+          "sourceId": "entity.updated",
+          "sourceKey": "signal:entity.updated",
+          "sourceKind": "signal",
+          "trailId": "entity.notify-updated"
+        }
+      ],
+      "sourceCount": 1,
+      "sourceKeys": [
+        "signal:entity.updated"
+      ],
+      "trailIds": [
+        "entity.notify-updated"
+      ]
+    },
+    "activationSources": {
+      "signal:entity.updated": {
+        "id": "entity.updated",
+        "key": "signal:entity.updated",
+        "kind": "signal"
+      }
+    },
+    "entries": [
+      {
+        "description": "Drizzle-backed in-memory entity store used by the demo trails app.",
+        "exampleCount": 0,
+        "healthcheck": true,
+        "id": "demo.entity-store",
+        "kind": "resource",
+        "surfaces": []
+      },
+      {
+        "consumers": [],
+        "description": "Fired after a \"entities\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "exampleCount": 0,
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "id": "demo.entity-store:entities.created",
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "kind": "signal",
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "producers": [],
+        "surfaces": []
+      },
+      {
+        "consumers": [],
+        "description": "Fired after a \"entities\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "exampleCount": 0,
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "id": "demo.entity-store:entities.removed",
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "kind": "signal",
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "producers": [],
+        "surfaces": []
+      },
+      {
+        "consumers": [],
+        "description": "Fired after a \"entities\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "exampleCount": 0,
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "id": "demo.entity-store:entities.updated",
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "kind": "signal",
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "producers": [],
+        "surfaces": []
+      },
+      {
+        "description": "In-memory notification store consumed by the entity.notify-updated trail.",
+        "exampleCount": 0,
+        "id": "demo.notification-store",
+        "kind": "resource",
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "demo",
+            "upsert"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "demo",
+                "upsert"
+              ],
+              "source": "derived",
+              "target": "demo.upsert"
+            }
+          ]
+        },
+        "description": "Upsert a key-value pair (idempotent)",
+        "exampleCount": 1,
+        "examples": [
+          {
+            "description": "Store a value under a key; repeating produces the same result",
+            "expected": {
+              "key": "theme",
+              "value": "dark"
+            },
+            "input": {
+              "key": "theme",
+              "value": "dark"
+            },
+            "kind": "success",
+            "name": "Upsert a key-value pair",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "demo.upsert",
+        "idempotent": true,
+        "input": {
+          "properties": {
+            "key": {
+              "description": "Item key",
+              "type": "string"
+            },
+            "value": {
+              "description": "Item value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "entity:write"
+          ]
+        },
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "entity",
+            "add"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "entity",
+                "add"
+              ],
+              "source": "derived",
+              "target": "entity.add"
+            }
+          ]
+        },
+        "description": "Create a new entity",
+        "exampleCount": 2,
+        "examples": [
+          {
+            "description": "Create an entity with name, type, and tags",
+            "input": {
+              "name": "Beta",
+              "tags": [
+                "automation"
+              ],
+              "type": "tool"
+            },
+            "kind": "success",
+            "name": "Add a new entity",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "description": "Returns AlreadyExistsError when the name is taken",
+            "error": "AlreadyExistsError",
+            "input": {
+              "name": "Alpha",
+              "type": "concept"
+            },
+            "kind": "error",
+            "name": "Duplicate entity returns conflict",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "fires": [
+          "entity.updated"
+        ],
+        "id": "entity.add",
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Entity name",
+              "type": "string"
+            },
+            "tags": {
+              "default": [],
+              "description": "Tags for categorization",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "description": "Entity type (concept, tool, pattern)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "entity:write"
+          ]
+        },
+        "resources": [
+          "demo.entity-store"
+        ],
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "entity",
+            "delete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "entity",
+                "delete"
+              ],
+              "source": "derived",
+              "target": "entity.delete"
+            }
+          ]
+        },
+        "description": "Delete an entity by name",
+        "exampleCount": 2,
+        "examples": [
+          {
+            "description": "Successfully delete an entity that exists",
+            "input": {
+              "name": "Deletable"
+            },
+            "kind": "success",
+            "name": "Delete an existing entity",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "description": "Returns NotFoundError when the entity does not exist",
+            "error": "NotFoundError",
+            "input": {
+              "name": "nonexistent"
+            },
+            "kind": "error",
+            "name": "Delete non-existent entity returns not found",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "fires": [
+          "entity.updated"
+        ],
+        "id": "entity.delete",
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Entity name to delete",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        },
+        "intent": "destroy",
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "deleted": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "deleted",
+            "name"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "entity:write"
+          ]
+        },
+        "resources": [
+          "demo.entity-store"
+        ],
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "entity",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "entity",
+                "list"
+              ],
+              "source": "derived",
+              "target": "entity.list"
+            }
+          ]
+        },
+        "description": "List entities with optional type filter",
+        "exampleCount": 2,
+        "examples": [
+          {
+            "description": "List all entities without filtering",
+            "input": {
+              "limit": 20,
+              "offset": 0
+            },
+            "kind": "success",
+            "name": "List all entities",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "description": "Filter entities by their type",
+            "input": {
+              "limit": 20,
+              "offset": 0,
+              "type": "concept"
+            },
+            "kind": "success",
+            "name": "List entities by type",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "entity.list",
+        "input": {
+          "properties": {
+            "limit": {
+              "default": 20,
+              "description": "Maximum results",
+              "type": "number"
+            },
+            "offset": {
+              "default": 0,
+              "description": "Pagination offset",
+              "type": "number"
+            },
+            "type": {
+              "description": "Filter by entity type",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "entities": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "tags",
+                  "type"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "entities",
+            "total"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "demo.entity-store"
+        ],
+        "surfaces": []
+      },
+      {
+        "activationSources": [
+          {
+            "source": {
+              "id": "entity.updated",
+              "key": "signal:entity.updated",
+              "kind": "signal"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "entity",
+            "notify-updated"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "entity",
+                "notify-updated"
+              ],
+              "source": "derived",
+              "target": "entity.notify-updated"
+            }
+          ]
+        },
+        "description": "Log a notification whenever an entity.updated signal is fired.",
+        "exampleCount": 1,
+        "examples": [
+          {
+            "description": "Notify on a created entity",
+            "input": {
+              "action": "created",
+              "entityId": "ent_1",
+              "entityName": "Epsilon",
+              "timestamp": "2026-04-07T00:00:00.000Z"
+            },
+            "kind": "success",
+            "name": "Notify created",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "entity.notify-updated",
+        "input": {
+          "properties": {
+            "action": {
+              "enum": [
+                "created",
+                "updated",
+                "deleted"
+              ],
+              "type": "string"
+            },
+            "entityId": {
+              "type": "string"
+            },
+            "entityName": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "entityId",
+            "entityName",
+            "timestamp"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "on": [
+          "entity.updated"
+        ],
+        "output": {
+          "properties": {
+            "notified": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "notified"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "entity:write"
+          ]
+        },
+        "resources": [
+          "demo.notification-store"
+        ],
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "entity",
+            "onboard"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "entity",
+                "onboard"
+              ],
+              "source": "derived",
+              "target": "entity.onboard"
+            }
+          ]
+        },
+        "composes": [
+          "entity.add",
+          "search"
+        ],
+        "description": "Create an entity and verify it appears in search",
+        "exampleCount": 1,
+        "examples": [
+          {
+            "description": "Create an entity and verify it appears in search results",
+            "input": {
+              "name": "Gamma",
+              "tags": [
+                "workflow"
+              ],
+              "type": "pattern"
+            },
+            "kind": "success",
+            "name": "Onboard a new entity",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "entity.onboard",
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Entity name",
+              "type": "string"
+            },
+            "tags": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "description": "Entity type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "entity": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "type"
+              ],
+              "type": "object"
+            },
+            "searchable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "entity",
+            "searchable"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "entity:write"
+          ]
+        },
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "entity",
+            "show"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "entity",
+                "show"
+              ],
+              "source": "derived",
+              "target": "entity.show"
+            }
+          ]
+        },
+        "description": "Show an entity by name",
+        "exampleCount": 2,
+        "examples": [
+          {
+            "description": "Look up an existing entity by its exact name",
+            "input": {
+              "name": "Alpha"
+            },
+            "kind": "success",
+            "name": "Show entity by name",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "description": "Returns NotFoundError when the entity does not exist",
+            "error": "NotFoundError",
+            "input": {
+              "name": "nonexistent"
+            },
+            "kind": "error",
+            "name": "Entity not found",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "entity.show",
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Entity name to look up",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "tags",
+            "type",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "demo.entity-store"
+        ],
+        "surfaces": []
+      },
+      {
+        "consumers": [
+          "entity.notify-updated"
+        ],
+        "description": "Fired when an entity is created, modified, or deleted",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "exampleCount": 0,
+        "from": [
+          "entity.add",
+          "entity.delete"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "id": "entity.updated",
+        "input": {
+          "properties": {
+            "action": {
+              "enum": [
+                "created",
+                "updated",
+                "deleted"
+              ],
+              "type": "string"
+            },
+            "entityId": {
+              "type": "string"
+            },
+            "entityName": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "entityId",
+            "entityName",
+            "timestamp"
+          ],
+          "type": "object"
+        },
+        "kind": "signal",
+        "payload": {
+          "properties": {
+            "action": {
+              "enum": [
+                "created",
+                "updated",
+                "deleted"
+              ],
+              "type": "string"
+            },
+            "entityId": {
+              "type": "string"
+            },
+            "entityName": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "entityId",
+            "entityName",
+            "timestamp"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "entity.add",
+          "entity.delete"
+        ],
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "search"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "search"
+              ],
+              "source": "derived",
+              "target": "search"
+            }
+          ]
+        },
+        "description": "Search entities by keyword",
+        "exampleCount": 2,
+        "examples": [
+          {
+            "description": "Search by keyword matching name, type, or tags",
+            "input": {
+              "limit": 10,
+              "query": "Alpha"
+            },
+            "kind": "success",
+            "name": "Search for entities",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "description": "Search query that matches nothing",
+            "input": {
+              "limit": 10,
+              "query": "zzz_nonexistent_zzz"
+            },
+            "kind": "success",
+            "name": "Search with no results",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "search",
+        "input": {
+          "properties": {
+            "limit": {
+              "default": 10,
+              "description": "Maximum results",
+              "type": "number"
+            },
+            "query": {
+              "description": "Search query",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "results": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "tags",
+                  "type"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "query",
+            "results",
+            "total"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "demo.entity-store"
+        ],
+        "surfaces": []
+      }
+    ],
+    "library": {
+      "app": "demo",
+      "collisions": [],
+      "excluded": [
+        {
+          "reason": "activation",
+          "trailId": "entity.notify-updated"
+        }
+      ],
+      "exports": [
+        {
+          "description": "Upsert a key-value pair (idempotent)",
+          "exportName": "demoUpsert",
+          "input": {
+            "properties": {
+              "key": {
+                "description": "Item key",
+                "type": "string"
+              },
+              "value": {
+                "description": "Item value",
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "demo.upsert"
+        },
+        {
+          "description": "Create a new entity",
+          "exportName": "entityAdd",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Entity name",
+                "type": "string"
+              },
+              "tags": {
+                "default": [],
+                "description": "Tags for categorization",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "description": "Entity type (concept, tool, pattern)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "id",
+              "name",
+              "tags",
+              "type",
+              "updatedAt"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "demo.entity-store"
+          ],
+          "trailId": "entity.add"
+        },
+        {
+          "description": "Delete an entity by name",
+          "exportName": "entityDelete",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Entity name to delete",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "deleted": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "deleted",
+              "name"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "demo.entity-store"
+          ],
+          "trailId": "entity.delete"
+        },
+        {
+          "description": "List entities with optional type filter",
+          "exportName": "entityList",
+          "input": {
+            "properties": {
+              "limit": {
+                "default": 20,
+                "description": "Maximum results",
+                "type": "number"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset",
+                "type": "number"
+              },
+              "type": {
+                "description": "Filter by entity type",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "entities": {
+                "items": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "tags",
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "entities",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "demo.entity-store"
+          ],
+          "trailId": "entity.list"
+        },
+        {
+          "description": "Create an entity and verify it appears in search",
+          "exportName": "entityOnboard",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Entity name",
+                "type": "string"
+              },
+              "tags": {
+                "default": [],
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "description": "Entity type",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "entity": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "type"
+                ],
+                "type": "object"
+              },
+              "searchable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "entity",
+              "searchable"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "entity.onboard"
+        },
+        {
+          "description": "Show an entity by name",
+          "exportName": "entityShow",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Entity name to look up",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "id",
+              "name",
+              "tags",
+              "type",
+              "updatedAt"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "demo.entity-store"
+          ],
+          "trailId": "entity.show"
+        },
+        {
+          "description": "Search entities by keyword",
+          "exportName": "search",
+          "input": {
+            "properties": {
+              "limit": {
+                "default": 10,
+                "description": "Maximum results",
+                "type": "number"
+              },
+              "query": {
+                "description": "Search query",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "results": {
+                "items": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "tags",
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "query",
+              "results",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "demo.entity-store"
+          ],
+          "trailId": "search"
+        }
+      ]
+    },
+    "topoGraphSchemaVersion": 4
+  },
+  "topoGraphHash": "081ddb11d748a9a996c69190e90e328aefe6fded47f7d7841d1d5b2e099ac92d",
+  "version": 5
+}

@@ -404,6 +404,159 @@ describe('runWardenCommand', () => {
     }
   });
 
+  test('reports static workspace identity failures instead of rejecting the command', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'trails.config.ts'),
+        `const apps = { configured: { root: 'apps/configured' } };
+export default {
+  workspace: { apps },
+  warden: { depth: 'project', lock: 'skip' },
+};
+`
+      );
+
+      const result = await runWardenCommand({
+        args: ['--format', 'json'],
+        cwd: dir,
+        env: {},
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(result.report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: join(dir, 'trails.config.ts'),
+          message: expect.stringContaining(
+            'Failed to inspect Trails project identity'
+          ),
+          rule: 'warden-config',
+          severity: 'error',
+        })
+      );
+      expect(() => JSON.parse(result.output)).not.toThrow();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('uses an explicit config path for workspace lock ownership', async () => {
+    const dir = makeTempDir();
+    try {
+      const workspaceRoot = join(dir, 'custom');
+      mkdirSync(join(workspaceRoot, 'apps', 'configured', 'src'), {
+        recursive: true,
+      });
+      mkdirSync(join(workspaceRoot, 'ignored'), { recursive: true });
+      mkdirSync(join(workspaceRoot, 'visible'), { recursive: true });
+      writeFileSync(
+        join(workspaceRoot, 'trails.config.ts'),
+        `export default {
+  workspace: { apps: { configured: { root: 'apps/configured' } } },
+  warden: {
+    depth: 'project',
+    lock: 'skip',
+    scope: { exclude: ['custom/ignored/**'] },
+  },
+};
+`
+      );
+      writeFileSync(
+        join(workspaceRoot, 'apps', 'configured', 'src', 'app.ts'),
+        'export {};\n'
+      );
+      writeFileSync(join(workspaceRoot, 'trails.lock'), '{}\n');
+      writeFileSync(join(workspaceRoot, 'ignored', 'trails.lock'), '{}\n');
+      writeFileSync(join(workspaceRoot, 'visible', 'trails.lock'), '{}\n');
+
+      const result = await runWardenCommand({
+        args: [
+          '--config-path',
+          'custom/trails.config.ts',
+          '--format',
+          'github',
+        ],
+        cwd: dir,
+        env: {},
+      });
+
+      expect(result.report.effectiveConfig).toMatchObject({
+        depth: 'project',
+        lock: 'skip',
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: 'forbidden-workspace-aggregate',
+          filePath: 'custom/trails.lock',
+          rule: 'workspace-lock-ownership',
+          severity: 'error',
+        })
+      );
+      expect(result.report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: 'unconfigured-app-lock',
+          filePath: 'custom/visible/trails.lock',
+          rule: 'workspace-lock-ownership',
+          severity: 'warn',
+        })
+      );
+      expect(result.report.diagnostics).not.toContainEqual(
+        expect.objectContaining({
+          filePath: 'custom/ignored/trails.lock',
+          rule: 'workspace-lock-ownership',
+        })
+      );
+      expect(result.output).toContain(
+        '::error file=custom/trails.lock,line=1::workspace-lock-ownership:'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('derives topo targets from workspace identity at an explicit config path', async () => {
+    const dir = makeTempDir();
+    try {
+      const workspaceRoot = join(dir, 'custom');
+      for (const appId of ['alpha', 'admin']) {
+        const sourceDir = join(workspaceRoot, 'apps', appId, 'src');
+        mkdirSync(sourceDir, { recursive: true });
+        writeFileSync(
+          join(sourceDir, 'app.ts'),
+          `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const graph = topo(${JSON.stringify(appId)}, []);\n`
+        );
+      }
+      writeFileSync(
+        join(workspaceRoot, 'project.config.ts'),
+        `export default {
+  workspace: {
+    apps: {
+      admin: { root: 'apps/admin' },
+      alpha: { root: 'apps/alpha' },
+    },
+  },
+  warden: { depth: 'topo', lock: 'skip' },
+};
+`
+      );
+
+      const result = await runWardenCommand({
+        args: ['--config-path', 'custom/project.config.ts', '--format', 'json'],
+        cwd: dir,
+        env: {},
+      });
+
+      expect(result.report.topoNames).toEqual(['admin', 'alpha']);
+      expect(result.report.effectiveConfig?.apps).toBeUndefined();
+      expect(result.report.diagnostics).not.toContainEqual(
+        expect.objectContaining({ rule: 'topo-load' })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('applies Warden scope excludes from project config', async () => {
     const dir = makeTempDir();
     try {

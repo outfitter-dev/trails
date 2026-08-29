@@ -6,13 +6,12 @@ import {
   DEFAULT_TOPO_SNAPSHOT_RETENTION,
 } from './dev-support.js';
 import { resolveTrailRootDir } from './root-dir.js';
-import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devStatsTrail = trail('dev.stats', {
   description: 'Show local Trails workspace state and retention',
   examples: [
     {
-      input: { rootDir: createIsolatedExampleInput('dev-stats').rootDir },
+      input: {},
       name: 'Show local dev state',
     },
   ],
