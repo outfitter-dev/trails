@@ -29,7 +29,10 @@ const extensionFor = (filePath: string): string | undefined => {
 const isModuleExtension = (extension: string | undefined): boolean =>
   extension !== undefined && MODULE_EXTENSIONS.has(extension);
 
-const parseDataConfig = (filePath: string, text: string): unknown => {
+export const parseTrailsConfigData = (
+  filePath: string,
+  text: string
+): unknown => {
   const extension = extensionFor(filePath);
   try {
     switch (extension) {
@@ -77,7 +80,7 @@ export const loadTrailsConfigFileValue = async (
   }
 
   const text = await Bun.file(filePath).text();
-  return parseDataConfig(filePath, text);
+  return parseTrailsConfigData(filePath, text);
 };
 
 const findSingleConfigPath = (

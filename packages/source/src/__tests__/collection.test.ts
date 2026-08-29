@@ -293,7 +293,50 @@ describe('collectSourceTree Git boundaries', () => {
     }
   });
 
-  test('prunes declared submodule paths even when the checkout is absent', () => {
+  test('fails closed for submodule paths outside the portable root-relative grammar', () => {
+    for (const path of [
+      '../outside',
+      '/tmp/outside',
+      'C:/outside',
+      'C:outside',
+      'file:///tmp/outside',
+      'https://host/path',
+    ]) {
+      const root = mkdtempSync(
+        join(tmpdir(), 'source-collection-invalid-submodule-path-')
+      );
+      try {
+        writeFileSync(
+          join(root, '.gitmodules'),
+          `[submodule "outside"]\n\tpath = ${path}\n\turl = ../outside\n`
+        );
+
+        expect(collectSourceTree(root)?.skipped).toEqual([
+          { path: '.gitmodules', reason: 'unreadable-git-metadata' },
+        ]);
+      } finally {
+        rmSync(root, { force: true, recursive: true });
+      }
+    }
+
+    const relativeColonRoot = mkdtempSync(
+      join(tmpdir(), 'source-collection-relative-colon-path-')
+    );
+    try {
+      writeFileSync(
+        join(relativeColonRoot, '.gitmodules'),
+        '[submodule "relative"]\n\tpath = vendor/name:part\n\turl = ../relative\n'
+      );
+      expect(collectSourceTree(relativeColonRoot)?.skipped).toContainEqual({
+        path: 'vendor/name:part',
+        reason: 'submodule-boundary',
+      });
+    } finally {
+      rmSync(relativeColonRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('prunes declared submodule paths when checkout residue remains', () => {
     const root = mkdtempSync(
       join(tmpdir(), 'source-collection-submodule-path-')
     );
@@ -314,8 +357,33 @@ describe('collectSourceTree Git boundaries', () => {
         reason: 'submodule-boundary',
       });
       expect(
+        collection?.skipped.filter(
+          (entry) => entry.reason === 'submodule-boundary'
+        )
+      ).toHaveLength(1);
+      expect(
         collection?.files.some((file) => file.path.endsWith('residual.ts'))
       ).toBe(false);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('reports declared submodule paths when the checkout directory is absent', () => {
+    const root = mkdtempSync(
+      join(tmpdir(), 'source-collection-absent-submodule-path-')
+    );
+    try {
+      writeFileSync(
+        join(root, '.gitmodules'),
+        '[submodule "vendor/fixture"]\n\tpath = vendor/fixture\n\turl = ../fixture\n'
+      );
+
+      const collection = collectSourceTree(root);
+      expect(collection?.skipped).toContainEqual({
+        path: 'vendor/fixture',
+        reason: 'submodule-boundary',
+      });
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

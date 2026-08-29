@@ -57,6 +57,16 @@ describe('defineConfig', () => {
     expect(config.profiles).toBe(profiles);
   });
 
+  test('preserves static workspace identity outside runtime resolution', async () => {
+    const workspace = { apps: { demo: { root: 'apps/demo' } } } as const;
+    const config = defineConfig({ schema, workspace });
+
+    expect(config.workspace).toBe(workspace);
+    const resolved = await config.resolve({ env: { TRAILS_ENV: 'test' } });
+    expect(resolved.isOk()).toBe(true);
+    expect(resolved.unwrap()).not.toHaveProperty('workspace');
+  });
+
   test('resolve() uses TRAILS_ENV to select profile', async () => {
     const config = defineConfig({
       base: { host: 'example.com' },

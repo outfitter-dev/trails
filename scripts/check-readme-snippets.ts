@@ -207,6 +207,7 @@ export const passthroughResolver: any;
 export const permitPreset: any;
 export const pruneUnpinnedSnapshots: any;
 export const readLockManifest: any;
+export const readTrailsProjectIdentity: any;
 export const readTrailsLock: any;
 export const registerConfigState: any;
 export const registerTraceSink: any;

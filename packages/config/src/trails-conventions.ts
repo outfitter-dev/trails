@@ -41,6 +41,9 @@ export const trailsLocalConfigFileCandidates = [
 
 export const trailsLockFileName = 'trails.lock' as const;
 
+/** Conventional app entry relative to a configured app root. */
+export const trailsAppEntryRelativePath = 'src/app.ts' as const;
+
 export const trailsSourceRootCandidates = ['src/trails', 'trails'] as const;
 
 export type TrailsProjectRootMarker =

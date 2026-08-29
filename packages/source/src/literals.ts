@@ -171,7 +171,15 @@ export const staticPropertyKeyName = (key: AstNode): string | null => {
   if (key.type === 'Identifier') {
     return (key as unknown as { name?: string }).name ?? null;
   }
-  return isStringLiteral(key) ? getStringValue(key) : null;
+  if (isStringLiteral(key)) {
+    return getStringValue(key);
+  }
+  const { value } = key as unknown as { value?: unknown };
+  return (key.type === 'Literal' || key.type === 'NumericLiteral') &&
+    typeof value === 'number' &&
+    Number.isFinite(value)
+    ? String(value)
+    : null;
 };
 
 export const propertyKeyName = (prop: AstNode): string | null => {

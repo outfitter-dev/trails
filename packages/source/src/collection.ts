@@ -149,8 +149,19 @@ const readSubmodulePaths = (root: string): SubmodulePathSnapshot => {
     if (!value) {
       return { paths: new Set(), readable: false };
     }
+    const authoredPath = value.replaceAll('\\', '/');
+    const path = posix.normalize(authoredPath).replace(/\/+$/, '');
+    if (
+      posix.isAbsolute(authoredPath) ||
+      path === '.' ||
+      path === '..' ||
+      path.startsWith('../') ||
+      /^[A-Za-z][A-Za-z\d+.-]*:/u.test(path)
+    ) {
+      return { paths: new Set(), readable: false };
+    }
     ownersWithPaths.add(owner);
-    paths.add(posix.normalize(value.replaceAll('\\', '/')).replace(/\/+$/, ''));
+    paths.add(path);
   }
   return owners.size === ownersWithPaths.size &&
     authoredSubmodules.size === ownersWithPaths.size
@@ -254,7 +265,10 @@ export const collectSourceTree = (
   const submodules = readSubmodulePaths(absoluteRoot);
   const files: CollectedSourceFile[] = [];
   const skipped: SkippedSourceEntry[] = submodules.readable
-    ? []
+    ? [...submodules.paths].map((path) => ({
+        path,
+        reason: 'submodule-boundary',
+      }))
     : [{ path: '.gitmodules', reason: 'unreadable-git-metadata' }];
   const queue: {
     readonly absolutePath: string;
@@ -281,6 +295,9 @@ export const collectSourceTree = (
       const path = toPosixRelative(absoluteRoot, absolutePath);
       const kind = entryKind(entry);
       if (path === '.gitmodules' && !submodules.readable) {
+        continue;
+      }
+      if (submodules.paths.has(path)) {
         continue;
       }
       if (kind === 'directory') {
