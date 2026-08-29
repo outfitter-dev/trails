@@ -182,6 +182,11 @@
       "depends_on": ["17", "27", "37", "42"],
       "inbound": [
         {
+          "context": "- docs/adr/drafts/20260503-wayfinding.md",
+          "from": "20260829",
+          "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
+        },
+        {
           "context": "| `survey` | **keep the standing ruling** | This does not preserve `survey` as a peer command. The standing decision remains that its useful live-introspection behavior moves under Wayfinder and the t",
           "from": "v1-vocabulary-reset",
           "fromPath": "docs/releases/v1-vocabulary-reset.md"
@@ -318,6 +323,19 @@
       "superseded_by": null,
       "title": "CLI Command Routes Normalize Into Trail Contracts",
       "updated": "2026-06-13"
+    },
+    {
+      "created": "2026-08-29",
+      "depends_on": ["27", "35", "42", "50", "52", "wayfinding"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md",
+      "slug": "wayfinder-mcp-graph-as-resources",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Addressable Facts, Dynamic Queries",
+      "updated": "2026-08-29"
     }
   ],
   "version": 1
