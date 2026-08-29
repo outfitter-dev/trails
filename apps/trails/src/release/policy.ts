@@ -1210,6 +1210,26 @@ const readPackageVersionFromRef = async (
   return packageJson.version;
 };
 
+export const readReleaseLabelVersions = async (
+  repository: string,
+  releasePullRequest: Pick<
+    ReleasePolicyPullRequest,
+    'baseRefName' | 'headRefName'
+  >,
+  readVersion: (
+    repository: string,
+    ref: string
+  ) => Promise<string> = readPackageVersionFromRef
+): Promise<{
+  readonly currentVersion: string;
+  readonly nextVersion: string;
+}> => ({
+  // The release workflow versions the checkout before labeling runs, so the
+  // previous version must come from the PR base ref, never the local files.
+  currentVersion: await readVersion(repository, releasePullRequest.baseRefName),
+  nextVersion: await readVersion(repository, releasePullRequest.headRefName),
+});
+
 const ensureGitHubLabels = async (repository: string): Promise<void> => {
   await Promise.all(
     managedGitHubLabels.map((label) =>
@@ -1611,7 +1631,6 @@ const commandPolicy = async (): Promise<void> => {
 };
 
 const commandLabelReleasePr = async (): Promise<void> => {
-  const currentVersion = await readTrailsPackageVersion();
   const repository =
     process.env['GITHUB_REPOSITORY'] ??
     (await runText([
@@ -1630,15 +1649,15 @@ const commandLabelReleasePr = async (): Promise<void> => {
     return;
   }
 
-  const nextVersion = await readPackageVersionFromRef(
+  const { currentVersion, nextVersion } = await readReleaseLabelVersions(
     repository,
-    releasePullRequest.headRefName
+    releasePullRequest
   );
   const nextDistTag = await distTagForVersion(nextVersion);
   const sourcePullRequests = await readSourcePullRequests(
     repository,
     currentVersion,
-    'HEAD'
+    `origin/${releasePullRequest.baseRefName}`
   );
   const labelsToAdd = labelsForReleasePullRequest({
     currentVersion,

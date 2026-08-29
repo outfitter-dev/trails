@@ -5,6 +5,7 @@ import {
   evaluateReleasePolicy,
   isGraphiteMergeQueueComment,
   labelsForReleasePullRequest,
+  readReleaseLabelVersions,
   releaseIntentForVersionDelta,
   releasePolicyRequiresCiProof,
   selectGeneratedReleasePullRequest,
@@ -526,6 +527,56 @@ describe('labelsForReleasePullRequest', () => {
         ],
       })
     ).toEqual(['publish:auto', 'channel:beta', 'release:patch']);
+  });
+});
+
+describe('readReleaseLabelVersions', () => {
+  const releaseRefs = {
+    baseRefName: 'main',
+    headRefName: 'changeset-release/main',
+  };
+  const refVersions: Record<string, string> = {
+    'changeset-release/main': '1.0.0-beta.48',
+    main: '1.0.0-beta.47',
+  };
+
+  test('reads the previous version from the PR base ref, not local files', async () => {
+    const reads: string[] = [];
+    const versions = await readReleaseLabelVersions(
+      'outfitter-dev/trails',
+      releaseRefs,
+      (repository, ref) => {
+        reads.push(`${repository}@${ref}`);
+        return Promise.resolve(refVersions[ref] ?? '');
+      }
+    );
+
+    expect(versions).toEqual({
+      currentVersion: '1.0.0-beta.47',
+      nextVersion: '1.0.0-beta.48',
+    });
+    expect(reads).toEqual([
+      'outfitter-dev/trails@main',
+      'outfitter-dev/trails@changeset-release/main',
+    ]);
+  });
+
+  test('labels a versioned checkout with release:patch from base-ref delta', async () => {
+    const versions = await readReleaseLabelVersions(
+      'outfitter-dev/trails',
+      releaseRefs,
+      (_repository, ref) => Promise.resolve(refVersions[ref] ?? '')
+    );
+
+    // Rerunning the workflow after a manual repair keeps existing families
+    // untouched and only fills the missing release:* family.
+    expect(
+      labelsForReleasePullRequest({
+        ...versions,
+        existingLabels: ['publish:manual', 'channel:beta'],
+        nextDistTag: 'beta',
+      })
+    ).toEqual(['release:patch']);
   });
 });
 
