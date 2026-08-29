@@ -423,6 +423,8 @@
       "version": "1.0.0-beta.50",
       "dependencies": {
         "@ontrails/adapter-kit": "workspace:^",
+        "@ontrails/config": "workspace:^",
+        "@ontrails/source": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",

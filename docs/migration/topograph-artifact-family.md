@@ -1,16 +1,25 @@
 # TopoGraph Artifact Family Migration
 
-Current v1 builds use one committed resolved-truth file:
+Current v1 builds use one committed resolved-truth file per lock-owning app:
 
-- `trails.lock` is the committed lock v4 envelope. It embeds the serialized `TopoGraph`, the graph hash, scope, and summary.
-- `.trails/trails.lock` and `.trails/topo.lock` are the previous beta artifact family. Readers keep a compatibility bridge for the migration window, but new writes converge on root `trails.lock`.
+- `trails.lock` is the committed lock envelope at an app root. It embeds the
+  serialized `TopoGraph`, graph hash, scope, and summary.
+- A standalone app owns its root `trails.lock`. A configured workspace names
+  each lock-owning app through static `workspace.apps`; every configured app
+  owns its own root lock. There is no workspace-root aggregate lock. When a
+  configured app's resolved root is the workspace root, whether authored as
+  `root: '.'` or through a safe internal alias, the workspace-root
+  `trails.lock` is that app's lock.
+- `.trails/trails.lock` and `.trails/topo.lock` are the previous beta artifact
+  family. Readers keep a compatibility bridge for the migration window, but
+  new writes converge on the selected app root's `trails.lock`.
 - `.trails/` is committed Trails control, not a generated-state directory.
 - `trails.db` lives in the per-user Trails state store for snapshots, pins,
   tracing, and other framework subsystems.
 - Rebuildable cache state lives outside the repo in the Trails cache store.
 - `trails.config.local.*` files at the project root are ignored local override files.
 
-Regenerate the current root `trails.lock` with:
+Regenerate a standalone or selected app's root `trails.lock` from that app root with:
 
 ```bash
 trails compile
@@ -21,6 +30,24 @@ Validate committed artifacts with:
 ```bash
 trails validate
 ```
+
+During the workspace operator cutover, programmatic consumers can read the static catalog and derive the saved view without importing app source:
+
+```typescript
+import { readTrailsProjectIdentity } from '@ontrails/config';
+import { deriveWorkspaceView } from '@ontrails/topography';
+
+const workspaceRoot = process.cwd();
+const identity = await readTrailsProjectIdentity({
+  boundaryDir: workspaceRoot,
+  startDir: process.cwd(),
+});
+const view = await deriveWorkspaceView({ identity });
+```
+
+Missing, invalid, mismatched, and stale configured locks remain typed app evidence. A nested `trails.lock` outside `workspace.apps` is reported as an unowned artifact with declare-or-remove coaching. A lock at the configured workspace root is reported as a forbidden aggregate when no root app is declared. Neither path derives app identity, and the read never compiles or writes artifacts.
+
+`buildWorkspaceTrailIndex()` remains temporarily for existing operator run and completion consumers. It is a migration bridge, not an app catalog. Do not use its package-workspace discovery or root aggregate metadata in new code; the shared project-context consumer cutover removes that authority.
 
 ## Rename Map
 

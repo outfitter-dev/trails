@@ -19,6 +19,24 @@ export type {
   TrailActivationReport,
 } from './activation-report.js';
 export { deriveTopoGraphHash } from './hash.js';
+export {
+  deriveWorkspaceView,
+  WORKSPACE_VIEW_SCHEMA_VERSION,
+} from './workspace-view.js';
+export type {
+  DeriveWorkspaceViewOptions,
+  UnownedWorkspaceLockObservation,
+  WorkspaceAppLockBinding,
+  WorkspaceAppLockFreshness,
+  WorkspaceAppLockObservation,
+  WorkspaceAppLockStatus,
+  WorkspaceView,
+  WorkspaceViewApp,
+  WorkspaceViewCollectionSkip,
+  WorkspaceViewCollision,
+  WorkspaceViewContent,
+  WorkspaceViewEvidence,
+} from './workspace-view.js';
 export { collectTopoGraphOverlays } from './overlays.js';
 export { deriveSourceFingerprint } from './source-fingerprint.js';
 export { deriveTopoGraphDiff } from './diff.js';

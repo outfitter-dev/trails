@@ -10,15 +10,16 @@ const packageJson = JSON.parse(
 };
 
 describe('@ontrails/topography Wayfind package boundary', () => {
-  test('keeps the folded Wayfind dependency floor explicit', () => {
+  test('keeps the graph and workspace observation dependency floor explicit', () => {
     expect(packageJson.dependencies).toEqual({
       '@ontrails/adapter-kit': 'workspace:^',
+      '@ontrails/config': 'workspace:^',
+      '@ontrails/source': 'workspace:^',
     });
     expect(packageJson.peerDependencies).toEqual({
       '@ontrails/core': 'workspace:^',
       zod: 'catalog:',
     });
-    expect(packageJson.dependencies).not.toHaveProperty('@ontrails/source');
     expect(packageJson.dependencies).not.toHaveProperty('@ontrails/warden');
   });
 });
