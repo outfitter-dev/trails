@@ -5,8 +5,11 @@
 ```bash
 # Requires Bun (https://bun.sh)
 
-# Scaffold a new project
-bunx @ontrails/trails create
+# Scaffold a standalone app
+bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+
+# Or a configured workspace with one app under apps/my-app
+bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
 bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
@@ -18,6 +21,13 @@ bun add -d @ontrails/testing@beta # Testing (dev)
 ```
 
 During the active beta line, use `@beta` for the newest published beta or exact `1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
+
+After `bun install`, derive the app-owned lock with the locally installed Trails operator:
+
+- From a standalone app root, run `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'`.
+- From a configured workspace root, run `bunx trails compile --app my-app --permit '{"id":"local-dev","scopes":["topo:write"]}'`.
+
+Scaffolding itself does not write locks, and a workspace has no aggregate root lock. The normal compile path records deterministic scaffold provenance in the app lock's `scaffold` overlay.
 
 ## Define Your First Trail
 
@@ -73,11 +83,11 @@ export const graph = topo('myapp', greetModule);
 
 ## Open a CLI Surface
 
-Create `src/cli.ts`:
+Create `bin/cli.ts`:
 
 ```typescript
 import { surface } from '@ontrails/commander';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph);
 ```
@@ -85,10 +95,10 @@ await surface(graph);
 Run it:
 
 ```bash
-$ bun src/cli.ts greet --name World
+$ bun bin/cli.ts greet --name World
 { "message": "Hello, World!" }
 
-$ bun src/cli.ts greet --name World --loud
+$ bun bin/cli.ts greet --name World --loud
 { "message": "HELLO, WORLD!" }
 ```
 
@@ -96,11 +106,11 @@ Flags, types, defaults, and `--help` text are all derived from the Zod schema.
 
 ## Open an MCP Surface
 
-Create `src/mcp.ts`:
+Create `bin/mcp.ts`:
 
 ```typescript
 import { surface } from '@ontrails/mcp';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph);
 ```
@@ -109,11 +119,13 @@ Same trail contract, different surface. The MCP server exposes `myapp_greet` wit
 
 ## Open an HTTP Surface
 
+Create `bin/http.ts`.
+
 Use Hono when you want framework portability:
 
 ```typescript
 import { surface } from '@ontrails/hono';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph, { port: 3000 });
 ```
@@ -122,7 +134,7 @@ Use Bun-native HTTP when you want Bun's `Bun.serve({ routes })` path without a t
 
 ```typescript
 import { surface } from '@ontrails/http/bun';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph, { port: 3000 });
 ```

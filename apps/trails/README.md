@@ -7,12 +7,13 @@ Install, update, or uninstall the standalone CLI with Homebrew using the canonic
 Use the CLI to scaffold a Trails app, add surfaces, inspect the current topo, run warden checks, manage draft state, and keep local Trails project state tidy.
 
 ```bash
-bunx @ontrails/trails create
+bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```
 
 Common workflows:
 
-- `trails create` starts a new Trails project with generated trail, topo, surface, and verification files.
+- `trails create` starts a standalone app by default; `--workspace` creates a configured workspace with that app under `apps/<name>`. Generated surfaces live under `bin/`, app source stays side-effect-free, and `--dry-run` returns the complete write plan without touching disk.
 - `trails add surface` adds another surface entrypoint to an existing project.
 - `trails topo` inspects topo state and manages pins/history.
 - `trails compile` writes the selected app's `trails.lock`. At a configured workspace root, pass `--app <id>`; compile never fans out or writes an aggregate root lock.
@@ -24,6 +25,8 @@ Common workflows:
 - `trails guide` remains available for compatibility; prefer `trails wayfind --source live --module <app-module>` or saved-artifact Wayfinder reads for agent navigation.
 
 For configured workspaces, migrate package-manager discovery, root aggregate-lock assumptions, and persistent `warden.apps` lists to static `workspace.apps`. `--root-dir` fixes the project boundary, `--app` selects one stable configured ID, and `--module` only refines that app's live entry. Run and completion ownership are derived live from those configured apps; a root aggregate `trails.lock` is neither created nor consulted as workspace identity.
+
+Scaffolding never writes `trails.lock` itself. Install dependencies, then use the normal `trails compile` path so the selected app receives a validated lock with its deterministic `scaffold` overlay. The generated README teaches the exact standalone or workspace commands.
 
 Trails is contract-first: define trails once with typed input, Result output, examples, and meta; the framework derives CLI, MCP, HTTP, and future surfaces from the same contracts.
 

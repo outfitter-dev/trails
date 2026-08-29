@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 
 import {
   extractSnippets,
@@ -102,5 +103,74 @@ describe('README_SNIPPET_CONFIGS', () => {
         firstConfig,
       ])
     ).toEqual([firstConfig.readmePath]);
+  });
+
+  test('requires scoped permits in canonical scaffold commands', () => {
+    const standaloneCommand =
+      'bunx @ontrails/trails create my-app --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
+    const workspaceCommand =
+      'bunx @ontrails/trails create my-app --workspace --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
+    const publishedGuides = [
+      new URL('../../apps/trails/README.md', import.meta.url),
+      new URL('../../docs/getting-started.md', import.meta.url),
+      new URL(
+        '../../plugin/skills/trails/references/getting-started.md',
+        import.meta.url
+      ),
+    ];
+
+    for (const guide of publishedGuides) {
+      const markdown = readFileSync(guide, 'utf8');
+
+      expect(markdown).toContain(standaloneCommand);
+      expect(markdown).toContain(workspaceCommand);
+    }
+  });
+
+  test('requires locally resolvable permitted compile commands in published guides', () => {
+    const standaloneCommand =
+      'bun run compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+    const workspaceCommand =
+      'bunx trails compile --app my-app --permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+    const publishedGuides = [
+      new URL('../../docs/getting-started.md', import.meta.url),
+      new URL(
+        '../../plugin/skills/trails/references/getting-started.md',
+        import.meta.url
+      ),
+    ];
+
+    for (const guide of publishedGuides) {
+      const markdown = readFileSync(guide, 'utf8');
+
+      expect(markdown).toContain(standaloneCommand);
+      expect(markdown).toContain(workspaceCommand);
+    }
+  });
+
+  test('keeps published HTTP surface guidance on the bin entry layout', () => {
+    const appReadme = readFileSync(
+      new URL('../../apps/trails/README.md', import.meta.url),
+      'utf8'
+    );
+    const gettingStarted = readFileSync(
+      new URL('../../docs/getting-started.md', import.meta.url),
+      'utf8'
+    );
+    const pluginGettingStarted = readFileSync(
+      new URL(
+        '../../plugin/skills/trails/references/getting-started.md',
+        import.meta.url
+      ),
+      'utf8'
+    );
+
+    expect(appReadme).toContain('Generated surfaces live under `bin/`');
+    expect(gettingStarted).toContain('Create `bin/http.ts`');
+    expect(gettingStarted).toContain("from '../src/app'");
+    expect(pluginGettingStarted).toContain('Create `bin/http.ts`');
+    expect(pluginGettingStarted.match(/from '\.\.\/src\/app'/gu)).toHaveLength(
+      4
+    );
   });
 });

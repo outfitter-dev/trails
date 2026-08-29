@@ -2,9 +2,11 @@
  * `add.verify` trail -- Add testing + warden setup to a project.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 
-import { Result, trail } from '@ontrails/core';
+import { findTrailsConfigPaths } from '@ontrails/config';
+import { InternalError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -19,6 +21,7 @@ import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
 } from '../versions.js';
+import { resolveOperatorProjectContext } from './project-context.js';
 import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
@@ -87,6 +90,87 @@ const updatePackageJsonForVerify = async (
   return written.isErr() ? Result.err(written.error) : Result.ok();
 };
 
+export const resolveCanonicalHookDir = (
+  projectDir: string,
+  appRoot: string,
+  workspaceRoot: string
+): Result<string, Error> => {
+  try {
+    if (realpathSync(appRoot) !== realpathSync(projectDir)) {
+      return Result.ok(projectDir);
+    }
+    return Result.ok(realpathSync(workspaceRoot));
+  } catch (error) {
+    return Result.err(
+      new InternalError('Failed to resolve add.verify hook ownership.', {
+        cause: error instanceof Error ? error : new Error(String(error)),
+        context: { appRoot, projectDir, workspaceRoot },
+      })
+    );
+  }
+};
+
+const canonicalizeProjectedProjectDir = (projectDir: string): string => {
+  const missingSegments: string[] = [];
+  let existingAncestor = resolve(projectDir);
+  while (!existsSync(existingAncestor)) {
+    const parent = dirname(existingAncestor);
+    if (parent === existingAncestor) {
+      return resolve(projectDir);
+    }
+    missingSegments.unshift(basename(existingAncestor));
+    existingAncestor = parent;
+  }
+  return join(realpathSync(existingAncestor), ...missingSegments);
+};
+
+const hasTrailsConfigAncestor = (projectDir: string): boolean => {
+  let current = resolve(projectDir);
+  while (true) {
+    if (findTrailsConfigPaths(current).length > 0) {
+      return true;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return false;
+    }
+    current = parent;
+  }
+};
+
+/** Place the hook at a Config-owned workspace root, never a package-only root. */
+export const resolveVerifyHookDir = async (
+  projectDir: string
+): Promise<Result<string, Error>> => {
+  let contextDir: string;
+  try {
+    contextDir = canonicalizeProjectedProjectDir(projectDir);
+  } catch (error) {
+    return Result.err(
+      new InternalError('Failed to resolve add.verify project context.', {
+        cause: error instanceof Error ? error : new Error(String(error)),
+        context: { projectDir },
+      })
+    );
+  }
+  if (!hasTrailsConfigAncestor(contextDir)) {
+    return Result.ok(projectDir);
+  }
+  const context = await resolveOperatorProjectContext({}, { cwd: contextDir });
+  if (context.isErr()) {
+    return context;
+  }
+  if (context.value.selectedExtent !== 'configured-app') {
+    return Result.ok(projectDir);
+  }
+
+  return resolveCanonicalHookDir(
+    projectDir,
+    context.value.app.rootDir,
+    context.value.projectRoot
+  );
+};
+
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
@@ -100,13 +184,19 @@ export const addVerify = trail('add.verify', {
     }
 
     const projectDir = projectDirResult.value;
+    const hookDirResult = await resolveVerifyHookDir(projectDir);
+    if (hookDirResult.isErr()) {
+      return hookDirResult;
+    }
+    const hookDir = hookDirResult.value;
     const files: string[] = [];
 
     const writeFile = async (
+      rootDir: string,
       relativePath: string,
       content: string
     ): Promise<Result<void, Error>> => {
-      const exists = projectPathExists(projectDir, relativePath);
+      const exists = projectPathExists(rootDir, relativePath);
       if (exists.isErr()) {
         return exists;
       }
@@ -114,7 +204,7 @@ export const addVerify = trail('add.verify', {
         return Result.ok();
       }
 
-      const written = await writeProjectFile(projectDir, relativePath, content);
+      const written = await writeProjectFile(rootDir, relativePath, content);
       if (written.isErr()) {
         return written;
       }
@@ -123,6 +213,7 @@ export const addVerify = trail('add.verify', {
     };
 
     const testFile = await writeFile(
+      projectDir,
       '__tests__/examples.test.ts',
       generateTestFile()
     );
@@ -130,7 +221,11 @@ export const addVerify = trail('add.verify', {
       return testFile;
     }
 
-    const lefthookFile = await writeFile('lefthook.yml', generateLefthookYml());
+    const lefthookFile = await writeFile(
+      hookDir,
+      'lefthook.yml',
+      generateLefthookYml()
+    );
     if (lefthookFile.isErr()) {
       return lefthookFile;
     }

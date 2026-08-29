@@ -4,9 +4,13 @@
  * Generates package.json, tsconfig, app.ts, starter trails, and scaffold provenance.
  */
 
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
-import { Result, trail } from '@ontrails/core';
+import {
+  findTrailsConfigPaths,
+  readTrailsProjectIdentity,
+} from '@ontrails/config';
+import { Result, trail, ValidationError } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -21,29 +25,35 @@ import type {
   PlannedProjectOperation,
   ProjectWriteOperation,
 } from '../project-writes.js';
+import { parseSemver } from '../release/semver.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
   trailsPackageVersion,
 } from '../versions.js';
-import {
-  stringifyScaffoldJson,
-  stringifyScaffoldPackageJson,
-} from './scaffold-json.js';
+import { isCanonicalLintCommand } from './add-surface.js';
+import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type Starter = 'empty' | 'entity' | 'hello';
+type ScaffoldLayout = 'standalone' | 'workspace';
 
 interface ScaffoldResult {
+  readonly appDir: string;
+  readonly appRoot: string;
   readonly created: string[];
   readonly dir: string;
   readonly dryRun: boolean;
+  readonly layout: ScaffoldLayout;
   readonly name: string;
   readonly plannedOperations: PlannedProjectOperation[];
 }
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const frameworkCommandScripts = {
   add: 'trails add',
@@ -65,7 +75,7 @@ const frameworkCommandScripts = {
 // Content generators
 // ---------------------------------------------------------------------------
 
-const generatePackageJson = (name: string): string => {
+const generateAppPackageJson = (name: string): string => {
   const deps: Record<string, string> = {
     '@ontrails/core': ontrailsPackageRange,
     zod: scaffoldDependencyVersions.zod,
@@ -91,7 +101,7 @@ const generatePackageJson = (name: string): string => {
         build: 'tsc -b',
         'format:check': 'bunx ultracite check .',
         'format:fix': 'bunx ultracite fix .',
-        lint: 'oxlint ./src',
+        lint: 'oxlint ./src ./bin',
         test: 'bun test',
         typecheck: 'tsc --noEmit',
         ...frameworkCommandScripts,
@@ -104,13 +114,383 @@ const generatePackageJson = (name: string): string => {
   return stringifyScaffoldPackageJson(pkg);
 };
 
-const generateScaffoldProvenance = (starter: Starter): string =>
-  stringifyScaffoldJson({
-    generatedAt: new Date().toISOString(),
-    scaffoldVersion: trailsPackageVersion,
-    schemaVersion: 1,
-    template: starter,
+const mergeScaffoldOwnedMap = (
+  existing: unknown,
+  required: Record<string, unknown>,
+  field: string,
+  contract = 'generated app contract'
+): Record<string, unknown> => {
+  if (existing !== undefined && !isPlainRecord(existing)) {
+    throw new TypeError(`${field} must be an object when present`);
+  }
+
+  const entries = existing ?? {};
+  for (const [key, value] of Object.entries(required)) {
+    const existingValue = entries[key];
+    if (existingValue !== undefined && existingValue !== value) {
+      throw new TypeError(
+        `${field}.${key} must remain ${JSON.stringify(value)} for the ${contract}`
+      );
+    }
+  }
+
+  return { ...required, ...entries };
+};
+
+/**
+ * Earlier scaffold generations pinned narrower lint entry scopes. Treat those
+ * generated commands as reconcilable so a rerun preserves the established
+ * layout instead of hard-conflicting. Surface entry roots stay owned by the
+ * surface resolver, which still rejects a requested surface the preserved
+ * scope excludes.
+ */
+const reconcileGeneratedScripts = (
+  existing: unknown,
+  generated: Record<string, unknown>
+): Record<string, unknown> => {
+  if (!isPlainRecord(existing)) {
+    return generated;
+  }
+
+  const existingLint = existing['lint'];
+  if (
+    typeof existingLint !== 'string' ||
+    existingLint === generated['lint'] ||
+    !isCanonicalLintCommand(existingLint)
+  ) {
+    return generated;
+  }
+
+  return { ...generated, lint: existingLint };
+};
+
+/**
+ * Scaffold-owned `@ontrails/*` entries pin the exact operator version that
+ * generated them, so every release makes an earlier project's pin differ from
+ * the current one. Treat a plain semver value on those keys as a recognized
+ * prior generated pin so a rerun reconciles instead of hard-conflicting.
+ * Anything else -- `workspace:*`, a caret range, a dist-tag, a URL -- is user
+ * customization and still fails closed.
+ *
+ * Unlike `reconcileGeneratedScripts`, which preserves the established command,
+ * this reconciler upgrades the pin to the current range: the rerun installs
+ * current-version scaffold files beside it, and surface addition already
+ * rewrites its own `@ontrails/*` dependencies the same way, so a preserved
+ * stale pin would be the incoherent outcome. The general per-key reconciler
+ * policy is tracked as TRL-1323.
+ */
+const upgradePriorOntrailsPins = (
+  existing: unknown,
+  required: unknown
+): unknown => {
+  if (!(isPlainRecord(existing) && isPlainRecord(required))) {
+    return existing;
+  }
+
+  const upgrades = Object.entries(required).filter(([key, value]) => {
+    const existingValue = existing[key];
+    return (
+      key.startsWith('@ontrails/') &&
+      value === ontrailsPackageRange &&
+      typeof existingValue === 'string' &&
+      parseSemver(existingValue) !== undefined
+    );
   });
+
+  return upgrades.length === 0
+    ? existing
+    : { ...existing, ...Object.fromEntries(upgrades) };
+};
+
+const mergeAppPackageJson = (
+  source: string,
+  name: string
+): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(source);
+  if (!isPlainRecord(parsed)) {
+    throw new TypeError('the app manifest root value must be an object');
+  }
+
+  const generated = JSON.parse(generateAppPackageJson(name)) as Record<
+    string,
+    unknown
+  >;
+  const existingType = parsed['type'];
+  if (existingType !== undefined && existingType !== generated['type']) {
+    throw new TypeError(
+      `type must remain ${JSON.stringify(generated['type'])} for the generated app contract`
+    );
+  }
+
+  return {
+    ...generated,
+    ...parsed,
+    dependencies: mergeScaffoldOwnedMap(
+      upgradePriorOntrailsPins(
+        parsed['dependencies'],
+        generated['dependencies']
+      ),
+      generated['dependencies'] as Record<string, unknown>,
+      'dependencies'
+    ),
+    devDependencies: mergeScaffoldOwnedMap(
+      upgradePriorOntrailsPins(
+        parsed['devDependencies'],
+        generated['devDependencies']
+      ),
+      generated['devDependencies'] as Record<string, unknown>,
+      'devDependencies'
+    ),
+    scripts: mergeScaffoldOwnedMap(
+      parsed['scripts'],
+      reconcileGeneratedScripts(
+        parsed['scripts'],
+        generated['scripts'] as Record<string, unknown>
+      ),
+      'scripts'
+    ),
+    type: generated['type'],
+  };
+};
+
+const requiredWorkspaceScripts = {
+  build: 'bun run --filter "*" build',
+  test: 'bun run --filter "*" test',
+  typecheck: 'bun run --filter "*" typecheck',
+} as const;
+
+const requiredWorkspaceDevDependencies = {
+  '@ontrails/trails': ontrailsPackageRange,
+} as const;
+
+const generateWorkspacePackageJson = (name: string): string =>
+  stringifyScaffoldPackageJson({
+    devDependencies: requiredWorkspaceDevDependencies,
+    name,
+    private: true,
+    scripts: requiredWorkspaceScripts,
+    workspaces: ['apps/*', 'packages/*'],
+  });
+
+const generateWorkspaceConfig = (name: string): string =>
+  `export default {
+  workspace: {
+    apps: {
+      ${/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(name) ? name : `'${name}'`}: {
+        root: 'apps/${name}',
+      },
+    },
+  },
+};
+`;
+
+const validateRequiredWorkspaceScripts = (
+  existingScripts: Record<string, unknown> | undefined
+): void => {
+  for (const [script, command] of Object.entries(requiredWorkspaceScripts)) {
+    const existingCommand = existingScripts?.[script];
+    if (existingCommand !== undefined && existingCommand !== command) {
+      throw new TypeError(
+        `scripts.${script} must remain "${command}" so the root command reaches every generated app`
+      );
+    }
+  }
+};
+
+interface PreparedScaffoldFiles {
+  readonly files: Map<string, string>;
+  readonly overwritePaths: ReadonlySet<string>;
+}
+
+const mergeWorkspacePackageJson = (source: string): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(source);
+  if (!isPlainRecord(parsed)) {
+    throw new TypeError('the root value must be an object');
+  }
+  const existingScripts = parsed['scripts'];
+  if (existingScripts !== undefined && !isPlainRecord(existingScripts)) {
+    throw new TypeError('scripts must be an object when present');
+  }
+  const existingWorkspaces = parsed['workspaces'];
+  if (
+    existingWorkspaces !== undefined &&
+    (!Array.isArray(existingWorkspaces) ||
+      existingWorkspaces.some((value) => typeof value !== 'string'))
+  ) {
+    throw new TypeError('workspaces must be an array of strings when present');
+  }
+  validateRequiredWorkspaceScripts(existingScripts);
+  return {
+    ...parsed,
+    devDependencies: mergeScaffoldOwnedMap(
+      upgradePriorOntrailsPins(
+        parsed['devDependencies'],
+        requiredWorkspaceDevDependencies
+      ),
+      requiredWorkspaceDevDependencies,
+      'devDependencies',
+      'generated workspace contract'
+    ),
+    private: true,
+    scripts: { ...requiredWorkspaceScripts, ...existingScripts },
+    workspaces: [
+      ...new Set([
+        ...((existingWorkspaces as string[] | undefined) ?? []),
+        'apps/*',
+        'packages/*',
+      ]),
+    ],
+  };
+};
+
+interface ExistingManifestReconciliation {
+  readonly files: Map<string, string>;
+  readonly merge: (source: string) => Record<string, unknown>;
+  readonly message: string;
+  readonly overwritePaths: Set<string>;
+  readonly path: string;
+  readonly projectDir: string;
+  readonly reason: string;
+}
+
+const reconcileExistingManifest = async ({
+  files,
+  merge,
+  message,
+  overwritePaths,
+  path,
+  projectDir,
+  reason,
+}: ExistingManifestReconciliation): Promise<TrailsResult<void, Error>> => {
+  const manifestPath = join(projectDir, path);
+  const manifestFile = Bun.file(manifestPath);
+  if (!(await manifestFile.exists())) {
+    return Result.ok();
+  }
+
+  try {
+    const source = await manifestFile.text();
+    const merged = stringifyScaffoldPackageJson(merge(source));
+    if (merged === source) {
+      files.delete(path);
+    } else {
+      files.set(path, merged);
+      overwritePaths.add(path);
+    }
+    return Result.ok();
+  } catch (error) {
+    return Result.err(
+      new ValidationError(`${message} at ${manifestPath}.`, {
+        ...(error instanceof Error ? { cause: error } : {}),
+        context: { path: manifestPath, reason },
+      })
+    );
+  }
+};
+
+const prepareWorkspaceScaffoldFiles = async (
+  projectDir: string,
+  name: string,
+  sourceFiles: Map<string, string>,
+  standaloneTsconfig: string
+): Promise<TrailsResult<PreparedScaffoldFiles, Error>> => {
+  const files = new Map(sourceFiles);
+  const overwritePaths = new Set<string>();
+  const workspaceManifest = await reconcileExistingManifest({
+    files,
+    merge: mergeWorkspacePackageJson,
+    message: 'Cannot reconcile the existing workspace package.json',
+    overwritePaths,
+    path: 'package.json',
+    projectDir,
+    reason: 'invalid-workspace-manifest',
+  });
+  if (workspaceManifest.isErr()) {
+    return workspaceManifest;
+  }
+
+  const appManifestRelativePath = `apps/${name}/package.json`;
+  const appManifest = await reconcileExistingManifest({
+    files,
+    merge: (source) => mergeAppPackageJson(source, name),
+    message: 'Cannot reconcile the existing app package.json',
+    overwritePaths,
+    path: appManifestRelativePath,
+    projectDir,
+    reason: 'invalid-app-manifest',
+  });
+  if (appManifest.isErr()) {
+    return appManifest;
+  }
+
+  if (await Bun.file(join(projectDir, 'tsconfig.base.json')).exists()) {
+    files.set(`apps/${name}/tsconfig.json`, standaloneTsconfig);
+  }
+
+  const configPaths = findTrailsConfigPaths(projectDir);
+  if (configPaths.length > 0) {
+    try {
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: projectDir,
+        startDir: projectDir,
+      });
+      const expectedRoot = `apps/${name}`;
+      const expectedEntry = 'src/app.ts';
+      const app = identity.apps.find((candidate) => candidate.id === name);
+      if (app?.root !== expectedRoot || app.entry !== expectedEntry) {
+        return Result.err(
+          new ValidationError(
+            `Cannot reconcile existing Trails Config with workspace app "${name}" at root "${expectedRoot}" and entry "${expectedEntry}". Update workspace.apps first or choose a different target directory.`,
+            {
+              context: {
+                configuredAppIds: identity.apps.map(
+                  (candidate) => candidate.id
+                ),
+                configuredEntry: app?.entry,
+                configuredRoot: app?.root,
+                expectedAppId: name,
+                expectedEntry,
+                expectedRoot,
+                paths: configPaths,
+                reason: 'incompatible-workspace-config',
+              },
+            }
+          )
+        );
+      }
+      files.delete('trails.config.ts');
+    } catch (error) {
+      return Result.err(
+        error instanceof Error
+          ? error
+          : new ValidationError('Unable to read existing Trails Config.')
+      );
+    }
+  }
+
+  return Result.ok({ files, overwritePaths });
+};
+
+const prepareStandaloneScaffoldFiles = async (
+  projectDir: string,
+  name: string,
+  sourceFiles: Map<string, string>
+): Promise<TrailsResult<PreparedScaffoldFiles, Error>> => {
+  const files = new Map(sourceFiles);
+  const overwritePaths = new Set<string>();
+  const appManifest = await reconcileExistingManifest({
+    files,
+    merge: (source) => mergeAppPackageJson(source, name),
+    message: 'Cannot reconcile the existing app package.json',
+    overwritePaths,
+    path: 'package.json',
+    projectDir,
+    reason: 'invalid-app-manifest',
+  });
+  return appManifest.isErr()
+    ? appManifest
+    : Result.ok({ files, overwritePaths });
+};
 
 const TSCONFIG_CONTENT = `{
   "compilerOptions": {
@@ -119,13 +499,37 @@ const TSCONFIG_CONTENT = `{
     "moduleResolution": "bundler",
     "noUncheckedIndexedAccess": true,
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
     "verbatimModuleSyntax": true
   },
-  "include": ["src"]
+  "include": ["bin", "src"]
+}
+`;
+
+const TSCONFIG_BASE_CONTENT = `{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "verbatimModuleSyntax": true
+  }
+}
+`;
+
+const TSCONFIG_WORKSPACE_APP_CONTENT = `{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "extends": "../../tsconfig.base.json",
+  "include": ["bin", "src"]
 }
 `;
 
@@ -237,10 +641,6 @@ const generateHelloTrail = (): string =>
 import { z } from 'zod';
 
 export const hello = trail('hello', {
-  implementation: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: \`Hello, \${name}!\` });
-  },
   description: 'Say hello',
   examples: [
     {
@@ -254,9 +654,15 @@ export const hello = trail('hello', {
       name: 'Named greeting',
     },
   ],
-  input: z.object({
-    name: z.string().optional(),
-  }),
+  implementation: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: \`Hello, \${name}!\` });
+  },
+  input: z
+    .object({
+      name: z.string().optional(),
+    })
+    .default({}),
   intent: 'read',
   output: z.object({
     message: z.string(),
@@ -278,14 +684,6 @@ const entitySchema = z.object({
 });
 
 export const show = trail('entity.show', {
-  implementation: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const entity = store.get(input.id);
-    if (!entity) {
-      return Result.err(new NotFoundError(\`Entity "\${input.id}" not found\`));
-    }
-    return Result.ok(entity);
-  },
   description: 'Show an entity by ID',
   examples: [
     {
@@ -294,6 +692,14 @@ export const show = trail('entity.show', {
       name: 'Show entity',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = store.get(input.id);
+    if (!entity) {
+      return Result.err(new NotFoundError(\`Entity "\${input.id}" not found\`));
+    }
+    return Result.ok(entity);
+  },
   input: z.object({ id: z.string() }),
   intent: 'read',
   output: entitySchema,
@@ -301,12 +707,6 @@ export const show = trail('entity.show', {
 });
 
 export const add = trail('entity.add', {
-  implementation: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const entity = { id: randomUUID(), name: input.name };
-    store.add(entity);
-    return Result.ok(entity);
-  },
   description: 'Add a new entity',
   examples: [
     {
@@ -315,6 +715,12 @@ export const add = trail('entity.add', {
       name: 'Add entity',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = { id: randomUUID(), name: input.name };
+    store.add(entity);
+    return Result.ok(entity);
+  },
   input: z.object({ name: z.string() }),
   intent: 'write',
   output: entitySchema,
@@ -323,10 +729,6 @@ export const add = trail('entity.add', {
 });
 
 export const list = trail('entity.list', {
-  implementation: (_input, ctx) => {
-    const store = entityStore.from(ctx);
-    return Result.ok({ entities: store.list() });
-  },
   description: 'List entities',
   examples: [
     {
@@ -335,7 +737,11 @@ export const list = trail('entity.list', {
       name: 'List entities',
     },
   ],
-  input: z.object({}),
+  implementation: (_input, ctx) => {
+    const store = entityStore.from(ctx);
+    return Result.ok({ entities: store.list() });
+  },
+  input: z.object({}).default({}),
   intent: 'read',
   output: z.object({
     entities: z.array(entitySchema),
@@ -344,11 +750,6 @@ export const list = trail('entity.list', {
 });
 
 export const remove = trail('entity.delete', {
-  implementation: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const deleted = store.delete(input.id);
-    return Result.ok({ deleted, id: input.id });
-  },
   description: 'Delete an entity by ID',
   examples: [
     {
@@ -357,6 +758,11 @@ export const remove = trail('entity.delete', {
       name: 'Delete entity',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const deleted = store.delete(input.id);
+    return Result.ok({ deleted, id: input.id });
+  },
   input: z.object({ id: z.string() }),
   intent: 'destroy',
   output: z.object({
@@ -373,9 +779,6 @@ const generateSearchTrail = (): string =>
 import { z } from 'zod';
 
 export const search = trail('search', {
-  implementation: () => {
-    return Result.ok({ results: [] });
-  },
   description: 'Search entities by query',
   examples: [
     {
@@ -384,6 +787,7 @@ export const search = trail('search', {
       name: 'Search entities',
     },
   ],
+  implementation: () => Result.ok({ results: [] }),
   input: z.object({ query: z.string() }),
   intent: 'read',
   output: z.object({
@@ -397,6 +801,8 @@ const generateOnboardTrail = (): string =>
 import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
+  composes: ['entity.add'],
+  description: 'Onboard a new entity end-to-end',
   implementation: async (input, ctx) => {
     const result = await ctx.compose('entity.add', { name: input.name });
     if (result.isErr()) {
@@ -404,8 +810,6 @@ export const onboard = trail('entity.onboard', {
     }
     return Result.ok({ onboarded: true });
   },
-  composes: ['entity.add'],
-  description: 'Onboard a new entity end-to-end',
   input: z.object({ name: z.string() }),
   intent: 'write',
   output: z.object({ onboarded: z.boolean() }),
@@ -515,9 +919,26 @@ const generateAppTs = (name: string, starter: Starter): string => {
 
   return [
     "import { topo } from '@ontrails/core';",
+    "import { z } from 'zod';",
     ...imports,
     '',
     `export const app = ${topoExpression};`,
+    '',
+    'export const trailsOverlays = [',
+    '  {',
+    '    derive: () => ({',
+    `      scaffoldVersion: '${trailsPackageVersion}',`,
+    '      schemaVersion: 1,',
+    `      template: '${starter}',`,
+    '    }),',
+    "    namespace: 'scaffold',",
+    '    schema: z.object({',
+    '      scaffoldVersion: z.string(),',
+    '      schemaVersion: z.literal(1),',
+    "      template: z.enum(['empty', 'entity', 'hello']),",
+    '    }),',
+    '  },',
+    '];',
     '',
   ].join('\n');
 };
@@ -540,21 +961,43 @@ const starterFileGenerators: Record<Starter, () => [string, string][]> = {
 
 const collectScaffoldFiles = (
   name: string,
-  starter: Starter
-): Map<string, string> =>
-  new Map([
-    ['package.json', generatePackageJson(name)],
-    ['AGENTS.md', AGENTS_CONTENT],
-    ['CLAUDE.md', CLAUDE_CONTENT],
-    ['tsconfig.json', TSCONFIG_CONTENT],
-    ['tsconfig.tests.json', TSCONFIG_TESTS_CONTENT],
-    ['.gitignore', GITIGNORE_CONTENT],
-    ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
-    ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
-    ['.trails/scaffold.json', generateScaffoldProvenance(starter)],
-    ['src/app.ts', generateAppTs(name, starter)],
-    ...starterFileGenerators[starter](),
-  ]);
+  starter: Starter,
+  layout: ScaffoldLayout
+): Map<string, string> => {
+  const appRoot = layout === 'workspace' ? `apps/${name}` : '.';
+  const appPath = (path: string): string =>
+    appRoot === '.' ? path : `${appRoot}/${path}`;
+  const appFiles: [string, string][] = [
+    [appPath('package.json'), generateAppPackageJson(name)],
+    [appPath('AGENTS.md'), AGENTS_CONTENT],
+    [appPath('CLAUDE.md'), CLAUDE_CONTENT],
+    [
+      appPath('tsconfig.json'),
+      layout === 'workspace'
+        ? TSCONFIG_WORKSPACE_APP_CONTENT
+        : TSCONFIG_CONTENT,
+    ],
+    [appPath('tsconfig.tests.json'), TSCONFIG_TESTS_CONTENT],
+    [appPath('oxlint.config.ts'), OXLINT_CONFIG_CONTENT],
+    [appPath('.oxfmtrc.jsonc'), OXFMTRC_CONTENT],
+    [appPath('src/app.ts'), generateAppTs(name, starter)],
+    ...starterFileGenerators[starter]().map(
+      ([path, content]) => [appPath(path), content] as [string, string]
+    ),
+  ];
+
+  return new Map(
+    layout === 'workspace'
+      ? [
+          ['package.json', generateWorkspacePackageJson(name)],
+          ['trails.config.ts', generateWorkspaceConfig(name)],
+          ['.gitignore', GITIGNORE_CONTENT],
+          ['tsconfig.base.json', TSCONFIG_BASE_CONTENT],
+          ...appFiles,
+        ]
+      : [['.gitignore', GITIGNORE_CONTENT], ...appFiles]
+  );
+};
 
 const collectScaffoldOperations = (
   fileMap: Map<string, string>
@@ -580,32 +1023,86 @@ export const createScaffold = trail('create.scaffold', {
     const projectDir = projectDirResult.value;
     const starter = (input.starter ?? 'hello') as Starter;
     const dryRun = input.dryRun === true;
-    const fileMap = collectScaffoldFiles(input.name, starter);
-    const operations = collectScaffoldOperations(fileMap);
-    const plannedOperations: TrailsResult<PlannedProjectOperation[], Error> =
-      dryRun
-        ? planProjectOperations(projectDir, operations, {
-            existing: 'preserve',
-          })
-        : await applyProjectOperations(projectDir, operations, {
-            existing: 'preserve',
-          });
-    if (plannedOperations.isErr()) {
-      return plannedOperations;
+    const layout: ScaffoldLayout = input.workspace ? 'workspace' : 'standalone';
+    const appRoot = layout === 'workspace' ? `apps/${input.name}` : '.';
+    const sourceFiles = collectScaffoldFiles(input.name, starter, layout);
+    const prepared =
+      layout === 'workspace'
+        ? await prepareWorkspaceScaffoldFiles(
+            projectDir,
+            input.name,
+            sourceFiles,
+            TSCONFIG_CONTENT
+          )
+        : await prepareStandaloneScaffoldFiles(
+            projectDir,
+            input.name,
+            sourceFiles
+          );
+    if (prepared.isErr()) {
+      return prepared;
     }
+    const operations = collectScaffoldOperations(prepared.value.files);
+    const overwriteOperations = operations.filter(
+      (operation) =>
+        operation.kind === 'write' &&
+        prepared.value.overwritePaths.has(operation.path)
+    );
+    const preserveOperations = operations.filter(
+      (operation) =>
+        operation.kind !== 'write' ||
+        !prepared.value.overwritePaths.has(operation.path)
+    );
+    const overwritePlan = planProjectOperations(
+      projectDir,
+      overwriteOperations
+    );
+    if (overwritePlan.isErr()) {
+      return overwritePlan;
+    }
+    const preservePlan = planProjectOperations(projectDir, preserveOperations, {
+      existing: 'preserve',
+    });
+    if (preservePlan.isErr()) {
+      return preservePlan;
+    }
+    if (!dryRun) {
+      const overwritten = await applyProjectOperations(
+        projectDir,
+        overwriteOperations
+      );
+      if (overwritten.isErr()) {
+        return overwritten;
+      }
+      const preserved = await applyProjectOperations(
+        projectDir,
+        preserveOperations,
+        { existing: 'preserve' }
+      );
+      if (preserved.isErr()) {
+        return preserved;
+      }
+    }
+    const plannedOperations: PlannedProjectOperation[] = [
+      ...overwritePlan.value,
+      ...preservePlan.value,
+    ];
 
     const created = dryRun
       ? []
-      : plannedOperations.value
+      : plannedOperations
           .filter((operation) => operation.kind === 'write')
           .map((operation) => operation.path);
 
     return Result.ok({
+      appDir: resolve(projectDir, appRoot),
+      appRoot,
       created,
       dir: resolve(projectDir),
       dryRun,
+      layout,
       name: input.name,
-      plannedOperations: plannedOperations.value,
+      plannedOperations,
     } satisfies ScaffoldResult);
   },
   input: z.object({
@@ -622,14 +1119,21 @@ export const createScaffold = trail('create.scaffold', {
       .enum(['hello', 'entity', 'empty'])
       .default('hello')
       .describe('Starter trail'),
+    workspace: z
+      .boolean()
+      .default(false)
+      .describe('Create a configured workspace with one app'),
   }),
   intent: 'write',
   output: z.object({
+    appDir: z.string(),
+    appRoot: z.string(),
     created: z
       .array(z.string())
       .describe('Project-relative paths of files written (empty in dry-run)'),
     dir: z.string(),
     dryRun: z.boolean(),
+    layout: z.enum(['standalone', 'workspace']),
     name: z.string(),
     plannedOperations: z.array(
       z.discriminatedUnion('kind', [

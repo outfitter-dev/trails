@@ -29,9 +29,12 @@ brew untap outfitter-dev/tap
 For project dependencies and scaffolding, use Bun:
 
 ```bash
-# Recommended: scaffold a new project
+# Recommended: scaffold a standalone app
 # (create writes a project, so it needs an explicit project:write permit)
-bunx @ontrails/trails create --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+
+# Or scaffold a configured workspace with one app under apps/my-app
+bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
 bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
@@ -48,7 +51,12 @@ bun add -d @ontrails/testing@beta
 
 During the active beta line, use `@beta` for the newest published beta or pin exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
-Generated projects include `.trails/scaffold.json`, a minimal provenance breadcrumb with the scaffold schema version, the `@ontrails/trails` version that created the project, the selected starter template, and the generation timestamp. It is informational in the current beta line; future upgrade tooling can use it as a starting point without guessing which scaffold produced the project.
+`create` writes authored source, not a lock. After `bun install`, derive the app-owned lock with the locally installed Trails operator:
+
+- From a standalone app root, run `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'`.
+- From a configured workspace root, run `bunx trails compile --app my-app --permit '{"id":"local-dev","scopes":["topo:write"]}'`.
+
+That canonical compile path includes deterministic scaffold provenance in the lock's `scaffold` overlay. A workspace never receives an aggregate root lock.
 
 ## Your First Trail
 
@@ -112,11 +120,11 @@ export const graph = topo('myapp', greetModule);
 
 ## Open a CLI Surface
 
-Create `src/cli.ts`:
+Create `bin/cli.ts`:
 
 ```typescript
 import { surface } from '@ontrails/commander';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph);
 ```
@@ -126,14 +134,14 @@ Run it:
 ```bash
 # Positional arg — `name` is the sole required string field,
 # so the CLI auto-promotes it to a positional argument.
-$ bun src/cli.ts greet World
+$ bun bin/cli.ts greet World
 { "message": "Hello, World!" }
 
 # Flags still work as an alternative.
-$ bun src/cli.ts greet --name World --loud
+$ bun bin/cli.ts greet --name World --loud
 { "message": "HELLO, WORLD!" }
 
-$ bun src/cli.ts greet --help
+$ bun bin/cli.ts greet --help
 Usage: myapp greet [options] [name]
 
 Greet someone by name
@@ -151,11 +159,11 @@ When a trail has exactly one required string field with no default, the CLI auto
 
 ## Open an MCP Surface
 
-Create `src/mcp.ts`:
+Create `bin/mcp.ts`:
 
 ```typescript
 import { surface } from '@ontrails/mcp';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph);
 ```
@@ -170,11 +178,11 @@ Pure implementations can return `Result` directly. Trails with `composes` and I/
 
 ## Open an HTTP Surface
 
-Create `src/http.ts`:
+Create `bin/http.ts`:
 
 ```typescript
 import { surface } from '@ontrails/hono';
-import { graph } from './app';
+import { graph } from '../src/app';
 
 await surface(graph, { port: 3000 });
 ```

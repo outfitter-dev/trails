@@ -46,7 +46,7 @@
     "@ontrails/topography": "workspace:^",
     "@ontrails/warden": "workspace:^",
     "commander": "catalog:",
-    "typescript": "^5.9.3",
+    "typescript": "5.9.3",
     "zod": "catalog:"
   },
   "devDependencies": {
