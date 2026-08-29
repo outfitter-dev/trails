@@ -326,6 +326,7 @@ const createdStarterContract = (
 const generateReadme = (
   input: CreateInput,
   surfaceEntryFiles: ResolvedSurfaceEntryFiles,
+  createdSurfaceFiles: ReadonlySet<string>,
   createdScaffoldFiles: ReadonlySet<string>
 ): string => {
   const appPrefix = input.workspace ? `apps/${input.name}/` : '';
@@ -347,7 +348,23 @@ const generateReadme = (
   const workspaceRunCommand =
     !input.workspace || !ownsStarterContract
       ? ''
-      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name}\n`;
+      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name} --permit '{"id":"local-dev","scopes":["trails:run"]}'\n`;
+  const cliEntryFile = surfaceEntryFiles.get('cli');
+  const localPermitGuidance =
+    input.starter === 'entity' &&
+    ownsStarterContract &&
+    cliEntryFile !== undefined &&
+    createdSurfaceFiles.has(cliEntryFile)
+      ? `## Local Permits
+
+Protected starter writes require an explicit scoped permit. For local exploration, run the generated CLI with the narrow starter scope:
+
+\`\`\`bash
+bun ${appPrefix}${cliEntryFile} entity add --name New --permit '{"id":"local-dev","scopes":["entity:write"]}'
+\`\`\`
+
+`
+      : '';
 
   const compileCommands = input.workspace
     ? `bunx trails compile --app ${input.name} --permit '{"id":"local-dev","scopes":["topo:write"]}'
@@ -390,7 +407,7 @@ The generated app module authors deterministic scaffold provenance in the \`scaf
 
 ${starterReadmeLines[input.starter]}
 
-## Next Steps
+${localPermitGuidance}## Next Steps
 
 - Add a trail with ${input.workspace ? `\`cd apps/${input.name} && bun run add\`` : '`bun run add`'}
 - Run ${input.workspace ? `\`bunx trails warden --app ${input.name}\`` : '`bun run warden`'} before review
@@ -402,6 +419,7 @@ const writeReadme = async (
   input: CreateInput,
   dir: string,
   surfaceEntryFiles: ResolvedSurfaceEntryFiles,
+  createdSurfaceFiles: ReadonlySet<string>,
   createdScaffoldFiles: ReadonlySet<string>
 ): Promise<Result<string | null, Error>> => {
   const exists = projectPathExists(dir, 'README.md');
@@ -415,7 +433,12 @@ const writeReadme = async (
   const written = await writeProjectFile(
     dir,
     'README.md',
-    generateReadme(input, surfaceEntryFiles, createdScaffoldFiles)
+    generateReadme(
+      input,
+      surfaceEntryFiles,
+      createdSurfaceFiles,
+      createdScaffoldFiles
+    )
   );
   return written.isErr() ? Result.err(written.error) : Result.ok('README.md');
 };
@@ -554,6 +577,7 @@ export const createTrail = trail('create', {
         input,
         scaffolded.value.dir,
         surfaceEntryFiles.value,
+        new Set(surfaceFiles.value),
         new Set(scaffolded.value.created)
       );
       if (readmeFile.isErr()) {
