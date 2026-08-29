@@ -4957,6 +4957,1568 @@
       "runKind": "adjust",
       "timestamp": "2026-08-10T21:57:52.649Z",
       "transitionId": "f29fac3a4e47"
+    },
+    {
+      "classifiedState": {
+        "caseSensitive": true,
+        "forms": [
+          {
+            "disposition": "preserved",
+            "form": "20260608-release-provenance-as-lifecycle-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6803,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "20260716regradereopenprojectionretro",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 469,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ActivationSourceProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 20,
+              "path": ".changeset/topo-store-relocation.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "AstFieldProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 805,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "Default-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 160,
+              "path": ".agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "DeriveTrailCliCommandProjectionOptions",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 806,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ErrorClassSurfaceProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 807,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ErrorDiagnosticsProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 808,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "HTTP_METHOD_PROJECTION_PATH",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 809,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "HttpInputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 810,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "HttpLayerInputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 811,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "LayerFieldProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 812,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "LayerFlagProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 813,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "LibraryInputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 814,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "LibraryLayerFieldProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 815,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "LibraryLayerInputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 816,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "LibraryProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 817,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "McpInputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 818,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "McpLayerInputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 819,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "NormalizedTopoProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 820,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "OutputSchemaProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 821,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "PROJECTION_BLOCKING_RULES",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 822,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "Project",
+            "reason": "Preserve project as an attributive noun before established repository and workspace concepts.",
+            "representative": {
+              "line": 1565,
+              "path": "packages/regrade/src/downstream/export-restructure.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "Projected",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 123,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "Projecting",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 34,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "Projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 72,
+              "path": ".agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ProjectionMap",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 823,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "Projects",
+            "reason": "Preserve exact projects domain literals, member accesses, route segments, and enum values.",
+            "representative": {
+              "line": 84,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "RenamedLayerFieldProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 826,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ShippedSurfaceProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 827,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "SurfaceErrorProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 828,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "SurfaceProjectionSource",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 829,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "SurfaceTrailVersionProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 830,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TopoGraphLibraryProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 831,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TopoStoreSurfaceProjectionRecord",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 832,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TopoSurfaceProjectionRow",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 833,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TrailCliCommandProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 834,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TrailCliProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 835,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TrailCliProjectionInput",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 836,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "TrailErrorTaxonomyProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 837,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "activation-source-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6811,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "buildOutputSchemaProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 838,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "buildProjectionDiagnostic",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 839,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "cliProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 840,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "cliProjectionSchema",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 841,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "collectLibraryProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 842,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "collectionExtensionProjectionForFileRenames",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 578,
+              "path": "packages/warden/src/__tests__/retired-vocabulary.test.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "deriveShippedSurfaceProjectionInventory",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 883,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "deriveTrailCliCommandProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 884,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "error-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6815,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "errorSurfaceProjectionSchema",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 885,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "errorTaxonomyProjectionSchema",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 886,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "expectProjectionCounts",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 887,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "extensionProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 844,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "inputProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 888,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "isProjectionBlockingIssue",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 889,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "isTrailCliProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 890,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "keepProjectionBlockingIssues",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 891,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "layer-input-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6807,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "layer-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 8,
+              "path": ".changeset/trl-474-layer-input-mcp-http.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "layerInputProjections",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 8,
+              "path": ".changeset/trl-474-layer-input-mcp-http.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "layerProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 892,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "library-layer-input-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 104,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "library-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6839,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "library-projection-coherence",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6843,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "libraryProjectionCoherence",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 893,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "libraryProjectionCoherenceTrail",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 894,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "lockfile-as-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 255,
+              "path": "docs/adr/0018-signal-driven-governance.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "move-trails-repo-local-plugin-projections-onto-skillset",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 26,
+              "path": ".agents/plans/2026-08-06-skillset-migration/REFS.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "normalizeTopoProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 895,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "owner-projection-parity",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 6847,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ownerProjectionParity",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 896,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "ownerProjectionParityTrail",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 897,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "policy-vs-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 180,
+              "path": "docs/adr/0037-owner-first-authority.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "project",
+            "reason": "Preserve exact project domain literals, example variables, route segments, and enum values.",
+            "representative": {
+              "line": 150,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projected",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 5,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projecting",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 34,
+              "path": ".agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 5,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projection-level",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 40,
+              "path": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projection-travels-with-schema",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 7,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projectionDb",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 898,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projectionKeys",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 899,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projectionSource",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 900,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projectioned",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 56,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projectioning",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 63,
+              "path": ".trails/regrade/v1-projection-derive-render.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projections",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 41,
+              "path": ".agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "projects",
+            "reason": "Preserve projects as an ordinary plural repository or application noun selected by an established domain modifier.",
+            "representative": {
+              "line": 425,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "reconcile-the-projection-regrade-receipt-after-adr-0054-acceptance",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 189,
+              "path": ".agents/plans/2026-08-06-skillset-migration/RETRO.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "release-provenance-as-lifecycle-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 119,
+              "path": ".agents/memory/decisions.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "seedLegacyProjectionStore",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 901,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "simpleProjectionApp",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 902,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "surface-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 248,
+              "path": "docs/releases/beta15-to-beta19.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "surfaceProjectionBaseOutput",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 903,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "surfaceProjectionOutput",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 904,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "taxonomyProjection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 905,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "topoGraphLibraryProjectionSchema",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 906,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trailCliProjectionFor",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 907,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trl-1019-projection-derive-render",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 208,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trl-1019-projection-residue",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 209,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trl-1032-compile-error-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 219,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trl-473-layer-input-cli-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 339,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trl-958-cli-command-projection",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 410,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "trl-980-library-projection-artifacts",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 417,
+              "path": ".changeset/pre.json"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "v1-projection-derive-render",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 86,
+              "path": ".agents/plans/2026-08-06-skillset-migration/RETRO.md"
+            }
+          },
+          {
+            "disposition": "preserved",
+            "form": "withProjectionDb",
+            "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger.",
+            "representative": {
+              "line": 908,
+              "path": "packages/warden/src/rules/retired-vocabulary.ts"
+            }
+          }
+        ],
+        "kind": "embedded",
+        "stateHash": "d70d5829bb42d8e970aa495b989a142ad518d30f61b5304a0b736c6111e04ba9"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {
+            "explicit-preserve": 711,
+            "historical-by-policy": 824
+          },
+          "matched": 0,
+          "preserved": 105,
+          "review": 0,
+          "rewritten": 0,
+          "skippedByReason": {
+            "ignored-directory": 71,
+            "ignored-glob": 1,
+            "immutable-regrade-history": 1,
+            "unsupported-extension": 981
+          },
+          "unknown": 0
+        },
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
+        },
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
+      },
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "64c64187c514fd3bd110f0e91147d4ed719b49f2e684e8e52992cbab53be80e8",
+        "lockStateHash": "83e6da92e102173577ce8d6c62eaf8726f413fa9051574e3a4d782c07e867c92",
+        "policyHash": "dbf2b0cdcda6a172ed62ff76f8823d3fa66d845c27add1448395ed5ed80d6c2a",
+        "sourceRevision": "349dac4f37e45ca1bb229f3419dafd99ee6b9d26",
+        "sourceStateHash": "83e6da92e102173577ce8d6c62eaf8726f413fa9051574e3a4d782c07e867c92",
+        "toolVersion": "1.0.0-beta.50"
+      },
+      "intent": {
+        "kind": "embedded",
+        "plan": {
+          "caseSensitive": true,
+          "deferForms": [
+            "projection",
+            "projections",
+            "project",
+            "projects",
+            "Projects",
+            "projecting",
+            "Projecting",
+            "projected",
+            "Projected"
+          ],
+          "fileRenames": [
+            {
+              "from": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md",
+              "to": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md"
+            },
+            {
+              "from": "packages/cli/src/__tests__/layer-input-projection.test.ts",
+              "to": "packages/cli/src/__tests__/layer-input-rendering.test.ts"
+            },
+            {
+              "from": "packages/core/src/__tests__/activation-source-projection.test.ts",
+              "to": "packages/core/src/__tests__/activation-source-derivation.test.ts"
+            },
+            {
+              "from": "packages/core/src/__tests__/error-projection.test.ts",
+              "to": "packages/core/src/__tests__/error-rendering.test.ts"
+            },
+            {
+              "from": "packages/core/src/activation-source-projection.ts",
+              "to": "packages/core/src/activation-source-derivation.ts"
+            },
+            {
+              "from": "packages/core/src/error-projection.ts",
+              "to": "packages/core/src/error-rendering.ts"
+            },
+            {
+              "from": "packages/core/src/layer-projection.ts",
+              "to": "packages/core/src/layer-field-rendering.ts"
+            },
+            {
+              "from": "packages/http/src/__tests__/layer-input-projection.test.ts",
+              "to": "packages/http/src/__tests__/layer-input-rendering.test.ts"
+            },
+            {
+              "from": "packages/mcp/src/__tests__/layer-input-projection.test.ts",
+              "to": "packages/mcp/src/__tests__/layer-input-rendering.test.ts"
+            },
+            {
+              "from": "packages/topography/src/library-projection.ts",
+              "to": "packages/topography/src/library-derivation.ts"
+            },
+            {
+              "from": "packages/warden/src/__tests__/library-projection-coherence.test.ts",
+              "to": "packages/warden/src/__tests__/library-render-coherence.test.ts"
+            },
+            {
+              "from": "packages/warden/src/__tests__/owner-projection-parity.test.ts",
+              "to": "packages/warden/src/__tests__/owner-render-parity.test.ts"
+            },
+            {
+              "from": "packages/warden/src/rules/library-projection-coherence.ts",
+              "to": "packages/warden/src/rules/library-render-coherence.ts"
+            },
+            {
+              "from": "packages/warden/src/rules/owner-projection-parity.ts",
+              "to": "packages/warden/src/rules/owner-render-parity.ts"
+            },
+            {
+              "from": "packages/warden/src/trails/library-projection-coherence.trail.ts",
+              "to": "packages/warden/src/trails/library-render-coherence.trail.ts"
+            },
+            {
+              "from": "packages/warden/src/trails/owner-projection-parity.trail.ts",
+              "to": "packages/warden/src/trails/owner-render-parity.trail.ts"
+            }
+          ],
+          "from": "projection",
+          "id": "v1-projection-derive-render",
+          "intent": "Split projection vocabulary into derive/render by lifecycle stage for v1.",
+          "kind": "vocabulary",
+          "preserve": [
+            {
+              "pattern": "\\b[Pp]roject(?:[-/:]|['’]s\\b)",
+              "reason": "Preserve compound project-domain nouns, permit scopes, paths, and possessives without suppressing the standalone retired verb."
+            },
+            {
+              "pattern": "\\b[Pp]roject\\s+(?:root|directory|files?|paths?|state|scripts?|guidance|structure|name|marker|context|conventions?|vocabulary|rules?|findings?|operations?|key|source|config|metadata|policy|package|scope|entities|resources|diagnostics|history|update|control|instructions?|overview|documentation|boundary|helpers?|shape|dependencies|dependency|detection|substrate|truth|work|writing|management|settings?|skills?|issue|ids?)\\b",
+              "reason": "Preserve project as an attributive noun before established repository and workspace concepts."
+            },
+            {
+              "pattern": "\\b(?:A|An|The|This|That|a|an|the|this|that|each|entire|every|existing|new|current|same|target|nested|downstream|Trails|Linear|Node|UX|logical|adopting|generated|scaffolded|source-shaped|first-party|temp)\\s+project\\b",
+              "reason": "Preserve project as an ordinary count noun selected by a determiner or domain adjective."
+            },
+            {
+              "pattern": "\\b(?:Trails|Matt[’']s|Vite|ADR|adopting|application|consumer|customer|developer|framework|package|software|source|workspace|generated|scaffolded|new|existing|source-shaped|first-party|downstream|most|large|all|many|multiple|other|our|several|their|these|those|your)\\s+projects\\b",
+              "reason": "Preserve projects as an ordinary plural repository or application noun selected by an established domain modifier."
+            },
+            {
+              "pattern": "\\b(?:across|among|between|for|from|in|inside|of|outside|under|within|with|without)\\s+(?:the\\s+)?projects\\b",
+              "reason": "Preserve projects as the object of a repository or application preposition."
+            },
+            {
+              "pattern": "(?:['\"`/.][Pp]rojects(?:['\"`/]|\\b)|\\b[Pp]rojects\\b\\s*(?:=|[):;,]))",
+              "reason": "Preserve exact projects domain literals, member accesses, route segments, and enum values."
+            },
+            {
+              "pattern": "\\b(?:in|for|within|across|under|outside|inside|from|of|with|without|per|before|after)\\s+(?:the\\s+)?project\\b",
+              "reason": "Preserve project as the object of a repository or workspace preposition."
+            },
+            {
+              "pattern": "(?:['\"`/]project(?:['\"`/]|\\b)|\\bproject\\b\\s*(?:=|[);,]))",
+              "reason": "Preserve exact project domain literals, example variables, route segments, and enum values."
+            },
+            {
+              "pattern": "(?:\\bmemory:\\s*project\\b|\\bproject\\b(?=\\s+(?:from|health-check|show)\\b))",
+              "reason": "Preserve project as an exact metadata value, import alias, or domain command segment."
+            },
+            {
+              "pattern": "(?:\\bA Node project\\b|\\ba non-trivial UX project\\b|\\bproject\\s+`warden\\.)",
+              "reason": "Preserve established multiword project nouns and project-scoped Warden configuration prose."
+            },
+            {
+              "pattern": "\\b[Pp]roject(?:[-/:]|['’]s\\b)",
+              "reason": "Preserve compound project-domain nouns, permit scopes, paths, and possessives without suppressing the standalone retired verb."
+            },
+            {
+              "pattern": "\\b[Pp]roject\\s+(?:root|directory|files?|paths?|state|scripts?|guidance|structure|name|marker|context|conventions?|vocabulary|rules?|findings?|operations?|key|source|config|metadata|policy|package|scope|entities|resources|diagnostics|history|update|control|instructions?|overview|documentation|boundary|helpers?|shape|dependencies|dependency|detection|substrate|truth|work|writing|management|settings?|skills?|issue|ids?)\\b",
+              "reason": "Preserve project as an attributive noun before established repository and workspace concepts."
+            },
+            {
+              "pattern": "\\b(?:A|An|The|This|That|a|an|the|this|that|each|entire|every|existing|new|current|same|target|nested|downstream|Trails|Linear|Node|UX|logical|adopting|generated|scaffolded|source-shaped|first-party|temp)\\s+project\\b",
+              "reason": "Preserve project as an ordinary count noun selected by a determiner or domain adjective."
+            },
+            {
+              "pattern": "\\b(?:Trails|Matt[’']s|Vite|ADR|adopting|application|consumer|customer|developer|framework|package|software|source|workspace|generated|scaffolded|new|existing|source-shaped|first-party|downstream|most|large|all|many|multiple|other|our|several|their|these|those|your)\\s+projects\\b",
+              "reason": "Preserve projects as an ordinary plural repository or application noun selected by an established domain modifier."
+            },
+            {
+              "pattern": "\\b(?:across|among|between|for|from|in|inside|of|outside|under|within|with|without)\\s+(?:the\\s+)?projects\\b",
+              "reason": "Preserve projects as the object of a repository or application preposition."
+            },
+            {
+              "pattern": "(?:['\"`/.][Pp]rojects(?:['\"`/]|\\b)|\\b[Pp]rojects\\b\\s*(?:=|[):;,]))",
+              "reason": "Preserve exact projects domain literals, member accesses, route segments, and enum values."
+            },
+            {
+              "pattern": "\\b(?:in|for|within|across|under|outside|inside|from|of|with|without|per|before|after)\\s+(?:the\\s+)?project\\b",
+              "reason": "Preserve project as the object of a repository or workspace preposition."
+            },
+            {
+              "pattern": "(?:['\"`/]project(?:['\"`/]|\\b)|\\bproject\\b\\s*(?:=|[);,]))",
+              "reason": "Preserve exact project domain literals, example variables, route segments, and enum values."
+            },
+            {
+              "pattern": "(?:\\bmemory:\\s*project\\b|\\bproject\\b(?=\\s+(?:from|health-check|show)\\b))",
+              "reason": "Preserve project as an exact metadata value, import alias, or domain command segment."
+            },
+            {
+              "pattern": "(?:\\bA Node project\\b|\\ba non-trivial UX project\\b|\\bproject\\s+`warden\\.)",
+              "reason": "Preserve established multiword project nouns and project-scoped Warden configuration prose."
+            },
+            {
+              "pattern": "\\b[Pp]roject extent\\b",
+              "reason": "Preserve project extent as the operator-selected workspace or app scope."
+            }
+          ],
+          "scope": {
+            "exclude": [
+              ".scratch/**",
+              "**/.scratch/**",
+              "**/.tmp-tests/**"
+            ],
+            "policyClassified": [
+              {
+                "disposition": "historical-by-policy",
+                "paths": [
+                  ".agents/goals/**",
+                  "**/.agents/goals/**",
+                  ".agents/memory/**",
+                  "**/.agents/memory/**",
+                  ".agents/notes/**",
+                  "**/.agents/notes/**",
+                  ".agents/plans/**",
+                  "**/.agents/plans/**",
+                  ".claude/agent-memory/**",
+                  "**/.claude/agent-memory/**",
+                  ".changeset/**",
+                  "**/.changeset/**",
+                  ".trails/regrade/*.json",
+                  "**/.trails/regrade/*.json",
+                  "**/CHANGELOG.md",
+                  "docs/adr/0*.md",
+                  "docs/adr/decision-map.json",
+                  "docs/migration/*-to-adapter.md",
+                  "docs/migration/*-to-compose.md",
+                  "docs/migration/trailhead-to-surface.md",
+                  "docs/releases/beta*.md",
+                  "docs/releases/v1-vocabulary-reset.md",
+                  "docs/releases/v1-vocabulary-transition-workflow.md",
+                  "packages/warden/src/__tests__/retired-vocabulary.test.ts",
+                  "packages/warden/src/rules/retired-vocabulary.ts"
+                ],
+                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
+              },
+              {
+                "disposition": "explicit-preserve",
+                "expectMatches": true,
+                "paths": [
+                  "apps/trails/src/__tests__/mcp.test.ts",
+                  "apps/trails/src/__tests__/regrade.test.ts",
+                  "packages/regrade/src/downstream/__tests__/**/*.test.ts"
+                ],
+                "reason": "Preserve exact old/new vocabulary fixtures that prove CLI, MCP, registry, and rewrite behavior without treating them as current teaching or API residue."
+              },
+              {
+                "disposition": "historical-by-policy",
+                "expectMatches": true,
+                "paths": [
+                  "docs/adr/0*.md"
+                ],
+                "reason": "The Trails projection census records accepted ADR history that must remain visible during the v1 split."
+              }
+            ],
+            "teachingSurfaces": [
+              "docs/adr/drafts/20260331-direct-invocation.md",
+              "docs/adr/drafts/20260331-pack-resources.md",
+              "docs/adr/drafts/20260406-documentation-freshness.md",
+              "docs/adr/drafts/20260406-documentation-structure.md",
+              "docs/adr/drafts/20260524-scaffold-forward-compatibility.md",
+              "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md",
+              "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md",
+              "docs/adr/drafts/20260612-library-surface-and-compiler.md",
+              "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md",
+              "docs/api-reference.md",
+              "docs/architecture.md",
+              "docs/contributing/codebase-navigation.md",
+              "docs/contributing/README.md",
+              "docs/contributing/warden-rules.md",
+              "docs/getting-started.md",
+              "docs/lexicon.md",
+              "docs/migration/topograph-artifact-family.md",
+              "docs/releases/plugin-release.md",
+              "docs/releases/release-rules-check.md",
+              "docs/releases/stable-cutover.md",
+              "docs/releases/surface-trailheads.md",
+              "docs/surfaces/mcp.md",
+              "docs/surfaces/surface-trailheads.md",
+              "docs/tenets.md",
+              "docs/topo-store.md",
+              "docs/warden.md",
+              "docs/why-trails.md"
+            ]
+          },
+          "to": "derive"
+        },
+        "planContentHash": "f6ce76c938a4b2b98fb7873ee0b987738402becaa3611147ca4e51ae51b5b5e4",
+        "provenance": {
+          "fields": {
+            "caseSensitive": "derived",
+            "deferForms": "derived",
+            "fileRenames": "derived",
+            "from": "authored",
+            "id": "derived",
+            "intent": "authored",
+            "kind": "derived",
+            "preserve": "authored",
+            "scope": "derived",
+            "to": "authored"
+          }
+        }
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "0d067a212ed4ef8f",
+      "runKind": "adjust",
+      "timestamp": "2026-08-22T01:03:22.430Z",
+      "transitionId": "f29fac3a4e47"
+    },
+    {
+      "classifiedState": {
+        "kind": "reference",
+        "stateHash": "d70d5829bb42d8e970aa495b989a142ad518d30f61b5304a0b736c6111e04ba9"
+      },
+      "completion": {
+        "counts": {
+          "dispositions": {
+            "explicit-preserve": 708,
+            "historical-by-policy": 810
+          },
+          "matched": 0,
+          "preserved": 105,
+          "review": 0,
+          "rewritten": 0,
+          "skippedByReason": {
+            "ignored-directory": 71,
+            "ignored-glob": 1,
+            "immutable-regrade-history": 1,
+            "unsupported-extension": 981
+          },
+          "unknown": 0
+        },
+        "gate": {
+          "reasons": [],
+          "remaining": 0,
+          "status": "green"
+        },
+        "metrics": {
+          "filesChanged": 0,
+          "formsMapped": 0,
+          "occurrencesRewritten": 0
+        }
+      },
+      "evidence": {
+        "changedFiles": [],
+        "detailEvidenceHash": "7645952db7c0f3e6d38ee479c538c9dd5fb6671b3c76aa71006a6724ac82edf7",
+        "lockStateHash": "83e6da92e102173577ce8d6c62eaf8726f413fa9051574e3a4d782c07e867c92",
+        "policyHash": "dbf2b0cdcda6a172ed62ff76f8823d3fa66d845c27add1448395ed5ed80d6c2a",
+        "sourceRevision": "349dac4f37e45ca1bb229f3419dafd99ee6b9d26",
+        "sourceStateHash": "83e6da92e102173577ce8d6c62eaf8726f413fa9051574e3a4d782c07e867c92",
+        "toolVersion": "1.0.0-beta.50"
+      },
+      "intent": {
+        "kind": "embedded",
+        "plan": {
+          "caseSensitive": true,
+          "deferForms": [
+            "projection",
+            "projections",
+            "project",
+            "projects",
+            "Projects",
+            "projecting",
+            "Projecting",
+            "projected",
+            "Projected"
+          ],
+          "fileRenames": [
+            {
+              "from": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md",
+              "to": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md"
+            },
+            {
+              "from": "packages/cli/src/__tests__/layer-input-projection.test.ts",
+              "to": "packages/cli/src/__tests__/layer-input-rendering.test.ts"
+            },
+            {
+              "from": "packages/core/src/__tests__/activation-source-projection.test.ts",
+              "to": "packages/core/src/__tests__/activation-source-derivation.test.ts"
+            },
+            {
+              "from": "packages/core/src/__tests__/error-projection.test.ts",
+              "to": "packages/core/src/__tests__/error-rendering.test.ts"
+            },
+            {
+              "from": "packages/core/src/activation-source-projection.ts",
+              "to": "packages/core/src/activation-source-derivation.ts"
+            },
+            {
+              "from": "packages/core/src/error-projection.ts",
+              "to": "packages/core/src/error-rendering.ts"
+            },
+            {
+              "from": "packages/core/src/layer-projection.ts",
+              "to": "packages/core/src/layer-field-rendering.ts"
+            },
+            {
+              "from": "packages/http/src/__tests__/layer-input-projection.test.ts",
+              "to": "packages/http/src/__tests__/layer-input-rendering.test.ts"
+            },
+            {
+              "from": "packages/mcp/src/__tests__/layer-input-projection.test.ts",
+              "to": "packages/mcp/src/__tests__/layer-input-rendering.test.ts"
+            },
+            {
+              "from": "packages/topography/src/library-projection.ts",
+              "to": "packages/topography/src/library-derivation.ts"
+            },
+            {
+              "from": "packages/warden/src/__tests__/library-projection-coherence.test.ts",
+              "to": "packages/warden/src/__tests__/library-render-coherence.test.ts"
+            },
+            {
+              "from": "packages/warden/src/__tests__/owner-projection-parity.test.ts",
+              "to": "packages/warden/src/__tests__/owner-render-parity.test.ts"
+            },
+            {
+              "from": "packages/warden/src/rules/library-projection-coherence.ts",
+              "to": "packages/warden/src/rules/library-render-coherence.ts"
+            },
+            {
+              "from": "packages/warden/src/rules/owner-projection-parity.ts",
+              "to": "packages/warden/src/rules/owner-render-parity.ts"
+            },
+            {
+              "from": "packages/warden/src/trails/library-projection-coherence.trail.ts",
+              "to": "packages/warden/src/trails/library-render-coherence.trail.ts"
+            },
+            {
+              "from": "packages/warden/src/trails/owner-projection-parity.trail.ts",
+              "to": "packages/warden/src/trails/owner-render-parity.trail.ts"
+            }
+          ],
+          "from": "projection",
+          "id": "v1-projection-derive-render",
+          "intent": "Split projection vocabulary into derive/render by lifecycle stage for v1.",
+          "kind": "vocabulary",
+          "preserve": [
+            {
+              "pattern": "\\b[Pp]roject(?:[-/:]|['’]s\\b)",
+              "reason": "Preserve compound project-domain nouns, permit scopes, paths, and possessives without suppressing the standalone retired verb."
+            },
+            {
+              "pattern": "\\b[Pp]roject\\s+(?:root|directory|files?|paths?|state|scripts?|guidance|structure|name|marker|context|conventions?|vocabulary|rules?|findings?|operations?|key|source|config|metadata|policy|package|scope|entities|resources|diagnostics|history|update|control|instructions?|overview|documentation|boundary|helpers?|shape|dependencies|dependency|detection|substrate|truth|work|writing|management|settings?|skills?|issue|ids?)\\b",
+              "reason": "Preserve project as an attributive noun before established repository and workspace concepts."
+            },
+            {
+              "pattern": "\\b(?:A|An|The|This|That|a|an|the|this|that|each|entire|every|existing|new|current|same|target|nested|downstream|Trails|Linear|Node|UX|logical|adopting|generated|scaffolded|source-shaped|first-party|temp)\\s+project\\b",
+              "reason": "Preserve project as an ordinary count noun selected by a determiner or domain adjective."
+            },
+            {
+              "pattern": "\\b(?:Trails|Matt[’']s|Vite|ADR|adopting|application|consumer|customer|developer|framework|package|software|source|workspace|generated|scaffolded|new|existing|source-shaped|first-party|downstream|most|large|all|many|multiple|other|our|several|their|these|those|your)\\s+projects\\b",
+              "reason": "Preserve projects as an ordinary plural repository or application noun selected by an established domain modifier."
+            },
+            {
+              "pattern": "\\b(?:across|among|between|for|from|in|inside|of|outside|under|within|with|without)\\s+(?:the\\s+)?projects\\b",
+              "reason": "Preserve projects as the object of a repository or application preposition."
+            },
+            {
+              "pattern": "(?:['\"`/.][Pp]rojects(?:['\"`/]|\\b)|\\b[Pp]rojects\\b\\s*(?:=|[):;,]))",
+              "reason": "Preserve exact projects domain literals, member accesses, route segments, and enum values."
+            },
+            {
+              "pattern": "\\b(?:in|for|within|across|under|outside|inside|from|of|with|without|per|before|after)\\s+(?:the\\s+)?project\\b",
+              "reason": "Preserve project as the object of a repository or workspace preposition."
+            },
+            {
+              "pattern": "(?:['\"`/]project(?:['\"`/]|\\b)|\\bproject\\b\\s*(?:=|[);,]))",
+              "reason": "Preserve exact project domain literals, example variables, route segments, and enum values."
+            },
+            {
+              "pattern": "(?:\\bmemory:\\s*project\\b|\\bproject\\b(?=\\s+(?:from|health-check|show)\\b))",
+              "reason": "Preserve project as an exact metadata value, import alias, or domain command segment."
+            },
+            {
+              "pattern": "(?:\\bA Node project\\b|\\ba non-trivial UX project\\b|\\bproject\\s+`warden\\.)",
+              "reason": "Preserve established multiword project nouns and project-scoped Warden configuration prose."
+            },
+            {
+              "pattern": "\\b[Pp]roject extent\\b",
+              "reason": "Preserve project extent as the operator-selected workspace or app scope."
+            }
+          ],
+          "scope": {
+            "exclude": [
+              ".scratch/**",
+              "**/.scratch/**",
+              "**/.tmp-tests/**"
+            ],
+            "policyClassified": [
+              {
+                "disposition": "historical-by-policy",
+                "paths": [
+                  ".agents/goals/**",
+                  "**/.agents/goals/**",
+                  ".agents/memory/**",
+                  "**/.agents/memory/**",
+                  ".agents/notes/**",
+                  "**/.agents/notes/**",
+                  ".agents/plans/**",
+                  "**/.agents/plans/**",
+                  ".claude/agent-memory/**",
+                  "**/.claude/agent-memory/**",
+                  ".changeset/**",
+                  "**/.changeset/**",
+                  ".trails/regrade/*.json",
+                  "**/.trails/regrade/*.json",
+                  "**/CHANGELOG.md",
+                  "docs/adr/0*.md",
+                  "docs/adr/decision-map.json",
+                  "docs/migration/*-to-adapter.md",
+                  "docs/migration/*-to-compose.md",
+                  "docs/migration/trailhead-to-surface.md",
+                  "docs/releases/beta*.md",
+                  "docs/releases/v1-vocabulary-reset.md",
+                  "docs/releases/v1-vocabulary-transition-workflow.md",
+                  "packages/warden/src/__tests__/retired-vocabulary.test.ts",
+                  "packages/warden/src/rules/retired-vocabulary.ts"
+                ],
+                "reason": "Preserve authored migration plans and historical decision/release evidence while keeping occurrences visible to the run ledger."
+              },
+              {
+                "disposition": "explicit-preserve",
+                "expectMatches": true,
+                "paths": [
+                  "apps/trails/src/__tests__/mcp.test.ts",
+                  "apps/trails/src/__tests__/regrade.test.ts",
+                  "packages/regrade/src/downstream/__tests__/**/*.test.ts"
+                ],
+                "reason": "Preserve exact old/new vocabulary fixtures that prove CLI, MCP, registry, and rewrite behavior without treating them as current teaching or API residue."
+              },
+              {
+                "disposition": "historical-by-policy",
+                "expectMatches": true,
+                "paths": [
+                  "docs/adr/0*.md"
+                ],
+                "reason": "The Trails projection census records accepted ADR history that must remain visible during the v1 split."
+              }
+            ],
+            "teachingSurfaces": [
+              "docs/adr/drafts/20260331-direct-invocation.md",
+              "docs/adr/drafts/20260331-pack-resources.md",
+              "docs/adr/drafts/20260406-documentation-freshness.md",
+              "docs/adr/drafts/20260406-documentation-structure.md",
+              "docs/adr/drafts/20260524-scaffold-forward-compatibility.md",
+              "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md",
+              "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md",
+              "docs/adr/drafts/20260612-library-surface-and-compiler.md",
+              "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md",
+              "docs/api-reference.md",
+              "docs/architecture.md",
+              "docs/contributing/codebase-navigation.md",
+              "docs/contributing/README.md",
+              "docs/contributing/warden-rules.md",
+              "docs/getting-started.md",
+              "docs/lexicon.md",
+              "docs/migration/topograph-artifact-family.md",
+              "docs/releases/plugin-release.md",
+              "docs/releases/release-rules-check.md",
+              "docs/releases/stable-cutover.md",
+              "docs/releases/surface-trailheads.md",
+              "docs/surfaces/mcp.md",
+              "docs/surfaces/surface-trailheads.md",
+              "docs/tenets.md",
+              "docs/topo-store.md",
+              "docs/warden.md",
+              "docs/why-trails.md"
+            ]
+          },
+          "to": "derive"
+        },
+        "planContentHash": "6e3c38284c9560d264c4f7b680e220f04d5e916ce57609a884d4b6fc8f1a6785",
+        "provenance": {
+          "fields": {
+            "caseSensitive": "derived",
+            "deferForms": "derived",
+            "fileRenames": "derived",
+            "from": "authored",
+            "id": "derived",
+            "intent": "authored",
+            "kind": "derived",
+            "preserve": "authored",
+            "scope": "derived",
+            "to": "authored"
+          }
+        }
+      },
+      "project": {
+        "root": "."
+      },
+      "runId": "605f67f861435d92",
+      "runKind": "adjust",
+      "timestamp": "2026-08-22T01:29:11.228Z",
+      "transitionId": "f29fac3a4e47"
     }
   ],
   "schemaVersion": 3

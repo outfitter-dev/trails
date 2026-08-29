@@ -6,14 +6,14 @@ For the full SQLite schema and programmatic query API, see the [Topo Store Refer
 
 ## Project files and local state
 
-Current v1 builds write one committed resolved-truth file at the project root:
+Current v1 builds write one committed resolved-truth file per lock-owning app:
 
 ```text
-trails.lock                # Trails lock v4 envelope (git-tracked)
-.trails/                   # committed Trails control directory
+<app-root>/trails.lock      # Trails lock v4 envelope (git-tracked)
+<project-root>/.trails/     # committed Trails control directory
 ```
 
-- **`trails.lock`** — Committed lock v4 envelope. It embeds the serialized TopoGraph plus the hash, summary, and scope facts needed for drift checks and graph reads.
+- **`trails.lock`** — Committed lock v4 envelope at a standalone or configured app root. It embeds the serialized TopoGraph plus the hash, summary, and scope facts needed for drift checks and graph reads. A configured workspace names its lock-owning apps through static `workspace.apps`; it never owns an aggregate workspace-root lock. A root `trails.lock` is app-owned only when `root: '.'` explicitly assigns that root to one app.
 - **`.trails/`** — Committed Trails control directory. Project-local Warden rules and scaffold/control metadata live here; cache, generated lock fragments, and SQLite state do not.
 - **`trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. It is local state under the per-user Trails state store, not a repo file.
 
@@ -48,8 +48,8 @@ Artifact lifecycle commands are top-level `trails` commands: `trails compile`, `
 
 Retired shapes such as `trails topo compile`, `trails topo verify`, and `trails topo check` are not aliases. Use the top-level commands instead:
 
-- `trails compile` writes root `trails.lock`.
-- `trails validate` checks root `trails.lock` against the current topo.
+- `trails compile` writes one selected app's `trails.lock`. A configured workspace-root invocation requires `--app <id>` and never creates an aggregate root lock.
+- `trails validate` checks one selected app, or proves the complete configured app set when run at a workspace root without `--app`.
 - `trails diff` compares the current topo against a saved TopoGraph target.
 
 Programmatic consumers use `@ontrails/topography` APIs directly; the package does not ship a separate CLI binary.
@@ -96,11 +96,17 @@ trails topo history --limit 20
 
 ### `trails compile`
 
-Compile the current topo to root `trails.lock`.
+Compile the selected app topo to that app root's `trails.lock`.
 
 ```bash
+# Standalone app or CWD inside a configured app root
 trails compile
+
+# Configured workspace root
+trails compile --app api
 ```
+
+`--root-dir` fixes the discovery boundary, `--app` selects a configured app, and CWD selects an app when it is inside exactly one configured app root. `--module` only refines the selected app's entry module; it cannot select an app, change its lock root, or bypass the configured topo-name binding. Compile at a configured workspace root without `--app` fails with the configured app IDs and writes nothing.
 
 ### `trails diff`
 
@@ -142,21 +148,26 @@ trails doctor
 
 ### `trails validate`
 
-Check that root `trails.lock` matches your current topo. Fails if the committed resolved truth has drifted.
+Check that committed app locks match current source. From an app root or with `--app`, validation is scoped to one app and does not require unrelated apps to be available. From a configured workspace root without `--app`, validation loads every configured app and fails closed unless every binding, lock, live graph, and freshness verdict is complete.
 
 ```bash
-# In CI
+# One app
+trails validate --app api || exit 1
+
+# Complete configured workspace
 trails validate || exit 1
 ```
+
+Machine-readable compile and validate results distinguish `standalone-app`, `configured-app`, and `workspace` extents and include the selected project root, selection provenance, configured app IDs, module source, artifact path, and completeness evidence. Workspace validation additionally returns the per-app evidence and canonical workspace-view hash.
 
 ## Workflows
 
 ### Pre-deployment
 
 1. Make topology changes
-2. Compile: `trails compile`
-3. Commit `trails.lock`
-4. In CI, validate: `trails validate`
+2. Compile each changed app: `trails compile` for a standalone app or from inside a configured app root, or `trails compile --app <id>` at a configured workspace root
+3. Commit each app-root `trails.lock`
+4. In CI, validate the configured workspace: `trails validate`
 
 ### Pin before refactoring
 

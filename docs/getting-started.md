@@ -321,16 +321,18 @@ export const listUsers = trail('user.list', {
 
 The `resources: [db]` declaration tells the topo which infrastructure this trail depends on. Access the resource instance through `db.from(ctx)` for typed access. When you run `testAll(graph)`, the framework automatically resolves `mock` factories — no configuration needed for example-based tests.
 
-## Trails CLI Auto-Discovery
+## Compile and Validate Auto-Discovery
 
-The `trails` CLI commands (`topo`, `survey`, `guide`, etc.) automatically discover your app entry point when run from the workspace root. No `--module` flag needed if your app follows one of these layouts:
+`trails compile` and `trails validate` automatically discover a conventional entry point when the selected project extent is one app. No `--module` flag is needed for a standalone app or when CWD is inside one configured app root and the app follows one of these layouts:
 
 - **Single-app:** `src/app.ts`
 - **Monorepo:** `apps/*/src/app.ts`
 
-If multiple candidates are found, the CLI exits with an error listing them; pass `--module` to specify which one to use.
+Configured workspaces name app identity in `workspace.apps`. From the workspace root, use `--app <id>` with `trails compile`; a bare `trails validate` deliberately validates the complete configured app set. `trails compile` never fans out and never creates a workspace-root aggregate lock.
 
-`--module` is workspace-relative by default. The Trails CLI rejects URL-shaped paths, absolute paths, and `..` paths that escape the selected workspace root. Framework code that deliberately loads an app module outside that boundary must opt into `trustedModulePath: true` when calling `loadApp` or `loadFreshAppLease`.
+If multiple entry candidates are found inside the selected app, the CLI exits with an error listing them; pass `--module` to refine that app's module.
+
+For these commands, `--root-dir` fixes the discovery boundary exactly. `--module` is selected-app-relative by default and never changes app identity or the lock root. They reject URL-shaped paths, absolute paths, and `..` paths that escape the selected app root. Framework code that deliberately loads an app module outside that boundary must opt into `trustedModulePath: true` when calling `loadApp` or `loadFreshAppLease`.
 
 ## What's Next
 

@@ -72,7 +72,7 @@ export const trailsOverlays = [
 
 const compileFixture = async (dir: string): Promise<void> => {
   const compiled = await compileTrail.implementation(
-    { module: './src/app.ts' },
+    { module: './src/app.ts', rootDir: dir },
     {
       cwd: dir,
     } as never
@@ -128,7 +128,7 @@ describe('lock overlays proof (TRL-1199 compile-path collection)', () => {
 
     // (d) validate re-derives the same graph, overlays included.
     const validated = await validateTrail.implementation(
-      { module: './src/app.ts' },
+      { module: './src/app.ts', rootDir: dir },
       {
         cwd: dir,
       } as never

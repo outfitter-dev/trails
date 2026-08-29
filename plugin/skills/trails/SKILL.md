@@ -3,7 +3,7 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.42
+    version: 1.0.0-beta.50
 ---
 
 # Trails
@@ -323,9 +323,13 @@ The warden enforces conventions and detects drift:
 ```bash
 trails warden          # Convention checks
 trails warden --lock cached --no-lock-mutation # Governance against cached lock data
-trails compile        # Regenerate root trails.lock
-trails validate       # Verify root trails.lock
+trails compile         # Regenerate a standalone or current-app trails.lock
+trails compile --app my-app # Regenerate one configured app lock from a workspace root
+trails validate        # Verify the current app, or every app from a workspace root
+trails validate --app my-app # Verify one configured app from a workspace root
 ```
+
+Each lock-owning app has its own root `trails.lock`. A configured workspace derives its app set from `workspace.apps`; it never owns an aggregate workspace-root lock.
 
 For the current generated rule index, read [warden-guide.md](references/warden-guide.md) instead of relying on copied rule prose.
 

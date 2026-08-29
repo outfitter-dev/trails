@@ -202,7 +202,9 @@ describe('topo and dev trails', () => {
       );
 
       const compileResult = expectOk(
-        await compileTrail.implementation(moduleInput, { cwd: dir } as never)
+        await compileTrail.implementation({ ...moduleInput, rootDir: dir }, {
+          cwd: dir,
+        } as never)
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
       expect(compileResult.hash).toHaveLength(64);
@@ -221,7 +223,9 @@ describe('topo and dev trails', () => {
       expect(summaryAfterExport.lockExists).toBe(true);
 
       const verifyResult = expectOk(
-        await validateTrail.implementation(moduleInput, { cwd: dir } as never)
+        await validateTrail.implementation({ ...moduleInput, rootDir: dir }, {
+          cwd: dir,
+        } as never)
       );
       expect(verifyResult.stale).toBe(false);
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -236,7 +240,9 @@ describe('topo and dev trails', () => {
       );
 
       const driftError = expectErr(
-        await validateTrail.implementation(moduleInput, { cwd: dir } as never)
+        await validateTrail.implementation({ ...moduleInput, rootDir: dir }, {
+          cwd: dir,
+        } as never)
       );
       expect(driftError.message).toContain('trails.lock is stale');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -246,7 +252,9 @@ describe('topo and dev trails', () => {
         `${JSON.stringify({ hash: '1'.repeat(64), version: 2 }, null, 2)}\n`
       );
       const verifyError = expectErr(
-        await validateTrail.implementation(moduleInput, { cwd: dir } as never)
+        await validateTrail.implementation({ ...moduleInput, rootDir: dir }, {
+          cwd: dir,
+        } as never)
       );
       expect(verifyError.message).toContain('regenerate with `trails compile`');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -375,10 +383,14 @@ describe('topo and dev trails', () => {
       expect(firstPin.snapshot.pinnedAs).toBe('before-auth');
 
       const firstCompile = expectOk(
-        await compileTrail.implementation(moduleInput, { cwd: dir } as never)
+        await compileTrail.implementation({ ...moduleInput, rootDir: dir }, {
+          cwd: dir,
+        } as never)
       );
       const secondCompile = expectOk(
-        await compileTrail.implementation(moduleInput, { cwd: dir } as never)
+        await compileTrail.implementation({ ...moduleInput, rootDir: dir }, {
+          cwd: dir,
+        } as never)
       );
       expect(firstCompile.hash).toBe(secondCompile.hash);
       expect(

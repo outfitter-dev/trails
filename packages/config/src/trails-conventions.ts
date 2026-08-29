@@ -1,5 +1,9 @@
 import { statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+
+import { canonicalBoundaryPath, isWithinBoundary } from './path-boundary.js';
+
+import { ValidationError } from '@ontrails/core';
 
 export const trailsConfigModuleCandidates = [
   'trails.config.ts',
@@ -60,6 +64,8 @@ export interface TrailsProjectRootResolution {
 }
 
 export interface FindTrailsProjectRootOptions {
+  /** Inclusive discovery ceiling owned by the current collection. */
+  readonly boundaryDir?: string | undefined;
   readonly startDir?: string | undefined;
 }
 
@@ -154,11 +160,32 @@ const findSourceRootMarkerIn = (
 };
 
 export const findTrailsProjectRoot = ({
+  boundaryDir,
   startDir = process.cwd(),
 }: FindTrailsProjectRootOptions = {}):
   | TrailsProjectRootResolution
   | undefined => {
   let current = resolve(startDir);
+  const boundary = boundaryDir === undefined ? undefined : resolve(boundaryDir);
+  const lexicalBoundary = boundary ?? current;
+  const canonicalBoundary =
+    boundary === undefined ? undefined : canonicalBoundaryPath(boundary);
+  let canonicalCurrent =
+    canonicalBoundary === undefined
+      ? undefined
+      : canonicalBoundaryPath(current);
+  if (canonicalBoundary !== undefined && canonicalCurrent !== undefined) {
+    if (!isWithinBoundary(canonicalBoundary, canonicalCurrent)) {
+      throw new ValidationError(
+        `Trails project-root discovery start directory "${current}" is outside collection boundary "${boundary}".`,
+        { context: { boundaryDir: boundary, startDir: current } }
+      );
+    }
+    current = resolve(
+      lexicalBoundary,
+      relative(canonicalBoundary, canonicalCurrent)
+    );
+  }
   let sourceFallback: TrailsProjectRootResolution | undefined;
 
   while (true) {
@@ -172,15 +199,28 @@ export const findTrailsProjectRoot = ({
       sourceFallback = { ...sourceMarker, rootDir: current };
     }
 
-    const parent = dirname(current);
-    if (parent === current) {
+    if (
+      canonicalBoundary !== undefined &&
+      canonicalCurrent === canonicalBoundary
+    ) {
       return sourceFallback;
     }
-    current = parent;
+    const currentForParent = canonicalCurrent ?? current;
+    const parent = dirname(currentForParent);
+    if (parent === currentForParent) {
+      return sourceFallback;
+    }
+    if (canonicalBoundary === undefined) {
+      current = parent;
+    } else {
+      canonicalCurrent = parent;
+      current = resolve(lexicalBoundary, relative(canonicalBoundary, parent));
+    }
   }
 };
 
 export const resolveTrailsProjectRoot = ({
+  boundaryDir,
   explicitRootDir,
   startDir = process.cwd(),
 }: ResolveTrailsProjectRootOptions = {}): TrailsProjectRootResolution => {
@@ -192,7 +232,7 @@ export const resolveTrailsProjectRoot = ({
   }
 
   return (
-    findTrailsProjectRoot({ startDir }) ?? {
+    findTrailsProjectRoot({ boundaryDir, startDir }) ?? {
       marker: 'fallback',
       rootDir: resolve(startDir),
     }

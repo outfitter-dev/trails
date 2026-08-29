@@ -98,11 +98,23 @@ If warden reports drift:
 
 ```bash
 trails warden --lock cached --no-lock-mutation
+```
+
+From a standalone app root or inside one configured app root, refresh that app directly:
+
+```bash
 trails compile
 trails validate
 ```
 
-Review the diff, update the lock if the change is intentional.
+From a configured workspace root, refresh each app that owns intentional drift:
+
+```bash
+trails compile --app <configured-id>
+trails validate --app <configured-id>
+```
+
+Repeat the app-scoped commands for every affected app, review each lock diff, then run bare `trails validate` from the workspace root as the final complete-workspace proof.
 
 ### 7. Finish Distribution-Ready
 
