@@ -1032,11 +1032,37 @@ const collectAuthoredMcpSurfaceBindingSets = (
   return sets.length > 0 ? sets : undefined;
 };
 
+const isFileUnderRoot = (filePath: string, rootDir: string): boolean => {
+  const relativePath = relative(rootDir, filePath);
+  return (
+    relativePath !== '' &&
+    !relativePath.startsWith('..') &&
+    !isAbsolute(relativePath)
+  );
+};
+
+/**
+ * Resolve the app-local roots that loaded topo targets govern.
+ *
+ * Returns `null` when any target lacks an app-local root: a root-less target
+ * (single-app runs, embedder fixtures) keeps the historical behavior of
+ * governing the entire scan, so no file-authored known-id supplement applies.
+ */
+const governedTargetRoots = (
+  topoTargets: readonly WardenTopoTarget[],
+  rootDir: string
+): readonly string[] | null => {
+  const targetRoots = topoTargets.flatMap((target) =>
+    target.rootDir === undefined ? [] : [resolve(rootDir, target.rootDir)]
+  );
+  return targetRoots.length === topoTargets.length ? targetRoots : null;
+};
+
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
   collection: SourceTreeCollection | null,
   rootDir: string,
-  appTopos: readonly Topo[] = [],
+  topoTargets: readonly WardenTopoTarget[] = [],
   scope: WardenScope = EMPTY_WARDEN_SCOPE,
   authoredMcpSurfaceBindingSets:
     | readonly AuthoredMcpSurfaceBindingSet[]
@@ -1069,11 +1095,27 @@ const buildProjectContext = (
   context.governedVocabularyHistoryRequired =
     context.publicWorkspaces.has('@ontrails/warden');
 
-  if (appTopos.length > 0) {
-    for (const appTopo of appTopos) {
-      collectTopoTrailContext(appTopo, context);
+  if (topoTargets.length > 0) {
+    for (const target of topoTargets) {
+      collectTopoTrailContext(target.topo, context);
     }
+    // Loaded topos stay authoritative for the files under their app-local
+    // roots, but a workspace scan can cover configured apps outside a
+    // narrowed `--app` selection. Supplement the known-id sets with
+    // file-authored definitions for files no loaded target governs so
+    // existence rules (`on-references-exist`, `resource-exists`,
+    // `entity-exists`) do not flag honest references in unselected apps.
+    // Strict topo membership stays on `topoTrailIds`, topo-derived only.
+    const governedRoots = governedTargetRoots(topoTargets, rootDir);
     for (const sourceFile of typeScriptSourceFiles) {
+      if (
+        governedRoots !== null &&
+        !governedRoots.some((root) =>
+          isFileUnderRoot(sourceFile.filePath, root)
+        )
+      ) {
+        collectFileKnownIds(sourceFile, context);
+      }
       collectFileSupplementalProjectContext(sourceFile, context);
     }
   } else {
@@ -1493,7 +1535,7 @@ const lintFiles = async (
     sourceFiles,
     loaded.collection,
     rootDir,
-    topoTargets.map((target) => target.topo),
+    topoTargets,
     scope,
     collectAuthoredMcpSurfaceBindingSets(topoTargets),
     workspaceLocks.observations

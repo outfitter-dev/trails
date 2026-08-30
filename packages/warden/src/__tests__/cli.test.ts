@@ -337,7 +337,7 @@ describe('runWarden basics', () => {
           concern: 'general',
           depth: 'project',
           invariant: 'one Warden run observes one working tree',
-          lifecycle: { state: 'stable' },
+          lifecycle: { state: 'durable' },
           scope: 'repo-local',
           tier: 'project-static',
         },
@@ -828,6 +828,75 @@ export const second = entity('second', {
       expect(seen).toEqual([]);
       expect(report.drift).toBeNull();
       expect(report.effectiveConfig?.depth).toBe('project');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('narrowed app targets keep file-authored signals in unselected apps known', async () => {
+    const dir = makeTempDir();
+    try {
+      // Mirrors a workspace scan with a narrowed `--app` selection: the loaded
+      // topo governs only its app-local root, while another configured app's
+      // files author and consume a signal the loaded topo does not own. The
+      // existence check must treat those file-authored definitions as known.
+      const selectedRoot = join(dir, 'apps', 'primary');
+      const unselectedRoot = join(dir, 'apps', 'demo');
+      mkdirSync(selectedRoot, { recursive: true });
+      mkdirSync(unselectedRoot, { recursive: true });
+      writeFileSync(
+        join(unselectedRoot, 'consumer.ts'),
+        `trail('entity.notify-updated', {
+  on: ['entity.updated'],
+  implementation: async () => Result.ok({ notified: true }),
+});`
+      );
+      writeFileSync(
+        join(unselectedRoot, 'signals.ts'),
+        `import { signal } from '@ontrails/core';
+import { z } from 'zod';
+
+export const updated = signal('entity.updated', {
+  payload: z.object({ entityId: z.string() }),
+});`
+      );
+      const report = await runWarden({
+        depth: 'project',
+        rootDir: dir,
+        topos: [
+          {
+            name: 'fixture',
+            rootDir: selectedRoot,
+            topo: buildFixtureTopo(),
+          },
+        ],
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(rules.has('on-references-exist')).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('root-less topo targets stay authoritative for the whole scan', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'consumer.ts'),
+        `trail('entity.notify-updated', {
+  on: ['entity.updated'],
+  implementation: async () => Result.ok({ notified: true }),
+});`
+      );
+      const report = await runWarden({
+        depth: 'project',
+        rootDir: dir,
+        topo: buildFixtureTopo(),
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(rules.has('on-references-exist')).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
