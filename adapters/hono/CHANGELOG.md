@@ -1,5 +1,45 @@
 # @ontrails/hono
 
+## 1.0.0
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+
+### Patch Changes
+
+- [`f5c6777`](https://github.com/outfitter-dev/trails/commit/f5c6777c39ea959d2123f17bb683151fe265386c): Move adapter package workspaces from `connectors/*` to `adapters/*` as part of
+  the package-boundary taxonomy cutover. Package names and public APIs are
+  unchanged.
+- [`e41c382`](https://github.com/outfitter-dev/trails/commit/e41c3829c2d692683b78c730e67fd5b17ac0ff4e): Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- [`ed5926b`](https://github.com/outfitter-dev/trails/commit/ed5926bddebed7be19a902d69be58f2d5e8b4c51): Add missing TSDoc for public adapter and sink boundary types.
+- [`6300f70`](https://github.com/outfitter-dev/trails/commit/6300f709bb6dffc0e6cc82479fe8d0204c52bbba): Refresh source comments and test labels for retired connector terminology as adapter guardrails become strict.
+- [`20d7a5c`](https://github.com/outfitter-dev/trails/commit/20d7a5c8e675fd3ecd8c29441bbd8a99b5c64ed0): Enforce the shared safe error projection policy for public error bodies, diagnostics, serialized payloads, and CLI stderr.
+- [`95bf132`](https://github.com/outfitter-dev/trails/commit/95bf132a15d6bd0f3a9e5fa597697393014f1e21): Wire HTTP permit resolution through the Hono adapter, including request headers for Bearer Authorization handling.
+- [`729f957`](https://github.com/outfitter-dev/trails/commit/729f957a11dfa54474c20262dc2c37866f8b437e): Harden the Hono surface by capping JSON request bodies at 1 MiB by default and
+  redacting generic internal errors while preserving server-side diagnostics.
+- [`49c2e7d`](https://github.com/outfitter-dev/trails/commit/49c2e7d5c7c063b9aa6abee1d2932bf3003133cc): Refresh published package README taxonomy to use adapter language instead of retired connector vocabulary.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`bc2d327`](https://github.com/outfitter-dev/trails/commit/bc2d3276cf0af2c7217365a28b436ebf3023c09b): Close HTTP package documentation around the shared `@ontrails/http/fetch` kernel, Bun-native `@ontrails/http/bun` subpath, and Hono adapter boundary before versioning.
+- [`20cb72c`](https://github.com/outfitter-dev/trails/commit/20cb72cc91e48a4683f8832e18b0f55855943583): Refactor Hono route handling to delegate Web request parsing, response
+  projection, diagnostics, permits, and webhook handling through
+  `@ontrails/http/fetch`.
+- [`8105f53`](https://github.com/outfitter-dev/trails/commit/8105f538ee3a0768a21482e6b7385122c2ed90dd): Declare the Hono package as an extracted HTTP adapter and dogfood the shared
+  adapter authoring check path against its owner conformance test.
+- [`df9a7d0`](https://github.com/outfitter-dev/trails/commit/df9a7d00fe4d9ebec948b6ebed6dc4525fc8e0dc): Add project-aware public export-map governance for @ontrails workspace docs,
+  imports, root barrels, and bin-only package surfaces.
+- [`61497c5`](https://github.com/outfitter-dev/trails/commit/61497c54deaaae2d067af88d0be6db0a5acb5faf): Add v1-minimum public API examples for shipped surface entrypoints.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

@@ -1,5 +1,41 @@
 # @ontrails/library
 
+## 1.0.0
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+
+### Patch Changes
+
+- [`8097663`](https://github.com/outfitter-dev/trails/commit/80976636d0c40edb92ff458053818050043e7c9e): Project typed layer inputs through the library surface and generated packages. The runtime now validates the combined public input, routes layer-owned fields into per-layer input slots, and generated packages share one held client across root and result subpaths while avoiding Bun-only ambient type assumptions in their emitted tsconfig.
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
+- [`f9533a4`](https://github.com/outfitter-dev/trails/commit/f9533a4ef7392201c71d7f751361b4f7177eeacb): Keep public error projection shared and redacted while using transport-neutral CLI vocabulary and preserving safe topo diagnostics in structured output.
+- [`d4c8600`](https://github.com/outfitter-dev/trails/commit/d4c86009af44348d16bb78cae72054487baf0538): Make the library surface package publishable so generated Trails libraries can depend on the shared runtime-backed surface outside the monorepo.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

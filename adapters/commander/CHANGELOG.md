@@ -1,5 +1,54 @@
 # @ontrails/commander
 
+## 1.0.0
+
+### Minor Changes
+
+- [`e991a5b`](https://github.com/outfitter-dev/trails/commit/e991a5b2e8b9057d8e33a067e29fb0aca641d5ad): Add generic enum value aliases for CLI flags and migrate Warden command aliases onto the shared alias model.
+- [`25f3c5c`](https://github.com/outfitter-dev/trails/commit/25f3c5ca3e4e7d5ec105f06384111a2ec37c7b72): Add the dedicated `@ontrails/commander` adapter package and move the Commander runtime out of the `@ontrails/cli/commander` subpath. Extend the repo-local package-source guardrails to cover adapter package source as the Commander runtime moves under `adapters/`.
+
+### Patch Changes
+
+- [`e41c382`](https://github.com/outfitter-dev/trails/commit/e41c3829c2d692683b78c730e67fd5b17ac0ff4e): Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- [`ed5926b`](https://github.com/outfitter-dev/trails/commit/ed5926bddebed7be19a902d69be58f2d5e8b4c51): Add missing TSDoc for public adapter and sink boundary types.
+- [`f42ca6e`](https://github.com/outfitter-dev/trails/commit/f42ca6e40b29155acec446e5bf44e52e014466bd): Hard cutover: the CLI consumes `cli` bindings from the app-authored surfaces overlay. Scalar bindings behave identically to the removed cliAliases (parity-tested) — the binding name splits on `.` into a transparent synonym command path for exactly one trail. List bindings arrive as command groups: each expanded member trail gets a group-prefixed route that dispatches the member trail with its identity preserved, and a singleton list stays a group. Expansion is fail-fast boundary validation: a scalar binding resolving to zero or multiple trails, or a group with an empty member union, is a `ValidationError` naming the binding. `DeriveTopoGraphOptions.cliAliases`, the `cliAliases`/`trailsCliAliases` app-module export convention, and the per-kind compile lift are deleted; `deriveCliCommands`/`createProgram` take `overlays` instead of `aliases`, and both topo-graph derivation pipelines expand the same bindings through one shared helper so runtime CLI routes and lock routes come from one semantic. A leftover legacy export is now a Warden error (`no-legacy-cli-alias-export`) naming the `surfaceOverlay({ cli: { ... } })` rewrite.
+
+  This is a breaking API removal shipped under the lockstep beta patch convention (pre-1.0 hard-cutover posture, zero external adoption); the removed options have no deprecation window by design.
+
+- [`454e935`](https://github.com/outfitter-dev/trails/commit/454e935088782a181df89a205c0ff6f2eb936434): Define bounded multiselect argv normalization in the framework CLI model and apply it automatically in the Commander adapter, accepting both contiguous and repeated forms while preserving child routes after the first explicit value.
+- [`60caabf`](https://github.com/outfitter-dev/trails/commit/60caabf5901c3366ce1585823a6f42675876b7ab): Render operator-actionable detail lines after CLI execution errors: validation failures list their topo issues (message plus trail id) and permission failures name the required permit scopes with a copyable `--permit` form. Non-internal Trails error context only, passed through the shared redactor; internal errors keep the redacted generic message.
+- [`1eb5bdc`](https://github.com/outfitter-dev/trails/commit/1eb5bdc06142d8886f3870801b2ef71a0c5f3844): Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+- [`20d7a5c`](https://github.com/outfitter-dev/trails/commit/20d7a5c8e675fd3ecd8c29441bbd8a99b5c64ed0): Enforce the shared safe error projection policy for public error bodies, diagnostics, serialized payloads, and CLI stderr.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+- [`dbf4ff4`](https://github.com/outfitter-dev/trails/commit/dbf4ff4a73255e65e55e734b6796b6fcf7f4a07a): Emit structured CLI error envelopes for JSON/JSONL command failures and map compile-time Trails DB lock contention to a retryable timeout instead of a generic internal error.
+- [`f1e6efa`](https://github.com/outfitter-dev/trails/commit/f1e6efa4f383287f0b2196f48185699e7476b18c): Prevent executable parent command defaults from leaking into nested child commands.
+- [`a8e4dc3`](https://github.com/outfitter-dev/trails/commit/a8e4dc35cbc88a419dafa9082b31c51ae735526b): Clean up the Wayfinder navigation grammar before RC, including explicit pattern/query/file selectors, target-bound dependency and impact flags, drift-first provenance fields, stricter fires declaration diagnostics, and updated operator dogfood coverage.
+- [`945cb4b`](https://github.com/outfitter-dev/trails/commit/945cb4b0bef40ddb098c2a3816f9adad6f135410): Honor explicit structured input values over CLI flag defaults when commands merge
+  `--input-json` or `--input` payloads.
+
+  Commander now forwards user-supplied flag metadata so explicit flag values that
+  match a default still keep normal CLI precedence over structured input.
+
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`f9533a4`](https://github.com/outfitter-dev/trails/commit/f9533a4ef7392201c71d7f751361b4f7177eeacb): Keep public error projection shared and redacted while using transport-neutral CLI vocabulary and preserving safe topo diagnostics in structured output.
+- [`4030698`](https://github.com/outfitter-dev/trails/commit/40306984467625844564f0f84156530d7118a79c): Keep structured input on nested child commands from being reinterpreted as a
+  bare child-name positional fallback, while preserving schema-authored
+  `inputJson` flags as ordinary trail input, including through the public Trails
+  CLI. Optional numeric flags now consume negative values with Commander's own
+  parsing semantics, and variadic flags consume every following value, before
+  nested command routing is resolved.
+- [`1d3ae74`](https://github.com/outfitter-dev/trails/commit/1d3ae743c5f4ab64e6ae7bff4a98f64a6427ae84): Materialize resolved CLI command aliases through the Commander surface while
+  preserving the same trail contract and execution path.
+- [`df9a7d0`](https://github.com/outfitter-dev/trails/commit/df9a7d00fe4d9ebec948b6ebed6dc4525fc8e0dc): Add project-aware public export-map governance for @ontrails workspace docs,
+  imports, root barrels, and bin-only package surfaces.
+- [`61497c5`](https://github.com/outfitter-dev/trails/commit/61497c54deaaae2d067af88d0be6db0a5acb5faf): Add v1-minimum public API examples for shipped surface entrypoints.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49
