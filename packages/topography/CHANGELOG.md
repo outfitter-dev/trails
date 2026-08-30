@@ -1,5 +1,55 @@
 # @ontrails/topography
 
+## 1.0.0-beta.51
+
+### Minor Changes
+
+- [`be3db8a`](https://github.com/outfitter-dev/trails/commit/be3db8a23a64e73ac00fc759520acd9ccc2711c9): Add a Config-fed app-partitioned workspace view over app-local locks, with deterministic collision and hash facts plus separate completeness, binding, freshness, collection-boundary, and unowned-lock evidence. The lock census honors configured app roots that sit at or below default-ignored directories, while ignored directories inside an app root stay pruned so dependency locks are never reported as unowned.
+- [`8424b67`](https://github.com/outfitter-dev/trails/commit/8424b67d929b8e48d5e27dbf5b0d2347fde8e481): Make `run`, Wayfinder navigation and semantic diff, Warden, and shell
+  completions use Config-owned project identity. Add stable `--app <id>`
+  selection and structured project provenance, preserve partial saved workspace
+  navigation, and require complete app-partitioned views for workspace diff.
+  Preserve canonical sole-app discovery for standalone run and live Wayfinder
+  consumers, and keep healthy shell completions available when configured sibling
+  apps cannot load. Keep nested app completion suggestions inside the selected
+  app, and retain selected project provenance plus authored inputs when running or
+  listing trail examples. Preserve completed `--app` selection and typed
+  `--root-dir` boundaries throughout dynamic completion, encode shell tokens
+  through the internal variadic input without losing flags, spaces, or empty
+  values. While an app value is still being completed, preserve its typed root
+  but defer app-local module selection until the app is complete. Validate
+  Config-owned identity on the same fresh Survey lease that derives live
+  Wayfinder responses. Record the executed app identity as `executedAppId` on
+  `run.examples` and `run.example` results so every listing and comparison names
+  the app that produced it, including standalone single-app runs.
+
+  Remove the superseded `buildWorkspaceTrailIndex()` package-workspace discovery
+  API now that no operator consumer uses it as identity.
+
+  Let Config-owning Warden consumers provide expected stable app bindings so topo
+  identity is validated before any safe source fixes run. Require every configured
+  app target to have committed app-local lock evidence before Warden claims the
+  workspace is current.
+  Expose deterministic per-app Warden drift evidence alongside the aggregate
+  workspace verdict.
+  Run the Warden artifact preflight for every topo-aware run that consumes saved
+  lock evidence, including `--fix` runs, and run that preflight before a fixing
+  run applies any safe source fix so invalid saved evidence can never rewrite
+  source first. Reject `wayfind diff` baselines whose recorded lock hash or
+  summary contradicts the embedded graph, including `--against-dir` directories.
+
+### Patch Changes
+
+- [`082408e`](https://github.com/outfitter-dev/trails/commit/082408e32c16fd737d8899fc8c8a51fa0f61b3d9): Warn when a configured workspace contains a nested `trails.lock` outside `workspace.apps`, and reject a workspace-root aggregate lock without deriving app identity from either artifact.
+
+  Make the Trails operator topo reproducible by keeping its authored examples free of temporary filesystem paths, so its committed app-owned lock validates deterministically.
+
+  Replay known operator current-app examples through the selected Config entry, including the nested project input in the authored `run` example, so custom app layouts do not fall back to `src/app.ts` without rewriting matching fields in domain examples.
+
+  Add `trails config explain` as the operator-owned inspection surface for source-static project and app identity. It reports the Config-authored catalog, selected extent, and selection provenance without loading app modules or reading locks.
+
+  **BREAKING:** Remove the public `@ontrails/config` `configExplain` trail export. Library consumers that inspect resolved deployment provenance must migrate to `deriveConfigProvenance`; operators and agents that inspect Config-authored app identity must migrate to `trails config explain`. The broader config cascade stays deferred.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

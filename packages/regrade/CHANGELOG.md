@@ -1,5 +1,7 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.51
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

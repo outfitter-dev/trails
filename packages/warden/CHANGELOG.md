@@ -1,5 +1,57 @@
 # @ontrails/warden
 
+## 1.0.0-beta.51
+
+### Minor Changes
+
+- [`8424b67`](https://github.com/outfitter-dev/trails/commit/8424b67d929b8e48d5e27dbf5b0d2347fde8e481): Make `run`, Wayfinder navigation and semantic diff, Warden, and shell
+  completions use Config-owned project identity. Add stable `--app <id>`
+  selection and structured project provenance, preserve partial saved workspace
+  navigation, and require complete app-partitioned views for workspace diff.
+  Preserve canonical sole-app discovery for standalone run and live Wayfinder
+  consumers, and keep healthy shell completions available when configured sibling
+  apps cannot load. Keep nested app completion suggestions inside the selected
+  app, and retain selected project provenance plus authored inputs when running or
+  listing trail examples. Preserve completed `--app` selection and typed
+  `--root-dir` boundaries throughout dynamic completion, encode shell tokens
+  through the internal variadic input without losing flags, spaces, or empty
+  values. While an app value is still being completed, preserve its typed root
+  but defer app-local module selection until the app is complete. Validate
+  Config-owned identity on the same fresh Survey lease that derives live
+  Wayfinder responses. Record the executed app identity as `executedAppId` on
+  `run.examples` and `run.example` results so every listing and comparison names
+  the app that produced it, including standalone single-app runs.
+
+  Remove the superseded `buildWorkspaceTrailIndex()` package-workspace discovery
+  API now that no operator consumer uses it as identity.
+
+  Let Config-owning Warden consumers provide expected stable app bindings so topo
+  identity is validated before any safe source fixes run. Require every configured
+  app target to have committed app-local lock evidence before Warden claims the
+  workspace is current.
+  Expose deterministic per-app Warden drift evidence alongside the aggregate
+  workspace verdict.
+  Run the Warden artifact preflight for every topo-aware run that consumes saved
+  lock evidence, including `--fix` runs, and run that preflight before a fixing
+  run applies any safe source fix so invalid saved evidence can never rewrite
+  source first. Reject `wayfind diff` baselines whose recorded lock hash or
+  summary contradicts the embedded graph, including `--against-dir` directories.
+
+- [`082408e`](https://github.com/outfitter-dev/trails/commit/082408e32c16fd737d8899fc8c8a51fa0f61b3d9): Warn when a configured workspace contains a nested `trails.lock` outside `workspace.apps`, and reject a workspace-root aggregate lock without deriving app identity from either artifact.
+
+  Make the Trails operator topo reproducible by keeping its authored examples free of temporary filesystem paths, so its committed app-owned lock validates deterministically.
+
+  Replay known operator current-app examples through the selected Config entry, including the nested project input in the authored `run` example, so custom app layouts do not fall back to `src/app.ts` without rewriting matching fields in domain examples.
+
+  Add `trails config explain` as the operator-owned inspection surface for source-static project and app identity. It reports the Config-authored catalog, selected extent, and selection provenance without loading app modules or reading locks.
+
+  **BREAKING:** Remove the public `@ontrails/config` `configExplain` trail export. Library consumers that inspect resolved deployment provenance must migrate to `deriveConfigProvenance`; operators and agents that inspect Config-authored app identity must migrate to `trails config explain`. The broader config cascade stays deferred.
+
+### Patch Changes
+
+- [`8f0cd26`](https://github.com/outfitter-dev/trails/commit/8f0cd26528428059173c7ba335c8982911dc2b7d): Upgrade the second wave of Warden diagnostics — the audit's "partial" set — to coaching diagnostics that teach the canonical fix instead of only naming the violation: `context-no-surface-types`, `static-resource-accessor-preference` (inline dependency construction), `example-valid`, `valid-detour-contract` (`on:` constructor), `intent-propagation`, `error-mapping-completeness`, `unreachable-detour-shadowing`, `draft-visible-debt`, `version-pinned-compose`, `orphaned-signal`, `scheduled-destroy-intent`, `resource-id-grammar`, `incomplete-crud`, and `webhook-route-collision`. Rule firing logic is unchanged; only diagnostic text and the matching test/example expectations moved.
+- [`5e7fee8`](https://github.com/outfitter-dev/trails/commit/5e7fee84902c5015f8aefb249e3b0306704a8c92): Keep file-authored signal, resource, entity, and trail definitions known to existence rules for workspace files outside a narrowed app selection. A `trails warden --app <id>` run scans the whole configured workspace but previously built its known-id sets only from the selected app's topo, so honest references in unselected apps — such as a demo trail's `on:` reference to its own declared signal — failed `on-references-exist`. Loaded topos stay authoritative for files under their app-local roots, and root-less topo targets keep governing the entire scan.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

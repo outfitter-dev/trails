@@ -1,5 +1,99 @@
 # trails
 
+## 1.0.0-beta.51
+
+### Minor Changes
+
+- [`8424b67`](https://github.com/outfitter-dev/trails/commit/8424b67d929b8e48d5e27dbf5b0d2347fde8e481): Make `run`, Wayfinder navigation and semantic diff, Warden, and shell
+  completions use Config-owned project identity. Add stable `--app <id>`
+  selection and structured project provenance, preserve partial saved workspace
+  navigation, and require complete app-partitioned views for workspace diff.
+  Preserve canonical sole-app discovery for standalone run and live Wayfinder
+  consumers, and keep healthy shell completions available when configured sibling
+  apps cannot load. Keep nested app completion suggestions inside the selected
+  app, and retain selected project provenance plus authored inputs when running or
+  listing trail examples. Preserve completed `--app` selection and typed
+  `--root-dir` boundaries throughout dynamic completion, encode shell tokens
+  through the internal variadic input without losing flags, spaces, or empty
+  values. While an app value is still being completed, preserve its typed root
+  but defer app-local module selection until the app is complete. Validate
+  Config-owned identity on the same fresh Survey lease that derives live
+  Wayfinder responses. Record the executed app identity as `executedAppId` on
+  `run.examples` and `run.example` results so every listing and comparison names
+  the app that produced it, including standalone single-app runs.
+
+  Remove the superseded `buildWorkspaceTrailIndex()` package-workspace discovery
+  API now that no operator consumer uses it as identity.
+
+  Let Config-owning Warden consumers provide expected stable app bindings so topo
+  identity is validated before any safe source fixes run. Require every configured
+  app target to have committed app-local lock evidence before Warden claims the
+  workspace is current.
+  Expose deterministic per-app Warden drift evidence alongside the aggregate
+  workspace verdict.
+  Run the Warden artifact preflight for every topo-aware run that consumes saved
+  lock evidence, including `--fix` runs, and run that preflight before a fixing
+  run applies any safe source fix so invalid saved evidence can never rewrite
+  source first. Reject `wayfind diff` baselines whose recorded lock hash or
+  summary contradicts the embedded graph, including `--against-dir` directories.
+
+- [`1e168b1`](https://github.com/outfitter-dev/trails/commit/1e168b16caa5014f641fea37d028820211fb2ae1): Resolve one shared project context for `trails compile` and `trails validate`.
+  Configured workspaces now select apps through `--app` or app-root CWD, compile
+  exactly one app lock without root fanout, validate either one app or the complete
+  workspace, enforce configured topo-name binding and collection boundaries, and
+  return machine-readable selection and completeness provenance. Project-root
+  discovery can now be bounded to one working tree so linked and nested checkouts
+  do not borrow identity from a parent collection. Without Git metadata the
+  boundary walk continues to the outermost workspace declaration, so nested or
+  overlapping workspaces fail closed with a typed error naming both roots instead
+  of silently selecting the nearest one. Custom `--module` entries stay
+  relative to the selected standalone app root, and complete workspace validation
+  derives saved binding and freshness evidence once after validating each live app.
+- [`1d53625`](https://github.com/outfitter-dev/trails/commit/1d536255fdcf1b7383c92c81dc33e40415bfce63): Teach `trails create` first-class standalone and configured-workspace layouts.
+  Workspace scaffolds author literal `workspace.apps` identity, keep generated
+  surfaces under `bin/`, report complete dry-run plans, and coach the normal
+  post-install compile flow to derive app-owned locks with deterministic scaffold
+  overlay provenance instead of writing workspace-root or `.trails` artifacts.
+  Published scaffold commands include the required narrow `project:write` permit.
+  Configured workspaces install the exact Trails operator at both the root and app
+  so root-owned commands remain local under isolated Bun linking.
+  Surface additions preserve an established legacy `src/` entry layout or
+  TypeScript scope before an entry exists, failing closed when neither supported
+  surface path participates, including through solution-style project references.
+  Canonical legacy lint scope participates in that placement decision, while CLI
+  addition preserves unrelated executable mappings in the app manifest.
+  The operator pins and guards the audited TypeScript runtime that owns this
+  prospective matching. Existing workspace app manifests reconcile missing
+  scaffold-owned tooling without replacing unrelated metadata, configured app
+  entries fail closed when they disagree with the scaffold-owned app module,
+  surface placement is preflighted before scaffold writes,
+  workspace hook configuration is written at the repository root, generated CLI
+  and MCP entries carry optional app-authored overlays into runtime derivation,
+  and rerun guidance names the same resolved surface paths the operation plan
+  writes. Reruns reconcile a previously generated lint script as the established
+  scope instead of a manifest conflict, while customized lint commands still fail
+  closed. Reruns likewise upgrade a recognized prior generated `@ontrails/*` pin
+  to the current release instead of conflicting on it, while customized ranges
+  still fail closed. The `create` trail declares dry-run capability so derived
+  surfaces expose `dryRunCapable` alongside the documented `--dry-run` flag.
+- [`082408e`](https://github.com/outfitter-dev/trails/commit/082408e32c16fd737d8899fc8c8a51fa0f61b3d9): Warn when a configured workspace contains a nested `trails.lock` outside `workspace.apps`, and reject a workspace-root aggregate lock without deriving app identity from either artifact.
+
+  Make the Trails operator topo reproducible by keeping its authored examples free of temporary filesystem paths, so its committed app-owned lock validates deterministically.
+
+  Replay known operator current-app examples through the selected Config entry, including the nested project input in the authored `run` example, so custom app layouts do not fall back to `src/app.ts` without rewriting matching fields in domain examples.
+
+  Add `trails config explain` as the operator-owned inspection surface for source-static project and app identity. It reports the Config-authored catalog, selected extent, and selection provenance without loading app modules or reading locks.
+
+  **BREAKING:** Remove the public `@ontrails/config` `configExplain` trail export. Library consumers that inspect resolved deployment provenance must migrate to `deriveConfigProvenance`; operators and agents that inspect Config-authored app identity must migrate to `trails config explain`. The broader config cascade stays deferred.
+
+### Patch Changes
+
+- [`76a95cd`](https://github.com/outfitter-dev/trails/commit/76a95cdb573d72ef05925250a3fbd8cd297c25c1): Derive generated release PR label baselines from the release PR base ref instead of the already-versioned checkout, so a beta.N → beta.N+1 generated release PR receives its `release:*` label automatically and workflow reruns preserve all three generated label families.
+- [`ea8a8a4`](https://github.com/outfitter-dev/trails/commit/ea8a8a46ffec302b6773f344ee82dc190188da82): Teach published app workflows to compile through an explicit narrow local
+  permit, teach generated workspaces to run with the matching scope, and teach
+  generated entity CLI apps to invoke protected starter writes with their scoped
+  permit through the resolved CLI entry path.
+
 ## 1.0.0-beta.50
 
 ### Patch Changes

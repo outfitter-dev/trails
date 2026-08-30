@@ -1,5 +1,35 @@
 # @ontrails/config
 
+## 1.0.0-beta.51
+
+### Minor Changes
+
+- [`1679687`](https://github.com/outfitter-dev/trails/commit/1679687219431c38cdc7f46de8de60ccac49fd3c): Add Config-owned static `workspace.apps` identity with bounded, non-executing TypeScript extraction, shared data-format validation, convention-derived app entries, and normalized project paths. Type-only wrappers remain transparent, unrelated deployment expressions stay outside identity proof, duplicate identity keys fail before parser collapse, separator aliases cannot create competing app-root owners, and Source preserves declared submodule boundaries when their checkouts are absent. YAML workspace identity must stay literal, JSON-compatible data: alias references and merge keys inside the workspace subtree now fail closed before identity resolution instead of collapsing silently at parse time, while an anchor definition that nothing references stays inert and cannot alter the resolved identity. Invalid discovery start directories also fail closed: a start path that is missing or is not a directory now raises a typed `ValidationError` naming it instead of silently walking up to an ancestor project's identity.
+- [`082408e`](https://github.com/outfitter-dev/trails/commit/082408e32c16fd737d8899fc8c8a51fa0f61b3d9): Warn when a configured workspace contains a nested `trails.lock` outside `workspace.apps`, and reject a workspace-root aggregate lock without deriving app identity from either artifact.
+
+  Make the Trails operator topo reproducible by keeping its authored examples free of temporary filesystem paths, so its committed app-owned lock validates deterministically.
+
+  Replay known operator current-app examples through the selected Config entry, including the nested project input in the authored `run` example, so custom app layouts do not fall back to `src/app.ts` without rewriting matching fields in domain examples.
+
+  Add `trails config explain` as the operator-owned inspection surface for source-static project and app identity. It reports the Config-authored catalog, selected extent, and selection provenance without loading app modules or reading locks.
+
+  **BREAKING:** Remove the public `@ontrails/config` `configExplain` trail export. Library consumers that inspect resolved deployment provenance must migrate to `deriveConfigProvenance`; operators and agents that inspect Config-authored app identity must migrate to `trails config explain`. The broader config cascade stays deferred.
+
+### Patch Changes
+
+- [`1e168b1`](https://github.com/outfitter-dev/trails/commit/1e168b16caa5014f641fea37d028820211fb2ae1): Resolve one shared project context for `trails compile` and `trails validate`.
+  Configured workspaces now select apps through `--app` or app-root CWD, compile
+  exactly one app lock without root fanout, validate either one app or the complete
+  workspace, enforce configured topo-name binding and collection boundaries, and
+  return machine-readable selection and completeness provenance. Project-root
+  discovery can now be bounded to one working tree so linked and nested checkouts
+  do not borrow identity from a parent collection. Without Git metadata the
+  boundary walk continues to the outermost workspace declaration, so nested or
+  overlapping workspaces fail closed with a typed error naming both roots instead
+  of silently selecting the nearest one. Custom `--module` entries stay
+  relative to the selected standalone app root, and complete workspace validation
+  derives saved binding and freshness evidence once after validating each live app.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49
