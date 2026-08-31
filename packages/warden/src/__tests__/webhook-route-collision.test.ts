@@ -361,6 +361,9 @@ describe('webhook-route-collision', () => {
         severity: 'error',
       }),
     ]);
+    expect(diagnostics[0]?.message).toContain(
+      'make the path patterns disjoint, or reuse one shared WebhookSource'
+    );
   });
 
   test('stays quiet for dynamic patterns that cannot match the same path', async () => {
