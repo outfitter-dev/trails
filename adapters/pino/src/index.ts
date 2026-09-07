@@ -41,7 +41,7 @@ const buildPayload = (record: LogRecord): Record<string, unknown> => ({
 const flush = (logger: Logger): Promise<void> =>
   new Promise((resolve, reject) => {
     logger.flush((error) => {
-      if (error === undefined) {
+      if (error === null || error === undefined) {
         resolve();
         return;
       }

@@ -32,6 +32,19 @@ const createRecordingDestination = () => {
   return { destination, lines };
 };
 
+const createFlushResultLogger = (error: Error | null | undefined) => {
+  const { destination } = createRecordingDestination();
+  /* oxlint-disable eslint-plugin-promise/prefer-await-to-callbacks -- Pino destinations expose callback-only flush completion. */
+  const flush = (callback: (flushError?: Error | null) => void) => {
+    callback(error);
+  };
+  /* oxlint-enable eslint-plugin-promise/prefer-await-to-callbacks */
+  return pino(
+    { base: undefined, level: 'trace' },
+    Object.assign(destination, { flush })
+  );
+};
+
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -111,11 +124,31 @@ describe('@ontrails/pino', () => {
     expect(lines).toEqual([]);
   });
 
+  test.each([
+    ['null', null],
+    ['undefined', undefined],
+  ] as const)(
+    'accepts an absent Pino flush error (%s)',
+    async (_label, error) => {
+      const sink = createPinoSink({ logger: createFlushResultLogger(error) });
+
+      await expect(sink.flush()).resolves.toBeUndefined();
+    }
+  );
+
+  test('rejects a failed Pino flush', async () => {
+    const error = new Error('flush failed');
+    const sink = createPinoSink({ logger: createFlushResultLogger(error) });
+
+    await expect(sink.flush()).rejects.toBe(error);
+  });
+
   test('flushes an asynchronous Pino destination before resolving', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'trails-pino-flush-'));
     temporaryDirectories.push(directory);
     const destination = pino.destination({
       dest: join(directory, 'pino.ndjson'),
+      minLength: 4096,
       sync: false,
     });
     await once(destination, 'ready');
