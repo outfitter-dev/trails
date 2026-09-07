@@ -82,6 +82,21 @@ trail("entity.show", {
     expect(diagnostics.length).toBe(1);
   });
 
+  test('coaches the type-specifier variant when a surface type arrives from a non-surface module', () => {
+    const code = `
+import type { McpSession } from "./local-mcp-helpers";
+trail("entity.show", {
+  implementation: async (input, ctx) => {
+    return Result.ok(data);
+  }
+})`;
+    const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain(
+      'extract what the trail needs from McpSession at the surface boundary'
+    );
+  });
+
   test('allows @ontrails/core imports in trail file', () => {
     const code = `
 import { trail, Result } from "@ontrails/core";

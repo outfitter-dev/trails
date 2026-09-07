@@ -33,7 +33,18 @@ const db = resource('billing:primary', {
     expect(diagnostics[0]?.severity).toBe('error');
     expect(diagnostics[0]?.message).toContain('billing:primary');
     expect(diagnostics[0]?.message).toContain(
-      "resource('billing.primary', ...)"
+      'resource("billing.primary", ...)'
+    );
+  });
+
+  test('quotes the suggested rename when the resource id contains an apostrophe', () => {
+    const code = `const db = resource("billing:owner's", {});`;
+
+    const diagnostics = resourceIdGrammar.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain(
+      `resource("billing.owner's", ...)`
     );
   });
 
