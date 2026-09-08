@@ -17,7 +17,7 @@ There are two distinct phases:
 
 Never publish from an unmerged version PR. Never use `changeset publish`, a direct `npm publish`, or ad hoc package publication for the normal stable cutover.
 
-Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets should carry `stack:boundary` before the stable version PR is expected to reach `publish:auto`. Missing source evidence or missing `stack:boundary` routes publication to the protected manual environment; unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
+Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets should carry `stack:boundary` before the stable version PR is expected to reach `publish:auto`. Missing source evidence or missing `stack:boundary` requires the manual publication path: an explicit workflow dispatch with `publish=true`, followed by approval in the protected `npm` environment. Unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
 
 ## Preconditions
 
@@ -278,7 +278,9 @@ Keep the PR draft until CI is green and review is complete. The PR body should i
 
 Only publish after the version PR has merged.
 
-The normal publication path is the GitHub release workflow after the generated version PR merges. `publish:auto` uses the `npm-auto` environment when release evidence is complete. `publish:manual` pauses on the protected `npm` environment for approval. Both jobs publish through npm trusted publishing and produce the repository deployment record.
+The normal publication path is the GitHub release workflow after the generated version PR merges. `publish:auto` uses the `npm-auto` environment when release evidence is complete. `publish:manual` requires an explicit Release workflow dispatch on `main` with `publish=true` before the protected `npm` environment approval applies; merging the version PR does not start that manual publish job. Both jobs publish through npm trusted publishing and produce the repository deployment record.
+
+When merge authority excludes publication and tags, verify the live policy reports `decision=manual` and `should_publish=true`, with the intended stable versions unpublished and the intended Git tag and GitHub release absent. The manual label alone does not hold back release assets or GitHub release creation when the registry already matches the release: those jobs may run with `should_publish=false`. Stop for a scoped authority decision if the registry is already complete or contradicts the intended unpublished state.
 
 After the GitHub release assets are published and validated, the release workflow dispatches **Publish Homebrew**. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR. The tap PR is deliberately not auto-merged: completion requires review, merge, and a clean install or upgrade verification from the tap.
 

@@ -1,5 +1,326 @@
 # @ontrails/core
 
+## 1.0.0
+
+### Major Changes
+
+- [`93607de`](https://github.com/outfitter-dev/trails/commit/93607deae7f5a6badb4fed40f9f6b7fef43c8b64): API simplification: unified trail model, intent enum, blaze, metadata.
+
+  **BREAKING CHANGES:**
+
+  - `hike()` removed — use `trail()` with optional `crosses: [...]` field
+  - `follows` renamed to `crosses` (matching `ctx.cross()`)
+  - `topo.hikes` removed — single `topo.trails` map
+  - `kind: 'hike'` removed — everything is `kind: 'trail'`
+  - `readOnly`/`destructive` booleans replaced by `intent: 'read' | 'write' | 'destroy'`
+  - `implementation` field renamed to `blaze`
+  - `markers` field renamed to `metadata`
+  - `testHike` renamed to `testCrosses`, `HikeScenario` to `CrossScenario`
+  - `surface()` now returns the surface handle (`Command` for CLI, `Server` for MCP)
+
+- [`1eb5bdc`](https://github.com/outfitter-dev/trails/commit/1eb5bdc06142d8886f3870801b2ef71a0c5f3844): Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+- [`331e3a9`](https://github.com/outfitter-dev/trails/commit/331e3a90e2094ca3f10a206e6bbbe379301283b2): Relocate the topo-store public API from `@ontrails/core` to `@ontrails/topographer` per ADR-0042. Generic `trails-db` helpers (`openReadTrailsDb`, `openWriteTrailsDb`, `ensureSubsystemSchema`, `deriveTrailsDbPath`, `deriveTrailsDir`) stay in core because tracing and other subsystems share them.
+
+  Breaking pre-1.0 beta change. Update consumer imports:
+
+  ```diff
+  - import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot, createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/core';
+  + import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot } from '@ontrails/topographer';
+  + import { createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/topographer/backend-support';
+  ```
+
+  The same root move applies to types `ReadOnlyTopoStore`, `MockTopoStoreSeed`, `TopoSnapshot`, `TopoStoreRef`, `TopoStoreExportRecord`, `TopoStoreResourceRecord`, `TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `CreateTopoSnapshotInput`, and `ListTopoSnapshotsOptions`. The direct DB helper type `StoredTopoExport` moves to `@ontrails/topographer/backend-support`.
+
+  Core newly exports `activationSourceKey`, `projectActivationSourceDeclaration`, `activationSourceDeclarationSignature`, and the `ActivationSourceProjection` type — these were already used internally and are now part of the public surface so `@ontrails/topographer` (the only consumer that needs them) can import them through normal package channels.
+
+- [`10eae9a`](https://github.com/outfitter-dev/trails/commit/10eae9a96079dde67227191f670ba7ed1b40fef2): Migrate the Trails workspace to the documented `.trails/` layout: committed `.lock` files at the workspace root, ignored `cache/` for rebuildable derived data, ignored `state/` for mutable runtime state, and `.trails/config.local.{ts,js}` for local overrides. The default SQLite path is now `.trails/state/trails.db`. Workspace bootstrap creates only `cache/` and `state/` — the legacy `dev/` and `generated/` subdirectories are no longer created. Dev reset cleans both the new `.trails/state/` paths and legacy `.trails/trails.db*` and `.trails/dev/tracing.db*` paths for one cycle. Scaffold and workspace gitignores reflect the new layout.
+
+  Workspace bootstrap is now owned by a single canonical source in `@ontrails/core`. The package exposes `ensureTrailsWorkspace()`, `WORKSPACE_GITIGNORE_CONTENT`, and `WORKSPACE_GITIGNORE_LINES`. `@ontrails/config` no longer exports its own `ensureWorkspace` (consumers should import from `@ontrails/core`). `trails create` now writes `.trails/.gitignore` during scaffolding so a fresh-scaffolded project's initial commit includes the workspace gitignore (resolves TRL-703).
+
+### Minor Changes
+
+- [`da6e2ca`](https://github.com/outfitter-dev/trails/commit/da6e2caeb06f150042148f10f03a6a9dae5648d1): Cleanup and hardening pass across all packages.
+
+  **core**: Deduplicate `DispatchOptions` as type alias of `ExecuteTrailOptions`. Replace `TrailContext` index signature with typed `extensions` field for type safety. Deep-merge `extensions` in `executeTrail` context resolution. Remove unused surface-map type plus legacy `connectors.ts`, `health.ts`, and `job.ts` proof-of-concept files from the published package.
+
+  **cli**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `surface()` with opt-out via `validate: false`.
+
+  **http**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `surface()` with opt-out.
+
+  **mcp**: Remove vestigial `kind` checks from build. Run `validateTopo()` automatically in `surface()` with opt-out.
+
+  **warden**: Project-aware rule context preserved in trail wrappers.
+
+- [`69057e9`](https://github.com/outfitter-dev/trails/commit/69057e9348006b2b70c9f6237572a5aa8de3ee1f): Add hierarchical CLI command trees and structured input, enforce established-only topo exports across surfaces, move developer topo and tracing state onto shared `trails.db` with pins and maintenance flows, and ship schema-derived stores through `@ontrails/store` and its Drizzle runtime.
+- [`ebbf0c5`](https://github.com/outfitter-dev/trails/commit/ebbf0c538550429f92944ac2d196b6bc9ca00c4b): Consolidated improvements across all surface packages.
+
+  **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `dispatch()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
+
+  **http**: Detect route path collisions and return `Result` from `buildHttpRoutes()`, wire request `AbortSignal` through to trail context, and make write → POST mapping explicit in intent-to-method lookup.
+
+  **mcp**: Return `Result` from `buildMcpTools()` on collision instead of throwing.
+
+  **cli**: Verify exception catching via centralized `executeTrail`.
+
+  **testing**: Follow context awareness improvements.
+
+  **warden**: Refactor rules as composable trails with examples.
+
+  **schema**: Error code and empty body fixes.
+
+- [`39ecab9`](https://github.com/outfitter-dev/trails/commit/39ecab9940ad8255215c25b9db55047180828457): Bug fixes across all surface packages found via parallel Codex review.
+
+  **core**: Fix Result.toJson false circular detection on DAGs, deserializeError subclass round-trip, topo cross-kind ID collisions, validateTopo multi-node cycle detection, error example input validation bypass, and deriveFields array type collapse.
+
+  **cli**: Switch the CLI surface to parseAsync for proper async error handling, add boolean flag negation (--no-flag), and strict number parsing that rejects partial input.
+
+  **mcp**: Align BlobRef with core (including ReadableStream support) and detect tool-name collisions after normalization.
+
+  **testing**: Include trails in testContracts validation, with cross-context awareness.
+
+  **warden**: Collect trail detour targets, validate detour refs in trail specs, and stop implementation-returns-result from walking into nested function bodies.
+
+- [`1e64ee7`](https://github.com/outfitter-dev/trails/commit/1e64ee7bc270901486c5bb51ac38bf045c924adc): Add first-class queue activation sources with `queue()` in `@ontrails/core`.
+  Queue sources validate their runtime queue name and parse contract, project the
+  queue name into durable topo facts, participate in activation input
+  compatibility, and block established outputs when malformed.
+
+  Add `@ontrails/cloudflare/queues` with `cloudflareQueue`, `createMemoryQueue`,
+  and `createQueueHandler`. Cloudflare Workers now expose both `fetch` and
+  `queue` entrypoints from `createWorkersHandler`, resolve env-bound resources for
+  queue-activated trails, acknowledge successful/skipped/cancelled messages, and
+  acknowledge traced non-retryable Trails errors so permanently invalid messages
+  do not churn through the queue. Failures explicitly marked retryable enter
+  Cloudflare's retry and DLQ flow, with rate-limit delays preserved.
+
+  `@ontrails/warden` now treats queue activation sources as materialized and
+  requires `cloudflareQueue` public export example coverage.
+
+- [`f2a7857`](https://github.com/outfitter-dev/trails/commit/f2a785777ba9cb2d540c0fd79c80b43d4cb934d3): Initial v1 beta release of the Trails framework.
+
+  - **@ontrails/core** — Result type, error taxonomy, trail/signal/topo, validateTopo, validateInput/Output, deriveFields, patterns, redaction, branded types, resilience
+  - **@ontrails/cli** — CLI command model, flag derivation, output formatting
+  - **@ontrails/mcp** — MCP surface, tool generation, annotations, progress bridge
+  - **@ontrails/testing** — testAll, testExamples, testTrail, testCrosses, testContracts, testDetours, surface harnesses
+  - **@ontrails/warden** — AST-based code convention rules via oxc-parser, drift detection, CI formatters
+  - **@ontrails/topographer** — Surface map generation, hashing, semantic diffing, lock helpers
+
+- [`4ad6b25`](https://github.com/outfitter-dev/trails/commit/4ad6b257497bc4e07bb66c261b4164277e7b62be): Lexicon rename cleanup (ADR-0023). Breaking for `@ontrails/core`, `@ontrails/cli`, and `@ontrails/tracing` at the boundary; internal-only churn for `@ontrails/warden`.
+
+  - **core**: the topo store schema renames `topo_provisions` / `topo_trail_provisions` → `topo_resources` / `topo_trail_resources` and `provision_count` → `resource_count`. Schema version bumped v4→v5. Stores still carrying the legacy schema are detected on open, dropped, and recreated from the new DDL — previous topo saves are cleared. Stored-data helpers `listTopoStoreProvisions` / `getTopoStoreProvision` / `readProvisionUsage` / `mapProvisionRow` renamed to their `resource` counterparts. TS row types `TopoTrailProvisionRow` / `TopoProvisionRow` renamed to `TopoTrailResourceRow` / `TopoResourceRow`.
+  - **cli**: CLI output mode env vars are now derived from the topo name per ADR-0023. Legacy globals `TRAILS_JSON` / `TRAILS_JSONL` are no longer honored — a topo named `stash` reads `STASH_JSON` / `STASH_JSONL`. `ActionResultContext` gains a `topoName: string` field; `resolveOutputMode(flags, topoName)` takes a topo name argument.
+  - **tracing**: legacy `.trails/dev/tracker.db` migration path removed. Any user still running a pre-rename beta build with a `tracker.db` should delete it or migrate before upgrading.
+  - **warden**: internal-only rename of `provisionDeclarations` / `provisionExists` rules and their trails to `resourceDeclarations` / `resourceExists`. No behavior change.
+
+- [`bcdc484`](https://github.com/outfitter-dev/trails/commit/bcdc484ba9c6d65fbd7ae622407be62c26b7e30c): Add an explicit `unmockable: { reason }` resource marker and have testing auto-mock resolution skip intentionally unmockable resources.
+- [`00f7093`](https://github.com/outfitter-dev/trails/commit/00f7093132a50c49b7bc2dcf9eef98f9424fd2e0): Add resources as a first-class primitive.
+
+  Resources make infrastructure dependencies declarative, injectable, and governable. Define a resource with `resource()`, declare it on a trail with `resources: [db]`, and access it with `db.from(ctx)` or `ctx.resource()`.
+
+  **Core:** `resource()` factory, `ResourceSpec<T>`, `ResourceContext`, singleton resolution in `executeTrail`, in-flight creation dedup, `isResource` guard, `findDuplicateResourceId`, topo resource discovery and validation, `resources` field on trail specs.
+
+  **Testing:** Auto-resolution of `mock` factories in `testAll`, `testExamples`, `testContracts`, and `testCrosses`. Explicit `resources` overrides with correct precedence (`explicit > ctx.extensions > auto-mock`). Resource mock propagation through cross graphs.
+
+  **Warden:** `resource-declarations` rule validates `db.from(ctx)` and `ctx.resource()` usage matches declared `resources: [...]`. `resource-exists` rule validates declared resource IDs resolve in project context. Scope-aware AST walking skips nested function boundaries.
+
+  **Surfaces:** Resource overrides thread through the CLI, MCP, and HTTP surfaces.
+
+  **Introspection:** Survey and surface map outputs include resource graph. Topo exposes `.resources`, `.getResource()`, `.hasResource()`, `.listResources()`, `.resourceIds()`, `.resourceCount`.
+
+  **Docs:** ADR-009 accepted. Unified resource guide, updated vocabulary, getting-started, architecture, and package READMEs.
+
+- [`4b8d13b`](https://github.com/outfitter-dev/trails/commit/4b8d13b6bbac0de4e78bcb0ea0aae6cf06638f1e): **BREAKING:** Complete the `trailhead` to `surface` public API cutover in core.
+
+  - `TraceRecord.trailhead` is now `TraceRecord.surface`.
+  - `SURFACE_KEY` now uses the `__trails_surface` extension key value, and the deprecated `TRAILHEAD_KEY` alias is removed.
+  - Deprecated `transport*` surface-error aliases are removed; import the existing `surface*` names instead.
+  - `isVisibleToTrailheads` is renamed to `isVisibleToSurfaces`.
+
+  See `docs/migration/trailhead-to-surface.md` for the full migration map.
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+- [`112b9f2`](https://github.com/outfitter-dev/trails/commit/112b9f21ebc27e18f970a717a3f3f06e209f7d23): Add `dryRun` to `TrailContext` and wire `--dry-run`. `TrailContext` gains an optional `dryRun?: boolean` field, defaulted to `false` in `createTrailContext`. `ExecuteTrailOptions` carries `dryRun?: boolean` through `applyContextOverrides` so `executeTrail(t, input, { dryRun: true })` produces `ctx.dryRun === true`. The CLI's existing `dryRunPreset` (auto-derived for `intent: 'write' | 'destroy'` trails) now flows through `META_FLAG_CANDIDATES` and reaches the executor via `runTrailOnce`, so `trails run booking.cancel … --dry-run` lands `ctx.dryRun === true` on the trail's blaze. Trails that don't read the field are unchanged. Read-intent trails don't get `--dry-run` exposed.
+- [`893025e`](https://github.com/outfitter-dev/trails/commit/893025e5ed23157262621a4528758b43258698d0): Add `--permit '<json>'` to inject an inline permit on `trails run`. New `permitPreset()` exposes a `--permit` string flag that the CLI build parses and validates against the `BasePermit` shape (`{ id: string, scopes: string[] }`) using a small Zod schema. Valid permits flow through `ExecuteTrailOptions.permit` → `applyContextOverrides` → `ctx.permit` so existing `enforcePermitRequirement` behavior just sees a populated permit. Invalid JSON or schema mismatch surface as `Result.err(ValidationError)` (exit code 1) before the trail runs, avoiding spurious `PermitError` results from malformed input. The flag is global, never routed into trail input (added to `META_FLAG_CANDIDATES`), and overlays only when defined.
+
+  Topographer now projects permit requirements into surface-map entries and classifies permit-tightening diffs as breaking when new scopes are required.
+
+- [`eec5e9d`](https://github.com/outfitter-dev/trails/commit/eec5e9d5a3ce4cdb166f6c99b75cdf8d9921e0b1): Default `ctx.logger` to a structured stdout console sink when `topo()` is called without an `observe:` option. Apps now get observability for free with zero configuration, per ADR-0041. Explicit `observe:` values (including `combine()` with no sinks, an explicit `Logger`, or an explicit `{ log }` config) are preserved untouched — the default is only injected when no `observe:` is supplied.
+- [`ebd4434`](https://github.com/outfitter-dev/trails/commit/ebd443420f32ba8c8e2efae2748e6c7881e3b5e8): Phase 7 starts: typed layers with optional object-shaped surface input. `Layer` gains an optional `input?: LayerInputSchema` field for surface projection (TRL-473/474 will project it onto CLI/MCP/HTTP). `executeTrail({ layers })` remains the canonical per-call wrapper option. Layers without `input` schemas stay surface-invisible and cover runtime-only concerns such as tenant guards, rate limiting, circuit breaking, and custom audit logging.
+- [`863d473`](https://github.com/outfitter-dev/trails/commit/863d4739982eb744e2f5c0419045bf8ed0df25a5): Add three attachment scopes for typed layers — trail, surface, topo — with composition order **topo → surface → trail → blaze**. `TrailSpec` and `Trail` gain `layers?: readonly Layer[]` (default `[]`). `topo()` accepts `{ layers: [...] }` as the third options argument; the topo carries those layers and they reach the executor via `ExecuteTrailOptions.topoLayers`. The CLI's `surface()`/`createProgram()`/`deriveCliCommands` already supports a `layers` option; that now flows through `runTrailOnce` as `surfaceLayers`. The executor builds the layer chain `[...topoLayers, ...surfaceLayers, ...trail.layers, ...options.layers]` so topo wraps surface wraps trail wraps blaze (verified by composition-order tests at every level). Survey's `TrailDetailReport` adds `composedLayers: { topo, surface, trail }` so agents can introspect the layer chain per trail. Backward-compatible: every new field is optional with a non-undefined default; existing call sites are unchanged.
+- [`344f2f7`](https://github.com/outfitter-dev/trails/commit/344f2f75c75f83239bd1257371235a93bfcf0597): Project typed-layer `input` schemas onto CLI flags. Each effective layer (topo + surface + trail composition order) with a non-undefined `input` schema gets its fields auto-derived into `--flag` options on every command it attaches to. Parsed values route to the layer at runtime via `ctx.extensions[LAYER_INPUTS_KEY][layer.name]` — `Layer.wrap` is unchanged. Collision rule: if a layer field name collides with a trail input field, another layer's projected name, or a CLI meta flag, the layer's flag is renamed to `--<layer-name>-<original-flag-name>` and a one-line warning emits to stderr (`[trails] ...`). Renames are deterministic across builds. New `LAYER_INPUTS_KEY` (exported from `@ontrails/core`) reserves the `ctx.extensions` slot.
+- [`26f9ffd`](https://github.com/outfitter-dev/trails/commit/26f9ffd7f168fc3c45a1a57d5315902f41963a2e): Project typed-layer `input` schemas onto MCP and HTTP surfaces. Closes Phase 7. Lifts `collectAttachedTypedLayers` and `projectLayerFieldName` (collision-rename rule) into `@ontrails/core/internal/layer-projection` so all three surfaces share one source of truth. The CLI surface refactors to consume the lifted helpers (no behavior change). MCP merges layer fields into each tool's `inputSchema` and partitions inbound args at invocation time. HTTP merges layer fields into the route's request schema (query for reads, body for writes) and exposes new optional `HttpRouteDefinition.inputSchema` + `layerInputProjections` for surface adapters / OpenAPI generators. Collision rule matches TRL-473's: deterministic rename to a layer-prefixed camelCase name with the original captured in the routing table. Side fix: MCP and HTTP handlers now forward `topoLayers: graph.layers` + `surfaceLayers: layers` so topo-scope layers actually compose at runtime (previously the handlers used the deprecated `layers` alias and never read `graph.layers`).
+- [`88e2ac7`](https://github.com/outfitter-dev/trails/commit/88e2ac7d831ca15aefbad4763886386523581dcf): Type utilities and cross-declarations warden rule.
+
+  **core**: Add `TrailInput<T>`, `TrailOutput<T>` utility types and `inputOf()`, `outputOf()` runtime schema accessors.
+
+  **warden**: Add `cross-declarations` rule — statically analyzes `ctx.cross()` calls against declared `crosses: [...]` arrays. Errors on undeclared calls, warns on unused declarations.
+
+- [`22c6c06`](https://github.com/outfitter-dev/trails/commit/22c6c06a3b846dab64b78b7ccc27cb1ebd22e402): Accept ADR-0041 Unified Observability and ship the first activation and
+  observability primitives it depends on: activation trace records, topo-level
+  observe configuration, webhook activation materialization, signal/webhook
+  warden coaching, the `@ontrails/observe` package, sink composition, and
+  zero-dependency observe sinks.
+- [`fde5516`](https://github.com/outfitter-dev/trails/commit/fde5516ad396faa718936b10ff658b3ade3383b9): Trail-native vocabulary cutover. Breaking API field renames across all packages:
+
+  - Trail spec: `run:` → `blaze:`, `follow:` → `crosses:`, `services:` → `resources:`, `metadata:` → `meta:`, `emits:` → `fires:`
+  - Runtime: `ctx.follow()` → `ctx.cross()`, `ctx.emit()` → `ctx.fire()`, `ctx.signal` (abort) → `ctx.abortSignal`
+  - Entry points: `trailhead(app)` → `surface(app)`
+  - Package rename: `@ontrails/crumbs` / `@ontrails/tracker` → `@ontrails/tracing`
+  - Wrapper types: retired gate/middleware vocabulary in favor of `Layer` and `layers`
+  - Package taxonomy: retired connector vocabulary in favor of adapters
+
+### Patch Changes
+
+- [`73622ae`](https://github.com/outfitter-dev/trails/commit/73622aec93125756d589af3e056d252bdb91169e): Thread `ResourceSpec.config` through the built-in auth resource. Resource config schemas that accept `undefined` now receive their parsed default when config values are omitted, and `authResource` can materialize the no-op or JWT adapter from typed config while preserving existing mock and override paths.
+- [`e41c382`](https://github.com/outfitter-dev/trails/commit/e41c3829c2d692683b78c730e67fd5b17ac0ff4e): Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- [`6944147`](https://github.com/outfitter-dev/trails/commit/694414712949a1107235684a2492ac982ed39a20): Complete trifecta for config, permits, and tracker (formerly tracks)
+
+  - **config**: Add `configResource`, `config.trail`, and `config.workspace` trails with full `defineConfig`, `resolve`, `describe`, `explain`, `doctor`, and code generation support
+  - **permits**: Add `authResource` and `auth.verify` trail for runtime authorization checks
+  - **tracing**: Rename tracks to tracing; add `tracingResource` and `tracing.status` trail for structured signal tracking
+  - **cli**: Fix build flag handling and improve bootstrap scaffolding
+  - **testing**: Expand test context helpers and example-based testing utilities
+  - **core/mcp/http**: Internal alignment for resource and composition updates
+
+- [`f42ca6e`](https://github.com/outfitter-dev/trails/commit/f42ca6e40b29155acec446e5bf44e52e014466bd): Hard cutover: the CLI consumes `cli` bindings from the app-authored surfaces overlay. Scalar bindings behave identically to the removed cliAliases (parity-tested) — the binding name splits on `.` into a transparent synonym command path for exactly one trail. List bindings arrive as command groups: each expanded member trail gets a group-prefixed route that dispatches the member trail with its identity preserved, and a singleton list stays a group. Expansion is fail-fast boundary validation: a scalar binding resolving to zero or multiple trails, or a group with an empty member union, is a `ValidationError` naming the binding. `DeriveTopoGraphOptions.cliAliases`, the `cliAliases`/`trailsCliAliases` app-module export convention, and the per-kind compile lift are deleted; `deriveCliCommands`/`createProgram` take `overlays` instead of `aliases`, and both topo-graph derivation pipelines expand the same bindings through one shared helper so runtime CLI routes and lock routes come from one semantic. A leftover legacy export is now a Warden error (`no-legacy-cli-alias-export`) naming the `surfaceOverlay({ cli: { ... } })` rewrite.
+
+  This is a breaking API removal shipped under the lockstep beta patch convention (pre-1.0 hard-cutover posture, zero external adoption); the removed options have no deprecation window by design.
+
+- [`9874e0b`](https://github.com/outfitter-dev/trails/commit/9874e0bb034c0f98edeb19833d9d3519c2a07a4c): Add `@ontrails/cloudflare/d1`, an env-bound Cloudflare D1 store resource for `@ontrails/store` definitions. The new subpath exports `cloudflareD1` and `connectD1`, supports the backend-agnostic store accessor contract (`get`, `list`, `upsert`, `remove`), versioned-table optimistic concurrency, fixture/mock seeding, store-derived write signals, Miniflare-backed conformance tests, and Worker env-bridge integration.
+
+  `@ontrails/core` and `@ontrails/store` no longer require the Bun global for signal fire ids or late-bound store signal tokens, so store definitions and store-derived signal emission work inside Worker modules. `@ontrails/warden` now treats `cloudflareD1` as a required Cloudflare public export with `@example` coverage.
+
+- [`a105127`](https://github.com/outfitter-dev/trails/commit/a105127e5662ed9a6c245125f791fb0182da3f5e): Add the `@ontrails/cloudflare` adapter collection with its first two service subpaths. `@ontrails/cloudflare/workers` exports `createWorkersHandler`, a materializer producing the `{ fetch(request, env, ctx) }` Worker export on the shared HTTP fetch kernel, with an env bridge that re-resolves env-bound resources whenever a new Worker `env` arrives so no resource instance serves a request with a stale env. `@ontrails/cloudflare/kv` exports `cloudflareKv`, a resource definition wrapping a KV namespace binding (`get`/`put`/`delete`/`list` with TTL options) plus an in-memory `createMemoryKv` mock so `testAll` runs configuration-free.
+
+  `@ontrails/core` now guards the default trail context fields: `requestId` falls back to `crypto.randomUUID()` when the `Bun` global is absent, and `cwd`/`env` fall back to `'/'`/`{}` when `process` is absent, so trail execution works on runtimes like Cloudflare Workers.
+
+  `@ontrails/warden` registers the `@ontrails/cloudflare` public barrel in the repo-local `public-export-example-coverage` policy, requiring `@example` TSDoc coverage on `createWorkersHandler` and `cloudflareKv`.
+
+- [`26be41d`](https://github.com/outfitter-dev/trails/commit/26be41d229ab688d3bf315b53cb7ebf2456b63db): Fix Codex review findings on type-utils and cross-declarations.
+
+  **core**: `inputOf()`/`outputOf()` now preserve the exact Zod schema subtype instead of widening to `z.ZodType`.
+
+  **warden**: `cross-declarations` rule now recognizes single-object trail overload, detects any context parameter name (not just `ctx`), matches destructured `cross()` calls, resolves const identifiers in `crosses` arrays, and restricts blaze body extraction to top-level config properties.
+
+- [`f8d80b9`](https://github.com/outfitter-dev/trails/commit/f8d80b9cd823f02b2aa854934702f598bceff07d): Refresh current-facing compose vocabulary in package documentation after the composition cutover.
+- [`6300f70`](https://github.com/outfitter-dev/trails/commit/6300f709bb6dffc0e6cc82479fe8d0204c52bbba): Refresh source comments and test labels for retired connector terminology as adapter guardrails become strict.
+- [`6b75a46`](https://github.com/outfitter-dev/trails/commit/6b75a46ab6210237d306cceade833bf9ce6e7431): The core barrel is now execution-portable: no eager `bun:`/`node:` builtin imports remain on its module graph (TRL-1198). `trails-db`, workspace discovery, and path security load `bun:sqlite`, `node:fs`, `node:os`, and `node:path` lazily through `process.getBuiltinModule` at first use, and signal payload summaries plus per-project store keys use a pure SHA-256 (output-identical to `node:crypto`). A Worker bundle no longer needs a `bun:sqlite` stub plugin or the `nodejs_compat` flag to serve trails; the Cloudflare adapter's miniflare lane now bundles without externals and boots workerd without `nodejs_compat` as the structural regression gate, and its README stub instructions are replaced with the portable posture. Tooling helpers throw a clear `InternalError` naming the missing builtin when called on runtimes without it.
+- [`3e5c0fc`](https://github.com/outfitter-dev/trails/commit/3e5c0fc1f2db8fae130782d167cd6b7bb141f4e5): Export shared diagnostic base types from core and align governance diagnostic
+  severity vocabulary across adapter checks, permits, and Warden.
+- [`d172013`](https://github.com/outfitter-dev/trails/commit/d172013003c6baed4aee45d4805a0e5d510a543f): Preserve specialized TrailsError identity and retry-exhaustion metadata when
+  serializing and deserializing framework errors.
+- [`f3c4fef`](https://github.com/outfitter-dev/trails/commit/f3c4fef87617461a20b641d60f359dab3c625ca8): Export a shared `escapeRegExp` helper from core and migrate first-party callers off local copies.
+- [`c3fc5c3`](https://github.com/outfitter-dev/trails/commit/c3fc5c3b89a3128631ee6045af6673d9108bbfd9): Move previously root-exported helper contracts out of `src/internal/*` to stable core module homes, document their public boundary, and guard the public barrel against future internal re-exports.
+- [`cb0a9d8`](https://github.com/outfitter-dev/trails/commit/cb0a9d8fe294494fb3e026d1f066ab5281b3557c): Export shared workspace package discovery helpers from core and migrate first-party discovery callers.
+- [`3dc8254`](https://github.com/outfitter-dev/trails/commit/3dc82547f428bcb6adb7eac1201a0c87cf63b8af): Fix README TypeScript snippets so the expanded documentation snippet gate can verify them.
+- [`20d7a5c`](https://github.com/outfitter-dev/trails/commit/20d7a5c8e675fd3ecd8c29441bbd8a99b5c64ed0): Enforce the shared safe error projection policy for public error bodies, diagnostics, serialized payloads, and CLI stderr.
+- [`be5fb46`](https://github.com/outfitter-dev/trails/commit/be5fb4633de3d1efda868c72129192b9be8c902a): Publish registry-driven error taxonomy documentation and checks from the core error registry.
+- [`7065b55`](https://github.com/outfitter-dev/trails/commit/7065b55568dced6df9f8687288842cdbbfd7f6e4): Fix two blocking bugs from real-world migration:
+
+  - Published packages now resolve correctly (workspace:^ instead of workspace:\*)
+  - Error forwarding works across different success types (Err no longer carries phantom T)
+
+- [`42a87c1`](https://github.com/outfitter-dev/trails/commit/42a87c1b8691c2fad94ba45175b6eec0219f4594): Fix workspace dependency resolution in published packages. Now using bun publish
+  which correctly replaces workspace:^ with actual version numbers.
+- [`e898cc4`](https://github.com/outfitter-dev/trails/commit/e898cc4042ffa66f977b425a98419ee77183f27d): Add repo-level Knip dead-code detection and remove stale internal exports and unused package dependencies surfaced by the new check.
+- [`846a597`](https://github.com/outfitter-dev/trails/commit/846a597f72db2501725af41be54e8fa1f8bc29c6): Reject versioned trail marker schemas that use Zod validation checks or object
+  catchall policies outside the bounded marker subset.
+- [`81373bc`](https://github.com/outfitter-dev/trails/commit/81373bc5e980bb06d56fb06af4f0986f72e318c7): Wave-2 MCP cutover to the app-authored `surfaces` overlay. The overlay's `mcp` bindings are now the authored, lockable default for the MCP surface: a list binding derives one grouped trailhead tool (member selection in `{ trail, input }`, member identity preserved in `{ trail, output }`, deterministic derived description), and a scalar binding derives an additional tool synonym whose MCP-safe name is published verbatim and must expand to exactly one trail. `deriveMcpTools`/`createServer` accept the new `overlays` option; `@ontrails/core` gains `expandMcpSurfaceBindings` and `deriveMcpTrailheadDescription`.
+
+  The call-site `CreateServerOptions.trailheads` map survives as permanent override-in-context design, not a compatibility bridge: when both channels are present, the call-site map wins at runtime. Warden's new `trailhead-override-divergence` rule (warn) names both sides when a call-site map's binding names or member selectors diverge from the authored overlay default.
+
+  Topographer now derives `graph.trailheads` from the overlay's `mcp` list bindings in both `deriveTopoGraph` and the store-side graph build, so trailhead facts flow from compiled locks into Wayfinder reads for the first time. The never-wired `DeriveTopoGraphOptions.trailheads` option and the `TopoGraphTrailheadDeclaration`/`TopoGraphTrailheadTrailSelector` types are removed — a beta-window hard cutover of an option no caller could reach; author the equivalent `mcp` list binding in `surfaceOverlay({ mcp })` instead.
+
+- [`223aaad`](https://github.com/outfitter-dev/trails/commit/223aaada3f0013a1ec3a70691494fa58e8aeb513): Fix `ctx.compose(trail, input)` inference for trails that do not define a
+  `composeInput` schema while preserving authored compose-input requirements.
+- [`3395234`](https://github.com/outfitter-dev/trails/commit/33952349f2d475b170376a63587c89e50be3247a): Move store adapter-binding helpers to `@ontrails/store/adapter-support` and topographer direct database/admin helpers to `@ontrails/topographer/backend-support`, keeping root exports focused on contract-level APIs.
+- [`3125f4d`](https://github.com/outfitter-dev/trails/commit/3125f4df6207da5f6c352e5e9318240348e4e5b3): Add pure revision transpose validation and execution helpers for trail versions.
+- [`2494dc6`](https://github.com/outfitter-dev/trails/commit/2494dc662a1e16c8a27021a65d95add3c9e02847): Infer `resource()` create-context config types from resource config schemas.
+- [`851a2a3`](https://github.com/outfitter-dev/trails/commit/851a2a3cb805993d16ef74d43d3c963f286cce15): Derive trail caller and blaze input types from the authored input schema while keeping one public input contract.
+- [`820b4ad`](https://github.com/outfitter-dev/trails/commit/820b4ad9c40ea383b3c489a05fe7e4b2328e324f): Add `surfaceOverlay` — the shared surface-naming schema (scalar binding = synonym, list binding = grouped entry, singleton list stays a group) with app-authored/adapter-derived overlay provenance enforced at collection and consumption, and the `surface-overlay-coherence` Warden rule. MCP tool-name derivation moves to `@ontrails/core` (`deriveMcpToolName`) so the surface and governance read one projection; `@ontrails/mcp`'s `deriveToolName` now delegates to it. The coherence rule activates on standard warden runs once fresh derivations collect app-module overlays through the shared compile channel (TRL-1209, next in this stack).
+- [`4399fdb`](https://github.com/outfitter-dev/trails/commit/4399fdb21782ec877e36fcd76b37fa5f439aaf29): Renamed `@ontrails/schema` to `@ontrails/topographer`. Mechanical rename only — no API changes. Update import sites from `@ontrails/schema` to `@ontrails/topographer`. See ADR-0042 for the durable graph substrate doctrine.
+- [`417bd84`](https://github.com/outfitter-dev/trails/commit/417bd8471d0f0f47ad5f33cd2ac1c606eccd72f8): Promote signal trace helpers from tracing compatibility code to core exports, and make tracing's memory sink wrapper use the observe-owned implementation.
+- [`2d53717`](https://github.com/outfitter-dev/trails/commit/2d53717f7984e4d712b17e26069e2155d5e2cc75): Add trail-only `version` / `versions` authoring types and TopoGraph projection.
+- [`16cb740`](https://github.com/outfitter-dev/trails/commit/16cb74032ecea582161743d1d30647489772c0f1): Run examples and contract checks across live trail version entries, and project version-entry example coverage into topo and survey reports.
+- [`8894ecb`](https://github.com/outfitter-dev/trails/commit/8894ecbcafc1eaf9c75dcf9093f627acd0535735): Project content-addressed trail version markers and marker-prefix resolution.
+- [`fdf7ec9`](https://github.com/outfitter-dev/trails/commit/fdf7ec95453effdc8037be7632ebb7cea128664a): Resolve trail versions during execution, including live revisions, forks, marker references, and unsupported-version errors.
+- [`c36aca9`](https://github.com/outfitter-dev/trails/commit/c36aca978c7e1561e68701c084241e5b3f85dcef): Preserve existing Result error boundaries directly and widen Warden pass-through
+  coaching beyond trail blazes.
+- [`1307568`](https://github.com/outfitter-dev/trails/commit/13075680e1c77c0a3abee36aaecce8cecad2f347): Centralize Trails config module path conventions, move local config overrides to root `trails.config.local.*`, scaffold the matching gitignore entries, and load project-local Warden rules from `.trails/rules.ts` or `.trails/rules/`.
+- [`768cc79`](https://github.com/outfitter-dev/trails/commit/768cc79ca10947b8808b376e281e1a81131b4acc): Close missed projection vocabulary residue in Regrade internals and public
+  error-rendering guidance, and keep lifecycle-ambiguous governed identifiers in
+  the Warden review inventory instead of assigning them an unsafe automatic
+  target.
+- [`3befcf1`](https://github.com/outfitter-dev/trails/commit/3befcf105fc8626cf28100bf2256bbd2a9f0fc1d): Configure Trails SQLite read and write connections with a busy timeout so concurrent artifact readers and writers wait through transient lock contention instead of failing immediately.
+- [`371d19e`](https://github.com/outfitter-dev/trails/commit/371d19ea243507bfc7f85882373c40eb37476d52): Move the default `trails.db` location to the per-user Trails state store, expose deterministic state-store path helpers, stop scaffolding disposable `.trails/cache` and `.trails/state` directories, and update topo-store documentation for the global-state substrate.
+- [`a88114b`](https://github.com/outfitter-dev/trails/commit/a88114b4dd0772db6b58ecdb7671e4169e6bdca5): Expose stable typed topo diagnostics for missing references so downstream
+  migration tooling can consume validation results without parsing human messages.
+- [`4cd5d4e`](https://github.com/outfitter-dev/trails/commit/4cd5d4e912c7e46b2fc8562f4afeb73c1594c679): Add shared glob, path-scope, and trail-id glob contracts for downstream Trails tooling.
+- [`38907cc`](https://github.com/outfitter-dev/trails/commit/38907cc44aee55fec49da073db9b490025bf8c9d): Adopt the shared trail-id glob engine for surface filtering and Wayfinder entity filters so dotted `*`, `**`, and `?` patterns behave consistently across graph inspection and surface selection.
+- [`21c6dda`](https://github.com/outfitter-dev/trails/commit/21c6ddae37d52850f255ae4c01a47478138068f1): Rename topo and draft report types to `TopoDiagnostic` and `DraftDiagnostic`, with deprecated `TopoIssue` and `DraftFinding` aliases preserved for source compatibility.
+- [`fe72b84`](https://github.com/outfitter-dev/trails/commit/fe72b84f88f4b18025f3d1b9463ca99238662d99): Fold remaining Regrade and Warden scan-target surfaces onto the shared path-scope vocabulary.
+- [`d76be13`](https://github.com/outfitter-dev/trails/commit/d76be13e31cfb7af35892bebd5d4f05cc05f61dc): Require deprecated trail version entries to carry successor, migration, or note guidance and expose typed lifecycle helpers.
+- [`84f56a5`](https://github.com/outfitter-dev/trails/commit/84f56a5b97e9fed3d673e87da8eebdd916390449): Project live trail-version metadata on CLI, HTTP, and MCP surfaces and thread explicit surface version selection into shared trail execution.
+- [`28d75fb`](https://github.com/outfitter-dev/trails/commit/28d75fbadecc62794f43957bc3aca11a4cf39c51): Add `forkVersion()` so fork version entries get typed blazes (TRL-1180). `TrailVersions` fixes every entry's generics to `unknown`, which left fork blazes with `unknown` input and forced authors to re-parse the already-validated value just to narrow it. `forkVersion({ input, output, blaze, ... })` threads the entry's own schemas into the blaze signature (including merged `composeInput` fields) and enforces the entry's output shape at compile time; the erasure back to `TrailVersionEntry` is sound because the fork pipeline validates raw input against the entry's own schema before dispatch. `TrailVersionForkSpec` is exported alongside it.
+- [`b9e82a3`](https://github.com/outfitter-dev/trails/commit/b9e82a33546356c93fbc302fb934a83f19f1c2c5): Webhook ingress v2 (TRL-1194, absorbing TRL-1174 and TRL-1175): store-verified, per-endpoint webhook ingress becomes framework-expressible. `webhook()` accepts dynamic path segments (`path: '/hooks/:endpoint'`) whose values are delivered as envelope fields, opt-in `rawBody: true` delivery (a non-JSON body is no longer a surface-level failure — the trail owns payload interpretation), an allowlisted `headers` list delivered lowercased, and `resources` that make `verify` resource-capable: the HTTP surface resolves the declared resources into a context for the verifier and releases them afterwards, so signature checks can reach stores holding per-endpoint secrets. Envelope-mode ingress responds 202 Accepted; classic static webhooks keep their exact-match, JSON-gated, 200 behavior. Core exports `parseWebhookPathParams`, `matchWebhookPath`, `webhookPathPatternsOverlap`, and `createResources`. The `webhook-route-collision` Warden rule now also flags dynamic patterns that overlap other webhook or derived routes, not just exact method/path duplicates.
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`113aed6`](https://github.com/outfitter-dev/trails/commit/113aed62d20041e35b0cf9d6c1b1a18df4b88f57): Rename the dependency-light observability owner from `@ontrails/observe` to
+  `@ontrails/observability` as a pre-v1 hard cut. Update dependent packages,
+  documentation, package discovery, and the governed Regrade route; no
+  compatibility package or old import route is retained.
+- [`0938e7b`](https://github.com/outfitter-dev/trails/commit/0938e7badc0c5470d194139d642b673658d099e0): Fold the removed `@ontrails/tracing` package into the truthful existing
+  owners: intrinsic trace contracts remain in core, developer-state tooling now
+  lives at `@ontrails/observability/dev`, and the dependency-light OTel adapter
+  lives at `@ontrails/observability/otel`. There is intentionally no root-package
+  compatibility redirect because the former root had more than one owner.
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
+- [`f9533a4`](https://github.com/outfitter-dev/trails/commit/f9533a4ef7392201c71d7f751361b4f7177eeacb): Keep public error projection shared and redacted while using transport-neutral CLI vocabulary and preserving safe topo diagnostics in structured output.
+- [`431b04c`](https://github.com/outfitter-dev/trails/commit/431b04cbc1206e8ae8fc9c46379da3bdb84caf34): Expose archived trail version lifecycle helpers and validate archived status reason metadata.
+- [`5d88104`](https://github.com/outfitter-dev/trails/commit/5d88104c6c269e2ef1e92ba3b9e09a410df10c7b): Polish Trails blaze terminology across package docs and Warden guidance.
+- [`f04a9ef`](https://github.com/outfitter-dev/trails/commit/f04a9ef19c0b930975bc256318b239266a8e1100): Tighten trail-versioning API polish by keeping executor cross-validation internals out of public options and improving absent marker diagnostics.
+- [`99523f2`](https://github.com/outfitter-dev/trails/commit/99523f2a67e92091781165b6c847252b910554e2): Clean up resource context naming in shipped source and examples so resource
+  factories consistently use resource vocabulary.
+- [`a4f9cf6`](https://github.com/outfitter-dev/trails/commit/a4f9cf6062d0d602eb9c00d06369a098950b72b2): Reserve the `shift` error category and `WorkspaceShiftError` before the stable
+  cutover so surface mappings can distinguish moved-workspace retry verdicts.
+  Update Warden's error-mapping completeness examples to cover the reserved
+  category.
+- [`9bcf34e`](https://github.com/outfitter-dev/trails/commit/9bcf34e53e0c7a40f4ebb78be7f47ac22421ff25): Add trail-owned CLI command projection metadata and serialize resolved command
+  route facts for downstream tools.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

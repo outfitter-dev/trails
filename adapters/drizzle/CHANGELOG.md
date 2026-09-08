@@ -1,5 +1,23 @@
 # @ontrails/drizzle
 
+## 1.0.0
+
+### Patch Changes
+
+- [`f5c6777`](https://github.com/outfitter-dev/trails/commit/f5c6777c39ea959d2123f17bb683151fe265386c): Move adapter package workspaces from `connectors/*` to `adapters/*` as part of
+  the package-boundary taxonomy cutover. Package names and public APIs are
+  unchanged.
+- [`e41c382`](https://github.com/outfitter-dev/trails/commit/e41c3829c2d692683b78c730e67fd5b17ac0ff4e): Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- [`3395234`](https://github.com/outfitter-dev/trails/commit/33952349f2d475b170376a63587c89e50be3247a): Move store adapter-binding helpers to `@ontrails/store/adapter-support` and topographer direct database/admin helpers to `@ontrails/topographer/backend-support`, keeping root exports focused on contract-level APIs.
+- [`6300f70`](https://github.com/outfitter-dev/trails/commit/6300f709bb6dffc0e6cc82479fe8d0204c52bbba): BREAKING: rename the shared store backend option type from `StoreConnectorOptions` to `StoreAdapterOptions`.
+- [`49c2e7d`](https://github.com/outfitter-dev/trails/commit/49c2e7d5c7c063b9aa6abee1d2932bf3003133cc): Refresh published package README taxonomy to use adapter language instead of retired connector vocabulary.
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`9bf592d`](https://github.com/outfitter-dev/trails/commit/9bf592ddba46aa12e3f4e6ffc0f772f7a41ed3df): Declare verified first-party adapter metadata for Drizzle, HTTP/Bun, and Store/Jsonfile so shared adapter checks can dogfood real owner targets.
+- [`df9a7d0`](https://github.com/outfitter-dev/trails/commit/df9a7d00fe4d9ebec948b6ebed6dc4525fc8e0dc): Add project-aware public export-map governance for @ontrails workspace docs,
+  imports, root barrels, and bin-only package surfaces.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

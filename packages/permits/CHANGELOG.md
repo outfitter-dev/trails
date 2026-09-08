@@ -1,5 +1,88 @@
 # @ontrails/permits
 
+## 1.0.0
+
+### Major Changes
+
+- [`200bece`](https://github.com/outfitter-dev/trails/commit/200bece897d79af9029492d7cbbe400cf9e4d25c): BREAKING: rename auth connector vocabulary to adapter.
+
+  This stays on the current `1.0.0-beta` prerelease line: the package is part of
+  the fixed `@ontrails/*` beta group, so beta-breaking API renames advance the
+  next beta rather than opening a stable-major release line.
+
+  - `AuthConnector` -> `AuthAdapter`
+  - `authConnectorSchema` -> `authAdapterSchema`
+  - `JwtConnectorOptions` -> `JwtAdapterOptions`
+  - `createJwtConnector` -> `createJwtAdapter`
+  - auth resource config discriminant `{ connector: 'jwt' | 'none' }` -> `{ adapter: 'jwt' | 'none' }`
+
+  The `@ontrails/permits/jwt` subpath is unchanged. The internal `connectors/`
+  source directory becomes `adapters/`. See
+  `docs/migration/connector-to-adapter.md` for the full rename map.
+
+  The Trails CLI package updates its generated auth-resource configuration to use
+  the new `adapter` discriminant.
+
+### Minor Changes
+
+- [`73622ae`](https://github.com/outfitter-dev/trails/commit/73622aec93125756d589af3e056d252bdb91169e): Thread `ResourceSpec.config` through the built-in auth resource. Resource config schemas that accept `undefined` now receive their parsed default when config values are omitted, and `authResource` can materialize the no-op or JWT adapter from typed config while preserving existing mock and override paths.
+- [`6944147`](https://github.com/outfitter-dev/trails/commit/694414712949a1107235684a2492ac982ed39a20): Complete trifecta for config, permits, and tracker (formerly tracks)
+
+  - **config**: Add `configResource`, `config.trail`, and `config.workspace` trails with full `defineConfig`, `resolve`, `describe`, `explain`, `doctor`, and code generation support
+  - **permits**: Add `authResource` and `auth.verify` trail for runtime authorization checks
+  - **tracing**: Rename tracks to tracing; add `tracingResource` and `tracing.status` trail for structured signal tracking
+  - **cli**: Fix build flag handling and improve bootstrap scaffolding
+  - **testing**: Expand test context helpers and example-based testing utilities
+  - **core/mcp/http**: Internal alignment for resource and composition updates
+
+- [`69057e9`](https://github.com/outfitter-dev/trails/commit/69057e9348006b2b70c9f6237572a5aa8de3ee1f): Add hierarchical CLI command trees and structured input, enforce established-only topo exports across surfaces, move developer topo and tracing state onto shared `trails.db` with pins and maintenance flows, and ship schema-derived stores through `@ontrails/store` and its Drizzle runtime.
+- [`4b8d13b`](https://github.com/outfitter-dev/trails/commit/4b8d13b6bbac0de4e78bcb0ea0aae6cf06638f1e): **BREAKING:** Remove the deprecated `AuthCredentials` alias from the permits public API.
+
+  Use `PermitExtractionInput` instead. See `docs/migration/trailhead-to-surface.md` for the full migration map.
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`66056ac`](https://github.com/outfitter-dev/trails/commit/66056ac3325e513519bc788e4bf27ccba202ddb0): **BREAKING:** TRL-475 drops user-facing exports of `authLayer`, `autoIterateLayer`, and `dateShortcutsLayer`. Breaking change for any app still wiring these layers manually.
+
+  Migration:
+
+  - **`autoIterateLayer`** — remove from `blaze`/`run`/`surface` options. The CLI surface now derives the `--all` flag and multi-page collection automatically from any trail whose output matches the pagination pattern (`items`, `hasMore`, `nextCursor`). See TRL-469.
+  - **`dateShortcutsLayer`** — remove from `blaze`/`run`/`surface` options. The CLI surface now expands `since`/`until` shortcut strings (`today`, `yesterday`, `7d`, `30d`, `this-week`, `this-month`) automatically from input schema shape. See TRL-470.
+  - **`authLayer`** — remove from `blaze`/`run`/`surface` options. Permit scope enforcement is intrinsic to `executeTrail` (`enforcePermitRequirement` runs before resource creation and layer composition). The compatibility shim was already a no-op.
+
+  The `Layer` type, `composeLayers`, and canonical per-call `executeTrail({ layers })` option remain available; only the legacy layer exports were removed.
+
+- [`fde5516`](https://github.com/outfitter-dev/trails/commit/fde5516ad396faa718936b10ff658b3ade3383b9): Trail-native vocabulary cutover. Breaking API field renames across all packages:
+
+  - Trail spec: `run:` → `blaze:`, `follow:` → `crosses:`, `services:` → `resources:`, `metadata:` → `meta:`, `emits:` → `fires:`
+  - Runtime: `ctx.follow()` → `ctx.cross()`, `ctx.emit()` → `ctx.fire()`, `ctx.signal` (abort) → `ctx.abortSignal`
+  - Entry points: `trailhead(app)` → `surface(app)`
+  - Package rename: `@ontrails/crumbs` / `@ontrails/tracker` → `@ontrails/tracing`
+  - Wrapper types: retired gate/middleware vocabulary in favor of `Layer` and `layers`
+  - Package taxonomy: retired connector vocabulary in favor of adapters
+
+### Patch Changes
+
+- [`3e5c0fc`](https://github.com/outfitter-dev/trails/commit/3e5c0fc1f2db8fae130782d167cd6b7bb141f4e5): Export shared diagnostic base types from core and align governance diagnostic
+  severity vocabulary across adapter checks, permits, and Warden.
+- [`199304e`](https://github.com/outfitter-dev/trails/commit/199304ec8d46dff22d65c81a5c8a9dd2d037bfa9): Harden JWT permit validation by requiring `exp` by default, validating the
+  header algorithm allowlist before signature verification, and enforcing finite
+  clock skew for `exp` and `nbf` checks.
+- [`e4beec9`](https://github.com/outfitter-dev/trails/commit/e4beec9e756dbd44b333a26215ea03d50eafd7e7): Document `@ontrails/permits/jwt` as the canonical JWT adapter import while keeping root JWT re-exports as intentional convenience exports.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`5d88104`](https://github.com/outfitter-dev/trails/commit/5d88104c6c269e2ef1e92ba3b9e09a410df10c7b): Polish Trails blaze terminology across package docs and Warden guidance.
+- [`99523f2`](https://github.com/outfitter-dev/trails/commit/99523f2a67e92091781165b6c847252b910554e2): Clean up resource context naming in shipped source and examples so resource
+  factories consistently use resource vocabulary.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

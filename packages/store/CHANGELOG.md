@@ -1,5 +1,57 @@
 # @ontrails/store
 
+## 1.0.0
+
+### Major Changes
+
+- [`3395234`](https://github.com/outfitter-dev/trails/commit/33952349f2d475b170376a63587c89e50be3247a): Move store adapter-binding helpers to `@ontrails/store/adapter-support` and topographer direct database/admin helpers to `@ontrails/topographer/backend-support`, keeping root exports focused on contract-level APIs.
+- [`6300f70`](https://github.com/outfitter-dev/trails/commit/6300f709bb6dffc0e6cc82479fe8d0204c52bbba): BREAKING: rename the shared store backend option type from `StoreConnectorOptions` to `StoreAdapterOptions`.
+
+### Minor Changes
+
+- [`69057e9`](https://github.com/outfitter-dev/trails/commit/69057e9348006b2b70c9f6237572a5aa8de3ee1f): Add hierarchical CLI command trees and structured input, enforce established-only topo exports across surfaces, move developer topo and tracing state onto shared `trails.db` with pins and maintenance flows, and ship schema-derived stores through `@ontrails/store` and its Drizzle runtime.
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`88a6a62`](https://github.com/outfitter-dev/trails/commit/88a6a62a9e9e230ca6d368fa78dc3ece6c816204): Complete the v1 classification-first cutover from projection/project vocabulary
+  to derive/derived for contract-owned fact production and render/rendered for
+  surface presentation. Public type, helper, rule, relation, and report names move
+  without compatibility aliases; ordinary repository/project nouns remain
+  explicit preserves or structured review inventory.
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+
+### Patch Changes
+
+- [`e41c382`](https://github.com/outfitter-dev/trails/commit/e41c3829c2d692683b78c730e67fd5b17ac0ff4e): Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- [`9874e0b`](https://github.com/outfitter-dev/trails/commit/9874e0bb034c0f98edeb19833d9d3519c2a07a4c): Add `@ontrails/cloudflare/d1`, an env-bound Cloudflare D1 store resource for `@ontrails/store` definitions. The new subpath exports `cloudflareD1` and `connectD1`, supports the backend-agnostic store accessor contract (`get`, `list`, `upsert`, `remove`), versioned-table optimistic concurrency, fixture/mock seeding, store-derived write signals, Miniflare-backed conformance tests, and Worker env-bridge integration.
+
+  `@ontrails/core` and `@ontrails/store` no longer require the Bun global for signal fire ids or late-bound store signal tokens, so store definitions and store-derived signal emission work inside Worker modules. `@ontrails/warden` now treats `cloudflareD1` as a required Cloudflare public export with `@example` coverage.
+
+- [`e898cc4`](https://github.com/outfitter-dev/trails/commit/e898cc4042ffa66f977b425a98419ee77183f27d): Add repo-level Knip dead-code detection and remove stale internal exports and unused package dependencies surfaced by the new check.
+- [`851a2a3`](https://github.com/outfitter-dev/trails/commit/851a2a3cb805993d16ef74d43d3c963f286cce15): Derive trail caller and blaze input types from the authored input schema while keeping one public input contract.
+- [`f7ec225`](https://github.com/outfitter-dev/trails/commit/f7ec225c01482f8fb55afd174add3d961a63171b): `sync()` gains the factory-contract options `crud()` and `reconcile()` received in TRL-1195: a `permit` option declared on the produced trail, and per-endpoint `contour` options on `SyncEndpoint` so a `crud()` bundle's table contour can be shared instead of colliding as a duplicate registration at `topo()`.
+- [`49c2e7d`](https://github.com/outfitter-dev/trails/commit/49c2e7d5c7c063b9aa6abee1d2932bf3003133cc): Refresh published package README taxonomy to use adapter language instead of retired connector vocabulary.
+- [`5a38c73`](https://github.com/outfitter-dev/trails/commit/5a38c73092f81612769be4b44944d828c3436e07): Complete the store factory trail contracts (TRL-1195, absorbing TRL-1177 and TRL-1178). `crud()` gains `permit` (applied to every produced trail) and `permits` (per-operation overrides, so destroy trails satisfy permit governance) plus a `contour` option, and the returned tuple now exposes the table contour it registered as a `contour` property. `reconcile()` gains `permit` and accepts a shared `contour` instance, so crud + reconcile on one table register cleanly in a single `topo()` instead of colliding on a duplicate contour name. `TableContour` is exported from `@ontrails/store/trails`. Consuming apps no longer need to post-process factory trails to attach permits or strip contours.
+- [`b1fbe57`](https://github.com/outfitter-dev/trails/commit/b1fbe574e6f44d1fecb5e3a000270955c0a77b7b): Publish Bun-validated package tarballs through an npm trusted-publishing adapter
+  binding, add exact repository metadata for each public workspace package, and
+  correct the native Bun release descriptor to its pack-only runtime boundary.
+- [`ab1c77c`](https://github.com/outfitter-dev/trails/commit/ab1c77cddd90c30af28887f2bbd2cf2416900068): Advertise first-party adapter target metadata for catalog derivation.
+- [`9bf592d`](https://github.com/outfitter-dev/trails/commit/9bf592ddba46aa12e3f4e6ffc0f772f7a41ed3df): Declare verified first-party adapter metadata for Drizzle, HTTP/Bun, and Store/Jsonfile so shared adapter checks can dogfood real owner targets.
+- [`df9a7d0`](https://github.com/outfitter-dev/trails/commit/df9a7d00fe4d9ebec948b6ebed6dc4525fc8e0dc): Add project-aware public export-map governance for @ontrails workspace docs,
+  imports, root barrels, and bin-only package surfaces.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49
