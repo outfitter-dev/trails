@@ -1,8 +1,10 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import { ValidationError } from '@ontrails/core';
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -17,7 +19,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
-import { vocabularyRegradePlanForInput } from '@ontrails/regrade';
+import {
+  regradeReceiptPlanContentHash,
+  resolveRegradeHistoryReceipt,
+  vocabularyRegradePlanForInput,
+} from '@ontrails/regrade';
 import type {
   PreparedRegradeRunIdentity,
   VocabularyRegradePlan,
@@ -144,6 +150,197 @@ const writeFile = (root: string, path: string, value: string): void => {
   const filePath = join(root, path);
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, value);
+};
+
+const installCorePackageProofFixture = (
+  root: string,
+  installedSource = 'export const fixture = true;\n'
+): {
+  readonly artifactRoot: string;
+  readonly packageSource: {
+    readonly kind: 'tarball';
+    readonly name: '@ontrails/core';
+    readonly path: string;
+    readonly sha256: string;
+  };
+} => {
+  const artifactRoot = mkdtempSync(
+    join(tmpdir(), 'trails-regrade-core-artifact-')
+  );
+  writeFile(
+    artifactRoot,
+    'package/package.json',
+    `${JSON.stringify({ exports: './index.js', name: '@ontrails/core', version: '1.0.0' })}\n`
+  );
+  writeFile(artifactRoot, 'package/index.js', 'export const fixture = true;\n');
+  const packedTarball = join(artifactRoot, 'core.tgz');
+  const packed = Bun.spawnSync(
+    ['tar', '-czf', packedTarball, '-C', artifactRoot, 'package'],
+    {
+      env: { ...process.env, COPYFILE_DISABLE: '1' },
+    }
+  );
+  if (packed.exitCode !== 0) {
+    throw new Error(packed.stderr.toString());
+  }
+  const locator = 'vendor/core.tgz';
+  const tarball = join(root, locator);
+  mkdirSync(dirname(tarball), { recursive: true });
+  copyFileSync(packedTarball, tarball);
+  writeFile(
+    root,
+    'package.json',
+    `${JSON.stringify({ dependencies: { '@ontrails/core': `file:${locator}` }, name: 'fixture', version: '1.0.0' })}\n`
+  );
+  writeFile(
+    root,
+    'node_modules/@ontrails/core/package.json',
+    `${JSON.stringify({ exports: './index.js', name: '@ontrails/core', version: '1.0.0' })}\n`
+  );
+  writeFile(root, 'node_modules/@ontrails/core/index.js', installedSource);
+  return {
+    artifactRoot,
+    packageSource: {
+      kind: 'tarball',
+      name: '@ontrails/core',
+      path: locator,
+      sha256: createHash('sha256').update(readFileSync(tarball)).digest('hex'),
+    },
+  };
+};
+
+const installRuleLoadSentinel = (
+  root: string,
+  sentinel: string,
+  contents = 'loaded\n'
+): void => {
+  writeFile(
+    root,
+    '.trails/rules.ts',
+    `
+import type { WardenRule } from '@ontrails/warden';
+import { writeFileSync } from 'node:fs';
+
+writeFileSync(${JSON.stringify(sentinel)}, ${JSON.stringify(contents)});
+
+const rule = {
+  check() {
+    return [];
+  },
+  description: 'Record project Warden rule loading.',
+  metadata: {
+    concern: 'meta',
+    depth: 'source',
+    invariant: 'Package proof precedes project rule loading.',
+    lifecycle: { state: 'temporary', retireWhen: 'fixture completes' },
+    scope: 'repo-local',
+    tier: 'source-static',
+  },
+  name: 'package-proof-load-sentinel',
+  severity: 'error',
+} satisfies WardenRule;
+
+export default rule;
+`
+  );
+};
+
+const installPackageMutationRule = (root: string): void => {
+  writeFile(
+    root,
+    '.trails/rules.ts',
+    `
+import type { WardenRule } from '@ontrails/warden';
+import { writeFileSync } from 'node:fs';
+
+const rule = {
+  check(sourceCode: string, filePath: string) {
+    writeFileSync(
+      ${JSON.stringify(join(root, 'node_modules/@ontrails/core/index.js'))},
+      'export const fixture = false;\\n'
+    );
+    const start = sourceCode.indexOf('facet');
+    return start < 0 ? [] : [{
+      filePath,
+      fix: {
+        class: 'term-rewrite',
+        edits: [{ end: start + 5, replacement: 'trailhead', start }],
+        reason: 'Rename facet.',
+        safety: 'safe',
+      },
+      line: 1,
+      message: 'Rename facet.',
+      rule: 'package-proof-evaluation-gap',
+      severity: 'error',
+    }];
+  },
+  description: 'Exercise package proof after class evaluation.',
+  metadata: {
+    concern: 'meta',
+    depth: 'source',
+    fix: { class: 'term-rewrite', safety: 'safe' },
+    invariant: 'Package proof remains current through class evaluation.',
+    lifecycle: { state: 'temporary', retireWhen: 'fixture completes' },
+    scope: 'repo-local',
+    tier: 'source-static',
+  },
+  name: 'package-proof-evaluation-gap',
+  severity: 'error',
+} satisfies WardenRule;
+
+export default rule;
+`
+  );
+};
+
+const installCompletionPackageMutationRule = (root: string): void => {
+  writeFile(
+    root,
+    '.trails/rules.ts',
+    `
+import type { WardenRule } from '@ontrails/warden';
+import { writeFileSync } from 'node:fs';
+
+const rule = {
+  check(sourceCode: string, filePath: string) {
+    if (filePath.endsWith('src/surface.ts') && sourceCode.includes('trailhead')) {
+      writeFileSync(
+        ${JSON.stringify(join(root, 'node_modules/@ontrails/core/index.js'))},
+        'export const fixture = false;\\n'
+      );
+    }
+    const start = sourceCode.indexOf('facet');
+    return start < 0 ? [] : [{
+      filePath,
+      fix: {
+        class: 'term-rewrite',
+        edits: [{ end: start + 5, replacement: 'trailhead', start }],
+        reason: 'Rename facet.',
+        safety: 'safe',
+      },
+      line: 1,
+      message: 'Rename facet.',
+      rule: 'package-proof-completion-gap',
+      severity: 'error',
+    }];
+  },
+  description: 'Exercise package proof during the completion scan.',
+  metadata: {
+    concern: 'meta',
+    depth: 'source',
+    fix: { class: 'term-rewrite', safety: 'safe' },
+    invariant: 'Completion scans preserve package proof before history.',
+    lifecycle: { state: 'temporary', retireWhen: 'fixture completes' },
+    scope: 'repo-local',
+    tier: 'source-static',
+  },
+  name: 'package-proof-completion-gap',
+  severity: 'error',
+} satisfies WardenRule;
+
+export default rule;
+`
+  );
 };
 
 interface RegradeSchemaCommand {
@@ -1151,6 +1348,37 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI rejects package-source proof on vocabulary plans', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/source.md', 'facet\n');
+      const result = runRawCli([
+        'regrade',
+        'plan',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          packageSource: {
+            kind: 'published',
+            name: '@ontrails/core',
+            version: '1.0.0',
+          },
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain(
+        '`packageSource` is available only for class-mode Regrade plans.'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI rejects mismatched governed plans before applying source edits', () => {
     const dir = makeTempDir();
     try {
@@ -1262,6 +1490,7 @@ describe('trails regrade', () => {
 
   test('CLI runs the class-mode plan lifecycle: plan, check, apply, history', () => {
     const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
     try {
       writeFile(
         dir,
@@ -1287,6 +1516,8 @@ describe('trails regrade', () => {
         'export-restructure:cli-aliases',
         '--root-dir',
         dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
         '--json',
       ]);
       expect(planResult.exitCode).toBe(0);
@@ -1295,6 +1526,7 @@ describe('trails regrade', () => {
         readonly plan?: {
           readonly classIds?: readonly string[];
           readonly kind?: string;
+          readonly packageSource?: unknown;
         };
         readonly sourceHash?: string;
       }>(planResult);
@@ -1304,12 +1536,30 @@ describe('trails regrade', () => {
         plan: {
           classIds: ['export-restructure:cli-aliases'],
           kind: 'class',
+          packageSource: proofFixture.packageSource,
         },
       });
       if (plan.path === undefined) {
         throw new Error('Expected Regrade plan path.');
       }
       expect(existsSync(join(dir, plan.path))).toBe(true);
+
+      const regeneratedPlan = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(regeneratedPlan.exitCode).toBe(0);
+      expect(parseCliJson(regeneratedPlan)).toMatchObject({
+        plan: { packageSource: proofFixture.packageSource },
+        provenance: { fields: { packageSource: 'authored' } },
+      });
 
       const plansResult = runRawCli([
         'regrade',
@@ -1352,9 +1602,19 @@ describe('trails regrade', () => {
       const applied = parseCliJson<{
         readonly apply?: { readonly applied?: number };
         readonly history?: { readonly path?: string };
+        readonly packageSource?: {
+          readonly artifactSha256?: string;
+          readonly contentSha256?: string;
+          readonly name?: string;
+        };
         readonly plan?: { readonly status?: string };
       }>(applyResult);
       expect(applied.apply).toMatchObject({ applied: 1 });
+      expect(applied.packageSource).toMatchObject({
+        artifactSha256: proofFixture.packageSource.sha256,
+        name: '@ontrails/core',
+      });
+      expect(applied.packageSource?.contentSha256).toHaveLength(64);
       expect(applied.plan).toMatchObject({ status: 'active' });
       const historyPath = applied.history?.path;
       if (historyPath === undefined) {
@@ -1407,6 +1667,7 @@ describe('trails regrade', () => {
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
     }
   });
 
@@ -6260,7 +6521,9 @@ describe('trails regrade', () => {
     );
     expectRegradeSchemaFields(planCommand);
     expectRegradeSchemaFlags(planCommand);
+    expect(planCommand?.input?.properties).toHaveProperty('packageSource');
     expect(applyCommand?.input?.properties).toHaveProperty('plan');
+    expect(applyCommand?.input?.properties).toHaveProperty('packageSource');
     expect(applyCommand?.input?.properties).not.toHaveProperty('dryRun');
   });
 
@@ -6815,6 +7078,660 @@ describe('trails regrade', () => {
     }
   });
 
+  test('package-source mismatch fails before class rewrites or source writes', async () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(
+      dir,
+      'export const fixture = false;\n'
+    );
+    try {
+      const target = join(dir, 'src', 'play.ts');
+      const loadSentinel = join(dir, '.warden-rule-loaded');
+      writeFile(
+        dir,
+        'src/play.ts',
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+      writeFile(
+        dir,
+        '.trails/rules.ts',
+        `
+import { writeFileSync } from 'node:fs';
+
+writeFileSync(${JSON.stringify(loadSentinel)}, 'loaded\\n');
+export default [];
+`
+      );
+
+      const result = await regradeTrail.implementation(
+        {
+          apply: true,
+          packageSource: proofFixture.packageSource,
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.constructor.name).toBe('ConflictError');
+      }
+      expect(readFileSync(target, 'utf8')).toContain('crosses');
+      expect(existsSync(loadSentinel)).toBe(false);
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('package-source mutation while loading project rules fails before class evaluation', async () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const target = join(dir, 'src/play.ts');
+      writeFile(
+        dir,
+        'src/play.ts',
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+      installRuleLoadSentinel(
+        dir,
+        join(dir, 'node_modules/@ontrails/core/index.js'),
+        'export const fixture = false;\n'
+      );
+
+      const result = await regradeTrail.implementation(
+        {
+          apply: true,
+          packageSource: proofFixture.packageSource,
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.constructor.name).toBe('ConflictError');
+        expect(result.error.message).toContain('bytes do not match');
+      }
+      expect(readFileSync(target, 'utf8')).toContain('crosses');
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('direct apply rechecks package source after class evaluation before source writes', async () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const target = join(dir, 'src/surface.ts');
+      writeFile(dir, 'src/surface.ts', 'export const facet = "inspect";\n');
+      installPackageMutationRule(dir);
+
+      const result = await regradeTrail.implementation(
+        {
+          apply: true,
+          classIds: ['term-rewrite:package-proof-evaluation-gap'],
+          packageSource: proofFixture.packageSource,
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.constructor.name).toBe('ConflictError');
+        expect(result.error.message).toContain('bytes do not match');
+      }
+      expect(readFileSync(target, 'utf8')).toContain('facet');
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('class plan rejects package-source mismatch before loading project rules or writing the plan', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(
+      dir,
+      'export const fixture = false;\n'
+    );
+    try {
+      const loadSentinel = join(dir, '.warden-rule-loaded');
+      writeFile(
+        dir,
+        'src/app.ts',
+        "export const trailsCliAliases = { diff: [['survey']] };\n"
+      );
+      installRuleLoadSentinel(dir, loadSentinel);
+
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+
+      expect(planned.exitCode).not.toBe(0);
+      expect(planned.stderr).toContain('bytes do not match');
+      expect(existsSync(loadSentinel)).toBe(false);
+      expect(
+        existsSync(
+          join(dir, '.trails/regrade/export-restructure-cli-aliases.json')
+        )
+      ).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('class plan rejects a non-portable package-source path before loading rules or writing', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const loadSentinel = join(dir, '.warden-rule-loaded');
+      installRuleLoadSentinel(dir, loadSentinel);
+
+      for (const path of ['../core.tgz', 'C:core.tgz']) {
+        const planned = runRawCli([
+          'regrade',
+          'plan',
+          '--type',
+          'class',
+          '--class-ids',
+          'term-rewrite:package-proof-load-sentinel',
+          '--root-dir',
+          dir,
+          '--input-json',
+          JSON.stringify({
+            packageSource: { ...proofFixture.packageSource, path },
+          }),
+          '--json',
+        ]);
+
+        expect(planned.exitCode).not.toBe(0);
+        expect(planned.stderr).toContain('root-relative POSIX');
+      }
+      expect(existsSync(loadSentinel)).toBe(false);
+      expect(existsSync(join(dir, '.trails/regrade'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('class plan rechecks package source after evaluation before writing the plan', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facet = "inspect";\n');
+      installPackageMutationRule(dir);
+
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'term-rewrite:package-proof-evaluation-gap',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+
+      expect(planned.exitCode).not.toBe(0);
+      expect(planned.stderr).toContain('bytes do not match');
+      expect(
+        existsSync(
+          join(
+            dir,
+            '.trails/regrade/term-rewrite-package-proof-evaluation-gap.json'
+          )
+        )
+      ).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('saved-plan preview proves package source before loading project rules', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const loadSentinel = join(dir, '.warden-rule-loaded');
+      writeFile(
+        dir,
+        'src/app.ts',
+        "export const trailsCliAliases = { diff: [['survey']] };\n"
+      );
+      installRuleLoadSentinel(dir, loadSentinel);
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+      expect(existsSync(loadSentinel)).toBe(true);
+      rmSync(loadSentinel, { force: true });
+      writeFile(
+        dir,
+        'node_modules/@ontrails/core/index.js',
+        'export const fixture = false;\n'
+      );
+
+      const preview = runRawCli([
+        'regrade',
+        'preview',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(preview.exitCode).not.toBe(0);
+      expect(preview.stderr).toContain('bytes do not match');
+      expect(existsSync(loadSentinel)).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('apply proves prepared package source before reloading project rules', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const target = join(dir, 'src/app.ts');
+      const reloadSentinel = join(dir, '.prepared-rule-reloaded');
+      writeFile(
+        dir,
+        'src/app.ts',
+        "export const trailsCliAliases = { diff: [['survey']] };\n"
+      );
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+
+      const binDir = join(dir, 'test-bin');
+      const mutator = join(dir, 'mutate-before-reload.ts');
+      mkdirSync(binDir, { recursive: true });
+      writeFileSync(
+        mutator,
+        `
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+
+writeFileSync(process.env.TRAILS_TEST_CORE_PATH, 'export const fixture = false;\\n');
+mkdirSync(dirname(process.env.TRAILS_TEST_RULE_PATH), { recursive: true });
+writeFileSync(process.env.TRAILS_TEST_RULE_PATH, \`
+import { writeFileSync } from 'node:fs';
+
+writeFileSync(process.env.TRAILS_TEST_SENTINEL, 'loaded\\\\n');
+export default [];
+\`);
+`
+      );
+      const gitPath = execFileSync('which', ['git'], {
+        encoding: 'utf8',
+      }).trim();
+      writeFileSync(
+        join(binDir, 'git'),
+        `#!/bin/sh
+if [ "$1" = "-C" ] && [ "$3" = "rev-parse" ] && [ "$4" = "HEAD" ]; then
+  "$TRAILS_TEST_BUN" "$TRAILS_TEST_MUTATOR"
+fi
+exec "$TRAILS_TEST_REAL_GIT" "$@"
+`
+      );
+      chmodSync(join(binDir, 'git'), 0o755);
+
+      const applied = runRawCli(
+        ['regrade', 'apply', '--root-dir', dir, '--json'],
+        repoRoot,
+        {
+          PATH: `${binDir}:${process.env.PATH ?? ''}`,
+          TRAILS_TEST_BUN: process.execPath,
+          TRAILS_TEST_CORE_PATH: join(
+            dir,
+            'node_modules/@ontrails/core/index.js'
+          ),
+          TRAILS_TEST_MUTATOR: mutator,
+          TRAILS_TEST_REAL_GIT: gitPath,
+          TRAILS_TEST_RULE_PATH: join(dir, '.trails/rules/reload-sentinel.ts'),
+          TRAILS_TEST_SENTINEL: reloadSentinel,
+        }
+      );
+
+      expect(applied.exitCode).not.toBe(0);
+      expect(applied.stderr).toContain('bytes do not match');
+      expect(existsSync(reloadSentinel)).toBe(false);
+      expect(readFileSync(target, 'utf8')).toContain('trailsCliAliases');
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('apply rejects a package-source expectation that conflicts with the saved plan', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const loadSentinel = join(dir, '.warden-rule-loaded');
+      const target = join(dir, 'src/app.ts');
+      writeFile(
+        dir,
+        'src/app.ts',
+        "export const trailsCliAliases = { diff: [['survey']] };\n"
+      );
+      installRuleLoadSentinel(dir, loadSentinel);
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+      rmSync(loadSentinel, { force: true });
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          packageSource: {
+            ...proofFixture.packageSource,
+            sha256: '0'.repeat(64),
+          },
+        }),
+        '--json',
+      ]);
+
+      expect(applied.exitCode).not.toBe(0);
+      expect(applied.stderr).toContain('does not match the saved Regrade plan');
+      expect(existsSync(loadSentinel)).toBe(false);
+      expect(readFileSync(target, 'utf8')).toContain('trailsCliAliases');
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('apply accepts package-source proof for a legacy class plan without an expectation', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      writeFile(
+        dir,
+        'src/app.ts',
+        "export const trailsCliAliases = { diff: [['survey']] };\n"
+      );
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+
+      expect(applied.exitCode).toBe(0);
+      const appliedOutput = parseCliJson<{
+        readonly history?: { readonly id?: string; readonly path?: string };
+        readonly packageSource?: unknown;
+      }>(applied);
+      expect(appliedOutput).toMatchObject({
+        packageSource: {
+          artifactSha256: proofFixture.packageSource.sha256,
+          name: '@ontrails/core',
+        },
+      });
+      const historyPath = appliedOutput.history?.path;
+      const transitionId = appliedOutput.history?.id;
+      if (historyPath === undefined || transitionId === undefined) {
+        throw new Error('Expected applied Regrade history.');
+      }
+      const receipt = JSON.parse(
+        readFileSync(join(dir, historyPath), 'utf8')
+      ) as {
+        readonly runs?: readonly {
+          readonly intent?: {
+            readonly kind?: string;
+            readonly plan?: {
+              readonly packageSource?: typeof proofFixture.packageSource;
+            };
+            readonly planContentHash?: string;
+            readonly provenance?: {
+              readonly fields?: Readonly<Record<string, string>>;
+            };
+          };
+        }[];
+      };
+      const resolvedReceipt = resolveRegradeHistoryReceipt(receipt);
+      expect(resolvedReceipt.isOk()).toBe(true);
+      const firstIntent = receipt.runs?.[0]?.intent;
+      expect(firstIntent).toMatchObject({
+        kind: 'embedded',
+        plan: { packageSource: proofFixture.packageSource },
+        provenance: { fields: { packageSource: 'authored' } },
+      });
+      if (resolvedReceipt.isErr()) {
+        throw resolvedReceipt.error;
+      }
+      if (firstIntent === undefined) {
+        throw new Error('Expected embedded Regrade history intent.');
+      }
+      const [resolvedRun] = resolvedReceipt.value.runs;
+      if (resolvedRun === undefined) {
+        throw new Error('Expected resolved Regrade history run.');
+      }
+      expect(firstIntent.planContentHash).toBe(
+        regradeReceiptPlanContentHash({
+          plan: resolvedRun.plan,
+          provenance: resolvedRun.provenance,
+        })
+      );
+
+      const adjusted = runRawCli([
+        'regrade',
+        'adjust',
+        transitionId,
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(adjusted.exitCode).toBe(0);
+      const regenerated = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(regenerated.exitCode).toBe(0);
+      const regeneratedPath = parseCliJson<{ readonly path?: string }>(
+        regenerated
+      ).path;
+      if (regeneratedPath === undefined) {
+        throw new Error('Expected regenerated Regrade plan path.');
+      }
+      expect(
+        JSON.parse(readFileSync(join(dir, regeneratedPath), 'utf8'))
+      ).toMatchObject({
+        plan: { packageSource: proofFixture.packageSource },
+        provenance: { fields: { packageSource: 'authored' } },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('legacy apply rejects a non-portable package-source path before source mutation', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const externalTarball = join(
+        proofFixture.artifactRoot,
+        'external-core.tgz'
+      );
+      copyFileSync(join(dir, proofFixture.packageSource.path), externalTarball);
+      writeFile(
+        dir,
+        'package.json',
+        `${JSON.stringify({ dependencies: { '@ontrails/core': `file:${externalTarball}` }, name: 'fixture', version: '1.0.0' })}\n`
+      );
+      const target = join(dir, 'src/app.ts');
+      writeFile(
+        dir,
+        'src/app.ts',
+        "export const trailsCliAliases = { diff: [['survey']] };\n"
+      );
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+      const callbackSentinel = join(dir, '.non-portable-apply-callback');
+      installRuleLoadSentinel(dir, callbackSentinel);
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          packageSource: {
+            ...proofFixture.packageSource,
+            path: externalTarball,
+          },
+        }),
+        '--json',
+      ]);
+
+      expect(applied.exitCode).not.toBe(0);
+      expect(applied.stderr).toContain('machine-absolute paths');
+      expect(readFileSync(target, 'utf8')).toContain('trailsCliAliases');
+      expect(existsSync(callbackSentinel)).toBe(false);
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('legacy apply rechecks package source after completion callbacks before history', () => {
+    const dir = makeTempDir();
+    const proofFixture = installCorePackageProofFixture(dir);
+    try {
+      const target = join(dir, 'src/surface.ts');
+      writeFile(dir, 'src/surface.ts', 'export const facet = "inspect";\n');
+      installCompletionPackageMutationRule(dir);
+      const planned = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'term-rewrite:package-proof-completion-gap',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planned.exitCode).toBe(0);
+
+      const applied = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({ packageSource: proofFixture.packageSource }),
+        '--json',
+      ]);
+
+      expect(applied.exitCode).not.toBe(0);
+      expect(applied.stderr).toContain('bytes do not match');
+      expect(readFileSync(target, 'utf8')).toContain('facet');
+      expect(
+        readFileSync(join(dir, 'node_modules/@ontrails/core/index.js'), 'utf8')
+      ).toContain('false');
+      expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+    }
+  });
+
   test('apply mode writes only safe downstream rewrites', async () => {
     const dir = makeTempDir();
     try {
@@ -6847,6 +7764,97 @@ describe('trails regrade', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test(
+    'rechecks package-source proof after preparation and before class-plan writes',
+    () => {
+      const dir = makeTempDir();
+      const proofFixture = installCorePackageProofFixture(dir);
+      try {
+        const target = join(dir, 'src', 'surface.ts');
+        writeFile(dir, 'src/surface.ts', 'export const facet = "inspect";\n');
+        writeFile(
+          dir,
+          '.trails/rules.ts',
+          `
+import type { WardenRule } from '@ontrails/warden';
+import { existsSync, writeFileSync } from 'node:fs';
+
+const rule = {
+  check(sourceCode: string, filePath: string) {
+    if (existsSync(${JSON.stringify(join(dir, '.mutate-package'))})) {
+      writeFileSync(
+        ${JSON.stringify(join(dir, 'node_modules/@ontrails/core/index.js'))},
+        'export const fixture = false;\\n'
+      );
+    }
+    const start = sourceCode.indexOf('facet');
+    return start < 0 ? [] : [{
+      filePath,
+      fix: {
+        class: 'term-rewrite',
+        edits: [{ end: start + 5, replacement: 'trailhead', start }],
+        reason: 'Rename facet.',
+        safety: 'safe',
+      },
+      line: 1,
+      message: 'Rename facet.',
+      rule: 'package-proof-gap',
+      severity: 'error',
+    }];
+  },
+  description: 'Exercise the package proof apply lease.',
+  metadata: {
+    concern: 'meta',
+    depth: 'source',
+    fix: { class: 'term-rewrite', safety: 'safe' },
+    invariant: 'Package proof remains current until apply.',
+    lifecycle: { state: 'temporary', retireWhen: 'fixture completes' },
+    scope: 'repo-local',
+    tier: 'source-static',
+  },
+  name: 'package-proof-gap',
+  severity: 'error',
+} satisfies WardenRule;
+
+export default rule;
+`
+        );
+        const planned = runRawCli([
+          'regrade',
+          'plan',
+          '--type',
+          'class',
+          '--class-ids',
+          'term-rewrite:package-proof-gap',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(planned.exitCode).toBe(0);
+        writeFileSync(join(dir, '.mutate-package'), 'yes\n');
+
+        const applied = runRawCli([
+          'regrade',
+          'apply',
+          '--root-dir',
+          dir,
+          '--input-json',
+          JSON.stringify({ packageSource: proofFixture.packageSource }),
+          '--json',
+        ]);
+
+        expect(applied.exitCode).not.toBe(0);
+        expect(applied.stderr).toContain('bytes do not match');
+        expect(readFileSync(target, 'utf8')).toContain('facet');
+        expect(existsSync(join(dir, '.trails/regrade/history'))).toBe(false);
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+        rmSync(proofFixture.artifactRoot, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs
+  );
 
   test(
     'loads project-local Warden term rewrites from the regrade root',

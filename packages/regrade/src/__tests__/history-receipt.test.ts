@@ -4,6 +4,7 @@ import {
   regradeClassifiedStateHash,
   regradeHistoryReceiptSchema,
   regradeReceiptPlanContentHash,
+  regradeReceiptPlanSchema,
   resolveRegradeHistoryReceipt,
   serializeRegradeHistoryReceipt,
 } from '../history-receipt.js';
@@ -143,6 +144,40 @@ describe('Regrade history receipt v3', () => {
       false
     );
 
+    const classReceipt = (packageSourcePath: string) => {
+      const receipt = cloneFixture();
+      const { intent: classIntent } = runAt(receipt, 0);
+      if (classIntent.kind !== 'embedded') {
+        throw new Error('Expected embedded fixture plan.');
+      }
+      (classIntent as { plan: unknown }).plan = {
+        classIds: ['export-restructure:cli-aliases'],
+        id: 'class:export-restructure:cli-aliases',
+        kind: 'class',
+        packageSource: {
+          kind: 'tarball',
+          name: '@ontrails/core',
+          path: packageSourcePath,
+          sha256: 'a'.repeat(64),
+        },
+      };
+      return receipt;
+    };
+    expect(
+      regradeHistoryReceiptSchema.safeParse(classReceipt('vendor/core.tgz'))
+        .success
+    ).toBe(true);
+    for (const invalidPath of [
+      '/tmp/core.tgz',
+      'C:core.tgz',
+      '../core.tgz',
+      'vendor\\core.tgz',
+    ]) {
+      expect(
+        regradeHistoryReceiptSchema.safeParse(classReceipt(invalidPath)).success
+      ).toBe(false);
+    }
+
     const authoredRoute = cloneFixture();
     const { intent: routeIntent } = runAt(authoredRoute, 0);
     if (
@@ -190,6 +225,147 @@ describe('Regrade history receipt v3', () => {
     }
     nulFile.beforePath = 'src/before\u0000after.ts';
     expect(regradeHistoryReceiptSchema.safeParse(nulPath).success).toBe(false);
+  });
+
+  test('rejects malformed tarball proof in public plans and history receipts', () => {
+    const malformedPlan = {
+      classIds: ['export-restructure:cli-aliases'],
+      id: 'class:export-restructure:cli-aliases',
+      kind: 'class' as const,
+      packageSource: {
+        kind: 'tarball' as const,
+        name: '@ontrails/core',
+        path: 'vendor/core.tgz',
+        sha256: 'not-a-sha256',
+      },
+    };
+    expect(regradeReceiptPlanSchema.safeParse(malformedPlan).success).toBe(
+      false
+    );
+    expect(
+      regradeReceiptPlanSchema.safeParse({
+        ...malformedPlan,
+        packageSource: {
+          ...malformedPlan.packageSource,
+          path: '/tmp/core.tgz',
+          sha256: 'a'.repeat(64),
+        },
+      }).success
+    ).toBe(false);
+
+    const receipt = cloneFixture();
+    const { intent } = runAt(receipt, 0);
+    if (intent.kind !== 'embedded') {
+      throw new Error('Expected embedded fixture plan.');
+    }
+    (intent as { plan: unknown }).plan = malformedPlan;
+    expect(regradeHistoryReceiptSchema.safeParse(receipt).success).toBe(false);
+  });
+
+  test('rejects invalid package identities in public plans and history receipts', () => {
+    const invalidPackageSources = [
+      {
+        kind: 'published',
+        name: 'not-ontrails/core',
+        version: '1.0.0',
+      },
+      {
+        kind: 'published',
+        name: '@ontrails/core',
+        version: 'latest',
+      },
+      ...[
+        '01.0.0',
+        '1.0.0-01',
+        '1.0.0-..',
+        '1.0.0-alpha..1',
+        '1.0.0+build..1',
+        '1.0.0\n',
+      ].map((version) => ({
+        kind: 'published' as const,
+        name: '@ontrails/core' as const,
+        version,
+      })),
+      {
+        kind: 'tarball',
+        name: 'not-ontrails/core',
+        path: 'vendor/core.tgz',
+        sha256: 'a'.repeat(64),
+      },
+    ] as const;
+
+    for (const packageSource of invalidPackageSources) {
+      const plan = {
+        classIds: ['export-restructure:cli-aliases'],
+        id: 'class:export-restructure:cli-aliases',
+        kind: 'class' as const,
+        packageSource,
+      };
+      expect(regradeReceiptPlanSchema.safeParse(plan).success).toBe(false);
+
+      const receipt = cloneFixture();
+      const { intent } = runAt(receipt, 0);
+      if (intent.kind !== 'embedded') {
+        throw new Error('Expected embedded fixture plan.');
+      }
+      (intent as { plan: unknown }).plan = plan;
+      const planContentHash = regradeReceiptPlanContentHash({
+        plan: plan as never,
+        provenance: intent.provenance,
+      });
+      (intent as { planContentHash: string }).planContentHash = planContentHash;
+      for (const run of receipt.runs.slice(1)) {
+        if (run.intent.kind === 'reference') {
+          (run.intent as { planContentHash: string }).planContentHash =
+            planContentHash;
+        }
+      }
+      expect(regradeHistoryReceiptSchema.safeParse(receipt).success).toBe(
+        false
+      );
+      expect(resolveRegradeHistoryReceipt(receipt).isErr()).toBe(true);
+    }
+  });
+
+  test('accepts exact stable, prerelease, and build versions in public plans', () => {
+    for (const version of [
+      '0.0.0',
+      '1.2.3',
+      '1.0.0-0',
+      '1.0.0-alpha.1',
+      '1.0.0+001',
+      '1.0.0-alpha.1+build.01',
+    ]) {
+      const plan = {
+        classIds: ['export-restructure:cli-aliases'],
+        id: 'class:export-restructure:cli-aliases',
+        kind: 'class' as const,
+        packageSource: {
+          kind: 'published' as const,
+          name: '@ontrails/core',
+          version,
+        },
+      };
+      expect(regradeReceiptPlanSchema.safeParse(plan).success).toBe(true);
+
+      const receipt = cloneFixture();
+      const { intent } = runAt(receipt, 0);
+      if (intent.kind !== 'embedded') {
+        throw new Error('Expected embedded fixture plan.');
+      }
+      (intent as { plan: unknown }).plan = plan;
+      const planContentHash = regradeReceiptPlanContentHash({
+        plan,
+        provenance: intent.provenance,
+      });
+      intent.planContentHash = planContentHash;
+      for (const run of receipt.runs.slice(1)) {
+        if (run.intent.kind === 'reference') {
+          run.intent.planContentHash = planContentHash;
+        }
+      }
+      expect(resolveRegradeHistoryReceipt(receipt).isOk()).toBe(true);
+    }
   });
 
   test('requires proof receipts to reference prior state and claim no writes', () => {

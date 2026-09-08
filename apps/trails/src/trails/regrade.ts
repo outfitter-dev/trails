@@ -3,6 +3,7 @@
  */
 
 import {
+  ConflictError,
   InternalError,
   NotFoundError,
   Result,
@@ -27,6 +28,7 @@ import {
   runVocabularyRegrade,
   transitionRecordReportWithSummary,
   validatePreparedRegradeRun,
+  verifyDownstreamPackageSource,
   vocabularyRegradeTransitionForInput,
   vocabularyDispositionValues,
   vocabularyRegradePlanSchema,
@@ -41,6 +43,8 @@ import type {
   RegradeApplySummary,
   RegradeReport,
   RegradeReportEntry,
+  RegradePackageSourceEvidence,
+  RegradePackageSourceExpectation,
   RegradeScanDirectoryBucket,
   RegradeScanExtensionBucket,
   VocabularyPreserveRule,
@@ -102,8 +106,10 @@ import {
   canonicalJsonStringify,
   currentRegradeSourceHashMatches,
   isGeneratedRegradeArtifactPath,
+  persistentPackageSourcePathIssue,
   regradePlanArtifactSchema,
   regradePlanPathForPlan,
+  regradePackageSourceExpectationSchema,
   regradeSourceHash,
   rootRelativePath,
 } from '../regrade/plan-artifact.js';
@@ -212,6 +218,11 @@ const regradeInputSchema = regradePathScopeInputSchema.extend({
     .record(z.string().min(1), z.string().min(1))
     .optional()
     .describe('Explicit source-form to target-form mappings'),
+  packageSource: regradePackageSourceExpectationSchema
+    .optional()
+    .describe(
+      'Expected source for one directly declared downstream Trails package'
+    ),
   planRecord: z
     .string()
     .optional()
@@ -340,6 +351,11 @@ const regradePlanInputSchema = regradePathScopeInputSchema.extend({
     .record(z.string().min(1), z.string().min(1))
     .optional()
     .describe('Explicit source-form to target-form mappings'),
+  packageSource: regradePackageSourceExpectationSchema
+    .optional()
+    .describe(
+      'Expected source for one directly declared downstream Trails package'
+    ),
   preserve: z
     .array(regradePreserveInputSchema)
     .optional()
@@ -368,7 +384,13 @@ const regradePlanReferenceInputSchema = z.object({
   rootDir: z.string().optional().describe('Workspace root directory'),
 });
 
-const regradeApplyPlanInputSchema = regradePlanReferenceInputSchema;
+const regradeApplyPlanInputSchema = regradePlanReferenceInputSchema.extend({
+  packageSource: regradePackageSourceExpectationSchema
+    .optional()
+    .describe(
+      'Expected source for one directly declared downstream Trails package'
+    ),
+});
 
 const regradeAdjustInputSchema = z.object({
   rootDir: z.string().optional().describe('Workspace root directory'),
@@ -2614,12 +2636,105 @@ interface ClassRegradeCoreParams {
       }
     | undefined;
   readonly includeEntries: RegradeInput['includeEntries'];
+  readonly packageSource?: RegradePackageSourceExpectation | undefined;
   readonly rootDir: string;
 }
 
-const runClassRegradeCore = async (
-  params: ClassRegradeCoreParams
-): Promise<TrailsResult<RegradeReport, Error>> => {
+type ClassRegradeCollection = NonNullable<
+  Parameters<typeof runRegrade>[0]['collection']
+>;
+
+const stablePackageSourceEvidence = (
+  evidence: RegradePackageSourceEvidence
+): Omit<RegradePackageSourceEvidence, 'resolvedPackagePath'> => ({
+  artifactSha256: evidence.artifactSha256,
+  contentSha256: evidence.contentSha256,
+  declaredSpecifier: evidence.declaredSpecifier,
+  kind: evidence.kind,
+  name: evidence.name,
+  version: evidence.version,
+});
+
+const packageSourceEvidenceMatches = (
+  left: RegradePackageSourceEvidence,
+  right: RegradePackageSourceEvidence
+): boolean =>
+  JSON.stringify(stablePackageSourceEvidence(left)) ===
+  JSON.stringify(stablePackageSourceEvidence(right));
+
+const packageSourceExpectationMatches = (
+  left: RegradePackageSourceExpectation,
+  right: RegradePackageSourceExpectation
+): boolean =>
+  left.kind === right.kind &&
+  left.name === right.name &&
+  (left.kind === 'published' && right.kind === 'published'
+    ? left.version === right.version
+    : left.kind === 'tarball' &&
+      right.kind === 'tarball' &&
+      left.path === right.path &&
+      left.sha256 === right.sha256);
+
+interface VerifiedPackageSource {
+  readonly evidence: RegradePackageSourceEvidence;
+  readonly expectation: RegradePackageSourceExpectation;
+}
+
+const verifyExpectedPackageSource = async (
+  expectation: RegradePackageSourceExpectation | undefined,
+  rootDir: string
+): Promise<TrailsResult<VerifiedPackageSource | undefined, Error>> => {
+  if (expectation === undefined) {
+    return Result.ok();
+  }
+  const proof = await verifyDownstreamPackageSource({
+    expected: expectation,
+    root: rootDir,
+  });
+  return proof.isErr()
+    ? proof
+    : Result.ok({ evidence: proof.value, expectation });
+};
+
+type LoadedWardenRegradeClasses = Awaited<
+  ReturnType<typeof loadWardenRegradeClasses>
+>;
+
+const loadVerifiedWardenRegradeClasses = async (params: {
+  readonly initialProof?: VerifiedPackageSource | undefined;
+  readonly packageSource?: RegradePackageSourceExpectation | undefined;
+  readonly rootDir: string;
+}): Promise<
+  TrailsResult<
+    {
+      readonly classSet: LoadedWardenRegradeClasses;
+      readonly packageSource: VerifiedPackageSource | undefined;
+    },
+    Error
+  >
+> => {
+  const expectation = params.packageSource ?? params.initialProof?.expectation;
+  const preloadPackageSource = await verifyExpectedPackageSource(
+    expectation,
+    params.rootDir
+  );
+  if (preloadPackageSource.isErr()) {
+    return preloadPackageSource;
+  }
+  if (
+    params.initialProof !== undefined &&
+    (preloadPackageSource.value === undefined ||
+      !packageSourceEvidenceMatches(
+        params.initialProof.evidence,
+        preloadPackageSource.value.evidence
+      ))
+  ) {
+    return Result.err(
+      new ConflictError(
+        'Prepared Regrade package-source evidence changed before loading migration classes.'
+      )
+    );
+  }
   const classSet = await loadWardenRegradeClasses(params.rootDir);
   if (classSet.diagnostics.length > 0) {
     return Result.err(
@@ -2631,7 +2746,102 @@ const runClassRegradeCore = async (
       })
     );
   }
+  const packageSource = await verifyExpectedPackageSource(
+    expectation,
+    params.rootDir
+  );
+  if (packageSource.isErr()) {
+    return packageSource;
+  }
+  if (
+    preloadPackageSource.value !== undefined &&
+    (packageSource.value === undefined ||
+      !packageSourceEvidenceMatches(
+        preloadPackageSource.value.evidence,
+        packageSource.value.evidence
+      ))
+  ) {
+    return Result.err(
+      new ConflictError(
+        'Regrade package-source evidence changed while loading migration classes.'
+      )
+    );
+  }
+  return Result.ok({ classSet, packageSource: packageSource.value });
+};
 
+const runVerifiedClassRegradeCore = async (
+  params: ClassRegradeCoreParams & {
+    readonly packageSource: RegradePackageSourceExpectation;
+  },
+  collection: ClassRegradeCollection | undefined
+): Promise<TrailsResult<RegradeReport, Error>> => {
+  const verifiedClassSet = await loadVerifiedWardenRegradeClasses({
+    packageSource: params.packageSource,
+    rootDir: params.rootDir,
+  });
+  if (verifiedClassSet.isErr()) {
+    return verifiedClassSet;
+  }
+  const identity: PreparedRegradeRunIdentity = {
+    lockStateHash: 'direct-class-regrade',
+    planContentHash: 'direct-class-regrade',
+    policyHash: 'direct-class-regrade',
+    scopeHash: 'direct-class-regrade',
+    toolVersion: 'direct-class-regrade',
+  };
+  const prepared = prepareRegradeRun({
+    classes: verifiedClassSet.value.classSet.classes,
+    ...(collection === undefined ? {} : { collection }),
+    identity,
+    includeEntries: params.includeEntries,
+    root: params.rootDir,
+    ...(params.classIds === undefined
+      ? {}
+      : { selection: { classIds: params.classIds } }),
+  });
+  if (prepared.isErr()) {
+    return prepared;
+  }
+  if (prepared.value === null) {
+    return regradeRootNotFound(params.rootDir);
+  }
+  const finalPackageSource = await verifyExpectedPackageSource(
+    params.packageSource,
+    params.rootDir
+  );
+  if (finalPackageSource.isErr()) {
+    return finalPackageSource;
+  }
+  if (
+    finalPackageSource.value === undefined ||
+    verifiedClassSet.value.packageSource === undefined ||
+    !packageSourceEvidenceMatches(
+      finalPackageSource.value.evidence,
+      verifiedClassSet.value.packageSource.evidence
+    )
+  ) {
+    return Result.err(
+      new ConflictError(
+        'Regrade package-source evidence changed while evaluating migration classes.'
+      )
+    );
+  }
+  const reportResult = params.apply
+    ? applyPreparedRegradeRun(prepared.value, identity)
+    : Result.ok(prepared.value.report);
+  if (reportResult.isErr()) {
+    return reportResult;
+  }
+  return validateRegradeReport({
+    ...reportResult.value,
+    packageSource: finalPackageSource.value.evidence,
+  });
+};
+
+const runClassRegradeCore = async (
+  params: ClassRegradeCoreParams
+): Promise<TrailsResult<RegradeReport, Error>> => {
   const collection =
     params.collection === undefined
       ? undefined
@@ -2646,7 +2856,24 @@ const runClassRegradeCore = async (
             ? {}
             : { include: params.collection.include }),
         };
-  const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
+  if (params.packageSource !== undefined) {
+    return runVerifiedClassRegradeCore(
+      { ...params, packageSource: params.packageSource },
+      collection
+    );
+  }
+  const classSet = await loadWardenRegradeClasses(params.rootDir);
+  if (classSet.diagnostics.length > 0) {
+    return Result.err(
+      new InternalError('Failed to load Regrade project Warden rules.', {
+        context: {
+          diagnostics: classSet.diagnostics,
+          rootDir: params.rootDir,
+        },
+      })
+    );
+  }
+  const reportResult = runRegrade({
     apply: params.apply,
     classes: classSet.classes,
     ...(collection === undefined ? {} : { collection }),
@@ -2659,13 +2886,9 @@ const runClassRegradeCore = async (
   if (reportResult.isErr()) {
     return reportResult;
   }
-
-  const report = reportResult.value;
-  if (report === null) {
-    return regradeRootNotFound(params.rootDir);
-  }
-
-  return validateRegradeReport(report);
+  return reportResult.value === null
+    ? regradeRootNotFound(params.rootDir)
+    : validateRegradeReport(reportResult.value);
 };
 
 const runClassPlanRegradeRun = (params: {
@@ -2681,20 +2904,27 @@ const runClassPlanRegradeRun = (params: {
       ? {}
       : { collection: params.plan.scope }),
     includeEntries: params.includeEntries,
+    ...(params.plan.packageSource === undefined
+      ? {}
+      : { packageSource: params.plan.packageSource }),
     rootDir: params.rootDir,
   });
 
 const runPlanArtifactDryRun = async (params: {
   readonly artifact: RegradePlanArtifact;
   readonly includeEntries: RegradePlanReferenceInput['includeEntries'];
+  readonly packageSource?: RegradePackageSourceExpectation | undefined;
   readonly rootDir: string;
 }): Promise<TrailsResult<RegradeReport, Error>> => {
   const planBody = params.artifact.plan;
   if (planBody.kind === 'class') {
-    return runClassPlanRegradeRun({
+    const packageSource = params.packageSource ?? planBody.packageSource;
+    return runClassRegradeCore({
       apply: false,
+      classIds: planBody.classIds,
+      ...(planBody.scope === undefined ? {} : { collection: planBody.scope }),
       includeEntries: params.includeEntries,
-      plan: planBody,
+      ...(packageSource === undefined ? {} : { packageSource }),
       rootDir: params.rootDir,
     });
   }
@@ -2726,77 +2956,126 @@ type PreparedPlanRun =
       readonly prepared: PreparedVocabularyPlanRun;
     };
 
+interface PreparedPlanArtifactRun {
+  readonly prepared: PreparedPlanRun;
+  readonly report: RegradeReport;
+}
+
+const prepareClassPlanArtifactRun = async (params: {
+  readonly artifact: RegradePlanArtifact;
+  readonly includeEntries: RegradePlanReferenceInput['includeEntries'];
+  readonly packageSource?: VerifiedPackageSource | undefined;
+  readonly plan: ClassRegradePlan;
+  readonly rootDir: string;
+}): Promise<TrailsResult<PreparedPlanArtifactRun, Error>> => {
+  const expectation =
+    params.packageSource?.expectation ?? params.plan.packageSource;
+  const verifiedClassSet = await loadVerifiedWardenRegradeClasses({
+    ...(params.packageSource === undefined
+      ? {}
+      : { initialProof: params.packageSource }),
+    ...(expectation === undefined ? {} : { packageSource: expectation }),
+    rootDir: params.rootDir,
+  });
+  if (verifiedClassSet.isErr()) {
+    return verifiedClassSet;
+  }
+  const { classSet, packageSource } = verifiedClassSet.value;
+  const identity = preparedRegradeRunIdentity({
+    artifact: params.artifact,
+    classIds: classSet.classes.map((regradeClass) => regradeClass.id),
+    classes: classSet.classes,
+    includeEntries: params.includeEntries,
+    rootDir: params.rootDir,
+  });
+  if (identity.isErr()) {
+    return identity;
+  }
+  const prepared = prepareRegradeRun({
+    classes: classSet.classes,
+    ...(params.plan.scope === undefined
+      ? {}
+      : {
+          collection: {
+            ...(params.plan.scope.exclude === undefined
+              ? {}
+              : { exclude: params.plan.scope.exclude }),
+            ...(params.plan.scope.extensions === undefined
+              ? {}
+              : { extensions: params.plan.scope.extensions }),
+            ...(params.plan.scope.include === undefined
+              ? {}
+              : { include: params.plan.scope.include }),
+          },
+        }),
+    identity: identity.value,
+    includeEntries: params.includeEntries,
+    root: params.rootDir,
+    selection: { classIds: params.plan.classIds },
+  });
+  if (prepared.isErr()) {
+    return prepared;
+  }
+  if (prepared.value === null) {
+    return regradeRootNotFound(params.rootDir);
+  }
+  const finalPackageSource = await verifyExpectedPackageSource(
+    expectation,
+    params.rootDir
+  );
+  if (finalPackageSource.isErr()) {
+    return finalPackageSource;
+  }
+  if (
+    packageSource !== undefined &&
+    (finalPackageSource.value === undefined ||
+      !packageSourceEvidenceMatches(
+        packageSource.evidence,
+        finalPackageSource.value.evidence
+      ))
+  ) {
+    return Result.err(
+      new ConflictError(
+        'Regrade package-source evidence changed while evaluating migration classes.'
+      )
+    );
+  }
+  const report = validateRegradeReport(
+    finalPackageSource.value === undefined
+      ? prepared.value.report
+      : {
+          ...prepared.value.report,
+          packageSource: finalPackageSource.value.evidence,
+        }
+  );
+  if (report.isErr()) {
+    return report;
+  }
+  return Result.ok({
+    prepared: {
+      kind: 'class',
+      prepared: { identity: identity.value, run: prepared.value },
+    },
+    report: report.value,
+  });
+};
+
 const preparePlanArtifactRun = async (params: {
   readonly artifact: RegradePlanArtifact;
   readonly includeEntries: RegradePlanReferenceInput['includeEntries'];
+  readonly packageSource?: VerifiedPackageSource | undefined;
   readonly rootDir: string;
-}): Promise<
-  TrailsResult<
-    { readonly prepared: PreparedPlanRun; readonly report: RegradeReport },
-    Error
-  >
-> => {
+}): Promise<TrailsResult<PreparedPlanArtifactRun, Error>> => {
   const planBody = params.artifact.plan;
   if (planBody.kind === 'class') {
-    const classSet = await loadWardenRegradeClasses(params.rootDir);
-    if (classSet.diagnostics.length > 0) {
-      return Result.err(
-        new InternalError('Failed to load Regrade project Warden rules.', {
-          context: {
-            diagnostics: classSet.diagnostics,
-            rootDir: params.rootDir,
-          },
-        })
-      );
-    }
-    const identity = preparedRegradeRunIdentity({
+    return prepareClassPlanArtifactRun({
       artifact: params.artifact,
-      classIds: classSet.classes.map((regradeClass) => regradeClass.id),
-      classes: classSet.classes,
       includeEntries: params.includeEntries,
-      rootDir: params.rootDir,
-    });
-    if (identity.isErr()) {
-      return identity;
-    }
-    const prepared = prepareRegradeRun({
-      classes: classSet.classes,
-      ...(planBody.scope === undefined
+      ...(params.packageSource === undefined
         ? {}
-        : {
-            collection: {
-              ...(planBody.scope.exclude === undefined
-                ? {}
-                : { exclude: planBody.scope.exclude }),
-              ...(planBody.scope.extensions === undefined
-                ? {}
-                : { extensions: planBody.scope.extensions }),
-              ...(planBody.scope.include === undefined
-                ? {}
-                : { include: planBody.scope.include }),
-            },
-          }),
-      identity: identity.value,
-      includeEntries: params.includeEntries,
-      root: params.rootDir,
-      selection: { classIds: planBody.classIds },
-    });
-    if (prepared.isErr()) {
-      return prepared;
-    }
-    if (prepared.value === null) {
-      return regradeRootNotFound(params.rootDir);
-    }
-    const report = validateRegradeReport(prepared.value.report);
-    if (report.isErr()) {
-      return report;
-    }
-    return Result.ok({
-      prepared: {
-        kind: 'class',
-        prepared: { identity: identity.value, run: prepared.value },
-      },
-      report: report.value,
+        : { packageSource: params.packageSource }),
+      plan: planBody,
+      rootDir: params.rootDir,
     });
   }
 
@@ -3268,6 +3547,19 @@ const validateClassPlanInput = (
       '`expand` stages vocabulary review candidates and is not supported for class-mode plans.'
     );
   }
+  if (input.packageSource !== undefined) {
+    const pathIssue = persistentPackageSourcePathIssue(input.packageSource);
+    if (pathIssue !== undefined) {
+      return new ValidationError(pathIssue, {
+        context: {
+          path:
+            input.packageSource.kind === 'tarball'
+              ? input.packageSource.path
+              : undefined,
+        },
+      });
+    }
+  }
   return null;
 };
 
@@ -3293,7 +3585,7 @@ const readCurrentClassPlanArtifact = (
   return Result.ok({ ...candidate, plan: candidate.plan });
 };
 
-/** Carry authored intent and scope forward from the existing plan artifact. */
+/** Carry authored inputs forward from the existing plan artifact. */
 const mergeAuthoredClassPlanFields = (
   plan: ClassRegradePlan,
   input: RegradePlanInput,
@@ -3319,6 +3611,13 @@ const mergeAuthoredClassPlanFields = (
     merged = { ...merged, name: current.plan.name };
   }
   if (
+    input.packageSource === undefined &&
+    current.provenance.fields['packageSource'] === 'authored' &&
+    current.plan.packageSource !== undefined
+  ) {
+    merged = { ...merged, packageSource: current.plan.packageSource };
+  }
+  if (
     !authoredScope &&
     current.provenance.fields['scope'] === 'authored' &&
     current.plan.scope !== undefined
@@ -3339,6 +3638,7 @@ const classPlanProvenance = (
     kind: 'derived',
     ...(plan.intent === undefined ? {} : { intent: 'authored' }),
     ...(plan.name === undefined ? {} : { name: 'authored' }),
+    ...(plan.packageSource === undefined ? {} : { packageSource: 'authored' }),
     ...(plan.scope === undefined
       ? {}
       : {
@@ -3409,6 +3709,9 @@ const runClassPlanRegrade = async (
     ...(input.intent === undefined ? {} : { intent: input.intent }),
     kind: 'class',
     ...(input.name === undefined ? {} : { name: input.name }),
+    ...(input.packageSource === undefined
+      ? {}
+      : { packageSource: input.packageSource }),
     ...(inputScope === undefined ? {} : { scope: inputScope }),
   };
   const currentPath = regradePlanPathForPlan(rootDir, basePlan);
@@ -3579,6 +3882,13 @@ const runPlanRegrade = async (
     return Result.err(
       new ValidationError(
         '`name` names a class-mode transition; vocabulary transitions are keyed by `from`/`to`.'
+      )
+    );
+  }
+  if (input.packageSource !== undefined) {
+    return Result.err(
+      new ValidationError(
+        '`packageSource` is available only for class-mode Regrade plans.'
       )
     );
   }
@@ -3874,23 +4184,31 @@ const applyPreparedPlanRun = async (params: {
   readonly artifact: RegradePlanArtifact;
   readonly includeEntries: RegradeInput['includeEntries'];
   readonly prepared: PreparedPlanRun;
+  readonly packageSource?:
+    | {
+        readonly evidence: RegradePackageSourceEvidence;
+        readonly expectation: RegradePackageSourceExpectation;
+      }
+    | undefined;
   readonly rootDir: string;
 }): Promise<TrailsResult<RegradeReport, Error>> => {
   if (params.artifact.plan.kind === 'class') {
     if (params.prepared.kind !== 'class') {
       return Result.err(new InternalError('Prepared Regrade kind changed.'));
     }
-    const classSet = await loadWardenRegradeClasses(params.rootDir);
-    if (classSet.diagnostics.length > 0) {
-      return Result.err(
-        new InternalError('Failed to load Regrade project Warden rules.', {
-          context: {
-            diagnostics: classSet.diagnostics,
-            rootDir: params.rootDir,
-          },
-        })
-      );
+    const verifiedClassSet = await loadVerifiedWardenRegradeClasses({
+      ...(params.packageSource === undefined
+        ? {}
+        : {
+            initialProof: params.packageSource,
+            packageSource: params.packageSource.expectation,
+          }),
+      rootDir: params.rootDir,
+    });
+    if (verifiedClassSet.isErr()) {
+      return verifiedClassSet;
     }
+    const { classSet, packageSource } = verifiedClassSet.value;
     const identity = preparedRegradeRunIdentity({
       artifact: params.artifact,
       classIds: classSet.classes.map((regradeClass) => regradeClass.id),
@@ -3898,9 +4216,38 @@ const applyPreparedPlanRun = async (params: {
       includeEntries: params.includeEntries,
       rootDir: params.rootDir,
     });
-    return identity.isErr()
-      ? identity
-      : applyPreparedRegradeRun(params.prepared.prepared.run, identity.value);
+    if (identity.isErr()) {
+      return identity;
+    }
+    const finalPackageSource = await verifyExpectedPackageSource(
+      packageSource?.expectation,
+      params.rootDir
+    );
+    if (finalPackageSource.isErr()) {
+      return finalPackageSource;
+    }
+    if (
+      packageSource !== undefined &&
+      (finalPackageSource.value === undefined ||
+        !packageSourceEvidenceMatches(
+          packageSource.evidence,
+          finalPackageSource.value.evidence
+        ))
+    ) {
+      return Result.err(
+        new ConflictError(
+          'Prepared Regrade package-source evidence changed before apply.'
+        )
+      );
+    }
+    const currentPackageSource = finalPackageSource.value?.evidence;
+    const applied = applyPreparedRegradeRun(
+      params.prepared.prepared.run,
+      identity.value
+    );
+    return applied.isErr() || currentPackageSource === undefined
+      ? applied
+      : Result.ok({ ...applied.value, packageSource: currentPackageSource });
   }
   if (params.prepared.kind !== 'vocabulary') {
     return Result.err(new InternalError('Prepared Regrade kind changed.'));
@@ -3925,6 +4272,54 @@ const applyPreparedPlanRun = async (params: {
   });
 };
 
+const verifyInitialPlanPackageSource = async (
+  input: RegradeApplyPlanInput,
+  artifact: RegradePlanArtifact,
+  rootDir: string
+): Promise<TrailsResult<VerifiedPackageSource | undefined, Error>> => {
+  if (artifact.plan.kind !== 'class') {
+    return input.packageSource === undefined
+      ? Result.ok()
+      : Result.err(
+          new ValidationError(
+            'Package-source verification is available only for class-mode Regrade runs.'
+          )
+        );
+  }
+  const storedExpectation = artifact.plan.packageSource;
+  if (
+    storedExpectation !== undefined &&
+    input.packageSource !== undefined &&
+    !packageSourceExpectationMatches(storedExpectation, input.packageSource)
+  ) {
+    return Result.err(
+      new ConflictError(
+        'Apply package-source expectation does not match the saved Regrade plan.'
+      )
+    );
+  }
+  return verifyExpectedPackageSource(
+    storedExpectation ?? input.packageSource,
+    rootDir
+  );
+};
+
+const withoutPackageSourceEvidence = (report: RegradeReport): RegradeReport => {
+  const { packageSource, ...reportWithoutPackageSource } = report;
+  return packageSource === undefined ? report : reportWithoutPackageSource;
+};
+
+const planFreshnessReportForApply = (
+  artifact: RegradePlanArtifact,
+  input: RegradeApplyPlanInput,
+  report: RegradeReport
+): RegradeReport =>
+  artifact.plan.kind === 'class' &&
+  artifact.plan.packageSource === undefined &&
+  input.packageSource !== undefined
+    ? withoutPackageSourceEvidence(report)
+    : report;
+
 const runApplyRegradePlan = async (
   input: RegradeApplyPlanInput,
   rootDir: string,
@@ -3940,20 +4335,63 @@ const runApplyRegradePlan = async (
   if (governedPlanValidation.isErr()) {
     return governedPlanValidation;
   }
+  const initialPackageSource = await verifyInitialPlanPackageSource(
+    input,
+    loaded.value.artifact,
+    rootDir
+  );
+  if (initialPackageSource.isErr()) {
+    return initialPackageSource;
+  }
+  const packageSource = initialPackageSource.value;
+  const receiptArtifact: RegradePlanArtifact = (() =>
+    loaded.value.artifact.plan.kind === 'class' &&
+    loaded.value.artifact.plan.packageSource === undefined &&
+    packageSource !== undefined
+      ? {
+          ...loaded.value.artifact,
+          plan: {
+            ...loaded.value.artifact.plan,
+            packageSource: packageSource.expectation,
+          },
+          provenance: {
+            ...loaded.value.artifact.provenance,
+            fields: {
+              ...loaded.value.artifact.provenance.fields,
+              packageSource: 'authored',
+            },
+          },
+        }
+      : loaded.value.artifact)();
+  // Receipt persistence is mandatory for apply. Validate its authored intent
+  // before class preparation can evaluate configured callbacks.
+  const receiptPlan = validateRegradeReceiptPlan(receiptArtifact);
+  if (receiptPlan.isErr()) {
+    return receiptPlan;
+  }
   const preparedRun = await preparePlanArtifactRun({
     artifact: loaded.value.artifact,
     includeEntries: input.includeEntries,
+    ...(initialPackageSource.value === undefined
+      ? {}
+      : { packageSource: initialPackageSource.value }),
     rootDir,
   });
   if (preparedRun.isErr()) {
     return preparedRun;
   }
-  const dryRunReport = preparedRun.value.report;
+  const preparedReport = preparedRun.value.report;
+  const statusReport = planFreshnessReportForApply(
+    loaded.value.artifact,
+    input,
+    preparedReport
+  );
   const status = planStatusForReport(
     loaded.value.artifact,
-    dryRunReport,
+    statusReport,
     rootDir
   );
+  const dryRunReport = preparedReport;
   if (status === 'stale') {
     return Result.err(
       new ValidationError(
@@ -3980,12 +4418,8 @@ const runApplyRegradePlan = async (
   }
   const activeArtifact = currentPlan.value;
 
-  // Receipt persistence is mandatory for apply. Resolve its Git-owned source
-  // identity before mutating any source so failure leaves the tree untouched.
-  const receiptPlan = validateRegradeReceiptPlan(activeArtifact);
-  if (receiptPlan.isErr()) {
-    return receiptPlan;
-  }
+  // Resolve Git-owned source identity before mutating source so failure leaves
+  // the tree untouched.
   const sourceRevision = resolveRegradeSourceRevision(rootDir);
   if (sourceRevision.isErr()) {
     return sourceRevision;
@@ -4020,12 +4454,14 @@ const runApplyRegradePlan = async (
   const applied = await applyPreparedPlanRun({
     artifact: activeArtifact,
     includeEntries: input.includeEntries,
+    packageSource,
     prepared: preparedRun.value.prepared,
     rootDir,
   });
   if (applied.isErr()) {
     return rollbackApplyError(applied.error);
   }
+  const appliedReport = applied.value;
   const changedFiles = completeRegradeChangedFiles({
     before: beforeChangedFiles.value,
     rootDir,
@@ -4036,6 +4472,7 @@ const runApplyRegradePlan = async (
   const completionReport = await runPlanArtifactDryRun({
     artifact: activeArtifact,
     includeEntries: input.includeEntries,
+    packageSource: packageSource?.expectation,
     rootDir,
   });
   if (completionReport.isErr()) {
@@ -4045,11 +4482,11 @@ const runApplyRegradePlan = async (
   // while carrying the completed counters and a separate post-apply source
   // stamp so a later no-op apply can still be recognized as a replay.
   const history = writeRegradeHistory({
-    artifact: activeArtifact,
+    artifact: receiptArtifact,
     changedFiles: changedFiles.value,
     completedReport: completionReport.value,
     planPath: loaded.value.path,
-    report: historyReportForAppliedPlan(dryRunReport, applied.value),
+    report: historyReportForAppliedPlan(dryRunReport, appliedReport),
     rootDir,
     sourceRevision: sourceRevision.value,
   });
@@ -4058,7 +4495,7 @@ const runApplyRegradePlan = async (
   }
   return validateRegradeReport(
     reportWithHistorySummary(
-      reportWithPlanSummary(applied.value, activeArtifact, status),
+      reportWithPlanSummary(appliedReport, receiptArtifact, status),
       history.value
     )
   );
@@ -4190,6 +4627,9 @@ const runClassModeRegrade = (
     ...(input.classIds === undefined ? {} : { classIds: input.classIds }),
     ...(collection === undefined ? {} : { collection }),
     includeEntries: input.includeEntries,
+    ...(input.packageSource === undefined
+      ? {}
+      : { packageSource: input.packageSource }),
     rootDir,
   });
 };
@@ -4215,15 +4655,29 @@ export const regradeTrail = trail('regrade', {
     }
     const configScope = configResult.value.config?.scope;
 
-    const reportResult = hasVocabularyInput(input)
-      ? await runVocabularyCommandRegrade(
-          input,
-          rootDirResult.value,
-          configScope
-        )
-      : await runClassModeRegrade(input, rootDirResult.value, configScope);
+    let reportResult: TrailsResult<RegradeReport | null, Error>;
+    if (hasVocabularyInput(input)) {
+      reportResult =
+        input.packageSource === undefined
+          ? await runVocabularyCommandRegrade(
+              input,
+              rootDirResult.value,
+              configScope
+            )
+          : Result.err(
+              new ValidationError(
+                'Package-source verification is available only for class-mode Regrade runs.'
+              )
+            );
+    } else {
+      reportResult = await runClassModeRegrade(
+        input,
+        rootDirResult.value,
+        configScope
+      );
+    }
     if (reportResult.isErr()) {
-      return reportResult;
+      return Result.err(reportResult.error);
     }
     const outputResult = validateOutput(
       regradeReportOutput,

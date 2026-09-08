@@ -247,6 +247,45 @@ describe('regradePlanContentHash', () => {
 });
 
 describe('regradeSourceHash', () => {
+  test('includes stable package-source proof while excluding local resolution paths', () => {
+    const sourceReport = makeReport([]);
+    const packageSource = {
+      artifactSha256: 'a'.repeat(64),
+      contentSha256: 'b'.repeat(64),
+      declaredSpecifier: '1.0.0',
+      kind: 'published' as const,
+      name: '@ontrails/core',
+      resolvedPackagePath: '/first/node_modules/@ontrails/core',
+      version: '1.0.0',
+    };
+    const withProof: RegradeReport = {
+      ...sourceReport,
+      packageSource,
+    };
+    const relocated: RegradeReport = {
+      ...withProof,
+      packageSource: {
+        ...packageSource,
+        resolvedPackagePath: '/second/node_modules/@ontrails/core',
+      },
+    };
+    const changedBytes: RegradeReport = {
+      ...withProof,
+      packageSource: {
+        ...packageSource,
+        contentSha256: 'c'.repeat(64),
+      },
+    };
+
+    expect(regradeSourceHash(withProof)).not.toBe(
+      regradeSourceHash(sourceReport)
+    );
+    expect(regradeSourceHash(relocated)).toBe(regradeSourceHash(withProof));
+    expect(regradeSourceHash(changedBytes)).not.toBe(
+      regradeSourceHash(withProof)
+    );
+  });
+
   test('is stable across nested report key insertion order while preserving array order', () => {
     const sourceReport = makeReportWithReviewDetail();
     const reorderedReport: RegradeReport = {

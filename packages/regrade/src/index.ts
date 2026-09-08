@@ -20,6 +20,25 @@ export {
   deriveFileRenameCandidates,
   runFileRenameRegrade,
 } from './downstream/file-renames.js';
+export { verifyDownstreamPackageSource } from './downstream/package-source.js';
+/**
+ * Validate the package-source expectation shared by verifier and operator inputs.
+ *
+ * @example
+ * ```ts
+ * regradePackageSourceExpectationSchema.parse({
+ *   kind: 'published',
+ *   name: '@ontrails/core',
+ *   version: '1.0.0',
+ * });
+ * ```
+ */
+export { regradePackageSourceExpectationSchema } from './downstream/package-source-manifest.js';
+export type {
+  RegradePackageSourceError,
+  RegradePackageSourceEvidence,
+  RegradePackageSourceExpectation,
+} from './downstream/package-source.js';
 export type {
   FileRenameCandidate,
   FileRenameRegradeRun,

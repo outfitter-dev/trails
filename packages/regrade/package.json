@@ -30,6 +30,7 @@
     "@ontrails/core": "workspace:^",
     "@ontrails/source": "workspace:^",
     "@ontrails/warden": "workspace:^",
+    "tar": "7.5.22",
     "zod": "catalog:"
   },
   "devDependencies": {

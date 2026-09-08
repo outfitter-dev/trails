@@ -1131,6 +1131,53 @@
                       "description": "Authored transition name; keys the saved plan and consolidated history filenames",
                       "type": "string"
                     },
+                    "packageSource": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "kind": {
+                              "const": "published"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "version"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "kind": {
+                              "const": "tarball"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            },
+                            "sha256": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "path",
+                            "sha256"
+                          ],
+                          "type": "object"
+                        }
+                      ],
+                      "description": "Expected source for one directly declared downstream Trails package"
+                    },
                     "scope": {
                       "description": "Collection scope for the class run",
                       "properties": {
@@ -1233,6 +1280,53 @@
                 "all"
               ],
               "type": "string"
+            },
+            "packageSource": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "published"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "version"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "tarball"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "path",
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              ],
+              "description": "Expected source for one directly declared downstream Trails package"
             },
             "plan": {
               "description": "Plan name or path; omitted when exactly one active plan exists",
@@ -1540,6 +1634,46 @@
             "matched": {
               "description": "Files with a rewrite or review outcome",
               "type": "number"
+            },
+            "packageSource": {
+              "description": "Verified source evidence for one selected downstream Trails package",
+              "properties": {
+                "artifactSha256": {
+                  "type": "string"
+                },
+                "contentSha256": {
+                  "type": "string"
+                },
+                "declaredSpecifier": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "published",
+                    "tarball"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "resolvedPackagePath": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artifactSha256",
+                "contentSha256",
+                "declaredSpecifier",
+                "kind",
+                "name",
+                "resolvedPackagePath",
+                "version"
+              ],
+              "type": "object"
             },
             "plan": {
               "description": "Saved active Regrade plan evidence",
@@ -3019,6 +3153,46 @@
             "matched": {
               "description": "Files with a rewrite or review outcome",
               "type": "number"
+            },
+            "packageSource": {
+              "description": "Verified source evidence for one selected downstream Trails package",
+              "properties": {
+                "artifactSha256": {
+                  "type": "string"
+                },
+                "contentSha256": {
+                  "type": "string"
+                },
+                "declaredSpecifier": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "published",
+                    "tarball"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "resolvedPackagePath": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artifactSha256",
+                "contentSha256",
+                "declaredSpecifier",
+                "kind",
+                "name",
+                "resolvedPackagePath",
+                "version"
+              ],
+              "type": "object"
             },
             "plan": {
               "description": "Saved active Regrade plan evidence",
@@ -6954,6 +7128,53 @@
             "overrides": {
               "description": "Explicit source-form to target-form mappings"
             },
+            "packageSource": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "published"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "version"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "tarball"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "path",
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              ],
+              "description": "Expected source for one directly declared downstream Trails package"
+            },
             "policyClassified": {
               "description": "Protected paths scanned and counted without default rewrites",
               "items": {
@@ -7713,6 +7934,53 @@
                       "description": "Authored transition name; keys the saved plan and consolidated history filenames",
                       "type": "string"
                     },
+                    "packageSource": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "kind": {
+                              "const": "published"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "version"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "kind": {
+                              "const": "tarball"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            },
+                            "sha256": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "path",
+                            "sha256"
+                          ],
+                          "type": "object"
+                        }
+                      ],
+                      "description": "Expected source for one directly declared downstream Trails package"
+                    },
                     "scope": {
                       "description": "Collection scope for the class run",
                       "properties": {
@@ -8123,6 +8391,46 @@
             "matched": {
               "description": "Files with a rewrite or review outcome",
               "type": "number"
+            },
+            "packageSource": {
+              "description": "Verified source evidence for one selected downstream Trails package",
+              "properties": {
+                "artifactSha256": {
+                  "type": "string"
+                },
+                "contentSha256": {
+                  "type": "string"
+                },
+                "declaredSpecifier": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "published",
+                    "tarball"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "resolvedPackagePath": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artifactSha256",
+                "contentSha256",
+                "declaredSpecifier",
+                "kind",
+                "name",
+                "resolvedPackagePath",
+                "version"
+              ],
+              "type": "object"
             },
             "plan": {
               "description": "Saved active Regrade plan evidence",
@@ -9055,6 +9363,53 @@
             "overrides": {
               "description": "Explicit source-form to target-form mappings"
             },
+            "packageSource": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "published"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "version"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "tarball"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "path",
+                    "sha256"
+                  ],
+                  "type": "object"
+                }
+              ],
+              "description": "Expected source for one directly declared downstream Trails package"
+            },
             "planRecord": {
               "description": "Legacy compatibility path to a confirmed transition record; prefer `regrade check`, `regrade preview`, and `regrade apply` with saved plans",
               "type": "string"
@@ -9440,6 +9795,46 @@
             "matched": {
               "description": "Files with a rewrite or review outcome",
               "type": "number"
+            },
+            "packageSource": {
+              "description": "Verified source evidence for one selected downstream Trails package",
+              "properties": {
+                "artifactSha256": {
+                  "type": "string"
+                },
+                "contentSha256": {
+                  "type": "string"
+                },
+                "declaredSpecifier": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "published",
+                    "tarball"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "resolvedPackagePath": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artifactSha256",
+                "contentSha256",
+                "declaredSpecifier",
+                "kind",
+                "name",
+                "resolvedPackagePath",
+                "version"
+              ],
+              "type": "object"
             },
             "plan": {
               "description": "Saved active Regrade plan evidence",
@@ -27180,6 +27575,53 @@
                         "description": "Authored transition name; keys the saved plan and consolidated history filenames",
                         "type": "string"
                       },
+                      "packageSource": {
+                        "anyOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "published"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "name",
+                              "version"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "tarball"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              },
+                              "sha256": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "name",
+                              "path",
+                              "sha256"
+                            ],
+                            "type": "object"
+                          }
+                        ],
+                        "description": "Expected source for one directly declared downstream Trails package"
+                      },
                       "scope": {
                         "description": "Collection scope for the class run",
                         "properties": {
@@ -27264,6 +27706,53 @@
                   "all"
                 ],
                 "type": "string"
+              },
+              "packageSource": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "kind": {
+                        "const": "published"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "version"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "kind": {
+                        "const": "tarball"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "path",
+                      "sha256"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "description": "Expected source for one directly declared downstream Trails package"
               },
               "plan": {
                 "description": "Plan name or path; omitted when exactly one active plan exists",
@@ -27572,6 +28061,46 @@
               "matched": {
                 "description": "Files with a rewrite or review outcome",
                 "type": "number"
+              },
+              "packageSource": {
+                "description": "Verified source evidence for one selected downstream Trails package",
+                "properties": {
+                  "artifactSha256": {
+                    "type": "string"
+                  },
+                  "contentSha256": {
+                    "type": "string"
+                  },
+                  "declaredSpecifier": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "published",
+                      "tarball"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "resolvedPackagePath": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "artifactSha256",
+                  "contentSha256",
+                  "declaredSpecifier",
+                  "kind",
+                  "name",
+                  "resolvedPackagePath",
+                  "version"
+                ],
+                "type": "object"
               },
               "plan": {
                 "description": "Saved active Regrade plan evidence",
@@ -29015,6 +29544,46 @@
               "matched": {
                 "description": "Files with a rewrite or review outcome",
                 "type": "number"
+              },
+              "packageSource": {
+                "description": "Verified source evidence for one selected downstream Trails package",
+                "properties": {
+                  "artifactSha256": {
+                    "type": "string"
+                  },
+                  "contentSha256": {
+                    "type": "string"
+                  },
+                  "declaredSpecifier": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "published",
+                      "tarball"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "resolvedPackagePath": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "artifactSha256",
+                  "contentSha256",
+                  "declaredSpecifier",
+                  "kind",
+                  "name",
+                  "resolvedPackagePath",
+                  "version"
+                ],
+                "type": "object"
               },
               "plan": {
                 "description": "Saved active Regrade plan evidence",
@@ -32305,6 +32874,53 @@
               "overrides": {
                 "description": "Explicit source-form to target-form mappings"
               },
+              "packageSource": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "kind": {
+                        "const": "published"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "version"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "kind": {
+                        "const": "tarball"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "path",
+                      "sha256"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "description": "Expected source for one directly declared downstream Trails package"
+              },
               "policyClassified": {
                 "description": "Protected paths scanned and counted without default rewrites",
                 "items": {
@@ -33065,6 +33681,53 @@
                         "description": "Authored transition name; keys the saved plan and consolidated history filenames",
                         "type": "string"
                       },
+                      "packageSource": {
+                        "anyOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "published"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "name",
+                              "version"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "tarball"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              },
+                              "sha256": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "name",
+                              "path",
+                              "sha256"
+                            ],
+                            "type": "object"
+                          }
+                        ],
+                        "description": "Expected source for one directly declared downstream Trails package"
+                      },
                       "scope": {
                         "description": "Collection scope for the class run",
                         "properties": {
@@ -33457,6 +34120,46 @@
               "matched": {
                 "description": "Files with a rewrite or review outcome",
                 "type": "number"
+              },
+              "packageSource": {
+                "description": "Verified source evidence for one selected downstream Trails package",
+                "properties": {
+                  "artifactSha256": {
+                    "type": "string"
+                  },
+                  "contentSha256": {
+                    "type": "string"
+                  },
+                  "declaredSpecifier": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "published",
+                      "tarball"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "resolvedPackagePath": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "artifactSha256",
+                  "contentSha256",
+                  "declaredSpecifier",
+                  "kind",
+                  "name",
+                  "resolvedPackagePath",
+                  "version"
+                ],
+                "type": "object"
               },
               "plan": {
                 "description": "Saved active Regrade plan evidence",
@@ -34373,6 +35076,53 @@
               "overrides": {
                 "description": "Explicit source-form to target-form mappings"
               },
+              "packageSource": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "kind": {
+                        "const": "published"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "version"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "kind": {
+                        "const": "tarball"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "path",
+                      "sha256"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "description": "Expected source for one directly declared downstream Trails package"
+              },
               "planRecord": {
                 "description": "Legacy compatibility path to a confirmed transition record; prefer `regrade check`, `regrade preview`, and `regrade apply` with saved plans",
                 "type": "string"
@@ -34759,6 +35509,46 @@
               "matched": {
                 "description": "Files with a rewrite or review outcome",
                 "type": "number"
+              },
+              "packageSource": {
+                "description": "Verified source evidence for one selected downstream Trails package",
+                "properties": {
+                  "artifactSha256": {
+                    "type": "string"
+                  },
+                  "contentSha256": {
+                    "type": "string"
+                  },
+                  "declaredSpecifier": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "published",
+                      "tarball"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "resolvedPackagePath": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "artifactSha256",
+                  "contentSha256",
+                  "declaredSpecifier",
+                  "kind",
+                  "name",
+                  "resolvedPackagePath",
+                  "version"
+                ],
+                "type": "object"
               },
               "plan": {
                 "description": "Saved active Regrade plan evidence",
@@ -41862,6 +42652,6 @@
       }
     ]
   },
-  "topoGraphHash": "d05cd9ec3ae0ca3f0f5d6029612c54dcad70f8a7f0207feab54a8e7b992fa2e9",
+  "topoGraphHash": "72fd41f77685d3e8da7f3dca820630265cf90d8f829bf3991e539c997832e858",
   "version": 5
 }

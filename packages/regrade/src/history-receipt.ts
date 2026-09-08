@@ -5,6 +5,7 @@ import { posix } from 'node:path';
 import { z } from 'zod';
 
 import { vocabularyDispositionValues } from './downstream/vocabulary.js';
+import { regradePackageSourceExpectationSchema } from './downstream/package-source-manifest.js';
 
 /** Canonical compact Regrade history schema. */
 export const REGRADE_HISTORY_RECEIPT_SCHEMA_VERSION = 3;
@@ -13,6 +14,35 @@ const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 const gitObjectIdSchema = z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/);
 const countSchema = z.number().int().nonnegative();
 
+const isMachineAbsolutePath = (value: string): boolean =>
+  posix.isAbsolute(value) ||
+  /^[A-Za-z]:/u.test(value) ||
+  value.startsWith('\\\\');
+
+const rootRelativePathIssue = (value: string): string | undefined => {
+  if (isMachineAbsolutePath(value)) {
+    return 'Path-bearing receipt fields must not contain machine-absolute paths.';
+  }
+  if (value.includes('\\')) {
+    return 'Path-bearing receipt fields must use POSIX separators.';
+  }
+  if (value.includes('\u0000')) {
+    return 'Path-bearing receipt fields must be Git-resolvable text paths.';
+  }
+  if (
+    value.length === 0 ||
+    value === '.' ||
+    posix.normalize(value) !== value ||
+    value.startsWith('./') ||
+    value === '..' ||
+    value.startsWith('../') ||
+    value.includes('/../')
+  ) {
+    return 'Path-bearing receipt fields must be normalized root-relative paths or globs.';
+  }
+  return undefined;
+};
+
 const classRegradePlanSchema = z
   .object({
     classIds: z.array(z.string().min(1)).min(1),
@@ -20,6 +50,17 @@ const classRegradePlanSchema = z
     intent: z.string().optional(),
     kind: z.literal('class'),
     name: z.string().min(1).optional(),
+    packageSource: regradePackageSourceExpectationSchema
+      .superRefine((value, ctx) => {
+        if (value.kind !== 'tarball') {
+          return;
+        }
+        const message = rootRelativePathIssue(value.path);
+        if (message !== undefined) {
+          ctx.addIssue({ code: 'custom', message, path: ['path'] });
+        }
+      })
+      .optional(),
     scope: z
       .object({
         exclude: z.array(z.string()).optional(),
@@ -233,35 +274,6 @@ const conversionProvenanceSchema = z
 
 type RegradeRunReceipt = z.output<typeof regradeRunReceiptSchema>;
 
-const isMachineAbsolutePath = (value: string): boolean =>
-  posix.isAbsolute(value) ||
-  /^[A-Za-z]:[\\/]/u.test(value) ||
-  value.startsWith('\\\\');
-
-const rootRelativePathIssue = (value: string): string | undefined => {
-  if (isMachineAbsolutePath(value)) {
-    return 'Path-bearing receipt fields must not contain machine-absolute paths.';
-  }
-  if (value.includes('\\')) {
-    return 'Path-bearing receipt fields must use POSIX separators.';
-  }
-  if (value.includes('\u0000')) {
-    return 'Path-bearing receipt fields must be Git-resolvable text paths.';
-  }
-  if (
-    value.length === 0 ||
-    value === '.' ||
-    posix.normalize(value) !== value ||
-    value.startsWith('./') ||
-    value === '..' ||
-    value.startsWith('../') ||
-    value.includes('/../')
-  ) {
-    return 'Path-bearing receipt fields must be normalized root-relative paths or globs.';
-  }
-  return undefined;
-};
-
 const addPathIssue = (
   ctx: z.RefinementCtx,
   value: string,
@@ -327,6 +339,13 @@ const validatePlanPaths = (
   }
   for (const [index, value] of (plan.scope?.exclude ?? []).entries()) {
     addPathIssue(ctx, value, [...path, 'scope', 'exclude', index]);
+  }
+  if (plan.kind === 'class' && plan.packageSource?.kind === 'tarball') {
+    addPathIssue(ctx, plan.packageSource.path, [
+      ...path,
+      'packageSource',
+      'path',
+    ]);
   }
   if (plan.kind === 'vocabulary') {
     validateVocabularyPlanPaths(plan, ctx, path);

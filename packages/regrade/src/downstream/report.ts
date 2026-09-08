@@ -38,6 +38,7 @@ import {
 import type { RegradeScanSummary } from './scan-summary.js';
 import type { VocabularyRegradeRun } from './vocabulary.js';
 import { vocabularyRegradeRunOutput } from './vocabulary.js';
+import type { RegradePackageSourceEvidence } from './package-source.js';
 
 /**
  * Regrade-class selection and coverage reporting (TRL-845).
@@ -796,6 +797,8 @@ export interface RegradeReport {
   readonly entries: readonly RegradeReportEntry[];
   /** Apply-mode summary; absent for dry-run report-only calls. */
   readonly apply?: RegradeApplySummary;
+  /** Verified source evidence for the selected downstream Trails package. */
+  readonly packageSource?: RegradePackageSourceEvidence;
   /** Vocabulary regrade run: plan, ledger, and completion report. */
   readonly run?: VocabularyRegradeRun;
   /** Saved active Regrade plan evidence for vocabulary regrades. */
@@ -1957,6 +1960,20 @@ export const regradeReportOutput = z.object({
     .optional()
     .describe('Saved applied Regrade history evidence'),
   matched: z.number().describe('Files with a rewrite or review outcome'),
+  packageSource: z
+    .object({
+      artifactSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+      contentSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+      declaredSpecifier: z.string(),
+      kind: z.enum(['published', 'tarball']),
+      name: z.string().regex(/^@ontrails\/[a-z0-9][a-z0-9._-]*$/u),
+      resolvedPackagePath: z.string(),
+      version: z.string(),
+    })
+    .optional()
+    .describe(
+      'Verified source evidence for one selected downstream Trails package'
+    ),
   plan: z
     .object({
       expansionPending: z

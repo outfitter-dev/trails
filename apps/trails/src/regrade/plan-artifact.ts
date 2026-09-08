@@ -4,7 +4,10 @@
  */
 
 import { isPlainObject } from '@ontrails/core';
-import { vocabularyRegradePlanSchema } from '@ontrails/regrade';
+import {
+  regradePackageSourceExpectationSchema,
+  vocabularyRegradePlanSchema,
+} from '@ontrails/regrade';
 import type {
   RegradeReport,
   RegradeReportEntry,
@@ -12,7 +15,7 @@ import type {
 } from '@ontrails/regrade';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
 import { createHash } from 'node:crypto';
-import { join, normalize, relative } from 'node:path';
+import { join, normalize, posix, relative } from 'node:path';
 import { z } from 'zod';
 
 export const REGRADE_PLAN_SCHEMA_VERSION = 1;
@@ -138,6 +141,40 @@ const classRegradePlanScopeSchema = z
   })
   .strict();
 
+export { regradePackageSourceExpectationSchema };
+
+export const persistentPackageSourcePathIssue = (value: {
+  readonly kind: 'published' | 'tarball';
+  readonly path?: string | undefined;
+}): string | undefined => {
+  if (value.kind !== 'tarball') {
+    return undefined;
+  }
+  const path = value.path ?? '';
+  return path.length === 0 ||
+    posix.isAbsolute(path) ||
+    /^[A-Za-z]:/u.test(path) ||
+    path.startsWith('\\\\') ||
+    path.includes('\\') ||
+    path.includes('\u0000') ||
+    path === '.' ||
+    posix.normalize(path) !== path ||
+    path.startsWith('./') ||
+    path === '..' ||
+    path.startsWith('../') ||
+    path.includes('/../')
+    ? 'Persisted Regrade package-source paths must be normalized root-relative POSIX paths.'
+    : undefined;
+};
+
+const persistedPackageSourceExpectationSchema =
+  regradePackageSourceExpectationSchema.superRefine((value, ctx) => {
+    const issue = persistentPackageSourcePathIssue(value);
+    if (issue !== undefined) {
+      ctx.addIssue({ code: 'custom', message: issue, path: ['path'] });
+    }
+  });
+
 /**
  * A saved class-mode Regrade plan: which classes run, over what scope, and
  * why. The parallel payload to {@link vocabularyRegradePlanSchema} — the
@@ -161,6 +198,11 @@ const classRegradePlanSchema = z.object({
     .optional()
     .describe(
       'Authored transition name; keys the saved plan and consolidated history filenames'
+    ),
+  packageSource: persistedPackageSourceExpectationSchema
+    .optional()
+    .describe(
+      'Expected source for one directly declared downstream Trails package'
     ),
   scope: classRegradePlanScopeSchema
     .optional()
@@ -410,6 +452,18 @@ const regradeSourceHashFacts = (
     })
   ),
   ledger: sourceHashLedgerFacts(report, policyMode),
+  ...(report.packageSource === undefined
+    ? {}
+    : {
+        packageSource: {
+          artifactSha256: report.packageSource.artifactSha256,
+          contentSha256: report.packageSource.contentSha256,
+          declaredSpecifier: report.packageSource.declaredSpecifier,
+          kind: report.packageSource.kind,
+          name: report.packageSource.name,
+          version: report.packageSource.version,
+        },
+      }),
   selectedClassIds: report.selectedClassIds,
 });
 

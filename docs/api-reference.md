@@ -569,9 +569,11 @@ literalRegradeTopo, literalRegradeTrail
 serializeRegradeHistoryReceipt, resolveRegradeHistoryReceipt
 canonicalRegradeJson, regradeReceiptContentHash
 regradeReceiptPlanContentHash, regradeClassifiedStateHash
+verifyDownstreamPackageSource
 
 // Types
 RegradeClass, RegradeClassResult, RegradeReport, RegradeReportEntry
+RegradePackageSourceEvidence, RegradePackageSourceExpectation
 RegradeReviewDetail, RegradeReviewJudgment, RegradeReviewSpan, RegradeScanTargets, RegradeSelection
 RegradeScanDirectoryBucket, RegradeScanExtensionBucket, RegradeScanSummary
 VocabularyRegradePlan, VocabularyRunLedger, VocabularyRunReport
@@ -593,6 +595,8 @@ For vocabulary work, `trails regrade plan <from> <to>` treats that pair as a see
 The Trails app history writer persists the canonical v3 receipt contract described above.
 
 For governed classified vocabulary transitions, parser-native source comments and TSDoc are exact review-only entries. Their structured details include source-line context, exact spans, and `SourceComment` or `TSDocComment` node kinds; they never authorize a rewrite and keep lifecycle and audit completion checks open until reviewed. Preserve rules can retain ordinary domain uses, and CLI, JSON, and MCP expose the same inventory.
+
+Class-mode runs can opt into downstream package-source proof with `packageSource`. Select one directly declared `@ontrails/*` package by an exact published version or an exact local tarball locator and SHA-256. Regrade requires the complete normalized regular-file set and bytes under the installed package root to match the selected artifact before loading migration classes, reports the selected version and artifact/content digests, and fails before framework writes on a declaration, version, hash, path-set, or byte mismatch. To keep that comparison portable, artifacts with duplicate, dot-segment, case-equivalent, or Unicode-normalization-equivalent member paths are rejected even when the current filesystem could store them distinctly. Class plans preserve their authored expectation, so plan creation, regeneration, listing, check, preview, adjust, and apply repeat the proof before loading configured migration classes and after class evaluation; apply repeats it again after preparation and before mutation. A tarball path persisted in a plan or receipt must be a normalized root-relative POSIX path, while a direct run may select an external local artifact without persisting that locator. An apply-time expectation may supply proof for a legacy plan without one, but cannot replace a stored expectation. Published proof trusts the configured npm registry; it proves delivered artifact bytes match installed bytes, not publisher identity or package-manager installation history. Omit `packageSource` to preserve ordinary local runs without making a source-verification claim. On CLI, pass the nested value through `--input-json`, for example `--input-json '{"packageSource":{"kind":"published","name":"@ontrails/core","version":"1.0.0"}}'`.
 
 ## `@ontrails/config`
 
