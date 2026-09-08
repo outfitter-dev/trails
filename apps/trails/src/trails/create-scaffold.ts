@@ -4,12 +4,10 @@
  * Generates package.json, tsconfig, app.ts, starter trails, and scaffold provenance.
  */
 
-import { join, resolve } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 
-import {
-  findTrailsConfigPaths,
-  readTrailsProjectIdentity,
-} from '@ontrails/config';
+import { readTrailsProjectIdentity } from '@ontrails/config';
 import { Result, trail, ValidationError } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
 import { z } from 'zod';
@@ -32,7 +30,12 @@ import {
   trailsPackageVersion,
 } from '../versions.js';
 import { isCanonicalLintCommand } from './add-surface.js';
+import {
+  assertConfiguredAppBinding,
+  resolveOperatorCollectionBoundary,
+} from './project-context.js';
 import { stringifyScaffoldPackageJson } from './scaffold-json.js';
+import { deriveStaticSelectedTopoId } from './scaffold-topo-identity.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -302,6 +305,27 @@ interface PreparedScaffoldFiles {
   readonly overwritePaths: ReadonlySet<string>;
 }
 
+const nearestExistingDirectory = (path: string): string => {
+  let current = resolve(path);
+  while (!existsSync(current)) {
+    const parent = dirname(current);
+    if (parent === current) {
+      return current;
+    }
+    current = parent;
+  }
+  return current;
+};
+
+const canonicalScaffoldPath = (path: string): string => {
+  const resolvedPath = resolve(path);
+  const existingDirectory = nearestExistingDirectory(resolvedPath);
+  return resolve(
+    realpathSync.native(existingDirectory),
+    relative(existingDirectory, resolvedPath)
+  );
+};
+
 const mergeWorkspacePackageJson = (source: string): Record<string, unknown> => {
   const parsed: unknown = JSON.parse(source);
   if (!isPlainRecord(parsed)) {
@@ -396,6 +420,86 @@ const prepareWorkspaceScaffoldFiles = async (
 ): Promise<TrailsResult<PreparedScaffoldFiles, Error>> => {
   const files = new Map(sourceFiles);
   const overwritePaths = new Set<string>();
+
+  try {
+    const discoveryStart = nearestExistingDirectory(projectDir);
+    const identity = await readTrailsProjectIdentity({
+      boundaryDir: await resolveOperatorCollectionBoundary(discoveryStart),
+      startDir: discoveryStart,
+    });
+    const identityMatchesTarget =
+      canonicalScaffoldPath(identity.rootDir) ===
+      canonicalScaffoldPath(projectDir);
+    if (identity.workspace !== undefined && !identityMatchesTarget) {
+      return Result.err(
+        new ValidationError(
+          `Cannot create a nested Trails workspace at "${projectDir}" inside the workspace owned by "${identity.rootDir}". Add the app to the existing workspace or choose a target outside it.`,
+          {
+            context: {
+              configPath: identity.configPath,
+              existingWorkspaceRoot: identity.rootDir,
+              reason: 'nested-workspace-target',
+              targetRoot: projectDir,
+            },
+          }
+        )
+      );
+    }
+
+    if (identity.configPath !== undefined && identityMatchesTarget) {
+      const expectedRoot = `apps/${name}`;
+      const expectedEntry = 'src/app.ts';
+      const app = identity.apps.find((candidate) => candidate.id === name);
+      if (app?.root !== expectedRoot || app.entry !== expectedEntry) {
+        return Result.err(
+          new ValidationError(
+            `Cannot reconcile existing Trails Config with workspace app "${name}" at root "${expectedRoot}" and entry "${expectedEntry}". Update workspace.apps first or choose a different target directory.`,
+            {
+              context: {
+                configuredAppIds: identity.apps.map(
+                  (candidate) => candidate.id
+                ),
+                configuredEntry: app?.entry,
+                configuredRoot: app?.root,
+                expectedAppId: name,
+                expectedEntry,
+                expectedRoot,
+                paths: [identity.configPath],
+                reason: 'incompatible-workspace-config',
+              },
+            }
+          )
+        );
+      }
+      const entryFile = Bun.file(app.entryPath);
+      if (await entryFile.exists()) {
+        const authoredTopoId = deriveStaticSelectedTopoId(
+          app.entryPath,
+          await entryFile.text()
+        );
+        if (authoredTopoId !== undefined) {
+          const binding = assertConfiguredAppBinding(
+            {
+              app: { id: app.id, modulePath: app.modulePath },
+              projectRoot: identity.rootDir,
+            },
+            authoredTopoId
+          );
+          if (binding.isErr()) {
+            return binding;
+          }
+        }
+      }
+      files.delete('trails.config.ts');
+    }
+  } catch (error) {
+    return Result.err(
+      error instanceof Error
+        ? error
+        : new ValidationError('Unable to read existing Trails Config.')
+    );
+  }
+
   const workspaceManifest = await reconcileExistingManifest({
     files,
     merge: mergeWorkspacePackageJson,
@@ -425,47 +529,6 @@ const prepareWorkspaceScaffoldFiles = async (
 
   if (await Bun.file(join(projectDir, 'tsconfig.base.json')).exists()) {
     files.set(`apps/${name}/tsconfig.json`, standaloneTsconfig);
-  }
-
-  const configPaths = findTrailsConfigPaths(projectDir);
-  if (configPaths.length > 0) {
-    try {
-      const identity = await readTrailsProjectIdentity({
-        boundaryDir: projectDir,
-        startDir: projectDir,
-      });
-      const expectedRoot = `apps/${name}`;
-      const expectedEntry = 'src/app.ts';
-      const app = identity.apps.find((candidate) => candidate.id === name);
-      if (app?.root !== expectedRoot || app.entry !== expectedEntry) {
-        return Result.err(
-          new ValidationError(
-            `Cannot reconcile existing Trails Config with workspace app "${name}" at root "${expectedRoot}" and entry "${expectedEntry}". Update workspace.apps first or choose a different target directory.`,
-            {
-              context: {
-                configuredAppIds: identity.apps.map(
-                  (candidate) => candidate.id
-                ),
-                configuredEntry: app?.entry,
-                configuredRoot: app?.root,
-                expectedAppId: name,
-                expectedEntry,
-                expectedRoot,
-                paths: configPaths,
-                reason: 'incompatible-workspace-config',
-              },
-            }
-          )
-        );
-      }
-      files.delete('trails.config.ts');
-    } catch (error) {
-      return Result.err(
-        error instanceof Error
-          ? error
-          : new ValidationError('Unable to read existing Trails Config.')
-      );
-    }
   }
 
   return Result.ok({ files, overwritePaths });

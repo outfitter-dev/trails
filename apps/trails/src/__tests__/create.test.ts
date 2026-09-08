@@ -93,6 +93,19 @@ const makeTempProject = (): string =>
     `trails-create-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
+const initGitRepository = (dir: string): void => {
+  const initialized = Bun.spawnSync({
+    cmd: ['git', 'init', '--quiet', dir],
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+  if (!initialized.success) {
+    throw new Error(
+      `Unable to initialize Git fixture: ${initialized.stderr.toString()}`
+    );
+  }
+};
+
 const readJson = (dir: string, relativePath: string): Record<string, unknown> =>
   JSON.parse(readFileSync(join(dir, relativePath), 'utf8')) as Record<
     string,
@@ -1120,7 +1133,7 @@ describe('trails create', () => {
       ['hello', 'hello'],
       ['entity', 'entity.list'],
     ] as const)(
-      'omits %s run guidance when preserving an established workspace topo',
+      'omits %s run guidance when preserving an established workspace topo at a Git root',
       async (starter, trailId) => {
         await withTempProject(async (dir) => {
           const name = basename(dir);
@@ -1132,6 +1145,7 @@ describe('trails create', () => {
             join(dir, 'trails.config.ts'),
             `export default { workspace: { apps: { '${name}': { root: 'apps/${name}' } } } };\n`
           );
+          initGitRepository(dir);
 
           expectOk(
             await runCreate(dir, { starter, verify: false, workspace: true })
@@ -1168,6 +1182,274 @@ describe('trails create', () => {
         });
       },
       15_000
+    );
+
+    test.each([
+      [
+        'topo call',
+        (name: string) =>
+          `import { topo } from '@ontrails/core';\nexport const app = topo('${name}');\n`,
+      ],
+      [
+        'object topo identity',
+        (name: string) =>
+          `import { topo } from '@ontrails/core';\nexport const app = topo({ name: '${name}' });\n`,
+      ],
+      [
+        'raw topo object',
+        (name: string) =>
+          `export const app = { name: '${name}', trails: new Map() };\n`,
+      ],
+    ] as const)(
+      'preserves a matching workspace %s identity',
+      async (_kind, appSourceFor) => {
+        await withTempProject(async (dir) => {
+          const name = basename(dir);
+          const appDir = join(dir, 'apps', name);
+          const appSource = appSourceFor(name);
+          mkdirSync(join(appDir, 'src'), { recursive: true });
+          writeFileSync(join(appDir, 'src', 'app.ts'), appSource);
+          writeFileSync(
+            join(dir, 'trails.config.ts'),
+            `export default { workspace: { apps: { '${name}': { root: 'apps/${name}' } } } };\n`
+          );
+
+          expectOk(await runCreate(dir, { verify: false, workspace: true }));
+
+          expect(readText(appDir, 'src/app.ts')).toBe(appSource);
+        });
+      }
+    );
+
+    test.each([
+      [
+        'topo call',
+        "import { topo } from '@ontrails/core';\nexport const app = topo('other');\n",
+      ],
+      [
+        'aliased topo import',
+        "import { topo as buildTopo } from '@ontrails/core';\nexport const app = buildTopo('other');\n",
+      ],
+      [
+        'object topo identity',
+        "import { topo } from '@ontrails/core';\nexport const app = topo({ name: 'other' });\n",
+      ],
+      [
+        'raw topo object',
+        "export const app = { name: 'other', trails: new Map() };\n",
+      ],
+    ] as const)(
+      'rejects a preserved workspace %s identity mismatch before writing',
+      async (_kind, appSource) => {
+        await withTempProject(async (dir) => {
+          const name = basename(dir);
+          const appDir = join(dir, 'apps', name);
+          const configSource = `export default { workspace: { apps: { '${name}': { root: 'apps/${name}' } } } };\n`;
+          mkdirSync(join(appDir, 'src'), { recursive: true });
+          writeFileSync(join(appDir, 'src', 'app.ts'), appSource);
+          writeFileSync(join(dir, 'trails.config.ts'), configSource);
+
+          const dryRunError = expectErr(
+            await runCreate(dir, {
+              dryRun: true,
+              verify: false,
+              workspace: true,
+            })
+          );
+          const error = expectErr(
+            await runCreate(dir, { verify: false, workspace: true })
+          );
+
+          expect(dryRunError.message).toBe(error.message);
+          expect(error).toBeInstanceOf(ValidationError);
+          expect(error.message).toContain('loaded topo "other"');
+          expect(readText(appDir, 'src/app.ts')).toBe(appSource);
+          expect(readText(dir, 'trails.config.ts')).toBe(configSource);
+          expectPaths(
+            dir,
+            ['package.json', 'README.md', 'tsconfig.base.json'],
+            false
+          );
+          expectPaths(appDir, ['package.json', 'bin', 'tsconfig.json'], false);
+        });
+      }
+    );
+
+    test('uses the highest-priority statically known topo export identity', async () => {
+      await withTempProject(async (dir) => {
+        const name = basename(dir);
+        const appDir = join(dir, 'apps', name);
+        const appSource = `import { topo } from '@ontrails/core';
+export default topo('${name}');
+export const graph = topo('other-graph');
+export const app = topo('other-app');
+`;
+        mkdirSync(join(appDir, 'src'), { recursive: true });
+        writeFileSync(join(appDir, 'src', 'app.ts'), appSource);
+        writeFileSync(
+          join(dir, 'trails.config.ts'),
+          `export default { workspace: { apps: { '${name}': { root: 'apps/${name}' } } } };\n`
+        );
+
+        expectOk(await runCreate(dir, { verify: false, workspace: true }));
+
+        expect(readText(appDir, 'src/app.ts')).toBe(appSource);
+      });
+    });
+
+    test.each([
+      [
+        'higher-priority unknown export',
+        () => `import { topo } from '@ontrails/core';
+export default buildTopo();
+export const graph = topo('other-graph');
+export const app = topo('other-app');
+`,
+      ],
+      [
+        'dynamic topo id',
+        () => `import { topo } from '@ontrails/core';
+const appId = 'other';
+export const app = topo(appId);
+`,
+      ],
+      [
+        'helper-built topo',
+        () => `import { topo } from '@ontrails/core';
+const buildTopo = () => topo('other');
+export const app = buildTopo();
+`,
+      ],
+      [
+        'spread topo identity',
+        () => `import { topo } from '@ontrails/core';
+export const app = topo({ name: 'other', ...dynamicIdentity });
+`,
+      ],
+      [
+        'spread raw topo object',
+        () => `export const app = {
+  name: 'other',
+  ...dynamicTopo,
+  trails: new Map(),
+};
+`,
+      ],
+      [
+        'duplicate raw topo name',
+        (name: string) => `export const app = {
+  name: 'other',
+  name: '${name}',
+  trails: new Map(),
+};
+`,
+      ],
+      [
+        'post-construction Object.assign mutation',
+        (name: string) => `import { topo } from '@ontrails/core';
+export const app = topo('other');
+Object.assign(app, { name: '${name}' });
+`,
+      ],
+      [
+        'post-construction direct assignment',
+        (name: string) => `import { topo } from '@ontrails/core';
+export const app = topo('other');
+app.name = '${name}';
+`,
+      ],
+      [
+        'post-construction alias mutation',
+        (name: string) => `import { topo } from '@ontrails/core';
+export const app = topo('other');
+const selectedApp = app;
+Object.assign(selectedApp, { name: '${name}' });
+`,
+      ],
+      [
+        'post-construction exported initializer mutation',
+        (name: string) => `import { topo } from '@ontrails/core';
+export const app = topo('other');
+export const changed = Object.assign(app, { name: '${name}' });
+`,
+      ],
+      [
+        'post-construction local initializer mutation',
+        (name: string) => `import { topo } from '@ontrails/core';
+export const app = topo('other');
+const changed = Object.assign(app, { name: '${name}' });
+`,
+      ],
+      [
+        'post-construction class static mutation',
+        (name: string) => `import { topo } from '@ontrails/core';
+export const app = topo('other');
+class AppIdentityOverride {
+  static {
+    app.name = '${name}';
+  }
+}
+`,
+      ],
+      [
+        'post-construction shadowed built-in mutation',
+        (name: string) => `import { topo } from '@ontrails/core';
+function Map() {
+  app.name = '${name}';
+}
+export const app = topo('other');
+const changed = new Map();
+`,
+      ],
+      [
+        'post-construction imported built-in alias mutation',
+        (_name: string) => `import { topo } from '@ontrails/core';
+import { MutatingMap as Map } from './mutating.js';
+export const app = topo('other');
+const changed = new Map();
+`,
+      ],
+      [
+        'topo getter mutation',
+        (name: string) => `export const app = {
+  name: 'other',
+  get trails() {
+    this.name = '${name}';
+    return new Map();
+  },
+};
+`,
+      ],
+      [
+        'topo setter',
+        (name: string) => `export const app = {
+  name: 'other',
+  set trails(value) {
+    this.name = '${name}';
+  },
+};
+`,
+      ],
+      ['re-exported topo', () => "export { app } from './topo.js';\n"],
+    ] as const)(
+      'preserves a workspace entry with %s for runtime binding validation',
+      async (_kind, appSourceFor) => {
+        await withTempProject(async (dir) => {
+          const name = basename(dir);
+          const appDir = join(dir, 'apps', name);
+          const appSource = appSourceFor(name);
+          mkdirSync(join(appDir, 'src'), { recursive: true });
+          writeFileSync(join(appDir, 'src', 'app.ts'), appSource);
+          writeFileSync(
+            join(dir, 'trails.config.ts'),
+            `export default { workspace: { apps: { '${name}': { root: 'apps/${name}' } } } };\n`
+          );
+
+          expectOk(await runCreate(dir, { verify: false, workspace: true }));
+
+          expect(readText(appDir, 'src/app.ts')).toBe(appSource);
+        });
+      }
     );
 
     test('plans and applies the same standalone manifest reconciliation', async () => {
@@ -1511,6 +1793,106 @@ describe('trails create', () => {
           dir,
           ['package.json', 'apps', 'README.md', 'tsconfig.base.json'],
           false
+        );
+      });
+    });
+
+    test('creates a child workspace beneath an ancestor standalone Config', async () => {
+      await withTempProject(async (collectionRoot) => {
+        const targetDir = join(collectionRoot, 'examples', 'child-workspace');
+        const configSource = 'export default {};\n';
+        mkdirSync(collectionRoot, { recursive: true });
+        writeFileSync(join(collectionRoot, 'trails.config.ts'), configSource);
+        initGitRepository(collectionRoot);
+
+        expectOk(
+          await runCreate(targetDir, {
+            dryRun: true,
+            verify: false,
+            workspace: true,
+          })
+        );
+        expect(existsSync(targetDir)).toBe(false);
+        expect(readText(collectionRoot, 'trails.config.ts')).toBe(configSource);
+
+        expectOk(
+          await runCreate(targetDir, { verify: false, workspace: true })
+        );
+        expect(readText(collectionRoot, 'trails.config.ts')).toBe(configSource);
+        expectPaths(
+          targetDir,
+          ['package.json', 'trails.config.ts', 'tsconfig.base.json'],
+          true
+        );
+      });
+    });
+
+    test('rejects a nested workspace target before writing any files', async () => {
+      await withTempProject(async (workspaceRoot) => {
+        const existingAppDir = join(workspaceRoot, 'apps', 'existing');
+        const targetDir = join(existingAppDir, 'examples', 'nested');
+        const appSource =
+          "import { topo } from '@ontrails/core';\nexport const app = topo('existing');\n";
+        const configSource = `export default {
+  workspace: { apps: { existing: { root: 'apps/existing' } } },
+};
+`;
+        const lockSource = '{}\n';
+        mkdirSync(join(existingAppDir, 'src'), { recursive: true });
+        mkdirSync(dirname(targetDir), { recursive: true });
+        writeFileSync(join(existingAppDir, 'src', 'app.ts'), appSource);
+        writeFileSync(join(workspaceRoot, 'trails.config.ts'), configSource);
+        writeFileSync(join(existingAppDir, 'trails.lock'), lockSource);
+        initGitRepository(workspaceRoot);
+
+        const dryRunError = expectErr(
+          await runCreate(targetDir, {
+            dryRun: true,
+            verify: false,
+            workspace: true,
+          })
+        );
+        const error = expectErr(
+          await runCreate(targetDir, { verify: false, workspace: true })
+        );
+
+        expect(dryRunError.message).toBe(error.message);
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error.message).toContain('nested Trails workspace');
+        expect(existsSync(targetDir)).toBe(false);
+        expect(readText(existingAppDir, 'src/app.ts')).toBe(appSource);
+        expect(readText(existingAppDir, 'trails.lock')).toBe(lockSource);
+        expect(readText(workspaceRoot, 'trails.config.ts')).toBe(configSource);
+      });
+    });
+
+    test('scaffolds a workspace under a standalone ancestor Config', async () => {
+      await withTempProject(async (standaloneRoot) => {
+        const targetDir = join(standaloneRoot, 'created-workspace');
+        const name = basename(targetDir);
+        const config = 'export default {};\n';
+        mkdirSync(standaloneRoot, { recursive: true });
+        writeFileSync(join(standaloneRoot, 'trails.config.ts'), config);
+        initGitRepository(standaloneRoot);
+
+        const dryRun = expectOk(
+          await runCreate(targetDir, {
+            dryRun: true,
+            verify: false,
+            workspace: true,
+          })
+        );
+        const result = expectOk(
+          await runCreate(targetDir, { verify: false, workspace: true })
+        );
+
+        expect(dryRun.layout).toBe('workspace');
+        expect(result.layout).toBe('workspace');
+        expect(readText(standaloneRoot, 'trails.config.ts')).toBe(config);
+        expectPaths(
+          targetDir,
+          ['package.json', 'trails.config.ts', `apps/${name}/src/app.ts`],
+          true
         );
       });
     });

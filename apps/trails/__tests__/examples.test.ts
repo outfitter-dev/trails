@@ -59,6 +59,43 @@ const resetTrailsWorkspace = (): void => {
   mkdirSync(trailsWorkspaceDir, { recursive: true });
 };
 
+const runExampleCommand = (
+  command: readonly string[],
+  cwd: string,
+  env?: Record<string, string>
+): string => {
+  const timeoutMs = 15_000;
+  const proc = Bun.spawnSync({
+    cmd: [...command],
+    cwd,
+    ...(env === undefined ? {} : { env }),
+    stderr: 'pipe',
+    stdout: 'pipe',
+    timeout: timeoutMs,
+  });
+  const stdout = proc.stdout.toString();
+  const stderr = proc.stderr.toString();
+  const signalCode = proc.signalCode ?? undefined;
+
+  if (!proc.success) {
+    throw new Error(
+      [
+        'Trails example subprocess did not succeed.',
+        `command: ${command.join(' ')}`,
+        `cwd: ${cwd}`,
+        `timeoutMs: ${timeoutMs}`,
+        `exitedDueToTimeout: ${proc.exitedDueToTimeout === true}`,
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n')
+    );
+  }
+
+  return stdout;
+};
+
 beforeAll(() => {
   resetTrailsWorkspace();
 });
@@ -94,8 +131,8 @@ for (const exampleName of [
   'Force audit events',
 ]) {
   test(`survey.diff > environment-targeted example: ${exampleName}`, () => {
-    const proc = Bun.spawnSync({
-      cmd: [
+    const stdout = runExampleCommand(
+      [
         process.execPath,
         trailsBinPath,
         'run',
@@ -106,14 +143,10 @@ for (const exampleName of [
         '--permit',
         '{"id":"example-test","scopes":["trails:run"]}',
       ],
-      cwd: operatorAppDir,
-      stderr: 'pipe',
-      stdout: 'pipe',
-      timeout: 15_000,
-    });
+      operatorAppDir
+    );
 
-    expect(proc.success).toBe(true);
-    expect(JSON.parse(proc.stdout.toString())).toMatchObject({
+    expect(JSON.parse(stdout)).toMatchObject({
       actual: { outcome: 'ok' },
       match: true,
     });
@@ -132,8 +165,8 @@ for (const [trailId, exampleName, scopes] of [
   ['dev.stats', 'Show local dev state', ['trails:run']],
 ] as const) {
   test(`${trailId} > workspace-root --app example: ${exampleName}`, () => {
-    const proc = Bun.spawnSync({
-      cmd: [
+    const stdout = runExampleCommand(
+      [
         process.execPath,
         trailsBinPath,
         'run',
@@ -146,14 +179,10 @@ for (const [trailId, exampleName, scopes] of [
         '--permit',
         JSON.stringify({ id: 'workspace-example-test', scopes }),
       ],
-      cwd: repoRoot,
-      stderr: 'pipe',
-      stdout: 'pipe',
-      timeout: 15_000,
-    });
+      repoRoot
+    );
 
-    expect(proc.success).toBe(true);
-    const envelope = JSON.parse(proc.stdout.toString()) as {
+    const envelope = JSON.parse(stdout) as {
       readonly actual?: {
         readonly outcome?: string;
         readonly value?: unknown;
@@ -212,8 +241,8 @@ test('compile > isolated workspace-root --app example: Compile the current topo 
       `export { app } from ${JSON.stringify(pathToFileURL(resolve(operatorAppDir, 'src', 'app.ts')).href)};\n`
     );
 
-    const proc = Bun.spawnSync({
-      cmd: [
+    const stdout = runExampleCommand(
+      [
         process.execPath,
         trailsBinPath,
         'run',
@@ -231,18 +260,14 @@ test('compile > isolated workspace-root --app example: Compile the current topo 
           scopes: ['topo:write', 'trails:run'],
         }),
       ],
-      cwd: repoRoot,
-      env: {
+      repoRoot,
+      {
         ...process.env,
         TRAILS_STATE_HOME: stateHome,
-      } as Record<string, string>,
-      stderr: 'pipe',
-      stdout: 'pipe',
-      timeout: 15_000,
-    });
+      } as Record<string, string>
+    );
 
-    expect(proc.success).toBe(true);
-    const envelope = JSON.parse(proc.stdout.toString()) as {
+    const envelope = JSON.parse(stdout) as {
       readonly actual?: {
         readonly outcome?: string;
         readonly value?: unknown;

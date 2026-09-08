@@ -13,7 +13,7 @@ bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","sco
 
 Common workflows:
 
-- `trails create` starts a standalone app by default; `--workspace` creates a configured workspace with that app under `apps/<name>`. Generated surfaces live under `bin/`, app source stays side-effect-free, and `--dry-run` returns the complete write plan without touching disk.
+- `trails create` starts a standalone app by default; `--workspace` creates a configured workspace with that app under `apps/<name>`. Generated surfaces live under `bin/`, app source stays side-effect-free, and `--dry-run` returns the complete write plan without touching disk. Workspace creation rejects targets nested beneath an existing configured workspace while allowing a child workspace beneath an ancestor standalone Config. On a rerun, a preserved app entry also rejects when its runtime-selected topo ID can be statically proven to conflict with `workspace.apps`; dynamic, indirect, and post-construction mutation forms remain preserved and are validated by runtime commands such as `trails compile`.
 - `trails add surface` adds another surface entrypoint to an existing project.
 - `trails topo` inspects topo state and manages pins/history.
 - `trails compile` writes the selected app's `trails.lock`. At a configured workspace root, pass `--app <id>`; compile never fans out or writes an aggregate root lock.

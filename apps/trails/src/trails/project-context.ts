@@ -159,6 +159,20 @@ const resolveNonGitCollectionBoundary = async (
   );
 };
 
+/**
+ * Resolve the first-class filesystem collection observed by operator commands.
+ *
+ * @example
+ * ```ts
+ * const boundaryDir = await resolveOperatorCollectionBoundary(process.cwd());
+ * ```
+ */
+export const resolveOperatorCollectionBoundary = async (
+  startDir: string
+): Promise<string> =>
+  readGitWorkingTreeBoundary(startDir) ??
+  (await resolveNonGitCollectionBoundary(startDir));
+
 const configuredApp = (
   app: ResolvedTrailsWorkspaceApp,
   moduleOverride?: string | undefined
@@ -406,8 +420,7 @@ export const resolveOperatorProjectContext = async (
     const cwd = explicitRoot ? invocationCwd : canonicalPath(invocationCwd);
     const boundaryDir = explicitRoot
       ? resolve(cwd, input.rootDir)
-      : (readGitWorkingTreeBoundary(cwd) ??
-        (await resolveNonGitCollectionBoundary(cwd)));
+      : await resolveOperatorCollectionBoundary(cwd);
     if (!existsSync(boundaryDir)) {
       throw projectContextError(
         `Project root ${boundaryDir} does not exist.`,
