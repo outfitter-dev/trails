@@ -12,7 +12,7 @@ import {
 import type { BlobRef, Topo } from '@ontrails/core';
 
 import { isBlobOutputSchema } from './blob-output.js';
-import { deriveHttpRoutes } from './build.js';
+import { deriveHttpRoutes, resolveHttpQueryInput } from './build.js';
 import type { DeriveHttpRoutesOptions, HttpRouteDefinition } from './build.js';
 
 export interface CreateRouteHandlerOptions {
@@ -52,6 +52,7 @@ type ParsedContentLength =
 
 const DEFAULT_MAX_JSON_BODY_BYTES = 1024 * 1024;
 const CONTENT_LENGTH_DECIMAL_PATTERN = /^\d+$/;
+const JSON_NUMBER_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
 const JSON_PARSE_ERROR = Symbol('JSON_PARSE_ERROR');
 const JSON_BODY_TOO_LARGE = Symbol('JSON_BODY_TOO_LARGE');
@@ -65,8 +66,307 @@ const MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH = 128;
 const routeKey = (method: string, path: string): `${string} ${string}` =>
   `${method.toUpperCase()} ${path}`;
 
-const parseQueryParams = (request: Request): Record<string, unknown> => {
+const isJsonSchemaObject = (
+  value: unknown
+): value is Readonly<Record<string, unknown>> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseQueryNumber = (value: string): number | string => {
+  if (!JSON_NUMBER_PATTERN.test(value)) {
+    return value;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : value;
+};
+
+type QueryScalarKind = 'boolean' | 'null' | 'number' | 'string';
+
+type QueryValueConversion =
+  | { readonly kind: 'array'; readonly itemKind: QueryScalarKind }
+  | { readonly kind: 'scalar'; readonly scalarKind: QueryScalarKind };
+
+const queryScalarKindFromConst = (
+  value: unknown
+): QueryScalarKind | undefined => {
+  if (value === null) {
+    return 'null';
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? 'number' : undefined;
+  }
+  if (typeof value === 'boolean') {
+    return 'boolean';
+  }
+  return typeof value === 'string' ? 'string' : undefined;
+};
+
+const queryScalarKind = (
+  schema: Readonly<Record<string, unknown>>
+): QueryScalarKind | undefined => {
+  const { anyOf, type } = schema;
+  if (type === 'number' || type === 'integer') {
+    return 'number';
+  }
+  if (type === 'boolean' || type === 'string' || type === 'null') {
+    return type;
+  }
+  if (Object.hasOwn(schema, 'const')) {
+    return queryScalarKindFromConst(schema['const']);
+  }
+
+  if (!Array.isArray(anyOf) || anyOf.length === 0) {
+    return undefined;
+  }
+  const kinds = anyOf.map((branch) =>
+    isJsonSchemaObject(branch) ? queryScalarKind(branch) : undefined
+  );
+  if (kinds.some((kind) => kind === undefined)) {
+    return undefined;
+  }
+  const nonNullKinds = kinds.filter((kind) => kind !== 'null');
+  const [first] = nonNullKinds;
+  return first !== undefined && nonNullKinds.every((kind) => kind === first)
+    ? first
+    : undefined;
+};
+
+const convertQueryScalar = (
+  value: string,
+  kind: QueryScalarKind
+): boolean | number | string => {
+  if (kind === 'number') {
+    return parseQueryNumber(value);
+  }
+  if (kind === 'boolean') {
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
+  }
+  return value;
+};
+
+const queryArrayItemKind = (
+  schema: Readonly<Record<string, unknown>>
+): QueryScalarKind | undefined => {
+  const { anyOf, items, type } = schema;
+  if (type === 'array') {
+    return isJsonSchemaObject(items) ? queryScalarKind(items) : undefined;
+  }
+  if (!Array.isArray(anyOf) || anyOf.length === 0) {
+    return undefined;
+  }
+  const kinds: (QueryScalarKind | undefined)[] = [];
+  for (const branch of anyOf) {
+    if (!isJsonSchemaObject(branch)) {
+      return undefined;
+    }
+    kinds.push(
+      queryScalarKind(branch) === 'null' ? 'null' : queryArrayItemKind(branch)
+    );
+  }
+  if (kinds.some((kind) => kind === undefined)) {
+    return undefined;
+  }
+  const nonNullKinds = kinds.filter((kind) => kind !== 'null');
+  const [first] = nonNullKinds;
+  return first !== undefined && nonNullKinds.every((kind) => kind === first)
+    ? first
+    : undefined;
+};
+
+const queryValueConversion = (
+  schema: unknown
+): QueryValueConversion | undefined => {
+  if (!isJsonSchemaObject(schema)) {
+    return undefined;
+  }
+  const scalarKind = queryScalarKind(schema);
+  if (scalarKind !== undefined) {
+    return { kind: 'scalar', scalarKind };
+  }
+  const itemKind = queryArrayItemKind(schema);
+  return itemKind === undefined ? undefined : { itemKind, kind: 'array' };
+};
+
+const queryValueConversionsAgree = (
+  left: QueryValueConversion | undefined,
+  right: QueryValueConversion | undefined
+): left is QueryValueConversion => {
+  if (left === undefined || right === undefined || left.kind !== right.kind) {
+    return false;
+  }
+  if (left.kind === 'array') {
+    return right.kind === 'array' && left.itemKind === right.itemKind;
+  }
+  return right.kind === 'scalar' && left.scalarKind === right.scalarKind;
+};
+
+const convertQueryValue = (
+  value: string | string[],
+  conversion: QueryValueConversion | undefined
+): unknown => {
+  if (conversion === undefined) {
+    return value;
+  }
+  if (!Array.isArray(value)) {
+    return conversion.kind === 'scalar'
+      ? convertQueryScalar(value, conversion.scalarKind)
+      : value;
+  }
+  if (conversion.kind !== 'array') {
+    return value;
+  }
+  return value.map((item) => convertQueryScalar(item, conversion.itemKind));
+};
+
+const queryRequiredFields = (
+  schema: Readonly<Record<string, unknown>>
+): readonly string[] | undefined => {
+  const { required } = schema;
+  if (required === undefined) {
+    return [];
+  }
+  return Array.isArray(required) &&
+    required.every((key) => typeof key === 'string')
+    ? required
+    : undefined;
+};
+
+const queryObjectBranches = (
+  schema: Readonly<Record<string, unknown>>
+): readonly Readonly<Record<string, unknown>>[] | undefined => {
+  const { anyOf, properties, type } = schema;
+  if (!Array.isArray(anyOf) || anyOf.length === 0) {
+    if (type !== 'object') {
+      return undefined;
+    }
+    return isJsonSchemaObject(properties) ? [schema] : undefined;
+  }
+
+  let sharedProperties: Readonly<Record<string, unknown>> = {};
+  if (properties !== undefined) {
+    if (!isJsonSchemaObject(properties)) {
+      return undefined;
+    }
+    sharedProperties = properties;
+  }
+  const sharedRequired = queryRequiredFields(schema);
+  if (sharedRequired === undefined) {
+    return undefined;
+  }
+
+  const branches: Readonly<Record<string, unknown>>[] = [];
+  for (const branch of anyOf) {
+    if (!isJsonSchemaObject(branch)) {
+      return undefined;
+    }
+    if (queryScalarKind(branch) === 'null') {
+      continue;
+    }
+    const nested = queryObjectBranches(branch);
+    if (nested === undefined) {
+      return undefined;
+    }
+    for (const nestedBranch of nested) {
+      const nestedProperties = nestedBranch['properties'];
+      const nestedRequired = queryRequiredFields(nestedBranch);
+      if (!isJsonSchemaObject(nestedProperties) || !nestedRequired) {
+        return undefined;
+      }
+      const required = [...new Set([...nestedRequired, ...sharedRequired])];
+      const mergedProperties = { ...nestedProperties };
+      for (const [key, sharedProperty] of Object.entries(sharedProperties)) {
+        if (!Object.hasOwn(nestedProperties, key)) {
+          mergedProperties[key] = sharedProperty;
+          continue;
+        }
+        const nestedProperty = nestedProperties[key];
+        mergedProperties[key] = queryValueConversionsAgree(
+          queryValueConversion(nestedProperty),
+          queryValueConversion(sharedProperty)
+        )
+          ? nestedProperty
+          : {};
+      }
+      branches.push({
+        ...nestedBranch,
+        properties: mergedProperties,
+        ...(required.length > 0 ? { required } : {}),
+        type: 'object',
+      });
+    }
+  }
+  return branches.length > 0 ? branches : undefined;
+};
+
+const branchCanAcceptPresentKeys = (
+  branch: Readonly<Record<string, unknown>>,
+  presentKeys: ReadonlySet<string>
+): boolean => {
+  const { required } = branch;
+  return (
+    required === undefined ||
+    (Array.isArray(required) &&
+      required.every((key) => typeof key === 'string' && presentKeys.has(key)))
+  );
+};
+
+const queryFieldConversion = (
+  inputSchema: Readonly<Record<string, unknown>> | undefined,
+  key: string,
+  presentKeys: ReadonlySet<string>
+): QueryValueConversion | undefined => {
+  if (inputSchema === undefined) {
+    return undefined;
+  }
+  const branches = queryObjectBranches(inputSchema)?.filter((branch) =>
+    branchCanAcceptPresentKeys(branch, presentKeys)
+  );
+  if (branches === undefined || branches.length === 0) {
+    return undefined;
+  }
+
+  const conversions = branches.map((branch) => {
+    const { properties } = branch;
+    return isJsonSchemaObject(properties)
+      ? queryValueConversion(properties[key])
+      : undefined;
+  });
+  const [first] = conversions;
+  return conversions.every((conversion) =>
+    queryValueConversionsAgree(first, conversion)
+  )
+    ? first
+    : undefined;
+};
+
+const convertQueryParams = (
+  input: Readonly<Record<string, string | string[]>>,
+  inputSchema: Readonly<Record<string, unknown>> | undefined,
+  preserveRawFields: ReadonlySet<string>
+): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
+  const presentKeys = new Set(Object.keys(input));
+
+  for (const [key, value] of Object.entries(input)) {
+    result[key] = preserveRawFields.has(key)
+      ? value
+      : convertQueryValue(
+          value,
+          queryFieldConversion(inputSchema, key, presentKeys)
+        );
+  }
+
+  return result;
+};
+
+const parseQueryParams = (
+  request: Request
+): Record<string, string | string[]> => {
+  const result: Record<string, string | string[]> = {};
   const url = new URL(request.url);
   const seenKeys = new Set<string>();
 
@@ -76,7 +376,10 @@ const parseQueryParams = (request: Request): Record<string, unknown> => {
     }
     seenKeys.add(key);
     const all = url.searchParams.getAll(key);
-    result[key] = all.length > 1 ? all : all[0];
+    const value = all.length > 1 ? all : all[0];
+    if (value !== undefined) {
+      result[key] = value;
+    }
   }
 
   return result;
@@ -284,11 +587,19 @@ const readWebhookBodyText = async (
 
 const readInput = async (
   request: Request,
-  inputSource: 'body' | 'query',
+  route: HttpRouteDefinition,
   options: RuntimeOptions
 ): Promise<InputReadResult> => {
-  if (inputSource === 'query') {
-    return parseQueryParams(request);
+  if (route.inputSource === 'query') {
+    const raw = parseQueryParams(request);
+    const { inputSchema, preserveRawFields } = resolveHttpQueryInput(
+      route,
+      raw,
+      {
+        headers: request.headers,
+      }
+    );
+    return convertQueryParams(raw, inputSchema, preserveRawFields);
   }
   if (isEmptyBody(request)) {
     return {};
@@ -633,11 +944,7 @@ export const createRouteHandler = (
         return await handleWebhookRoute(route, runtimeOptions, request);
       }
 
-      const rawInput = await readInput(
-        request,
-        route.inputSource,
-        runtimeOptions
-      );
+      const rawInput = await readInput(request, route, runtimeOptions);
 
       if (rawInput === JSON_PARSE_ERROR) {
         return invalidJsonResponse();

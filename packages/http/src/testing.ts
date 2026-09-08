@@ -54,6 +54,18 @@ const tagsTrail = trail('tags', {
   output: z.object({ tags: z.array(z.string()) }),
 });
 
+const typedQuerySchema = z.object({
+  count: z.number(),
+  enabled: z.boolean(),
+});
+
+const typedQueryTrail = trail('typed.query', {
+  implementation: (input) => Result.ok(input),
+  input: typedQuerySchema,
+  intent: 'read',
+  output: typedQuerySchema,
+});
+
 const echoBodyTrail = trail('echo.body', {
   implementation: (input) => Result.ok({ length: input.message.length }),
   input: z.object({ message: z.string() }),
@@ -208,6 +220,28 @@ const repeatedQueryCase = async (
   });
 };
 
+const typedQueryCase = async (
+  adapter: HttpAdapterConformanceAdapter
+): Promise<void> => {
+  const graph = topo('http-conformance-typed-query', { typedQueryTrail });
+  const valid = await request(
+    adapter,
+    graph,
+    '/typed/query?count=0&enabled=false'
+  );
+  const malformed = await request(
+    adapter,
+    graph,
+    '/typed/query?count=2x&enabled=true'
+  );
+
+  await expectOkResponse(valid, { count: 0, enabled: false });
+  expect(malformed.status).toBe(400);
+  expect(await expectJson(malformed)).toMatchObject({
+    error: { category: 'validation' },
+  });
+};
+
 const publicErrorCase = async (
   adapter: HttpAdapterConformanceAdapter
 ): Promise<void> => {
@@ -314,6 +348,10 @@ export const createHttpAdapterConformanceCases =
     {
       check: repeatedQueryCase,
       name: 'preserves repeated query keys before validation',
+    },
+    {
+      check: typedQueryCase,
+      name: 'converts schema-declared query primitives before validation',
     },
     {
       check: publicErrorCase,

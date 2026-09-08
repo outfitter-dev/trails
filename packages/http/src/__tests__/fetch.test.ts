@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import {
+  LAYER_INPUTS_KEY,
   NotFoundError,
   PermissionError,
   Result,
@@ -12,9 +13,14 @@ import {
   topo,
   webhook,
 } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
-import { deriveHttpRoutes } from '../build.js';
+import {
+  deriveHttpRoutes,
+  resolveHttpQueryInput,
+  resolveHttpQueryInputSchema,
+} from '../build.js';
 import { createFetchHandler, createRouteHandler } from '../fetch.js';
 
 let originalConsoleError = console.error;
@@ -45,6 +51,44 @@ const tagsTrail = trail('tags', {
   input: z.object({ tags: z.array(z.string()) }),
   intent: 'read',
   output: z.object({ tags: z.array(z.string()) }),
+});
+
+const typedQuerySchema = z.object({
+  count: z.number(),
+  enabled: z.boolean(),
+  label: z.string(),
+});
+
+const typedQueryTrail = trail('typed.query', {
+  implementation: (input) => Result.ok(input),
+  input: typedQuerySchema,
+  intent: 'read',
+  output: typedQuerySchema,
+});
+
+const typedQueryDefaultsSchema = z.object({
+  count: z.number().optional(),
+  enabled: z.boolean().default(false),
+});
+
+const typedQueryDefaultsTrail = trail('typed.defaults', {
+  implementation: (input) => Result.ok(input),
+  input: typedQueryDefaultsSchema,
+  intent: 'read',
+  output: typedQueryDefaultsSchema,
+});
+
+const typedQueryArraysSchema = z.object({
+  counts: z.array(z.number()),
+  enabled: z.array(z.boolean()),
+  labels: z.array(z.string()),
+});
+
+const typedQueryArraysTrail = trail('typed.arrays', {
+  implementation: (input) => Result.ok(input),
+  input: typedQueryArraysSchema,
+  intent: 'read',
+  output: typedQueryArraysSchema,
 });
 
 const echoBodyTrail = trail('echo.body', {
@@ -139,6 +183,669 @@ describe('@ontrails/http/fetch', () => {
     expect(await singleton.json()).toMatchObject({
       error: { category: 'validation' },
     });
+  });
+
+  describe('schema-derived query values', () => {
+    test('converts declared number and boolean fields while preserving strings', async () => {
+      const handler = createFetchHandler(
+        topo('fetch-api', { typedQueryTrail })
+      );
+
+      const response = await handler(
+        buildRequest('/typed/query?count=0&enabled=false&label=0')
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        data: { count: 0, enabled: false, label: '0' },
+      });
+    });
+
+    test('leaves malformed number and boolean values for normal validation', async () => {
+      const handler = createFetchHandler(
+        topo('fetch-api', { typedQueryTrail })
+      );
+
+      const malformedNumber = await handler(
+        buildRequest('/typed/query?count=2x&enabled=true&label=ok')
+      );
+      const malformedBoolean = await handler(
+        buildRequest('/typed/query?count=2&enabled=1&label=ok')
+      );
+      const nonFiniteNumber = await handler(
+        buildRequest('/typed/query?count=1e309&enabled=true&label=ok')
+      );
+      const uppercaseBoolean = await handler(
+        buildRequest('/typed/query?count=2&enabled=TRUE&label=ok')
+      );
+
+      expect(malformedNumber.status).toBe(400);
+      expect(await malformedNumber.json()).toMatchObject({
+        error: { category: 'validation' },
+      });
+      expect(malformedBoolean.status).toBe(400);
+      expect(await malformedBoolean.json()).toMatchObject({
+        error: { category: 'validation' },
+      });
+      expect(nonFiniteNumber.status).toBe(400);
+      expect(uppercaseBoolean.status).toBe(400);
+    });
+
+    test('preserves authored coercion alongside strict query conversion', async () => {
+      const schema = z.object({
+        count: z.number(),
+        enabled: z.coerce.boolean(),
+        flags: z.array(z.coerce.boolean()),
+      });
+      const coercingTrail = trail('typed.coercing', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(topo('fetch-api', { coercingTrail }));
+
+      const response = await handler(
+        buildRequest(
+          '/typed/coercing?count=2&enabled=false&flags=false&flags=true'
+        )
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        data: { count: 2, enabled: true, flags: [true, true] },
+      });
+      expect(
+        schema.parse({ count: 2, enabled: 'false', flags: ['false', 'true'] })
+      ).toEqual({ count: 2, enabled: true, flags: [true, true] });
+    });
+
+    test('converts primitive literals and homogeneous union branches', async () => {
+      const schema = z.object({
+        exactCount: z.literal(2),
+        exactEnabled: z.literal(false),
+        maybeCount: z.number().nullable(),
+        maybeEnabled: z.boolean().nullable(),
+        mixed: z.union([z.string(), z.number()]),
+        numeric: z.union([z.number(), z.literal(3)]),
+      });
+      const unionTrail = trail('typed.unions', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(topo('fetch-api', { unionTrail }));
+
+      const response = await handler(
+        buildRequest(
+          '/typed/unions?exactCount=2&exactEnabled=false&maybeCount=0&maybeEnabled=true&mixed=4&numeric=4'
+        )
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        data: {
+          exactCount: 2,
+          exactEnabled: false,
+          maybeCount: 0,
+          maybeEnabled: true,
+          mixed: '4',
+          numeric: 4,
+        },
+      });
+    });
+
+    test('leaves null spellings and malformed homogeneous unions raw', async () => {
+      const schema = z.object({
+        enabled: z.boolean().nullable(),
+        value: z.number().nullable(),
+      });
+      const nullableTrail = trail('typed.nullable', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(topo('fetch-api', { nullableTrail }));
+
+      const nullSpelling = await handler(
+        buildRequest('/typed/nullable?value=null&enabled=true')
+      );
+      const malformed = await handler(
+        buildRequest('/typed/nullable?value=abc&enabled=true')
+      );
+
+      expect(nullSpelling.status).toBe(400);
+      expect(malformed.status).toBe(400);
+    });
+
+    test('converts fields owned by the only structurally possible root union branch', async () => {
+      const schema = z.union([
+        z.object({ count: z.number() }),
+        z.object({ enabled: z.boolean() }),
+      ]);
+      const rootUnionTrail = trail('typed.root-union', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(topo('fetch-api', { rootUnionTrail }));
+
+      const count = await handler(buildRequest('/typed/root-union?count=2'));
+      const enabled = await handler(
+        buildRequest('/typed/root-union?enabled=false')
+      );
+      const ambiguous = await handler(
+        buildRequest('/typed/root-union?count=2&enabled=false')
+      );
+
+      expect(count.status).toBe(200);
+      expect(await count.json()).toEqual({ data: { count: 2 } });
+      expect(enabled.status).toBe(200);
+      expect(await enabled.json()).toEqual({ data: { enabled: false } });
+      expect(ambiguous.status).toBe(400);
+    });
+
+    test('preserves coercion declared within a root union branch', async () => {
+      const schema = z.union([
+        z.object({ count: z.number() }),
+        z.object({ enabled: z.coerce.boolean() }),
+      ]);
+      const coercingUnionTrail = trail('typed.coercing-union', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(
+        topo('fetch-api', { coercingUnionTrail })
+      );
+
+      const count = await handler(
+        buildRequest('/typed/coercing-union?count=2')
+      );
+      const enabled = await handler(
+        buildRequest('/typed/coercing-union?enabled=false')
+      );
+
+      expect(count.status).toBe(200);
+      expect(await count.json()).toEqual({ data: { count: 2 } });
+      expect(enabled.status).toBe(200);
+      expect(await enabled.json()).toEqual({ data: { enabled: true } });
+    });
+
+    test('preserves raw fields that a possible root union branch does not own', async () => {
+      const schema = z.union([
+        z.object({ count: z.number() }),
+        z.object({ marker: z.string().optional() }).passthrough(),
+      ]);
+      const passthroughUnionTrail = trail('typed.passthrough-union', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(
+        topo('fetch-api', { passthroughUnionTrail })
+      );
+
+      const response = await handler(
+        buildRequest('/typed/passthrough-union?count=2')
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ data: { count: '2' } });
+    });
+
+    test('retains root union inference with version and layer properties', async () => {
+      const schema = z.union([
+        z.object({ count: z.number() }),
+        z.object({ enabled: z.boolean() }),
+      ]);
+      const typedLayer: Layer = {
+        input: z.object({ audited: z.boolean() }),
+        name: 'audit',
+        wrap: (_trail, implementation) => implementation,
+      };
+      const versionedUnionTrail = trail('typed.versioned-union', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        layers: [typedLayer],
+        output: schema,
+        version: 2,
+        versions: {
+          1: {
+            input: schema,
+            output: schema,
+            transpose: {
+              input: ({ input }) => input,
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+      const handler = createFetchHandler(
+        topo('fetch-api', { versionedUnionTrail })
+      );
+
+      const response = await handler(
+        buildRequest(
+          '/typed/versioned-union?count=2&audited=false&trailVersion=2'
+        )
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ data: { count: 2 } });
+    });
+
+    test('does not let shared object properties override conflicting union fields', async () => {
+      const schema = z.object({ count: z.string() });
+      const collisionTrail = trail('typed.union-collision', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const routes = deriveHttpRoutes(topo('fetch-api', { collisionTrail }));
+      expect(routes.isOk()).toBe(true);
+      if (!routes.isOk()) {
+        return;
+      }
+      const [route] = routes.value;
+      expect(route).toBeDefined();
+      if (route === undefined) {
+        return;
+      }
+      const handler = createRouteHandler({
+        ...route,
+        inputSchema: {
+          anyOf: [
+            {
+              properties: { count: { type: 'number' } },
+              required: ['count'],
+              type: 'object',
+            },
+          ],
+          properties: { count: { type: 'boolean' } },
+          type: 'object',
+        },
+      });
+
+      const response = await handler(
+        buildRequest('/typed/union-collision?count=false')
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ data: { count: 'false' } });
+    });
+
+    test('preserves renamed coercing layer fields through copied route renderings', async () => {
+      let capturedLayerInput: unknown;
+      const coercingLayer: Layer = {
+        input: z.object({ count: z.coerce.boolean() }),
+        name: 'audit',
+        wrap: (_trail, implementation) => async (input, context) => {
+          const layerInputs = context.extensions?.[LAYER_INPUTS_KEY] as
+            | Record<string, unknown>
+            | undefined;
+          capturedLayerInput = layerInputs?.['audit'];
+          return await implementation(input, context);
+        },
+      };
+      const schema = z.object({ count: z.number() });
+      const coercingLayerTrail = trail('typed.coercing-layer', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        layers: [coercingLayer],
+        output: schema,
+      });
+      const routes = deriveHttpRoutes(
+        topo('fetch-api', { coercingLayerTrail })
+      );
+      expect(routes.isOk()).toBe(true);
+      if (!routes.isOk()) {
+        return;
+      }
+      const [route] = routes.value;
+      expect(route).toBeDefined();
+      if (route === undefined) {
+        return;
+      }
+      const copiedRenderings = route.layerInputRenderings?.map((rendering) => ({
+        ...rendering,
+      }));
+      const copiedRoute = { ...route, layerInputRenderings: copiedRenderings };
+      const handler = createRouteHandler(copiedRoute);
+
+      const response = await handler(
+        buildRequest('/typed/coercing-layer?count=2&auditCount=false')
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ data: { count: 2 } });
+      expect(capturedLayerInput).toEqual({ count: true });
+
+      capturedLayerInput = undefined;
+      const replacedRouting = copiedRenderings?.map((rendering) => ({
+        ...rendering,
+        routing: new Map(rendering.routing),
+      }));
+      const replacedResponse = await createRouteHandler({
+        ...route,
+        layerInputRenderings: replacedRouting,
+      })(buildRequest('/typed/coercing-layer?count=2&auditCount=false'));
+      expect(replacedResponse.status).toBe(200);
+      expect(capturedLayerInput).toEqual({ count: true });
+
+      const unclassifiedRendering = {
+        layerName: 'added',
+        properties: { addedFlag: { type: 'boolean' } },
+        required: ['addedFlag'],
+        routing: new Map([['addedFlag', 'flag']]),
+      };
+      const resolved = resolveHttpQueryInput(
+        {
+          ...copiedRoute,
+          layerInputRenderings: [
+            ...(copiedRenderings ?? []),
+            unclassifiedRendering,
+          ],
+        },
+        { addedFlag: 'false', count: '2' },
+        {}
+      );
+      expect(resolved.preserveRawFields.has('addedFlag')).toBe(true);
+    });
+
+    test('converts repeated nullable primitive arrays element by element', async () => {
+      const schema = z.object({
+        enabled: z.array(z.boolean()).nullable(),
+        mixed: z.union([z.array(z.string()), z.array(z.number())]),
+        values: z.array(z.number()).nullable(),
+      });
+      const nullableArraysTrail = trail('typed.nullable-arrays', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(
+        topo('fetch-api', { nullableArraysTrail })
+      );
+
+      const response = await handler(
+        buildRequest(
+          '/typed/nullable-arrays?values=1&values=2&enabled=false&enabled=true&mixed=1&mixed=2'
+        )
+      );
+      const malformed = await handler(
+        buildRequest(
+          '/typed/nullable-arrays?values=1&values=two&enabled=false&enabled=true&mixed=1&mixed=2'
+        )
+      );
+      const singleton = await handler(
+        buildRequest(
+          '/typed/nullable-arrays?values=1&enabled=false&enabled=true&mixed=1&mixed=2'
+        )
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        data: { enabled: [false, true], mixed: ['1', '2'], values: [1, 2] },
+      });
+      expect(malformed.status).toBe(400);
+      expect(singleton.status).toBe(400);
+    });
+
+    test('preserves absent optional fields and schema defaults', async () => {
+      const handler = createFetchHandler(
+        topo('fetch-api', { typedQueryDefaultsTrail })
+      );
+
+      const response = await handler(buildRequest('/typed/defaults'));
+      const provided = await handler(
+        buildRequest('/typed/defaults?count=0&enabled=true')
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ data: { enabled: false } });
+      expect(provided.status).toBe(200);
+      expect(await provided.json()).toEqual({
+        data: { count: 0, enabled: true },
+      });
+    });
+
+    test('converts integer metadata and preserves number constraints', async () => {
+      const schema = z.object({ count: z.number().int().nonnegative() });
+      const integerTrail = trail('typed.integer', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const routes = deriveHttpRoutes(topo('fetch-api', { integerTrail }));
+      expect(routes.isOk()).toBe(true);
+      if (!routes.isOk()) {
+        return;
+      }
+      const [route] = routes.value;
+      expect(route).toBeDefined();
+      if (route === undefined) {
+        return;
+      }
+      const handler = createRouteHandler({
+        ...route,
+        inputSchema: {
+          properties: { count: { type: 'integer' } },
+          required: ['count'],
+          type: 'object',
+        },
+      });
+
+      const valid = await handler(buildRequest('/typed/integer?count=0'));
+      const fractional = await handler(
+        buildRequest('/typed/integer?count=1.5')
+      );
+      const negative = await handler(buildRequest('/typed/integer?count=-1'));
+
+      expect(valid.status).toBe(200);
+      expect(await valid.json()).toEqual({ data: { count: 0 } });
+      expect(fractional.status).toBe(400);
+      expect(negative.status).toBe(400);
+    });
+
+    test('converts repeated primitive arrays element by element', async () => {
+      const handler = createFetchHandler(
+        topo('fetch-api', { typedQueryArraysTrail })
+      );
+
+      const response = await handler(
+        buildRequest(
+          '/typed/arrays?counts=0&counts=2&enabled=false&enabled=true&labels=0&labels=true'
+        )
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        data: {
+          counts: [0, 2],
+          enabled: [false, true],
+          labels: ['0', 'true'],
+        },
+      });
+    });
+
+    test('keeps the singleton array contract and rejects malformed array elements', async () => {
+      const handler = createFetchHandler(
+        topo('fetch-api', { typedQueryArraysTrail })
+      );
+
+      const singleton = await handler(
+        buildRequest('/typed/arrays?counts=1&enabled=true&labels=one')
+      );
+      const malformed = await handler(
+        buildRequest(
+          '/typed/arrays?counts=1&counts=two&enabled=true&enabled=false&labels=one&labels=two'
+        )
+      );
+
+      expect(singleton.status).toBe(400);
+      expect(malformed.status).toBe(400);
+    });
+
+    test('does not apply the current schema to explicit historical versions', async () => {
+      const output = z.object({ count: z.number() });
+      const versionedTrail = trail('typed.versioned', {
+        implementation: (input: { count: number }) => Result.ok(input),
+        input: z.object({ count: z.number() }),
+        intent: 'read',
+        output,
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ count: z.string() }),
+            output,
+            transpose: {
+              input: ({ input }: { input: { count: string } }) => ({
+                count: Number(input.count),
+              }),
+              output: ({ output: result }) => result,
+            },
+          },
+        },
+      });
+      const handler = createFetchHandler(topo('fetch-api', { versionedTrail }));
+
+      const current = await handler(buildRequest('/typed/versioned?count=2'));
+      const explicitCurrent = await handler(
+        buildRequest('/typed/versioned?count=2&trailVersion=2')
+      );
+      const historical = await handler(
+        buildRequest('/typed/versioned?count=2&trailVersion=1')
+      );
+      const headerPrecedence = await handler(
+        buildRequest('/typed/versioned?count=abc&trailVersion=1', {
+          headers: { 'X-Trails-Version': '2' },
+        })
+      );
+
+      expect(current.status).toBe(200);
+      expect(explicitCurrent.status).toBe(200);
+      expect(historical.status).toBe(200);
+      expect(await historical.json()).toEqual({ data: { count: 2 } });
+      expect(headerPrecedence.status).toBe(400);
+    });
+
+    test('uses a selected historical number schema when it is unambiguous', async () => {
+      const output = z.object({ count: z.string() });
+      const versionedTrail = trail('typed.historical-number', {
+        implementation: (input: { count: string }) => Result.ok(input),
+        input: z.object({ count: z.string() }),
+        intent: 'read',
+        output,
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ count: z.number() }),
+            output,
+            transpose: {
+              input: ({ input }: { input: { count: number } }) => ({
+                count: String(input.count),
+              }),
+              output: ({ output: result }) => result,
+            },
+          },
+        },
+      });
+      const handler = createFetchHandler(topo('fetch-api', { versionedTrail }));
+
+      const historical = await handler(
+        buildRequest('/typed/historical-number?count=0&trailVersion=1')
+      );
+
+      expect(historical.status).toBe(200);
+      expect(await historical.json()).toEqual({ data: { count: '0' } });
+    });
+
+    test('declines historical conversion when current layer names collide', () => {
+      const versionedTrail = trail('typed.historical-collision', {
+        implementation: (input: { current: number }) => Result.ok(input),
+        input: z.object({ current: z.number() }),
+        intent: 'read',
+        output: z.object({ current: z.number() }),
+        version: 2,
+        versions: {
+          1: {
+            implementation: (input: { enabled: string }) => Result.ok(input),
+            input: z.object({ enabled: z.string() }),
+            output: z.object({ enabled: z.string() }),
+          },
+        },
+      });
+      const routes = deriveHttpRoutes(topo('fetch-api', { versionedTrail }));
+      expect(routes.isOk()).toBe(true);
+      if (!routes.isOk()) {
+        return;
+      }
+      const [route] = routes.value;
+      expect(route).toBeDefined();
+      if (route === undefined) {
+        return;
+      }
+
+      const selectedSchema = resolveHttpQueryInputSchema(
+        {
+          ...route,
+          layerInputRenderings: [
+            {
+              layerName: 'policy',
+              properties: { enabled: { type: 'boolean' } },
+              required: ['enabled'],
+              routing: new Map([['enabled', 'enabled']]),
+            },
+          ],
+        },
+        { enabled: 'false', trailVersion: '1' }
+      );
+
+      expect(selectedSchema).toBeUndefined();
+    });
+  });
+
+  test('does not coerce typed JSON body fields', async () => {
+    const schema = z.object({ count: z.number(), enabled: z.boolean() });
+    const typedBodyTrail = trail('typed.body', {
+      implementation: (input) => Result.ok(input),
+      input: schema,
+      intent: 'write',
+      output: schema,
+    });
+    const handler = createFetchHandler(topo('fetch-api', { typedBodyTrail }));
+
+    const typed = await handler(
+      buildRequest('/typed/body', {
+        body: JSON.stringify({ count: 0, enabled: false }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+    );
+    const strings = await handler(
+      buildRequest('/typed/body', {
+        body: JSON.stringify({ count: '0', enabled: 'false' }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+    );
+
+    expect(typed.status).toBe(200);
+    expect(await typed.json()).toEqual({
+      data: { count: 0, enabled: false },
+    });
+    expect(strings.status).toBe(400);
   });
 
   test('reads JSON bodies and rejects invalid body metadata', async () => {

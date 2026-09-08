@@ -146,6 +146,10 @@ Each route definition produced by `deriveHttpRoutes` includes:
 
 For GET routes on the Hono surface, repeated query keys are passed through as arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single occurrence stays a scalar string. The adapter does not coerce singleton query values into arrays.
 
+GET query values declared as numbers or booleans are converted at the HTTP boundary before schema validation. This includes primitive literals and union or nullable schemas whose non-null branches all resolve to the same primitive kind. Root object unions convert a field only when every branch that has its required fields present explicitly owns the field with the same primitive shape; otherwise the raw value is preserved. This keeps unknown and passthrough fields unchanged without choosing a union branch. Fields authored with Zod coercion receive the raw query value so their authored parser retains the same behavior as direct and library invocation; if any supported union branch for a field uses coercion, the boundary conservatively preserves that field. Numbers use JSON number syntax and must be finite; booleans accept the exact spellings `true` and `false`. Malformed values and the string `null` continue through normal validation and return a `400` response when the authored schema rejects them. Declared strings remain strings. Repeated keys for declared primitive arrays, including homogeneous union or nullable array schemas, apply the same conversion to each element, while a singleton remains a scalar and must satisfy the authored schema as-is.
+
+For versioned trails, query conversion resolves the selected version's input schema. `X-Trails-Version` and `X-Trail-Version` headers take precedence over the `trailVersion` query field, matching execution. If a historical input field conflicts with a layer parameter name rendered for the current version, the boundary preserves raw query strings so it does not guess which schema owns the field.
+
 ## Installation
 
 ```bash

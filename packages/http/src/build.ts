@@ -22,6 +22,7 @@ import {
   LAYER_FIELD_RESERVED_NAMES,
   matchesTrailPattern,
   renderLayerFieldName,
+  resolveTrailVersion,
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   validateInput,
@@ -54,6 +55,11 @@ import type {
 
 import { deriveHttpInputSource, deriveHttpMethod } from './method.js';
 import type { HttpMethod, InputSource } from './method.js';
+import {
+  coercingQueryFields,
+  preservedLayerQueryFields as collectPreservedLayerQueryFields,
+  recordQueryLayerCoercion,
+} from './query-coercion.js';
 
 export type { HttpMethod, InputSource } from './method.js';
 
@@ -401,6 +407,11 @@ export interface HttpLayerInputRendering {
   readonly required: readonly string[];
 }
 
+const isJsonObjectSchema = (
+  value: unknown
+): value is { properties?: Record<string, unknown>; required?: string[] } =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const buildHttpRenameTarget = (
   layerName: string,
   originalName: string
@@ -414,11 +425,6 @@ const buildHttpRenameTarget = (
   }
   return `${layerName}${head.toUpperCase()}${rest.join('')}`;
 };
-
-const isJsonObjectSchema = (
-  value: unknown
-): value is { properties?: Record<string, unknown>; required?: string[] } =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const readRequiredFields = (value: unknown): readonly string[] => {
   if (!isJsonObjectSchema(value) || !Array.isArray(value.required)) {
@@ -478,6 +484,8 @@ const renderHttpLayerInput = (
     }
     routing.set(rendering.claimedName, rendering.routingTarget);
   }
+
+  recordQueryLayerCoercion(layer.input, routing);
 
   return { layerName: layer.name, properties, required, routing };
 };
@@ -639,6 +647,90 @@ const splitHttpSurfaceVersion = (
       : undefined);
   return { input: rest, version };
 };
+
+interface ResolvedHttpQueryInput {
+  readonly inputSchema: Readonly<Record<string, unknown>> | undefined;
+  readonly preserveRawFields: ReadonlySet<string>;
+}
+
+const preservedLayerQueryFields = (
+  route: HttpRouteDefinition
+): ReadonlySet<string> =>
+  collectPreservedLayerQueryFields(route.layerInputRenderings ?? []);
+
+const resolvedHttpQueryInput = (
+  route: HttpRouteDefinition,
+  inputSchema?: Readonly<Record<string, unknown>>,
+  authoredSchema?: unknown
+): ResolvedHttpQueryInput => ({
+  inputSchema,
+  preserveRawFields: new Set([
+    ...preservedLayerQueryFields(route),
+    ...coercingQueryFields(authoredSchema),
+  ]),
+});
+
+/**
+ * Resolve query conversion ownership using the same version selector precedence
+ * as execution. JSON Schema supplies surface shape, while the authored Zod
+ * schema preserves coercion semantics that JSON Schema cannot represent.
+ *
+ * Used by the shared Fetch kernel and omitted from the package barrel.
+ *
+ * @internal
+ */
+export const resolveHttpQueryInput = (
+  route: HttpRouteDefinition,
+  input: unknown,
+  context: HttpExecutionContext | undefined
+): ResolvedHttpQueryInput => {
+  if (route.versions === undefined) {
+    return resolvedHttpQueryInput(route, route.inputSchema, route.trail.input);
+  }
+  const selected = splitHttpSurfaceVersion(input, context, true);
+  const resolved = resolveTrailVersion(route.trail, selected.version);
+  if (resolved.isErr()) {
+    return resolvedHttpQueryInput(route);
+  }
+  if (resolved.value.current) {
+    return resolvedHttpQueryInput(route, route.inputSchema, route.trail.input);
+  }
+
+  const authoredSchema = resolved.value.entry.input;
+  const historical = zodToJsonSchema(authoredSchema);
+  const historicalProperties = isJsonObjectSchema(historical)
+    ? historical.properties
+    : undefined;
+  let merged = historical;
+
+  for (const rendering of route.layerInputRenderings ?? []) {
+    if (
+      Object.keys(rendering.properties).some((name) =>
+        Object.hasOwn(historicalProperties ?? {}, name)
+      )
+    ) {
+      return resolvedHttpQueryInput(route, undefined, authoredSchema);
+    }
+    merged = mergeHttpInputSchemas(merged, {
+      properties: rendering.properties,
+      required: rendering.required,
+      type: 'object',
+    }) ?? { type: 'object' };
+  }
+
+  return resolvedHttpQueryInput(
+    route,
+    addVersionInputSchema(route.trail, merged),
+    authoredSchema
+  );
+};
+
+export const resolveHttpQueryInputSchema = (
+  route: HttpRouteDefinition,
+  input: unknown,
+  context: HttpExecutionContext | undefined
+): Readonly<Record<string, unknown>> | undefined =>
+  resolveHttpQueryInput(route, input, context).inputSchema;
 
 /**
  * Partition a parsed request input into the trail input plus per-layer
