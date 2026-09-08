@@ -1,5 +1,11 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.51
+
+### Minor Changes
+
+- [`aa29fa7`](https://github.com/outfitter-dev/trails/commit/aa29fa7cb96ff7fd9cbd99ac6ef0d5540475ef42): Prove that one selected published or local-tarball Trails package matches the bytes installed in a downstream project throughout class-mode Regrade runs, saved-plan review, and prepared apply.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

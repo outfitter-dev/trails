@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.51
+
+### Patch Changes
+
+- [`47297d9`](https://github.com/outfitter-dev/trails/commit/47297d98230a4adb25b99b3c8a71217113379398): Treat both `null` and `undefined` Pino flush callback results as success, and verify asynchronous buffered destinations finish writing before the sink resolves.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49

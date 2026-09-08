@@ -1,5 +1,11 @@
 # @ontrails/http
 
+## 1.0.0-beta.51
+
+### Patch Changes
+
+- [`97b3d92`](https://github.com/outfitter-dev/trails/commit/97b3d92c376145f5308b72686eb07f4092aa5483): Convert finite JSON numbers and strict booleans from GET query strings according to the route's derived input schema before validation.
+
 ## 1.0.0-beta.50
 
 ## 1.0.0-beta.49
