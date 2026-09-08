@@ -72,6 +72,12 @@ A branch-local `.changeset/*.md` entry is the normal intent source. It says the 
 
 An active package changeset is also release intent. If a branch adds or modifies `.changeset/*.md` without any matching package-content, public-package-route, generated version release, or public trail contract fact, the check fails. Deleted changesets are ignored for this inverse guard so cleanup branches can remove mistaken release intent without adding package noise.
 
+The check also validates package names in every current Changesets-readable file, including files unchanged by the PR. Every frontmatter package name must exist in the discovered workspace inventory, or name the root package in a repository without workspace configuration; a failure names both the changeset file and the unknown package. This check includes private and unscoped workspace names and cannot be bypassed with `release:none`. README and hidden metadata files are excluded, as they are by Changesets. Retained v1 changeset directories are checked through their `changes.json` release rows, which the pinned Changesets reader still consumes.
+
+Retained prerelease changesets are validated too: Changesets validates workspace package names before it filters consumed prerelease IDs. Valid consumed history stays untouched. When removing or renaming a package, remove its stale frontmatter rows through the existing retirement cleanup; do not hide them behind `.changeset/pre.json`. Deleted changesets have no remaining package references to validate.
+
+When release-check discovery returns no workspaces, changeset-name validation uses the pinned Changesets package reader to distinguish root-only repositories from pnpm, Bolt, and Lerna workspaces and collect their package names. This fallback only supplies names for changeset validation; release-fact discovery is unchanged. Malformed workspace configuration produces a package-inventory validation error instead of a root-package fallback.
+
 ## Graphite Stacks
 
 The GitHub workflow validates the PR file list for the current branch. In a Graphite stack, that file list is branch-local because GitHub compares the branch against its immediate base PR or branch. Fix missing release intent on the owning branch, then restack upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.

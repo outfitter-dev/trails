@@ -118,6 +118,7 @@
       },
       "dependencies": {
         "@clack/prompts": "^1.1.0",
+        "@manypkg/get-packages": "1.1.3",
         "@ontrails/adapter-kit": "workspace:^",
         "@ontrails/cli": "workspace:^",
         "@ontrails/commander": "workspace:^",

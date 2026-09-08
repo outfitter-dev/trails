@@ -4,6 +4,7 @@ import { join, relative, resolve } from 'node:path';
 
 import { loadTrailsConfigValue } from '@ontrails/config';
 
+import { findChangesetPackageErrors } from './changeset-packages.js';
 import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
 import { findPublicTrailContractChangeFacts } from './contract-facts.js';
@@ -685,7 +686,12 @@ export const checkReleaseRules = (
     input,
     'public-package-route'
   );
-  const errors: string[] = [];
+  const errors: string[] = [
+    ...findChangesetPackageErrors(
+      input.repoRoot,
+      new Set(input.workspaces.map((workspace) => workspace.name))
+    ),
+  ];
 
   if (baseWorkspaceInput.error) {
     errors.push(baseWorkspaceInput.error);
