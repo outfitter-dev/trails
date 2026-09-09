@@ -10,10 +10,12 @@
  * a lock is never the remediation.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+
+import { copyLockRoundtripWorkspace } from './lock-roundtrip-workspace.js';
 
 const trailsBinFor = (repoRoot: string): string =>
   join(repoRoot, 'apps/trails/bin/trails.ts');
@@ -200,8 +202,6 @@ const checkSingleLock = async (
       );
     }
   } finally {
-    // The gate is read-only: always restore the committed bytes.
-    writeFileSync(absoluteLockPath, committedBytes);
     await rm(stateHome, { force: true, recursive: true });
   }
 };
@@ -213,7 +213,32 @@ export const runLockRoundtripSmoke = async (
   const lockPaths = options?.lockPaths ?? discoverCommittedLocks(repoRoot);
 
   for (const lockPath of lockPaths) {
-    await checkSingleLock(repoRoot, lockPath);
+    const path = relative(repoRoot, resolve(repoRoot, lockPath));
+    if (path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)) {
+      throw new Error(
+        `lock-roundtrip: lock path must stay inside repoRoot: ${lockPath}`
+      );
+    }
+  }
+  if (lockPaths.length > 0) {
+    const workspace = await mkdtemp(
+      join(tmpdir(), 'lock-roundtrip-workspace-')
+    );
+    try {
+      await copyLockRoundtripWorkspace(
+        repoRoot,
+        workspace,
+        lockPaths.map((path) => relative(repoRoot, resolve(repoRoot, path)))
+      );
+      for (const lockPath of lockPaths) {
+        await checkSingleLock(
+          workspace,
+          relative(repoRoot, resolve(repoRoot, lockPath))
+        );
+      }
+    } finally {
+      await rm(workspace, { force: true, recursive: true });
+    }
   }
 
   const message =

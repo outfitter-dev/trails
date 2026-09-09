@@ -126,7 +126,7 @@ describe('lock round-trip smoke', () => {
     expect(failure?.message).toContain('compile --module');
     expect(failure?.message).toContain('Never hand-edit');
 
-    // The gate is read-only: committed bytes are restored even on failure.
+    // The gate is read-only: caller bytes stay untouched even on failure.
     expect(readFileSync(join(dir, 'trails.lock'), 'utf8')).toBe(committed);
   }, 60_000);
 });
