@@ -692,6 +692,8 @@ const assertGeneratedToolingDeps = (dir: string): void => {
   const devDeps = pkg['devDependencies'] as Record<string, string>;
   expectExactOntrailsPin(devDeps['@ontrails/trails']);
   expect(devDeps['@types/bun']).toBe(scaffoldDependencyVersions.bunTypes);
+  expect(devDeps).toHaveProperty('@types/node');
+  expect(devDeps['@types/node']).toBe(scaffoldDependencyVersions.nodeTypes);
   expect(devDeps['oxfmt']).toBe(scaffoldDependencyVersions.oxfmt);
   expect(devDeps['oxlint']).toBe(scaffoldDependencyVersions.oxlint);
   expect(devDeps['typescript']).toBe(scaffoldDependencyVersions.typescript);

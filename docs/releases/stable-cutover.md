@@ -257,7 +257,8 @@ bun apps/trails/bin/trails.ts create docs-smoke \
   --dir "$tmp" \
   --surfaces cli mcp http \
   --verify \
-  --output json
+  --output json \
+  --permit '{"id":"stable-cutover-smoke","scopes":["project:write","entity:write"]}'
 ```
 
 Do not run the install-backed registry smoke on the version PR branch after `bun run version:packages`. At that point generated apps request the intended stable range, but the stable packages are not on the public registry until the version PR merges and the publish step completes.
@@ -369,7 +370,8 @@ bun apps/trails/bin/trails.ts create docs-smoke \
   --dir "$tmp" \
   --surfaces cli mcp http \
   --verify \
-  --output json
+  --output json \
+  --permit '{"id":"stable-cutover-smoke","scopes":["project:write","entity:write"]}'
 
 (
   cd "$tmp/docs-smoke"

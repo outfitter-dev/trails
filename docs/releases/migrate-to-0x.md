@@ -14,7 +14,7 @@ bun scripts/migrate-consumer-to-0x.ts --root /path/to/consumer
 
 Preview is the default. The command lists manifest changes and reports anything that prevents a safe version-only transition. It does not write manifests, update a lockfile, or install packages.
 
-Until `0.2.0` is published on npm, use preview only. Apply the manifest changes and install dependencies after the release reaches the registry.
+Trails `0.2.0` is available on npm. Review the preview before applying manifest changes and installing dependencies.
 
 The bridge recognizes exact, caret, and tilde declarations for `1.0.0-beta.*`, `1.0.0`, and `1.0.1`. It preserves the existing range style:
 
@@ -68,6 +68,8 @@ bun test
 ```
 
 Also run the consumer's Trails validation or Warden command when it has one. Review the manifest and lockfile diff together to confirm that no beta tarball, external Trails workspace, or 1.0-line package source remains.
+
+If typechecking fails to resolve Node built-in imports such as `node:fs`, check that the app declares a current `@types/node` development dependency. The published `0.2.0` scaffolder omits it; use the [documented repair](../getting-started.md#repair-apps-generated-by-020). The manifest bridge changes Trails package sources and does not add unrelated development dependencies.
 
 ## Remove the Bridge
 

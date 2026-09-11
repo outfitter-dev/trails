@@ -141,7 +141,7 @@ await surface(graph, { exclude: ['internal.debug'] });
 
 ## Installation
 
-These commands target stable `0.2.0`. Run them after that version is published to npm.
+These commands use the published `0.2.0` release on npm.
 
 ```bash
 bun add --exact @ontrails/mcp@0.2.0

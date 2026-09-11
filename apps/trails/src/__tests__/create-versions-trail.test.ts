@@ -26,6 +26,7 @@ const fixturePackageJson = {
   },
   devDependencies: {
     '@types/bun': '^1.0.0',
+    '@types/node': '^22.0.0',
     lefthook: '^2.0.0',
     oxfmt: '0.1.0',
     oxlint: '1.0.0',
@@ -42,6 +43,7 @@ const expectedGeneratedContent = [
   "  bunTypes: '^1.0.0',",
   "  commander: '^14.0.0',",
   "  lefthook: '^2.0.0',",
+  "  nodeTypes: '^22.0.0',",
   "  oxfmt: '0.1.0',",
   "  oxlint: '1.0.0',",
   "  typescript: '^5.0.0',",
@@ -191,5 +193,19 @@ describe('create.versions trail', () => {
       throw new Error('expected missing lefthook entry to fail');
     }
     expect(result.error.message).toContain('missing "lefthook"');
+  });
+
+  test('reports a missing Node type dependency from root package.json', async () => {
+    const { '@types/node': _omitted, ...devDependencies } =
+      fixturePackageJson.devDependencies;
+    const root = makeTempRoot({ ...fixturePackageJson, devDependencies });
+
+    const result = await implementation({ check: false, rootDir: root });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      throw new Error('expected missing @types/node entry to fail');
+    }
+    expect(result.error.message).toContain('missing "@types/node"');
   });
 });

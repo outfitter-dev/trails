@@ -27,7 +27,7 @@ The application owns `configure()`; this library only resolves or accepts a conf
 
 ## Installation
 
-These commands target stable `0.2.0`. Run them after that version is published to npm.
+These commands use the published `0.2.0` release on npm.
 
 ```bash
 bun add --exact @ontrails/observability@0.2.0 @ontrails/logtape@0.2.0

@@ -4,6 +4,7 @@ export const scaffoldDependencyVersions = {
   bunTypes: '^1.3.11',
   commander: '^14.0.3',
   lefthook: '^2.1.1',
+  nodeTypes: '^25.5.0',
   oxfmt: '0.47.0',
   oxlint: '1.62.0',
   typescript: '^5.9.3',

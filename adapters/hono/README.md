@@ -28,7 +28,7 @@ For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()
 
 ## Installation
 
-These commands target stable `0.2.0`. Run them after that version is published to npm.
+These commands use the published `0.2.0` release on npm.
 
 ```bash
 bun add --exact @ontrails/http@0.2.0 @ontrails/hono@0.2.0

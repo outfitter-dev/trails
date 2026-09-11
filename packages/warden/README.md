@@ -193,7 +193,7 @@ See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Installation
 
-These commands target stable `0.2.0`. Run them after that version is published to npm.
+These commands use the published `0.2.0` release on npm.
 
 ```bash
 bun add --exact -d @ontrails/warden@0.2.0

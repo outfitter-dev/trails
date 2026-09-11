@@ -95,6 +95,12 @@ const loadScaffoldVersions = async (
       'devDependencies',
       rootPackageJsonPath
     ),
+    nodeTypes: requireValue(
+      devDeps['@types/node'],
+      '@types/node',
+      'devDependencies',
+      rootPackageJsonPath
+    ),
     oxfmt: requireValue(
       devDeps['oxfmt'],
       'oxfmt',

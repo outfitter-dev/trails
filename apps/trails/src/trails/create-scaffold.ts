@@ -92,6 +92,7 @@ const generateAppPackageJson = (name: string): string => {
       Object.entries({
         '@ontrails/trails': ontrailsPackageRange,
         '@types/bun': scaffoldDependencyVersions.bunTypes,
+        '@types/node': scaffoldDependencyVersions.nodeTypes,
         oxfmt: scaffoldDependencyVersions.oxfmt,
         oxlint: scaffoldDependencyVersions.oxlint,
         typescript: scaffoldDependencyVersions.typescript,

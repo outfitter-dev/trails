@@ -4,7 +4,7 @@ The CLI surface adapter turns every trail into a command. Flags are derived from
 
 ## Setup
 
-These commands target stable `0.2.0`. Run them after that version is published to npm.
+These commands use the published `0.2.0` release on npm.
 
 ```bash
 bun add --exact @ontrails/cli@0.2.0 @ontrails/commander@0.2.0

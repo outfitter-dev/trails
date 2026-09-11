@@ -199,7 +199,7 @@ The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were removed in T
 
 ## Installation
 
-These commands target stable `0.2.0`. Run them after that version is published to npm.
+These commands use the published `0.2.0` release on npm.
 
 ```bash
 bun add --exact @ontrails/cli@0.2.0 @ontrails/commander@0.2.0
