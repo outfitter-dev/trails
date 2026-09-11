@@ -4,7 +4,7 @@ slug: stable-release-line-discipline
 title: Stable Release Line Discipline
 status: accepted
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-09-11
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [29, 35, 37, 44, 46]
 ---
@@ -17,7 +17,11 @@ depends_on: [29, 35, 37, 44, 46]
 
 During the beta line, Trails could use each release to finish the shape of the framework. Package boundaries moved, `connector` became `adapter`, surface APIs settled into the `derive` -> `create` -> `surface` ladder, and generated apps tracked those moves.
 
-The 1.x line has a different promise. A stable release is not just "the next publish." It is the public distribution contract for the framework family. Developers should be able to create a fresh app, install the generated dependencies from the registry, and trust that the packages they received belong to the same release story.
+The normal release channel has a different promise. A release is the public distribution contract for the framework family. Developers should be able to create a fresh app, install the generated dependencies from the registry, and trust that the packages they received belong to the same release story.
+
+On September 11, 2026, before any final 1.0 package was published, the release owner chose `0.2.0` as the first normal release on `latest`. This amendment replaces the original immediate 1.x cutover decision. The framework still needs room to evolve its public API; leaving the beta channel does not require claiming 1.0 compatibility.
+
+The target continues the earlier 0.x source line. Before the first beta release, the libraries and CLI app used `0.1.0` in source; the next minor is `0.2.0`. Those 0.x versions were not published under the current package names. Published releases began at `1.0.0-beta.0`, and the last published family version before this transition is `1.0.0-beta.50`. The beta counter is a prerelease identifier, not the package minor version. The [pre-beta source commit](https://github.com/outfitter-dev/trails/commit/37b0420497ea9eb52344ab66666e414f5bb8db2c) preserves that baseline.
 
 ### The package graph is one framework family
 
@@ -48,9 +52,9 @@ What was missing was the stable-line decision those tools enforce. Without an AD
 
 ## Decision
 
-### The 1.x package line stays lockstep
+### The package line stays lockstep
 
-All non-private public `@ontrails/*` packages remain fixed together for the 1.x line.
+All non-private public `@ontrails/*` packages remain fixed together through the 0.x line and the eventual 1.x line.
 
 This means:
 
@@ -58,7 +62,7 @@ This means:
 - generated apps may depend on multiple `@ontrails/*` packages without solving
   a compatibility puzzle;
 - adapter package extraction still owns dependency and responsibility
-  boundaries, but not independent 1.x version numbers;
+  boundaries, but not independent version numbers;
 - moving an adapter to an independent cadence requires a future ADR amendment.
 
 The test: if a public `@ontrails/*` package ships as part of the stable framework family, a release PR should make it available at the same version as the rest of that family or explicitly document why it is not part of the published set.
@@ -71,9 +75,9 @@ Do not use package versions as a substitute for trail versions. A package minor 
 
 ### Stable uses `latest`; prereleases use explicit channels
 
-The stable 1.x channel publishes to `latest`.
+Normal releases, starting at `0.2.0`, publish to `latest`. Here `stable` names the distribution channel: the package has no prerelease suffix. It does not promise a frozen pre-1.0 API.
 
-Prereleases after 1.0 use explicit prerelease dist-tags such as `beta`, `next`, or `canary`. A prerelease must not fall through to `latest` because a tag was omitted.
+Prereleases use explicit prerelease dist-tags such as `beta`, `next`, or `canary`. A prerelease must not fall through to `latest` because a tag was omitted.
 
 The publish script is the authority for this default:
 
@@ -84,6 +88,18 @@ The publish script is the authority for this default:
 
 Release PRs and runbooks should verify the intended dist-tag before publish and verify the actual dist-tag after publish.
 
+### The 0.x line reserves compatibility changes for minor releases
+
+Within 0.x, patch releases fix bugs without intentional public API breaks. Minor releases may add capabilities or change public contracts, and must explain breaking changes and their migration path. A minor release is therefore a deliberate upgrade boundary for consumers.
+
+SemVer reserves major version zero for initial development and permits its public API to change.[^semver-zero] Trails adopts the patch/minor discipline above to make those changes predictable. The release owner must explicitly approve a later 1.0 transition; a routine dependency bump must not choose it accidentally.
+
+### The initial version reset is a single approved transition
+
+The unpublished source baseline moves from `1.0.0` to `0.2.0`. Existing `1.0.0-beta.N` versions stay published and unchanged. Because SemVer orders those beta versions above `0.2.0`, the release tools recognize only the initial move of the public Trails family's `latest` tag from that beta line to `0.2.0`. They continue to reject other descending tag movements.
+
+The reset uses protected manual publication. It carries no ordinary semver-increase label. Once `latest` points to `0.2.0`, the exception no longer applies. Existing consumers must update their declared package sources explicitly; ordinary upgrade resolution cannot select the numerically lower line.
+
 ### Breaking changes after 1.0 are major-line decisions
 
 After 1.0, a breaking public API change requires one of these:
@@ -93,7 +109,7 @@ After 1.0, a breaking public API change requires one of these:
 
 Public API includes package exports, generated app dependencies and imports, surface helper contracts, stable CLI command grammar, documented runtime behavior, and generated artifact contracts promised by accepted ADRs.
 
-Pre-1.0 cleanup can still land before the stable cut. Once 1.0 is published, the stable line stops using "we are still in beta" as the migration plan.
+During 0.x, breaking changes follow the minor-release policy above. Once 1.0 is published, public compatibility follows the major-line rule.
 
 ### Package retirement is visible and migratable
 
@@ -137,6 +153,8 @@ The point is not just that the scaffold command runs. The generated `package.jso
 ### Changesets computes; Bun packs; npm publishes
 
 Changesets owns version and changelog calculation. Bun owns package discovery, packing, and validation. The npm CLI owns the authenticated registry mutation, including GitHub OIDC trusted publishing.
+
+Use the pinned Changesets 3 CLI. Its peer-dependency propagation lets a fixed-group minor release remain a minor release; Changesets 2 could promote the whole 0.x family to 1.0 when a `workspace:^` peer left its prior minor range.[^changesets-three] Keep those peer ranges and test real patch, minor, and explicit major plans when changing release tooling.
 
 The stable flow keeps these responsibilities separate:
 
@@ -201,7 +219,7 @@ The review question is not "does this diff look plausible?" It is "does the evid
 ### Tradeoffs
 
 - Lockstep versioning publishes packages that did not materially change in a
-  given release. That is acceptable for 1.x because coherence is more valuable
+  given release. That is acceptable because coherence is more valuable
   than granular package history at this stage.
 - Independent adapter cadence is deferred. Adapter packages have clean
   dependency boundaries, but their public versions stay tied to the framework
@@ -221,7 +239,7 @@ The review question is not "does this diff look plausible?" It is "does the evid
 
 ## Non-goals
 
-- This ADR does not execute the 1.0 cutover.
+- This ADR does not execute publication or authorize a future 1.0 cutover.
 - This ADR does not choose the exact calendar support window for 1.x.
 - This ADR does not make adapter packages independently versioned.
 - This ADR does not define customer support policy outside package and
@@ -239,7 +257,7 @@ The review question is not "does this diff look plausible?" It is "does the evid
 ## References
 
 - [ADR-0029: Adapter Extraction and Composition Around Core Contracts](0029-connector-extraction-and-the-with-packaging-model.md)
-  — package boundaries and adapter extraction remain intact under lockstep 1.x
+  — package boundaries and adapter extraction remain intact under lockstep
   versioning
 - [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)
   — generated apps and surface packages consume the shared projection ladder
@@ -253,3 +271,7 @@ The review question is not "does this diff look plausible?" It is "does the evid
   artifact that identified the missing doctrine
 - [Releasing](../../AGENTS.md#releasing) — current repo release commands and
   publish posture
+
+[^semver-zero]: [Semantic Versioning 2.0.0, item 4](https://semver.org/#spec-item-4) defines the major-zero development period.
+
+[^changesets-three]: [Changesets 3.0.0 release notes](https://github.com/changesets/changesets/blob/main/packages/cli/CHANGELOG.md#300) describe peer-dependent patch propagation and the explicit major-change requirement.

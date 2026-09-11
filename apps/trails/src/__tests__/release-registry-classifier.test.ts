@@ -115,6 +115,57 @@ describe('classifyPackageRegistryState', () => {
     expect(state).toMatchObject({ currentTagVersion: '1.0.0-beta.29' });
   });
 
+  test('allows the approved public-package beta to 0.2.0 latest transition', () => {
+    const state = classifyPackageRegistryState({
+      expectedTag: 'latest',
+      expectedTagVersion: '1.0.0-beta.50',
+      name: '@ontrails/core',
+      status: 'published',
+      targetVersion: '0.2.0',
+      versionPublished: false,
+    });
+
+    expect(state).toEqual({ kind: 'needs-publish' });
+  });
+
+  test.each([
+    { expectedTag: 'beta', name: '@ontrails/core', targetVersion: '0.2.0' },
+    {
+      expectedTag: 'latest',
+      name: '@ontrails/oxlint-plugin',
+      targetVersion: '0.2.0',
+    },
+    { expectedTag: 'latest', name: '@ontrails/core', targetVersion: '0.3.0' },
+  ])('keeps non-approved beta version downgrades blocked: %j', (override) => {
+    const state = classifyPackageRegistryState({
+      expectedTagVersion: '1.0.0-beta.50',
+      status: 'published',
+      versionPublished: false,
+      ...override,
+    });
+
+    expect(state).toEqual({
+      currentTagVersion: '1.0.0-beta.50',
+      kind: 'tag-points-ahead',
+    });
+  });
+
+  test('keeps non-beta predecessors blocked on latest', () => {
+    const state = classifyPackageRegistryState({
+      expectedTag: 'latest',
+      expectedTagVersion: '1.0.0-rc.1',
+      name: '@ontrails/core',
+      status: 'published',
+      targetVersion: '0.2.0',
+      versionPublished: false,
+    });
+
+    expect(state).toEqual({
+      currentTagVersion: '1.0.0-rc.1',
+      kind: 'tag-points-ahead',
+    });
+  });
+
   test('registry-inaccessible when the probe failed', () => {
     expect(
       classifyPackageRegistryState({

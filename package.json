@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.42.1",
-    "@changesets/cli": "^2.29.8",
+    "@changesets/cli": "3.0.2",
     "@ontrails/config": "workspace:*",
     "@ontrails/core": "workspace:*",
     "@ontrails/oxlint-plugin": "workspace:*",
