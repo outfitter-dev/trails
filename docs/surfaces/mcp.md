@@ -4,10 +4,10 @@ The MCP surface adapter turns every trail into an MCP tool. Annotations are auto
 
 ## Setup
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/mcp@0.2.0
+bun add --exact @ontrails/mcp@0.2.1
 ```
 
 ```typescript

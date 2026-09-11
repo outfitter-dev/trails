@@ -6,7 +6,7 @@ This guide demonstrates CLI and MCP first because they are the shortest path to 
 
 ## Installation
 
-The canonical CLI install uses the Outfitter Homebrew tap, which provides Trails `0.2.0`. After installation or upgrade, verify that `trails --version` reports `0.2.0`.
+The canonical CLI install uses the Outfitter Homebrew tap. After installation or upgrade, run `trails --version` and compare it with the installed version shown by `brew info trails`. The npm and Homebrew publication steps are separate; check the [release downloads](https://github.com/outfitter-dev/trails/releases) when verifying a particular release.
 
 The formula requires [Bun](https://bun.sh) at runtime and installs the CLI's bundled JavaScript plus its platform-specific native parser and resolver dependencies.
 
@@ -29,29 +29,29 @@ If Trails was the only formula you used from the tap, you may also remove the ta
 brew untap outfitter-dev/tap
 ```
 
-Trails `0.2.0` is available on npm under `latest`. Use these exact versions for project dependencies and scaffolding:
+Normal Trails 0.2 releases use the npm `latest` tag. These installation examples target exact `0.2.1` versions for project dependencies and scaffolding:
 
 Existing 1.0 beta consumers should use the [0.x migration guide](./releases/migrate-to-0x.md). A normal package upgrade cannot select this numerically lower version. Normal 0.x releases use `latest`, with compatibility changes reserved for documented minor releases.
 
 ```bash
 # Recommended: scaffold a standalone app
 # (create writes a project, so it needs an explicit project:write permit)
-bunx @ontrails/trails@0.2.0 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.1 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or scaffold a configured workspace with one app under apps/my-app
-bunx @ontrails/trails@0.2.0 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.1 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
-bun add --exact @ontrails/core@0.2.0 @ontrails/cli@0.2.0 @ontrails/commander@0.2.0 zod
+bun add --exact @ontrails/core@0.2.1 @ontrails/cli@0.2.1 @ontrails/commander@0.2.1 zod
 
 # Add MCP surface (optional)
-bun add --exact @ontrails/mcp@0.2.0
+bun add --exact @ontrails/mcp@0.2.1
 
 # Add HTTP surface (optional, shipped today)
-bun add --exact @ontrails/http@0.2.0 @ontrails/hono@0.2.0
+bun add --exact @ontrails/http@0.2.1 @ontrails/hono@0.2.1
 
 # Add testing (dev dependency)
-bun add --exact -d @ontrails/testing@0.2.0
+bun add --exact -d @ontrails/testing@0.2.1
 ```
 
 `create` writes authored source, not a lock. After `bun install`, derive the app-owned lock with the locally installed Trails operator:
@@ -73,7 +73,7 @@ bun run typecheck
 bun test
 ```
 
-This repair preserves the app's exact Trails `0.2.0` pins. The source generator now declares Node types directly; the already-published `0.2.0` package remains unchanged.
+This repair preserves the app's exact Trails `0.2.0` pins. The `0.2.1` generator declares Node types directly; the already-published `0.2.0` package remains unchanged.
 
 ## Your First Trail
 

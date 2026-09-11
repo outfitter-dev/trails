@@ -185,7 +185,7 @@ describe('sync-plugin-metadata', () => {
 
         expect(marketplace.metadata.version).toBe('0.3.0');
         expect(marketplace.plugins[0].version).toBe('0.3.0');
-        expect(skill).toContain('    version: 1.0.0-beta.18');
+        expect(skill).toBe(renderSkill('1.0.0-beta.18'));
       }
     );
   });

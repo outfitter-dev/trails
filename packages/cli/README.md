@@ -199,10 +199,10 @@ The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were removed in T
 
 ## Installation
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/cli@0.2.0 @ontrails/commander@0.2.0
+bun add --exact @ontrails/cli@0.2.1 @ontrails/commander@0.2.1
 ```
 
 `@ontrails/cli` owns command derivation. `@ontrails/commander` owns Commander program materialization and parsing.

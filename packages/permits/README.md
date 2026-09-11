@@ -175,8 +175,8 @@ Built-in rules:
 
 ## Installation
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/permits@0.2.0 @ontrails/core@0.2.0 zod
+bun add --exact @ontrails/permits@0.2.1 @ontrails/core@0.2.1 zod
 ```

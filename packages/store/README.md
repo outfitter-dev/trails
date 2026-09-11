@@ -269,16 +269,16 @@ const schema = db.tables;
 
 ## Installation
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/store@0.2.0 zod
+bun add --exact @ontrails/store@0.2.1 zod
 ```
 
 Add Drizzle only when you want the external SQLite/ORM adapter:
 
 ```bash
-bun add --exact @ontrails/drizzle@0.2.0
+bun add --exact @ontrails/drizzle@0.2.1
 ```
 
 ## Migration

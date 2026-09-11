@@ -4,10 +4,10 @@ The CLI surface adapter turns every trail into a command. Flags are derived from
 
 ## Setup
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/cli@0.2.0 @ontrails/commander@0.2.0
+bun add --exact @ontrails/cli@0.2.1 @ontrails/commander@0.2.1
 ```
 
 ```typescript

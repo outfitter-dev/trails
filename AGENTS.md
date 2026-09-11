@@ -359,7 +359,7 @@ Use these constraints alongside the two principles:
 
 ## Releasing
 
-All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets). The approved first normal release is `0.2.0` on `latest`; npm publication is pending. Use exact `0.2.0` consumer pins after publication. Within 0.x, patches preserve compatibility and minors may carry documented breaking changes. A future 1.0 release requires an explicit release-owner decision. We use Changesets only for versioning and changelogs, not `changeset publish`. The repo release flow packs and validates each package with Bun, then publishes that resolved tarball through npm. GitHub releases use npm trusted publishing; local credentialed publication remains the bootstrap and recovery path for first-time packages and dist-tag repairs. Do not invoke `npm publish` directly.
+All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets). Normal 0.x releases use `latest`; follow the exact consumer pins and published-release checks in [Getting Started](docs/getting-started.md). Within 0.x, patches preserve compatibility and minors may carry documented breaking changes. A future 1.0 release requires an explicit release-owner decision. We use Changesets only for versioning and changelogs, not `changeset publish`. The repo release flow packs and validates each package with Bun, then publishes that resolved tarball through npm. GitHub releases use npm trusted publishing; local credentialed publication remains the bootstrap and recovery path for first-time packages and dist-tag repairs. Do not invoke `npm publish` directly.
 
 ```bash
 # 1. Add a changeset (or create .changeset/<name>.md manually)
@@ -373,7 +373,7 @@ bun run publish:check
 bun run publish:registry-check
 ```
 
-Stage only the generated version files, commit and submit the version branch through Graphite, and merge it after CI and review are clean. The GitHub release workflow publishes through npm trusted publishing after merge. Run `bun run publish:packages` locally only for first-time package bootstrap or explicit incident recovery.
+Stage only the generated version files, commit and submit the version branch through Graphite, and merge it after CI and review are clean. After merge, follow the [release policy](docs/releases/release-rules-check.md#generated-release-pr-policy) for automatic or explicitly dispatched manual publication through npm trusted publishing. Run `bun run publish:packages` locally only for first-time package bootstrap or explicit incident recovery.
 
 Every PR that changes publishable `@ontrails/*` package contents must satisfy branch-local release rules. The normal intent source is a `.changeset/*.md` entry for the affected package. The compatibility `release:none` label/flag is allowed only when the branch truly does not ship user-visible package content, and the PR, issue, or handoff explains why. The CI release check reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole local stack. Public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes are release facts and need the same branch-local intent. Fix missing release intent on the owning Graphite branch; do not paper over lower-branch release gaps with a top-stack cleanup changeset.
 

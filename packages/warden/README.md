@@ -193,8 +193,8 @@ See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Installation
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact -d @ontrails/warden@0.2.0
+bun add --exact -d @ontrails/warden@0.2.1
 ```

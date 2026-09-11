@@ -728,6 +728,14 @@ const evaluateGeneratedReleaseDiff = (
   let hasPackageVersionFile = false;
 
   for (const file of changedFiles) {
+    if (
+      (file.path === 'bun.lock' ||
+        file.path === 'plugin/skills/trails/SKILL.md') &&
+      file.status === 'M'
+    ) {
+      continue;
+    }
+
     if (file.path === '.changeset/pre.json' && file.status === 'M') {
       continue;
     }

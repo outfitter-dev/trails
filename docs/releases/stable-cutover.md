@@ -211,7 +211,7 @@ bun run scaffold-versions:sync
 Review the generated diff before committing:
 
 ```bash
-git diff -- .changeset package.json bun.lock packages adapters apps docs
+git diff -- .changeset package.json bun.lock packages adapters apps docs plugin
 ```
 
 Expected outcomes:
@@ -220,6 +220,8 @@ Expected outcomes:
   Changesets according to its stable-exit behavior.
 - All public non-private `@ontrails/*` packages land on the same stable
   version.
+- The Trails skill's `metadata.trails.version` matches `@ontrails/core`;
+  the independent plugin version remains unchanged.
 - The scaffold-version helper has rewritten generated dependency versions and
   verified generated `@ontrails/*` pins match that stable version exactly.
 - Internal package ranges pack without unresolved `workspace:` or `catalog:`

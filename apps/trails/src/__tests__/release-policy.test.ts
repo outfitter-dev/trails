@@ -345,6 +345,46 @@ describe('evaluateReleasePolicy', () => {
     );
   });
 
+  test('allows canonical lock and skill metadata updates in generated releases', () => {
+    const input = baseInput();
+    const report = evaluateReleasePolicy({
+      ...input,
+      changedFiles: [
+        ...input.changedFiles,
+        { path: 'bun.lock', status: 'M' },
+        { path: 'plugin/skills/trails/SKILL.md', status: 'M' },
+      ],
+    });
+
+    expect(report.decision).toBe('auto');
+    expect(report.autoEligible).toBe(true);
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  test.each([
+    { path: 'plugin/.claude-plugin/plugin.json', status: 'M' },
+    { path: '.claude-plugin/marketplace.json', status: 'M' },
+    { path: 'plugin/skills/trails/references/getting-started.md', status: 'M' },
+    { path: 'plugin/skills/other/SKILL.md', status: 'M' },
+    { path: 'plugin/skills/trails/SKILL.md', status: 'A' },
+    { path: 'plugin/skills/trails/SKILL.md', status: 'D' },
+    { path: 'bun.lock', status: 'A' },
+    { path: 'bun.lock', status: 'D' },
+    { path: 'apps/trails/bun.lock', status: 'M' },
+    { path: 'bun.lockb', status: 'M' },
+  ])('keeps non-generated metadata changes manual: %j', (file) => {
+    const input = baseInput();
+    const report = evaluateReleasePolicy({
+      ...input,
+      changedFiles: [...input.changedFiles, file],
+    });
+
+    expect(report.decision).toBe('manual');
+    expect(report.diagnostics).toContain(
+      `Unexpected release diff entry: ${file.status} ${file.path}`
+    );
+  });
+
   test('skips publish when registry state is already complete', () => {
     const report = evaluateReleasePolicy(
       baseInput({

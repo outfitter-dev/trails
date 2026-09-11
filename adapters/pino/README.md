@@ -26,10 +26,10 @@ Pass `pinoOptions` and an optional Pino destination when the adapter should cons
 
 ## Installation
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/observability@0.2.0 @ontrails/pino@0.2.0
+bun add --exact @ontrails/observability@0.2.1 @ontrails/pino@0.2.1
 ```
 
 ## Migration

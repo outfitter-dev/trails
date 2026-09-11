@@ -27,10 +27,10 @@ The application owns `configure()`; this library only resolves or accepts a conf
 
 ## Installation
 
-These commands use the published `0.2.0` release on npm.
+These installation examples target Trails `0.2.1` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/observability@0.2.0 @ontrails/logtape@0.2.0
+bun add --exact @ontrails/observability@0.2.1 @ontrails/logtape@0.2.1
 ```
 
 ## Migration

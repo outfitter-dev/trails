@@ -14,7 +14,7 @@
     "lint": "turbo run lint",
     "lint:ast-grep": "ast-grep scan --config .ast-grep/sgconfig.yml",
     "changeset:check": "bun apps/trails/bin/trails.ts release check",
-    "version:packages": "bunx changeset version && bun run release-pack:check -- --lockfile-only --fix-lockfile",
+    "version:packages": "bunx changeset version && bun run release-pack:check -- --lockfile-only --fix-lockfile && bun run plugin:metadata:sync",
     "docs:links": "bun scripts/check-markdown-links.ts",
     "docs:snippets": "bun scripts/check-readme-snippets.ts",
     "docs:wrap-check": "bun scripts/check-hardwrap.ts",
