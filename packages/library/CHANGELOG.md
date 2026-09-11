@@ -1,5 +1,20 @@
 # @ontrails/library
 
+## 0.2.0
+
+### Patch Changes
+
+- [`79d12ca`](https://github.com/outfitter-dev/trails/commit/79d12cae392436e21a1125f3517e08a6b38d12d0): Support the approved initial release on `latest` at `0.2.0`: recognize the unpublished `1.0.0` source reset and the old beta tag predecessor, while retaining downgrade guards for every other transition and requiring manual publication.
+
+  Recognize the approved manual version PR in publication discovery with exact repository, branch, version, and label checks; preserve the normal bot-generated release path.
+
+  Keep the generated Homebrew formula on version scheme 1 so ordinary upgrades move from the beta line to 0.2.0 and continue through subsequent releases.
+
+  Derive generated library runtime ranges from the installed compiler package version so emitted libraries follow the 0.2.x release line and future version changes.
+- [`b3ddf91`](https://github.com/outfitter-dev/trails/commit/b3ddf918ada8211f44983512e2bbdfbc5b66d722): Prepare the first normal Trails release at `0.2.0` on `latest`, replacing the unpublished 1.0.0 source release. The target advances the original `0.1.0` source minor, which was never published under the current package names. Public packages remain in lockstep. Update consumer installation guidance and provide a temporary manifest bridge for old 1.0 beta sources. Published beta versions remain unchanged; minor 0.x releases may carry documented breaking changes.
+
+  The `1.0.0` section retained below records an unpublished preparation, not an npm release. Its accumulated changes are included in `0.2.0`; the section remains as source history alongside the published beta entries.
+
 ## 1.0.0
 
 ### Minor Changes

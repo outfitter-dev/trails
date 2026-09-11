@@ -1,5 +1,9 @@
 # @ontrails/oxlint-plugin
 
+## 0.2.0
+
+No changes in this release.
+
 ## 1.0.0
 
 ### Patch Changes
