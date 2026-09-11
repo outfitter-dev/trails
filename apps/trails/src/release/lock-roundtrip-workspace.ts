@@ -39,6 +39,7 @@ const isDisposablePath = (segments: readonly string[]): boolean =>
       part === '.tmp-tests' ||
       part === '.trails-tmp' ||
       part === '.turbo' ||
+      part === '.worktrees' ||
       (part === 'worktrees' && segments[index - 1] === '.claude') ||
       (part === 'notes' && segments[index - 1] === '.agents')
   );

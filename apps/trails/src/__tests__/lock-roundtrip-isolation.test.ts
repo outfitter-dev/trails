@@ -172,107 +172,113 @@ describe('lock round-trip output isolation', () => {
     );
   });
 
-  test('skips agent worktrees before traversing sibling checkout contents', async () => {
-    const root = await fixture();
-    const copy = await mkdtemp(join(tmpdir(), 'lock-isolation-copy-'));
-    fixtures.push(copy);
-    await mkdir(join(root, '.claude/worktrees/sibling'), { recursive: true });
-    // A removed sibling input would fail copying if traversal reached it.
-    await symlink(
-      'removed-source',
-      join(root, '.claude/worktrees/sibling/missing.ts')
-    );
-    await copyLockRoundtripWorkspace(root, copy, ['trails.lock']);
-    expect(
-      await access(join(copy, '.claude/worktrees')).then(
-        () => true,
-        () => false
-      )
-    ).toBe(false);
-  });
-
-  test('skips disposable paths but keeps the selected fixture and compiled input', async () => {
-    const root = await fixture();
-    const copy = await mkdtemp(join(tmpdir(), 'lock-isolation-copy-'));
-    fixtures.push(copy);
-    for (const dir of [
-      '.tmp-tests/selected',
-      '.tmp-tests/unrelated',
-      '.claude/worktrees/selected',
-      '.claude/worktrees/unrelated',
-      '.turbo',
-      '.agents/notes',
-      'dist',
-    ]) {
-      await mkdir(join(root, dir), { recursive: true });
-      await writeFile(join(root, dir, 'input.js'), '// current bytes\n');
-    }
-    await writeFile(
-      join(root, '.tmp-tests/unrelated/tracked.ts'),
-      '// tracked input\n'
-    );
-    expect(
-      command(root, ['git', 'add', '-f', '.tmp-tests/unrelated/tracked.ts'])
-        .exitCode
-    ).toBe(0);
-    await writeFile(
-      join(root, '.claude/worktrees/unrelated/tracked.ts'),
-      '// tracked agent input\n'
-    );
-    expect(
-      command(root, [
-        'git',
-        'add',
-        '-f',
-        '.claude/worktrees/unrelated/tracked.ts',
-      ]).exitCode
-    ).toBe(0);
-    await symlink(
-      'removed-payload',
-      join(root, '.tmp-tests/unrelated/disappeared')
-    );
-    await copyLockRoundtripWorkspace(root, copy, [
-      '.tmp-tests/selected/trails.lock',
-      '.claude/worktrees/selected/trails.lock',
-    ]);
-    expect(
-      await readFile(join(copy, '.tmp-tests/unrelated/tracked.ts'), 'utf8')
-    ).toBe('// tracked input\n');
-    expect(
-      await readFile(
-        join(copy, '.claude/worktrees/unrelated/tracked.ts'),
-        'utf8'
-      )
-    ).toBe('// tracked agent input\n');
-    expect(
-      await access(join(copy, '.tmp-tests/unrelated/disappeared')).then(
-        () => true,
-        () => false
-      )
-    ).toBe(false);
-    for (const dir of [
-      '.tmp-tests/unrelated/input.js',
-      '.claude/worktrees/unrelated/input.js',
-      '.turbo',
-      '.agents/notes',
-    ]) {
+  test.each(['.claude/worktrees', '.worktrees'])(
+    'skips %s before traversing sibling checkout contents',
+    async (worktreeRoot) => {
+      const root = await fixture();
+      const copy = await mkdtemp(join(tmpdir(), 'lock-isolation-copy-'));
+      fixtures.push(copy);
+      await mkdir(join(root, `${worktreeRoot}/sibling`), { recursive: true });
+      // A removed sibling input would fail copying if traversal reached it.
+      await symlink(
+        'removed-source',
+        join(root, `${worktreeRoot}/sibling/missing.ts`)
+      );
+      await copyLockRoundtripWorkspace(root, copy, ['trails.lock']);
       expect(
-        await access(join(copy, dir)).then(
+        await access(join(copy, worktreeRoot)).then(
           () => true,
           () => false
         )
       ).toBe(false);
     }
-    for (const dir of [
-      '.tmp-tests/selected',
-      '.claude/worktrees/selected',
-      'dist',
-    ]) {
-      expect(await readFile(join(copy, dir, 'input.js'), 'utf8')).toBe(
-        '// current bytes\n'
+  );
+
+  test.each(['.claude/worktrees', '.worktrees'])(
+    'skips disposable paths but keeps selected and tracked %s inputs',
+    async (worktreeRoot) => {
+      const root = await fixture();
+      const copy = await mkdtemp(join(tmpdir(), 'lock-isolation-copy-'));
+      fixtures.push(copy);
+      for (const dir of [
+        '.tmp-tests/selected',
+        '.tmp-tests/unrelated',
+        `${worktreeRoot}/selected`,
+        `${worktreeRoot}/unrelated`,
+        '.turbo',
+        '.agents/notes',
+        'dist',
+      ]) {
+        await mkdir(join(root, dir), { recursive: true });
+        await writeFile(join(root, dir, 'input.js'), '// current bytes\n');
+      }
+      await writeFile(
+        join(root, '.tmp-tests/unrelated/tracked.ts'),
+        '// tracked input\n'
       );
+      expect(
+        command(root, ['git', 'add', '-f', '.tmp-tests/unrelated/tracked.ts'])
+          .exitCode
+      ).toBe(0);
+      await writeFile(
+        join(root, `${worktreeRoot}/unrelated/tracked.ts`),
+        '// tracked agent input\n'
+      );
+      expect(
+        command(root, [
+          'git',
+          'add',
+          '-f',
+          `${worktreeRoot}/unrelated/tracked.ts`,
+        ]).exitCode
+      ).toBe(0);
+      await symlink(
+        'removed-payload',
+        join(root, '.tmp-tests/unrelated/disappeared')
+      );
+      await copyLockRoundtripWorkspace(root, copy, [
+        '.tmp-tests/selected/trails.lock',
+        `${worktreeRoot}/selected/trails.lock`,
+      ]);
+      expect(
+        await readFile(join(copy, '.tmp-tests/unrelated/tracked.ts'), 'utf8')
+      ).toBe('// tracked input\n');
+      expect(
+        await readFile(
+          join(copy, `${worktreeRoot}/unrelated/tracked.ts`),
+          'utf8'
+        )
+      ).toBe('// tracked agent input\n');
+      expect(
+        await access(join(copy, '.tmp-tests/unrelated/disappeared')).then(
+          () => true,
+          () => false
+        )
+      ).toBe(false);
+      for (const dir of [
+        '.tmp-tests/unrelated/input.js',
+        `${worktreeRoot}/unrelated/input.js`,
+        '.turbo',
+        '.agents/notes',
+      ]) {
+        expect(
+          await access(join(copy, dir)).then(
+            () => true,
+            () => false
+          )
+        ).toBe(false);
+      }
+      for (const dir of [
+        '.tmp-tests/selected',
+        `${worktreeRoot}/selected`,
+        'dist',
+      ]) {
+        expect(await readFile(join(copy, dir, 'input.js'), 'utf8')).toBe(
+          '// current bytes\n'
+        );
+      }
     }
-  });
+  );
 
   test('missing authored source fails instead of being silently skipped', async () => {
     const root = await fixture();
