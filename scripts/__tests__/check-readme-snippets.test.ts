@@ -120,7 +120,11 @@ describe('README_SNIPPET_CONFIGS', () => {
     ];
 
     for (const guide of publishedGuides) {
-      const markdown = readFileSync(guide, 'utf8');
+      // Permit coverage applies to pinned and unversioned CLI examples alike.
+      const markdown = readFileSync(guide, 'utf8').replaceAll(
+        /(bunx @ontrails\/trails)@\S+(?= create\b)/g,
+        '$1'
+      );
 
       expect(markdown).toContain(standaloneCommand);
       expect(markdown).toContain(workspaceCommand);

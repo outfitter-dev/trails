@@ -232,6 +232,8 @@ const repoTempDir = (): string =>
   join(
     resolve(import.meta.dir, '../..'),
     '.tmp-tests',
+    // Keep teardown behind a collector-pruned boundary during workspace scans.
+    '.cache',
     `test-all-established-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
@@ -242,8 +244,8 @@ const runGeneratedGovernanceSuite = (
   const testFile = join(dir, `${helperName}.test.ts`);
   const helperImport =
     helperName === 'testAllEstablished'
-      ? '../../src/all-established.ts'
-      : '../../src/index.ts';
+      ? '../../../src/all-established.ts'
+      : '../../../src/index.ts';
 
   mkdirSync(dir, { recursive: true });
   writeFileSync(
@@ -291,7 +293,7 @@ const runGeneratedEstablishedSuite = (): {
   writeFileSync(
     testFile,
     `import { Result, trail, topo } from '@ontrails/core';
-import { testAllEstablished } from '../../src/all-established.ts';
+import { testAllEstablished } from '../../../src/all-established.ts';
 import { z } from 'zod';
 
 const show = trail('entity.show', {
