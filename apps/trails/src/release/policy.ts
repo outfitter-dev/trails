@@ -11,6 +11,7 @@ import type {
   RegistryResult,
 } from './native-bun-registry.js';
 import { compareSemver, parseSemver } from './semver.js';
+import { isInitialZeroLineSourceTransition } from './zero-line-transition.js';
 
 export type PublishIntent =
   | 'publish:auto'
@@ -329,7 +330,7 @@ export const labelsForReleasePullRequest = ({
 
   if (!hasLabelFamily(labels, 'publish:')) {
     labelsToAdd.push(
-      stackDiagnostics.length === 0 && expectedChannel
+      stackDiagnostics.length === 0 && expectedChannel && expectedRelease
         ? 'publish:auto'
         : 'publish:manual'
     );
@@ -409,7 +410,10 @@ const makeReport = (
   const canPublish =
     input.releasePullRequest !== undefined &&
     (options.decision === 'auto' || options.decision === 'manual');
-  const packagesPublished = registryComplete(input.registryPackages);
+  const packagesPublished = registryComplete(
+    input.registryPackages,
+    input.distTag
+  );
   const reasons = [...options.reasons];
   if (canPublish) {
     reasons.push(
@@ -462,23 +466,27 @@ const readLabelFamily = <T extends string>(
 };
 
 const factsFromPolicyPackage = (
-  entry: ReleasePolicyRegistryPackage
+  entry: ReleasePolicyRegistryPackage,
+  distTag: string
 ): PackageRegistryFacts => ({
   error: entry.error,
+  expectedTag: distTag,
   expectedTagVersion: entry.expectedTagVersion,
+  name: entry.name,
   status: entry.status,
   targetVersion: entry.version,
   versionPublished: entry.versionPublished,
 });
 
 const registryComplete = (
-  packages: readonly ReleasePolicyRegistryPackage[]
+  packages: readonly ReleasePolicyRegistryPackage[],
+  distTag: string
 ): boolean =>
   packages.length > 0 &&
   packages.every(
     (entry) =>
-      classifyPackageRegistryState(factsFromPolicyPackage(entry)).kind ===
-      'complete'
+      classifyPackageRegistryState(factsFromPolicyPackage(entry, distTag))
+        .kind === 'complete'
   );
 
 const registryBlockers = (
@@ -486,7 +494,9 @@ const registryBlockers = (
   distTag: string
 ): readonly string[] =>
   packages.flatMap((entry) => {
-    const state = classifyPackageRegistryState(factsFromPolicyPackage(entry));
+    const state = classifyPackageRegistryState(
+      factsFromPolicyPackage(entry, distTag)
+    );
     if (state.kind === 'registry-inaccessible') {
       return [`${entry.name}: registry state is inaccessible: ${state.error}`];
     }
@@ -1140,15 +1150,66 @@ export const selectGeneratedReleasePullRequest = <
       candidate.head.ref === 'changeset-release/main'
   );
 
+/** Keep manual discovery limited to the approved initial version branch. */
+export const selectReleasePolicyPullRequest = <
+  PullRequest extends {
+    readonly base: { readonly ref: string };
+    readonly head: { readonly ref: string };
+    readonly labels: readonly { readonly name: string }[];
+  },
+>(
+  pulls: readonly PullRequest[],
+  context: Pick<
+    ReleasePolicyInput,
+    'previousVersion' | 'ref' | 'repository' | 'version'
+  >
+): PullRequest | undefined => {
+  const generated = selectGeneratedReleasePullRequest(pulls);
+  if (generated) {
+    return generated;
+  }
+  if (
+    context.repository !== 'outfitter-dev/trails' ||
+    context.ref !== 'refs/heads/main' ||
+    !isInitialZeroLineSourceTransition(
+      context.previousVersion ?? '',
+      context.version,
+      '@ontrails/trails'
+    )
+  ) {
+    return undefined;
+  }
+  return pulls.find((candidate) => {
+    const labels = candidate.labels.map(({ name }) => name);
+    return (
+      candidate.base.ref === 'main' &&
+      candidate.head.ref ===
+        'trl-1347-retarget-the-prepared-trails-package-family-to-010' &&
+      labels.includes('publish:manual') &&
+      labels.includes('channel:stable') &&
+      labels.every(
+        (label) =>
+          !/^(?:publish|channel|release):/u.test(label) ||
+          label === 'publish:manual' ||
+          label === 'channel:stable'
+      )
+    );
+  });
+};
+
 const readReleasePullRequest = async (
   repository: string,
-  sha: string
+  sha: string,
+  context: Pick<ReleasePolicyInput, 'previousVersion' | 'ref' | 'version'>
 ): Promise<ReleasePolicyPullRequest | undefined> => {
   const pulls = await githubJson<GitHubPullRequest[]>(
     repository,
     `/commits/${sha}/pulls`
   );
-  const pull = selectGeneratedReleasePullRequest(pulls);
+  const pull = selectReleasePolicyPullRequest(pulls, {
+    ...context,
+    repository,
+  });
   if (!pull) {
     return undefined;
   }
@@ -1564,7 +1625,7 @@ const readPolicyInput = async (): Promise<ReleasePolicyInput> => {
   const previousVersion = await readPreviousVersion();
   const registryPackages = await readRegistryPackages(distTag);
   const [releasePullRequest, commit, changedFiles] = await Promise.all([
-    readReleasePullRequest(repository, sha),
+    readReleasePullRequest(repository, sha, { previousVersion, ref, version }),
     readCommitInfo(),
     readChangedFiles(),
   ]);

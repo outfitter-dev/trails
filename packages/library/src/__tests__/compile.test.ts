@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import packageJson from '@ontrails/library/package.json' with { type: 'json' };
 
 import { compile } from '../compile.js';
 import type { CompileResult } from '../compile.js';
@@ -41,7 +42,7 @@ describe('compile', () => {
     };
     expect(pkg.name).toBe('@fixture/widget');
     expect(pkg.dependencies).toEqual({
-      '@ontrails/library': '^1.0.0',
+      '@ontrails/library': `^${packageJson.version}`,
       zod: '^4.3.5',
     });
     expect(JSON.stringify(pkg)).not.toContain('workspace:');

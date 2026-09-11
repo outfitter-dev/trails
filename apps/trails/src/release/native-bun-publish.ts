@@ -836,7 +836,7 @@ const runPublish = async (
       continue;
     }
     const state = classifyPackageRegistryState(
-      factsFromRegistryResult(registryResult)
+      factsFromRegistryResult(registryResult, tag)
     );
     registryStates.set(workspace.name, state);
     if (

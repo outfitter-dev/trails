@@ -5,7 +5,8 @@ import { join, relative, resolve } from 'node:path';
 import { loadTrailsConfigValue } from '@ontrails/config';
 
 import { findChangesetPackageErrors } from './changeset-packages.js';
-import { isStableWorkspaceVersionChange } from './stable-version-release.js';
+import { classifyStableWorkspaceVersionChange } from './stable-version-release.js';
+import { isCompleteInitialZeroLinePackageSet } from './zero-line-transition.js';
 import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
 import { findPublicTrailContractChangeFacts } from './contract-facts.js';
@@ -416,26 +417,43 @@ const isVersionReleaseChangeSet = (
   if (!hasWorkspaceVersionFile) {
     return false;
   }
-  if (normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
-    return true;
-  }
-
-  return publishableWorkspaces
-    .filter((workspace) =>
+  const changedPublishableWorkspaces = publishableWorkspaces.filter(
+    (workspace) =>
       normalizedFiles.some(
         (file) =>
           file === `${workspace.relativePath}/package.json` ||
           file === `${workspace.relativePath}/CHANGELOG.md`
       )
-    )
-    .every((workspace) =>
-      isStableWorkspaceVersionChange(
-        input.repoRoot,
-        input.baseRef,
-        workspace.relativePath,
-        normalizedFiles
+  );
+  const changes = changedPublishableWorkspaces.map((workspace) => ({
+    classification: classifyStableWorkspaceVersionChange(
+      input.repoRoot,
+      input.baseRef,
+      workspace.relativePath,
+      normalizedFiles
+    ),
+    workspace,
+  }));
+
+  if (
+    changes.some(({ classification }) => classification === 'initial-zero-line')
+  ) {
+    return (
+      changes.length === publishableWorkspaces.length &&
+      changes.every(
+        ({ classification }) => classification === 'initial-zero-line'
+      ) &&
+      isCompleteInitialZeroLinePackageSet(
+        changes.map(({ workspace }) => workspace.name)
       )
     );
+  }
+
+  if (normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
+    return true;
+  }
+
+  return changes.every(({ classification }) => classification === 'increase');
 };
 
 const parseChangesetPackages = (content: string): readonly string[] => {

@@ -133,6 +133,8 @@ export const renderTrailsHomebrewFormula = (
   desc "Agent-native, contract-first TypeScript framework"
   homepage "https://github.com/outfitter-dev/trails"
   license "MIT"
+  # Keep this scheme after the reset from 1.0.0-beta to 0.2.0.
+  version_scheme 1
 
   depends_on "bun"
 

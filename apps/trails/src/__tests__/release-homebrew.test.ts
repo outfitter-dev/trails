@@ -22,6 +22,19 @@ const release = {
 } satisfies GitHubReleaseMetadata;
 
 describe('Trails Homebrew release handoff', () => {
+  test.each(['0.2.0', '0.3.0', '1.0.0'])(
+    'preserves the post-beta Homebrew upgrade scheme for %s',
+    (targetVersion) => {
+      const formula = renderTrailsHomebrewFormula(targetVersion, {
+        'darwin-arm64': checksum,
+        'darwin-x64': checksum,
+        'linux-arm64': checksum,
+        'linux-x64': checksum,
+      });
+      expect(formula).toMatch(/^ {2}version_scheme 1$/mu);
+    }
+  );
+
   test('requires one of every expected asset on a published release', () => {
     const firstAsset = release.assets.at(0);
     if (!firstAsset) {

@@ -3,6 +3,7 @@ import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
 import { compareSemver } from './semver.js';
+import { isInitialZeroLineRegistryTransition } from './zero-line-transition.js';
 
 const REPO_ROOT = resolve(process.cwd());
 const SUMMARY_DIST_TAGS = ['latest', 'beta'] as const;
@@ -76,7 +77,9 @@ export type PackageRegistryState =
 
 /** Minimal facts the classifier needs, mappable from any registry probe shape. */
 export interface PackageRegistryFacts {
+  readonly expectedTag?: string | undefined;
   readonly status: 'inaccessible' | 'missing' | 'published';
+  readonly name?: string | undefined;
   readonly targetVersion: string;
   readonly expectedTagVersion: string | undefined;
   readonly versionPublished: boolean | undefined;
@@ -117,7 +120,13 @@ export const classifyPackageRegistryState = (
   const tagAhead =
     expectedTagVersion !== undefined &&
     !tagAtTarget &&
-    compareSemver(expectedTagVersion, targetVersion) > 0;
+    compareSemver(expectedTagVersion, targetVersion) > 0 &&
+    !isInitialZeroLineRegistryTransition({
+      currentTagVersion: expectedTagVersion,
+      expectedTag: facts.expectedTag,
+      name: facts.name,
+      targetVersion,
+    });
 
   if (tagAhead) {
     return { currentTagVersion: expectedTagVersion, kind: 'tag-points-ahead' };
@@ -135,11 +144,14 @@ export const classifyPackageRegistryState = (
 
 /** Map a registry probe result into the classifier's fact shape. */
 export const factsFromRegistryResult = (
-  result: RegistryResult
+  result: RegistryResult,
+  expectedTag?: string
 ): PackageRegistryFacts => {
   if (result.status === 'published') {
     return {
+      expectedTag,
       expectedTagVersion: result.expectedTagVersion,
+      name: result.name,
       status: 'published',
       targetVersion: result.workspaceVersion,
       versionPublished:
@@ -149,14 +161,18 @@ export const factsFromRegistryResult = (
   if (result.status === 'inaccessible') {
     return {
       error: result.error,
+      expectedTag,
       expectedTagVersion: undefined,
+      name: result.name,
       status: 'inaccessible',
       targetVersion: result.workspaceVersion,
       versionPublished: false,
     };
   }
   return {
+    expectedTag,
     expectedTagVersion: undefined,
+    name: result.name,
     status: 'missing',
     targetVersion: result.workspaceVersion,
     versionPublished: false,
@@ -685,7 +701,9 @@ export const registryPostureErrors = (
   const phase = normalizeRegistryCheckPhase(phaseOrRequirePublished);
   const errors: string[] = [];
   for (const result of results) {
-    const state = classifyPackageRegistryState(factsFromRegistryResult(result));
+    const state = classifyPackageRegistryState(
+      factsFromRegistryResult(result, expectedTag)
+    );
     if (state.kind === 'registry-inaccessible') {
       errors.push(`${result.name}: registry probe failed: ${state.error}`);
       continue;

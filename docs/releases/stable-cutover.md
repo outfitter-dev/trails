@@ -1,8 +1,10 @@
 # Stable Cutover Runbook
 
-This runbook is the operator checklist for leaving the beta prerelease line and publishing the first stable 1.x Trails release.
+This runbook is the operator checklist for leaving the beta prerelease line and publishing the first normal Trails release, `0.2.0`, on `latest`.
 
-It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). The short version: public `@ontrails/*` packages stay lockstep for 1.x, Changesets computes versions and changelogs, Bun packs and validates package tarballs, npm publishes them through the repo-owned flow, generated apps must install from the public registry, and partial publishes are handled as release incidents.
+It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). Public `@ontrails/*` packages stay lockstep through 0.x and the eventual 1.x line. Changesets computes versions and changelogs, Bun packs and validates package tarballs, npm publishes them through the repo-owned flow, generated apps must install from the public registry, and partial publishes are handled as release incidents.
+
+`stable` describes the distribution channel, without a prerelease suffix. The API remains pre-1.0: patches preserve compatibility, while minor releases may require consumer migrations. The release owner must separately approve 1.0.
 
 Do not run this from an in-progress feature stack. The versioning PR and the publish step are separate operations.
 
@@ -12,12 +14,26 @@ There are two distinct phases:
 
 | Phase | What happens | Where |
 | --- | --- | --- |
-| Version PR | Exit prerelease mode, compute stable versions/changelogs, review the diff, and merge. | A normal Graphite branch and PR |
+| Version PR | Prepare the approved package versions/changelogs, review the diff, and merge. | A normal Graphite branch and PR |
 | Publish | Publish already-merged package contents and verify registry/dist-tag state. | Clean `main` after the version PR merges |
 
 Never publish from an unmerged version PR. Never use `changeset publish`, a direct `npm publish`, or ad hoc package publication for the normal stable cutover.
 
 Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets should carry `stack:boundary` before the stable version PR is expected to reach `publish:auto`. Missing source evidence or missing `stack:boundary` requires the manual publication path: an explicit workflow dispatch with `publish=true`, followed by approval in the protected `npm` environment. Unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
+
+## Approved initial 0.x transition
+
+The September 2026 decision supersedes the prepared but unpublished `1.0.0` source release and the generated `1.0.1` proposal. The reviewed version PR targets `0.2.0`, the next minor after the pre-beta `0.1.0` source baseline; it consumes the pending correction changesets and regenerates the scaffold pins, plugin framework metadata, and lockfiles. Existing beta changelog entries and published versions remain historical evidence.
+
+This transition must use `channel:stable` and `publish:manual`. It is a descending version reset, so it carries no `release:patch`, `release:minor`, or `release:major` label. Registry preflight recognizes only the public Trails family's initial `latest` move from `1.0.0-beta.N` to `0.2.0`. Other descending tags remain blockers, and a matching tag without exact-version proof still fails the post-publication check.
+
+The manual version branch is `trl-1347-retarget-the-prepared-trails-package-family-to-010`. Publication discovery recognizes it only after it targets `main`, with the labels above and the exact `1.0.0` to `0.2.0` transition. Dispatch the manual Release workflow while the merged version commit remains at the head of `main`, after that commit's CI passes. Hold subsequent merges until publication and registry verification finish: discovery uses the current commit and its predecessor, and later changesets can restart version preparation.
+
+The generated Homebrew formula uses `version_scheme 1` so `brew upgrade trails` recognizes `0.2.0` as an upgrade from the old beta line. Keep that scheme on future releases; removing it would make already-installed versions sort ahead again. This is Homebrew's supported [version scheme change](https://docs.brew.sh/Formula-Cookbook#version-scheme-changes), and the formula generator owns it.
+
+The prerelease exit already happened in source. Do not run `changeset pre exit` again, merge the obsolete `1.0.1` proposal, or run ordinary version generation over the unpublished `1.0.0` baseline. Use the reviewed 0.2.0 version PR and its recorded generation evidence. The general version-PR procedure below describes an increasing release or a future prerelease exit.
+
+Existing beta ranges cannot resolve downward to `0.2.0`; update their declared sources and let Bun regenerate its lockfile after publication. Release completion requires fresh consumer installation proof against npm, after all 23 packages resolve at the new version. The disposable consumer bridge is tracked in [TRL-1346](https://linear.app/outfitter/issue/TRL-1346/provide-a-disposable-consumer-bridge-to-trails-010).
 
 ## Preconditions
 
@@ -140,7 +156,7 @@ git status --short --branch
 Create a dedicated branch:
 
 ```bash
-gt create chore/version-packages-for-1-0-0 --no-interactive
+gt create chore/release/version-packages --no-interactive
 ```
 
 Run the pre-version checks:
@@ -162,7 +178,7 @@ bunx changeset status --verbose
 
 `trails compile --app trails` writes the committed `apps/trails/trails.lock`. Review any diff and keep the artifact aligned; never remove it as temporary evidence or replace it with a repository-root aggregate lock.
 
-Run a registry-backed generated-app smoke before exiting prerelease mode. This proves the current published prerelease package set and the generator still agree:
+Run a registry-backed generated-app smoke before changing versions. This proves the currently published package set and the generator still agree:
 
 ```bash
 tmp=$(mktemp -d /tmp/trails-preversion-smoke.XXXXXX)
@@ -183,9 +199,10 @@ bun apps/trails/bin/trails.ts create docs-smoke \
 )
 ```
 
-Exit prerelease mode and compute the stable versions:
+Exit prerelease mode only when `.changeset/pre.json` records an active prerelease, then compute the next normal versions:
 
 ```bash
+# Only for an active prerelease exit; skip on the normal 0.x line.
 bunx changeset pre exit
 bun run version:packages
 bun run scaffold-versions:sync
@@ -251,7 +268,7 @@ Commit and submit:
 
 ```bash
 git branch --show-current
-gt modify -a -c -m "chore: version packages for 1.0.0" --no-interactive
+gt modify -a -c -m "chore(release): version packages" --no-interactive
 gt submit --draft --stack --no-edit --no-interactive
 ```
 

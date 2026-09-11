@@ -1,14 +1,16 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+  "$schema": "https://unpkg.com/@changesets/config@4.0.0/schema.json",
   "changelog": [
     "../scripts/changesets/changelog.cjs",
     { "repo": "outfitter-dev/trails" }
   ],
   "commit": false,
+  "format": false,
   "fixed": [["@ontrails/*"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
+  "privatePackages": { "version": true, "tag": false },
   "ignore": []
 }

@@ -6,6 +6,8 @@ Render a Trails topo as an idiomatic TypeScript library.
 
 The package is publishable as the runtime dependency for generated Trails libraries. Generated packages can depend on it while keeping their consumer-facing API idiomatic and package-local.
 
+Generated runtime dependencies default to a caret range of the installed compiler's package version, such as `^0.2.0` for a `0.2.0` compiler. Set `libraryDependency` when generating into an owned workspace or choosing a different runtime range.
+
 ## API
 
 ```ts

@@ -2842,7 +2842,7 @@
       "depends_on": ["29", "35", "37", "44", "46"],
       "inbound": [
         {
-          "context": "To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual. Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md),",
+          "context": "The initial `1.0.0` to `0.2.0` source reset is a reviewed, one-time transition; it uses `channel:stable` and `publish:manual`, with no ordinary release-size label. Prerelease mode has already exited, ",
           "from": "AGENTS",
           "fromPath": "AGENTS.md"
         },
@@ -2867,7 +2867,12 @@
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
         {
-          "context": "It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). The short version: public `@ontrails/*` packages stay lockstep for 1.x, Changesets computes",
+          "context": "The approved initial `1.0.0` to `0.2.0` source reset is a one-time exception: it requires `channel:stable` and `publish:manual`, with no release-size label because the version decreases. Only the publ",
+          "from": "release-rules-check",
+          "fromPath": "docs/releases/release-rules-check.md"
+        },
+        {
+          "context": "It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). Public `@ontrails/*` packages stay lockstep through 0.x and the eventual 1.x line. Changese",
           "from": "stable-cutover",
           "fromPath": "docs/releases/stable-cutover.md"
         }
@@ -2879,7 +2884,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Stable Release Line Discipline",
-      "updated": "2026-05-13"
+      "updated": "2026-09-11"
     },
     {
       "created": "2026-05-19",

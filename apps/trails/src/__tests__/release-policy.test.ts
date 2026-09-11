@@ -9,6 +9,7 @@ import {
   releaseIntentForVersionDelta,
   releasePolicyRequiresCiProof,
   selectGeneratedReleasePullRequest,
+  selectReleasePolicyPullRequest,
   selectReleasePolicyCiProofTarget,
 } from '../release/policy.js';
 import type {
@@ -116,6 +117,67 @@ describe('selectGeneratedReleasePullRequest', () => {
         sourcePullRequest,
       ])
     ).toBe(generatedReleasePullRequest);
+  });
+});
+
+describe('selectReleasePolicyPullRequest', () => {
+  const context = {
+    previousVersion: '1.0.0',
+    ref: 'refs/heads/main',
+    repository: 'outfitter-dev/trails',
+    version: '0.2.0',
+  };
+  const manual = {
+    base: { ref: 'main' },
+    head: {
+      ref: 'trl-1347-retarget-the-prepared-trails-package-family-to-010',
+    },
+    labels: [{ name: 'publish:manual' }, { name: 'channel:stable' }],
+    number: 1033,
+  };
+
+  test('discovers the approved manual version PR without treating it as bot-generated', () => {
+    expect(selectGeneratedReleasePullRequest([manual])).toBeUndefined();
+    expect(selectReleasePolicyPullRequest([manual], context)).toBe(manual);
+  });
+
+  test.each([
+    { repository: 'another/repository' },
+    { ref: 'refs/heads/feature' },
+    { previousVersion: '0.1.0' },
+    { previousVersion: undefined },
+    { version: '0.3.0' },
+  ])(
+    'rejects a manual fallback outside the initial release context: %j',
+    (change) => {
+      expect(
+        selectReleasePolicyPullRequest([manual], { ...context, ...change })
+      ).toBeUndefined();
+    }
+  );
+
+  test.each([
+    { base: { ref: 'feature' } },
+    { head: { ref: 'another-manual-release' } },
+    { labels: [{ name: 'publish:manual' }] },
+    { labels: [{ name: 'channel:stable' }] },
+    { labels: [...manual.labels, { name: 'release:patch' }] },
+    { labels: [...manual.labels, { name: 'publish:auto' }] },
+    { labels: [...manual.labels, { name: 'channel:beta' }] },
+  ])('rejects an unapproved manual PR shape: %j', (change) => {
+    expect(
+      selectReleasePolicyPullRequest([{ ...manual, ...change }], context)
+    ).toBeUndefined();
+  });
+
+  test('preserves normal generated PR selection outside the initial transition', () => {
+    const generated = { ...manual, head: { ref: 'changeset-release/main' } };
+    expect(
+      selectReleasePolicyPullRequest([manual, generated], {
+        ...context,
+        version: '0.3.0',
+      })
+    ).toBe(generated);
   });
 });
 
@@ -430,6 +492,38 @@ describe('evaluateReleasePolicy', () => {
     expect(report.decision).not.toBe('block');
   });
 
+  test('allows manual publication for the initial latest zero-line transition', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        distTag: 'latest',
+        previousVersion: '1.0.0',
+        registryPackages: [
+          {
+            expectedTagVersion: '1.0.0-beta.16',
+            name: '@ontrails/core',
+            status: 'published',
+            version: '0.2.0',
+            versionPublished: false,
+          },
+        ],
+        releasePullRequest: {
+          ...releasePr,
+          headRefName:
+            'trl-1347-retarget-the-prepared-trails-package-family-to-010',
+          labels: ['publish:manual', 'channel:stable'],
+          title: 'chore(release): prepare the 0.2.0 package family',
+          userLogin: 'galligan',
+        },
+        version: '0.2.0',
+      })
+    );
+
+    expect(report.decision).toBe('manual');
+    expect(report.blockers).toEqual([]);
+    expect(report.shouldPublish).toBe(true);
+    expect(report.createGitHubRelease).toBe(true);
+  });
+
   test('requires publish:none audit reason', () => {
     const blocked = evaluateReleasePolicy(
       baseInput({
@@ -457,6 +551,26 @@ describe('evaluateReleasePolicy', () => {
 });
 
 describe('labelsForReleasePullRequest', () => {
+  test('routes the initial zero-line transition to manual stable publication', () => {
+    expect(
+      labelsForReleasePullRequest({
+        currentVersion: '1.0.0',
+        existingLabels: [],
+        nextDistTag: 'latest',
+        nextVersion: '0.2.0',
+        sourcePullRequests: [
+          {
+            commitShas: ['abc123'],
+            hasChangeset: true,
+            labels: ['stack:boundary'],
+            number: 99,
+            title: 'fix: release preparation',
+          },
+        ],
+      })
+    ).toEqual(['publish:manual', 'channel:stable']);
+  });
+
   test('fills missing release intent labels without overriding human labels', () => {
     expect(
       labelsForReleasePullRequest({

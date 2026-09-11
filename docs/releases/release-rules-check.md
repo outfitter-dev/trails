@@ -136,6 +136,8 @@ Managed release PR labels:
 | Channel intent | `channel:beta`, `channel:stable` | Declares the intended npm dist-tag family. `beta` maps to prerelease beta publication; `stable` maps to `latest`. |
 | Release size | `release:patch`, `release:minor`, `release:major` | Declares the semver movement expected on the generated release PR. |
 
+The approved initial `1.0.0` to `0.2.0` source reset is a one-time exception: it requires `channel:stable` and `publish:manual`, with no release-size label because the version decreases. Only the public Trails family's `latest` tag may move from `1.0.0-beta.N` to `0.2.0`; ordinary downgrades and other tag families remain blocked. See [ADR-0047](../adr/0047-stable-release-line-discipline.md#the-initial-version-reset-is-a-single-approved-transition).
+
 `publish:none` is only for generated release PRs. It is distinct from branch-local `release:none` and requires an audit reason in the release PR body or comments because it intentionally leaves generated package-version state unpublished.
 
 The release PR labeler fills missing publish/channel/release labels without overriding human-provided labels:

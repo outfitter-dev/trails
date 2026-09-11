@@ -11,6 +11,8 @@
  * This slice returns the file plan (path + content); writing it to disk is a
  * thin apply step. Pure: derives the rendering and builds strings, no I/O.
  */
+import packageJson from '@ontrails/library/package.json' with { type: 'json' };
+
 import { deriveLibraryApi } from './derive.js';
 import type {
   DeriveLibraryApiOptions,
@@ -27,7 +29,7 @@ export interface CompileOptions extends DeriveLibraryApiOptions {
   readonly appImportPath: string;
   /** The exported binding name of the topo at `appImportPath` (default `app`). */
   readonly appExportName?: string;
-  /** Runtime dependency range for `@ontrails/library` in emitted package.json. */
+  /** Runtime dependency range; defaults to a caret range of this compiler's package version. */
   readonly libraryDependency?: string;
   /** Generated package version. Defaults to `0.0.0`. */
   readonly version?: string;
@@ -84,7 +86,7 @@ const resourceExports = (
 const factoryName = (rendering: LibraryRenderingPlan): string =>
   `create${pascalCase(rendering.app)}`;
 
-const DEFAULT_LIBRARY_DEPENDENCY = '^1.0.0';
+const DEFAULT_LIBRARY_DEPENDENCY = `^${packageJson.version}`;
 const DEFAULT_ZOD_DEPENDENCY = '^4.3.5';
 
 const sanitizeJsDocLine = (value: string): string =>
