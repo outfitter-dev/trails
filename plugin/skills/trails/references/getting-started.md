@@ -2,25 +2,25 @@
 
 ## Installation
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
 # Requires Bun (https://bun.sh)
 
 # Scaffold a standalone app
-bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@1.0.0 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or a configured workspace with one app under apps/my-app
-bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@1.0.0 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
-bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
-bun add @ontrails/mcp@beta @modelcontextprotocol/sdk # MCP surface (optional)
-bun add @ontrails/http@beta @ontrails/hono@beta # Hono HTTP surface (optional)
+bun add --exact @ontrails/core@1.0.0 @ontrails/cli@1.0.0 @ontrails/commander@1.0.0 zod
+bun add --exact @ontrails/mcp@1.0.0 @modelcontextprotocol/sdk # MCP surface (optional)
+bun add --exact @ontrails/http@1.0.0 @ontrails/hono@1.0.0 # Hono HTTP surface (optional)
 # or, for Bun-native HTTP without Hono:
-bun add @ontrails/http@beta
-bun add -d @ontrails/testing@beta # Testing (dev)
+bun add --exact @ontrails/http@1.0.0
+bun add --exact -d @ontrails/testing@1.0.0 # Testing (dev)
 ```
-
-During the active beta line, use `@beta` for the newest published beta or exact `1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
 After `bun install`, derive the app-owned lock with the locally installed Trails operator:
 

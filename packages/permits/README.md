@@ -175,6 +175,8 @@ Built-in rules:
 
 ## Installation
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add @ontrails/permits @ontrails/core zod
+bun add --exact @ontrails/permits@1.0.0 @ontrails/core@1.0.0 zod
 ```

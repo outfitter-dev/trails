@@ -359,7 +359,7 @@ Use these constraints alongside the two principles:
 
 ## Releasing
 
-All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets) in pre-release (`beta`) mode. We use Changesets only for versioning and changelogs, not `changeset publish`. The repo release flow packs and validates each package with Bun, then publishes that resolved tarball through npm. GitHub releases use npm trusted publishing; local credentialed publication remains the bootstrap and recovery path for first-time packages and dist-tag repairs. Do not invoke `npm publish` directly.
+All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://github.com/changesets/changesets) on the stable release line. Stable `1.0.0` is prepared in source and npm publication is pending; use exact `1.0.0` consumer pins after publication. We use Changesets only for versioning and changelogs, not `changeset publish`. The repo release flow packs and validates each package with Bun, then publishes that resolved tarball through npm. GitHub releases use npm trusted publishing; local credentialed publication remains the bootstrap and recovery path for first-time packages and dist-tag repairs. Do not invoke `npm publish` directly.
 
 ```bash
 # 1. Add a changeset (or create .changeset/<name>.md manually)

@@ -150,6 +150,8 @@ The helper compares normalized success payloads and normalized TrailsError categ
 
 ## Installation
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add -d @ontrails/testing@beta
+bun add --exact -d @ontrails/testing@1.0.0
 ```

@@ -29,10 +29,12 @@ The skill gives your agent the full Trails reference: lexicon, patterns, error t
 
 ### With code
 
-Install or update the standalone `trails` CLI with Homebrew by following the canonical [installation guide](./docs/getting-started.md#installation). The formula requires Bun at runtime.
+Stable `1.0.0` is prepared in source; npm publication is pending. Use the pinned Bun commands below after publication.
+
+For the standalone `trails` CLI, follow the canonical [Homebrew installation guide](./docs/getting-started.md#installation) after the stable release assets and tap update are available. The stable `1.0.0` Homebrew handoff is pending; the formula requires Bun at runtime.
 
 ```bash
-bunx @ontrails/trails create --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@1.0.0 create --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```
 
 Follow the prompts — pick a name, choose a starter, select your surfaces. The scaffolder generates a working project with trails, a topo, surface wiring, and tests. The `--permit` flag is required: `create` writes a new project, and Trails write commands always name their authority explicitly instead of assuming it.
@@ -40,11 +42,9 @@ Follow the prompts — pick a name, choose a starter, select your surfaces. The 
 Or install manually:
 
 ```bash
-bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
-bun add -d @ontrails/testing@beta
+bun add --exact @ontrails/core@1.0.0 @ontrails/cli@1.0.0 @ontrails/commander@1.0.0 zod
+bun add --exact -d @ontrails/testing@1.0.0
 ```
-
-During the active beta line, use `@beta` for the newest published beta or exact `1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
 ## Before and after
 

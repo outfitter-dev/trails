@@ -3,7 +3,7 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.50
+    version: 1.0.0
 ---
 
 # Trails
@@ -63,7 +63,7 @@ Current public packages are lockstep at the same Trails framework version.
 - **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
 - **Observability:** `@ontrails/observability` defines sink contracts; its `/dev` and `/otel` subpaths provide developer-state and OTel support, while `/logtape` and `/pino` are temporary sink adapters.
 - **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topography` owns TopoGraphs, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs; `@ontrails/warden` owns governance rules.
-- **Beta install policy:** While `.changeset/pre.json` is in prerelease mode, install published Trails packages with exact `1.0.0-beta.N` pins or `@beta`; do not rely on unqualified `latest` unless release notes explicitly advance it.
+- **Stable install policy:** This skill targets stable `1.0.0`, which is prepared in source while npm publication is pending. Use exact `1.0.0` package pins after publication.
 
 ## Release Rules
 

@@ -269,14 +269,16 @@ const schema = db.tables;
 
 ## Installation
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add @ontrails/store@beta zod
+bun add --exact @ontrails/store@1.0.0 zod
 ```
 
 Add Drizzle only when you want the external SQLite/ORM adapter:
 
 ```bash
-bun add @ontrails/drizzle@beta
+bun add --exact @ontrails/drizzle@1.0.0
 ```
 
 ## Migration

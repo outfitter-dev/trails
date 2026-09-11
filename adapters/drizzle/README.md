@@ -24,8 +24,10 @@ export const db = connectDrizzle(definition, {
 
 ## Installation
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add @ontrails/store@beta @ontrails/drizzle@beta zod
+bun add --exact @ontrails/store@1.0.0 @ontrails/drizzle@1.0.0 zod
 ```
 
 ## Migration

@@ -9,10 +9,12 @@ Trails HTTP support has a shared core plus HTTP bindings:
 
 ## Install
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add @ontrails/http@beta @ontrails/hono@beta
+bun add --exact @ontrails/http@1.0.0 @ontrails/hono@1.0.0
 # or, for Bun-native serving:
-bun add @ontrails/http@beta
+bun add --exact @ontrails/http@1.0.0
 ```
 
 ## Open With Hono

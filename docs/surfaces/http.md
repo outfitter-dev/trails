@@ -6,8 +6,10 @@ The package separates framework-agnostic route building (`@ontrails/http`), shar
 
 ## Setup
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add @ontrails/http@beta @ontrails/hono@beta
+bun add --exact @ontrails/http@1.0.0 @ontrails/hono@1.0.0
 ```
 
 ```typescript
@@ -22,7 +24,7 @@ That starts an HTTP server with every exposed trail registered as a route.
 For Bun-native serving without Hono:
 
 ```bash
-bun add @ontrails/http@beta
+bun add --exact @ontrails/http@1.0.0
 ```
 
 ```typescript

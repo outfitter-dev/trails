@@ -26,8 +26,10 @@ Pass `pinoOptions` and an optional Pino destination when the adapter should cons
 
 ## Installation
 
+These commands target stable `1.0.0`. Run them after that version is published to npm.
+
 ```bash
-bun add @ontrails/observability@beta @ontrails/pino@beta
+bun add --exact @ontrails/observability@1.0.0 @ontrails/pino@1.0.0
 ```
 
 ## Migration

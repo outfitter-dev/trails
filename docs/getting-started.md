@@ -6,7 +6,9 @@ This guide demonstrates CLI and MCP first because they are the shortest path to 
 
 ## Installation
 
-The canonical CLI install uses the Outfitter Homebrew tap. The formula requires [Bun](https://bun.sh) at runtime and installs the CLI's bundled JavaScript plus its platform-specific native parser and resolver dependencies.
+The canonical CLI install uses the Outfitter Homebrew tap. Stable `1.0.0` is prepared in source; its Homebrew release is pending. Run the install or upgrade commands for stable `1.0.0` only after the release assets are published and the tap update is merged, as described in the [stable release handoff](./releases/stable-cutover.md#homebrew-handoff-recovery-boundary). Homebrew installs the version provided by the tap; verify that `trails --version` reports `1.0.0` after the handoff.
+
+The formula requires [Bun](https://bun.sh) at runtime and installs the CLI's bundled JavaScript plus its platform-specific native parser and resolver dependencies.
 
 ```bash
 brew install outfitter-dev/tap/trails
@@ -15,6 +17,7 @@ trails --version
 # Upgrade later
 brew update
 brew upgrade trails
+trails --version
 
 # Remove the CLI
 brew uninstall trails
@@ -26,30 +29,28 @@ If Trails was the only formula you used from the tap, you may also remove the ta
 brew untap outfitter-dev/tap
 ```
 
-For project dependencies and scaffolding, use Bun:
+Stable `1.0.0` is prepared in source; npm publication is pending. After publication, use these exact versions for project dependencies and scaffolding:
 
 ```bash
 # Recommended: scaffold a standalone app
 # (create writes a project, so it needs an explicit project:write permit)
-bunx @ontrails/trails create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@1.0.0 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or scaffold a configured workspace with one app under apps/my-app
-bunx @ontrails/trails create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@1.0.0 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
-bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
+bun add --exact @ontrails/core@1.0.0 @ontrails/cli@1.0.0 @ontrails/commander@1.0.0 zod
 
 # Add MCP surface (optional)
-bun add @ontrails/mcp@beta
+bun add --exact @ontrails/mcp@1.0.0
 
 # Add HTTP surface (optional, shipped today)
-bun add @ontrails/http@beta @ontrails/hono@beta
+bun add --exact @ontrails/http@1.0.0 @ontrails/hono@1.0.0
 
 # Add testing (dev dependency)
-bun add -d @ontrails/testing@beta
+bun add --exact -d @ontrails/testing@1.0.0
 ```
-
-During the active beta line, use `@beta` for the newest published beta or pin exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
 `create` writes authored source, not a lock. After `bun install`, derive the app-owned lock with the locally installed Trails operator:
 

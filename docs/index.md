@@ -10,7 +10,7 @@
 ## Release Notes
 
 - **[Stable Cutover Runbook](./releases/stable-cutover.md)** — Beta-to-1.0 cutover sequence, publish boundaries, and recovery checks
-- **[Beta Channel Policy](./releases/beta-channel-policy.md)** — Beta install tags, `latest` posture, version cadence, and read-only registry checks
+- **[Historical Beta Channel Policy](./releases/beta-channel-policy.md)** — Archived beta-era reference for historical migrations; current release operations follow the Stable Cutover Runbook
 - **[v1 Vocabulary Transition Workflow](./releases/v1-vocabulary-transition-workflow.md)** — How to run governed vocabulary families through Regrade with census and evidence checks
 - **[Plugin Release Runbook](./releases/plugin-release.md)** — Claude plugin/skills refresh, dogfood, and manual publication checks
 - **[Trailheads Release Notes](./releases/surface-trailheads.md)** — Release prep, migration posture, and publish path for MCP trailheads
