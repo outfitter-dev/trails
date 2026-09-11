@@ -1,5 +1,12 @@
 # @ontrails/config
 
+## 0.2.1
+
+### Patch Changes
+
+- [`d785a07`](https://github.com/outfitter-dev/trails/commit/d785a07b458899a7da14999e9b7856b8a7446e66): Align current installation examples with the 0.2.1 scaffold correction and keep Homebrew version checks explicit while preserving the 0.2.0 repair guidance.
+- [`fdef61f`](https://github.com/outfitter-dev/trails/commit/fdef61feeef9b2250d537640db147cb9a9e484bd): Update package installation guidance to reflect the verified npm and Homebrew 0.2.0 release, with the published CLI scaffold repair linked from its README.
+
 ## 0.2.0
 
 ### Patch Changes
