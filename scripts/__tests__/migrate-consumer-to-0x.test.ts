@@ -464,6 +464,91 @@ describe('consumer 0.x transition', () => {
     expect(readFileSync(path, 'utf8')).toBe(before);
   });
 
+  test('migrates a workspace member reached only through an in-repo symlink', () => {
+    const root = fixtureRoot({
+      name: 'symlinked-member-root',
+      private: true,
+      workspaces: ['packages/*'],
+    });
+    const memberRoot = join(root, 'lib', 'member');
+    mkdirSync(memberRoot, { recursive: true });
+    mkdirSync(join(root, 'packages'));
+    writeFileSync(
+      join(memberRoot, 'package.json'),
+      `${JSON.stringify(
+        {
+          dependencies: { '@ontrails/core': '1.0.0-beta.19' },
+          name: '@outfitter/member',
+        },
+        null,
+        2
+      )}\n`
+    );
+    symlinkSync(memberRoot, join(root, 'packages', 'member'));
+
+    const result = executeConsumerTransition({
+      apply: true,
+      consumerRoot: root,
+      install: false,
+      trailsRoot,
+    });
+
+    expect(result.code).toBe(0);
+    expect(
+      JSON.parse(readFileSync(join(memberRoot, 'package.json'), 'utf8'))
+    ).toMatchObject({
+      dependencies: { '@ontrails/core': '0.2.0' },
+    });
+  });
+
+  test('blocks selector-bearing overrides and resolutions', () => {
+    const root = fixtureRoot({
+      dependencies: { '@ontrails/core': '1.0.0' },
+      name: 'selector-override',
+      overrides: {
+        'parent/@ontrails/core': '1.0.0-beta.19',
+      },
+      resolutions: {
+        '**/@ontrails/core': '1.0.1',
+      },
+    });
+    const path = join(root, 'package.json');
+    const before = readFileSync(path, 'utf8');
+
+    const result = executeConsumerTransition({
+      apply: true,
+      consumerRoot: root,
+      install: false,
+      trailsRoot,
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.lines.join('\n')).toContain(
+      'Selector-bearing overrides.parent/@ontrails/core is not supported'
+    );
+    expect(result.lines.join('\n')).toContain(
+      'Selector-bearing resolutions.**/@ontrails/core is not supported'
+    );
+    expect(readFileSync(path, 'utf8')).toBe(before);
+  });
+
+  test('rewrites npm-alias overrides under a non-@ontrails key', () => {
+    const root = fixtureRoot({
+      name: 'aliased-override',
+      overrides: {
+        'trails-core': 'npm:@ontrails/core@1.0.0-beta.46',
+      },
+    });
+
+    const plan = planConsumerTransition({ consumerRoot: root, trailsRoot });
+    const manifest = JSON.parse(plan.updates[0]?.after ?? '{}');
+
+    expect(plan.diagnostics).toEqual([]);
+    expect(manifest).toMatchObject({
+      overrides: { 'trails-core': 'npm:@ontrails/core@0.2.0' },
+    });
+  });
+
   test('blocks nested overrides that contain a Trails declaration', () => {
     const root = fixtureRoot({
       dependencies: { '@ontrails/core': '1.0.0' },

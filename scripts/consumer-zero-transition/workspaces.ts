@@ -98,32 +98,10 @@ const validateWorkspaceConfiguration = (
   }
 };
 
-const validateWorkspaceManifests = (
+const listGlobSymlinkPackageRoots = (
   root: string,
   rootDocument: ManifestDocument
-): void => {
-  for (const packageRoot of listWorkspacePackageDirs(
-    root,
-    listWorkspacePatterns(rootDocument.manifest)
-  )) {
-    const document = readManifest(join(packageRoot, 'package.json'));
-    if (typeof document.manifest['name'] !== 'string') {
-      throw new TypeError(
-        `${document.file} must declare a string package name before migration.`
-      );
-    }
-  }
-};
-
-const discoverExternalSymlinkWorkspaces = ({
-  publicPackages,
-  root,
-  rootDocument,
-}: {
-  readonly publicPackages: ReadonlySet<string>;
-  readonly root: string;
-  readonly rootDocument: ManifestDocument;
-}): readonly { readonly name: string; readonly packageRoot: string }[] =>
+): readonly string[] =>
   listWorkspacePatterns(rootDocument.manifest).flatMap((pattern) => {
     if (!pattern.endsWith('/*')) {
       return [];
@@ -144,21 +122,96 @@ const discoverExternalSymlinkWorkspaces = ({
           '\\',
           '/'
         );
-        if (isWithinRoot(packageRoot, root)) {
-          return [];
-        }
-        const manifest: unknown = JSON.parse(
-          readFileSync(join(packageRoot, 'package.json'), 'utf8')
-        );
-        return isPlainObject(manifest) &&
-          typeof manifest['name'] === 'string' &&
-          publicPackages.has(manifest['name'])
-          ? [{ name: manifest['name'], packageRoot }]
-          : [];
+        realpathSync(join(packageRoot, 'package.json'));
+        return [packageRoot];
       } catch {
         return [];
       }
     });
+  });
+
+const validateWorkspaceManifests = (
+  root: string,
+  rootDocument: ManifestDocument
+): void => {
+  const packageRoots = [
+    ...listWorkspacePackageDirs(
+      root,
+      listWorkspacePatterns(rootDocument.manifest)
+    ),
+    ...listGlobSymlinkPackageRoots(root, rootDocument).filter((packageRoot) =>
+      isWithinRoot(packageRoot, root)
+    ),
+  ];
+  const seen = new Set<string>();
+  for (const packageRoot of packageRoots) {
+    const normalized = packageRoot.replaceAll('\\', '/');
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    const document = readManifest(join(packageRoot, 'package.json'));
+    if (typeof document.manifest['name'] !== 'string') {
+      throw new TypeError(
+        `${document.file} must declare a string package name before migration.`
+      );
+    }
+  }
+};
+
+const discoverExternalSymlinkWorkspaces = ({
+  publicPackages,
+  root,
+  rootDocument,
+}: {
+  readonly publicPackages: ReadonlySet<string>;
+  readonly root: string;
+  readonly rootDocument: ManifestDocument;
+}): readonly { readonly name: string; readonly packageRoot: string }[] =>
+  listGlobSymlinkPackageRoots(root, rootDocument).flatMap((packageRoot) => {
+    if (isWithinRoot(packageRoot, root)) {
+      return [];
+    }
+    try {
+      const manifest: unknown = JSON.parse(
+        readFileSync(join(packageRoot, 'package.json'), 'utf8')
+      );
+      return isPlainObject(manifest) &&
+        typeof manifest['name'] === 'string' &&
+        publicPackages.has(manifest['name'])
+        ? [{ name: manifest['name'], packageRoot }]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+
+const discoverInternalSymlinkWorkspaces = ({
+  root,
+  rootDocument,
+}: {
+  readonly root: string;
+  readonly rootDocument: ManifestDocument;
+}): readonly {
+  readonly manifest: Record<string, unknown>;
+  readonly packageJsonPath: string;
+  readonly packageRoot: string;
+}[] =>
+  listGlobSymlinkPackageRoots(root, rootDocument).flatMap((packageRoot) => {
+    if (!isWithinRoot(packageRoot, root)) {
+      return [];
+    }
+    const packageJsonPath = realpathSync(
+      join(packageRoot, 'package.json')
+    ).replaceAll('\\', '/');
+    const document = readManifest(packageJsonPath);
+    return [
+      {
+        manifest: document.manifest,
+        packageJsonPath,
+        packageRoot,
+      },
+    ];
   });
 
 const detachExternalWorkspaces = ({
@@ -245,13 +298,24 @@ export const discoverConsumerWorkspace = ({
     name?: unknown;
     private?: unknown;
   }>(root);
-  const escapedWorkspaceManifests = workspaces.filter(
+  const internalSymlinkWorkspaces = discoverInternalSymlinkWorkspaces({
+    root,
+    rootDocument,
+  });
+  const escapedWorkspaceManifests = [
+    ...workspaces,
+    ...internalSymlinkWorkspaces,
+  ].filter(
     ({ packageJsonPath, packageRoot }) =>
       isWithinRoot(packageRoot, root) && !isWithinRoot(packageJsonPath, root)
   );
-  const localWorkspaces = workspaces.filter(
-    ({ packageJsonPath, packageRoot }) =>
-      isWithinRoot(packageRoot, root) && isWithinRoot(packageJsonPath, root)
+  const localWorkspaces = [...workspaces, ...internalSymlinkWorkspaces].filter(
+    ({ packageJsonPath, packageRoot }, index, all) =>
+      isWithinRoot(packageRoot, root) &&
+      isWithinRoot(packageJsonPath, root) &&
+      all.findIndex(
+        (workspace) => workspace.packageJsonPath === packageJsonPath
+      ) === index
   );
   const localPackages = new Set(
     localWorkspaces.flatMap(({ manifest }) =>

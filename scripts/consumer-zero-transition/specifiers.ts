@@ -206,7 +206,12 @@ const planResolutionFields = ({
         }
         continue;
       }
-      if (!name.startsWith('@ontrails/')) {
+      if (!name.startsWith('@ontrails/') && name.includes('@ontrails/')) {
+        diagnostics.push({
+          file,
+          message: `Selector-bearing ${field}.${name} is not supported by this transition bridge.`,
+          name,
+        });
         continue;
       }
       if (isBetaTarballOverride(name, specifier)) {
