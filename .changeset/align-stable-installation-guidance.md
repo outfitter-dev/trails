@@ -17,4 +17,4 @@
 "@ontrails/trails": patch
 ---
 
-Point public installation examples at exact stable 1.0.0 versions and distinguish the prepared source release from pending npm publication.
+Point public installation examples at exact approved 0.2.0 versions and distinguish the prepared source release from pending npm publication.

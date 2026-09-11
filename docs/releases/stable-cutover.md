@@ -31,7 +31,7 @@ The manual version branch is `trl-1347-retarget-the-prepared-trails-package-fami
 
 The prerelease exit already happened in source. Do not run `changeset pre exit` again, merge the obsolete `1.0.1` proposal, or run ordinary version generation over the unpublished `1.0.0` baseline. Use the reviewed 0.2.0 version PR and its recorded generation evidence. The general version-PR procedure below describes an increasing release or a future prerelease exit.
 
-Existing beta ranges cannot resolve downward to `0.2.0`; update their declared sources and let Bun regenerate its lockfile after publication. Release completion requires fresh consumer installation proof against npm, after all 23 packages resolve at the new version. The disposable consumer bridge is tracked in [TRL-1346](https://linear.app/outfitter/issue/TRL-1346/provide-a-disposable-consumer-bridge-to-trails-010).
+After publication, use the [consumer migration guide](./migrate-to-0x.md) to preview and apply the disposable manifest bridge. Existing beta ranges cannot resolve downward to `0.2.0`; update their declared sources and let Bun regenerate its lockfile. Release completion requires fresh consumer installation proof against npm, after all 23 packages resolve at the new version.
 
 ## Preconditions
 

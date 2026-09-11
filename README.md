@@ -29,12 +29,14 @@ The skill gives your agent the full Trails reference: lexicon, patterns, error t
 
 ### With code
 
-Stable `1.0.0` is prepared in source; npm publication is pending. Use the pinned Bun commands below after publication.
+Stable `0.2.0` is prepared in source; npm publication is pending. Use the pinned Bun commands below after publication.
 
-For the standalone `trails` CLI, follow the canonical [Homebrew installation guide](./docs/getting-started.md#installation) after the stable release assets and tap update are available. The stable `1.0.0` Homebrew handoff is pending; the formula requires Bun at runtime.
+Moving an existing app from the 1.0 beta line? The [0.x migration guide](./docs/releases/migrate-to-0x.md) includes a preview-first script for manifests, catalogs, and package overrides. The 0.x line ships on `latest`; minor releases may include documented API changes.
+
+For the standalone `trails` CLI, follow the canonical [Homebrew installation guide](./docs/getting-started.md#installation) after the stable release assets and tap update are available. The stable `0.2.0` Homebrew handoff is pending; the formula requires Bun at runtime.
 
 ```bash
-bunx @ontrails/trails@1.0.0 create --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.0 create --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```
 
 Follow the prompts — pick a name, choose a starter, select your surfaces. The scaffolder generates a working project with trails, a topo, surface wiring, and tests. The `--permit` flag is required: `create` writes a new project, and Trails write commands always name their authority explicitly instead of assuming it.
@@ -42,8 +44,8 @@ Follow the prompts — pick a name, choose a starter, select your surfaces. The 
 Or install manually:
 
 ```bash
-bun add --exact @ontrails/core@1.0.0 @ontrails/cli@1.0.0 @ontrails/commander@1.0.0 zod
-bun add --exact -d @ontrails/testing@1.0.0
+bun add --exact @ontrails/core@0.2.0 @ontrails/cli@0.2.0 @ontrails/commander@0.2.0 zod
+bun add --exact -d @ontrails/testing@0.2.0
 ```
 
 ## Before and after
@@ -180,4 +182,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-v1 beta. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented and shipping. The WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+Pre-1.0 API development. The first normal release is prepared at `0.2.0` for `latest`; npm publication is pending. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented. The WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.

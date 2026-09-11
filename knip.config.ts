@@ -110,6 +110,7 @@ const config: KnipConfig = {
     '.': {
       entry: [
         'scripts/bootstrap/main.ts',
+        'scripts/migrate-consumer-to-0x.ts',
         'scripts/verify-oxc-resolver-published.ts',
         'scripts/__tests__/**/*.ts',
         'trails.config.ts',

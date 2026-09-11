@@ -63,7 +63,7 @@ Current public packages are lockstep at the same Trails framework version.
 - **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
 - **Observability:** `@ontrails/observability` defines sink contracts; its `/dev` and `/otel` subpaths provide developer-state and OTel support, while `/logtape` and `/pino` are temporary sink adapters.
 - **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topography` owns TopoGraphs, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs; `@ontrails/warden` owns governance rules.
-- **Stable install policy:** This skill targets stable `1.0.0`, which is prepared in source while npm publication is pending. Use exact `1.0.0` package pins after publication.
+- **Stable install policy:** This skill targets `0.2.0` on `latest`. The release is prepared in source while npm publication is pending. Use exact `0.2.0` package pins after publication. The 0.x line permits documented API changes in minor releases; patches preserve compatibility. Existing 1.0 beta ranges require an explicit manifest migration.
 
 ## Release Rules
 
