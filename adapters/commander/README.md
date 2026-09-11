@@ -48,10 +48,10 @@ The first matching token after the flag is its explicit value. After that first 
 
 ## Installation
 
-These commands target stable `1.0.0`. Run them after that version is published to npm.
+These commands target stable `0.2.0`. Run them after that version is published to npm.
 
 ```bash
-bun add --exact @ontrails/cli@1.0.0 @ontrails/commander@1.0.0
+bun add --exact @ontrails/cli@0.2.0 @ontrails/commander@0.2.0
 ```
 
 ## Migration

@@ -1,6 +1,6 @@
 # Historical Beta Channel Policy
 
-**Archived beta-era reference.** Trails now has stable `1.0.0` prepared in source, with npm publication pending. For current installation instructions, use [Getting Started](../getting-started.md); for current release operations, use the [Stable Cutover Runbook](./stable-cutover.md) and [Release Rules Check](./release-rules-check.md).
+**Archived beta-era reference.** Trails now has stable `0.2.0` prepared in source, with npm publication pending. For current installation instructions, use [Getting Started](../getting-started.md); for current release operations, use the [Stable Cutover Runbook](./stable-cutover.md) and [Release Rules Check](./release-rules-check.md).
 
 The policy below records the retired `1.0.0-beta.N` prerelease line. Its beta commands and channel descriptions are preserved for historical migrations; they do not describe the current stable release posture.
 

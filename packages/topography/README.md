@@ -221,8 +221,8 @@ The `@ontrails/warden` package wraps this into `checkDrift()` with CI-friendly r
 
 ## Installation
 
-These commands target stable `1.0.0`. Run them after that version is published to npm.
+These commands target stable `0.2.0`. Run them after that version is published to npm.
 
 ```bash
-bun add --exact -d @ontrails/topography@1.0.0
+bun add --exact -d @ontrails/topography@0.2.0
 ```

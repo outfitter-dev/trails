@@ -2,15 +2,15 @@
 
 Command-line tools for working with Trails projects.
 
-Use the canonical [Homebrew installation guide](../../docs/getting-started.md#installation) for installation, updates, and removal. Stable `1.0.0` installation requires the release assets and tap update; that handoff is pending. The formula requires Bun at runtime.
+Use the canonical [Homebrew installation guide](../../docs/getting-started.md#installation) for installation, updates, and removal. Stable `0.2.0` installation requires the release assets and tap update; that handoff is pending. The formula requires Bun at runtime.
 
 Use the CLI to scaffold a Trails app, add surfaces, inspect the current topo, run warden checks, manage draft state, and keep local Trails project state tidy.
 
-These commands target stable `1.0.0`. Run them after that version is published to npm.
+These commands target stable `0.2.0`. Run them after that version is published to npm.
 
 ```bash
-bunx @ontrails/trails@1.0.0 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
-bunx @ontrails/trails@1.0.0 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.0 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.0 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```
 
 Common workflows:

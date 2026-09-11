@@ -223,7 +223,7 @@ export const verifyDownstreamPackageSourceWithAcquirer = async (
  * @example
  * ```ts
  * const proof = await verifyDownstreamPackageSource({
- *   expected: { kind: 'published', name: '@ontrails/core', version: '1.0.0' },
+ *   expected: { kind: 'published', name: '@ontrails/core', version: '0.2.0' },
  *   root: process.cwd(),
  * });
  * if (proof.isErr()) throw proof.error;

@@ -50,17 +50,17 @@ In a configured workspace, the integrated operator derives topo targets from sta
 
 The project-static `workspace-lock-ownership` rule checks the same collection boundary without deriving identity from files it finds. A nested `trails.lock` outside configured app roots is a warning with its root-relative path, source-collection provenance, and declare-or-remove coaching. An unowned lock at the workspace root is a forbidden aggregate and reports as an error. Scope exclusions and typed nested repository, worktree, and submodule boundaries remain outside this census.
 
-After stable `1.0.0` is published to npm, CI can also use the direct Warden bin:
+After stable `0.2.0` is published to npm, CI can also use the direct Warden bin:
 
 ```bash
-bunx @ontrails/warden@1.0.0 --ci
+bunx @ontrails/warden@0.2.0 --ci
 ```
 
 The direct bin retains `warden.apps`, `TRAILS_APPS`, and `--apps` compatibility for standalone apps and migration. Configured workspaces should move the persistent list to `workspace.apps` and use the integrated operator when they need stable app-ID selection.
 
 `--ci` is a preset on the Warden bin. It runs all depths, emits GitHub annotations by default, fails on errors, and suppresses lockfile mutation. Use `--fail-on warning` or `--strict` when warnings should block the run.
 
-After the `v1.0.0` release tag exists, GitHub adopters can use the reusable action after checkout, Bun setup, and dependency installation:
+After the `v0.2.0` release tag exists, GitHub adopters can use the reusable action after checkout, Bun setup, and dependency installation:
 
 ```yaml
 jobs:
@@ -70,19 +70,19 @@ jobs:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - uses: outfitter-dev/trails/.github/actions/check@v1.0.0
+      - uses: outfitter-dev/trails/.github/actions/check@v0.2.0
         with:
           apps: trails,trails-demo
           depth: all
           fail-on: error
 ```
 
-The action runs the version-pinned Warden bin. When the action is used from a version tag such as `@v1.0.0`, it runs `@ontrails/warden@1.0.0` by default; use the `warden-version` input only when the action tag and npm package version must intentionally diverge. Workflows that pin the action by SHA or by a non-version branch must set `warden-version` explicitly because those refs do not identify an npm package version. Framework PR CI should keep using the local workspace bin so PRs test branch code rather than the latest published package.
+The action runs the version-pinned Warden bin. When the action is used from a version tag such as `@v0.2.0`, it runs `@ontrails/warden@0.2.0` by default; use the `warden-version` input only when the action tag and npm package version must intentionally diverge. Workflows that pin the action by SHA or by a non-version branch must set `warden-version` explicitly because those refs do not identify an npm package version. Framework PR CI should keep using the local workspace bin so PRs test branch code rather than the latest published package.
 
 For non-GitHub CI, call the bin directly after installing Bun and project dependencies:
 
 ```bash
-bunx @ontrails/warden@1.0.0 --ci --apps trails,trails-demo --fail-on error
+bunx @ontrails/warden@0.2.0 --ci --apps trails,trails-demo --fail-on error
 ```
 
 ## Authoring Durable Rules
