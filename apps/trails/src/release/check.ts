@@ -5,6 +5,7 @@ import { join, relative, resolve } from 'node:path';
 import { loadTrailsConfigValue } from '@ontrails/config';
 
 import { findChangesetPackageErrors } from './changeset-packages.js';
+import { isStableWorkspaceVersionChange } from './stable-version-release.js';
 import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
 import { findPublicTrailContractChangeFacts } from './contract-facts.js';
@@ -374,14 +375,11 @@ const findAffectedPackages = (
 const isVersionReleaseChangeSet = (
   changedFiles: readonly string[],
   workspaces: readonly WorkspaceInfo[],
-  coveredPackages: readonly string[]
+  coveredPackages: readonly string[],
+  input: ReleaseCheckInput
 ): boolean => {
   const normalizedFiles = changedFiles.map(normalizePath);
   const coveredPackageSet = new Set(coveredPackages);
-
-  if (!normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
-    return false;
-  }
 
   const publishableWorkspaces = workspaces.filter(
     isPublishableOnTrailsWorkspace
@@ -415,7 +413,29 @@ const isVersionReleaseChangeSet = (
     }
   }
 
-  return hasWorkspaceVersionFile;
+  if (!hasWorkspaceVersionFile) {
+    return false;
+  }
+  if (normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
+    return true;
+  }
+
+  return publishableWorkspaces
+    .filter((workspace) =>
+      normalizedFiles.some(
+        (file) =>
+          file === `${workspace.relativePath}/package.json` ||
+          file === `${workspace.relativePath}/CHANGELOG.md`
+      )
+    )
+    .every((workspace) =>
+      isStableWorkspaceVersionChange(
+        input.repoRoot,
+        input.baseRef,
+        workspace.relativePath,
+        normalizedFiles
+      )
+    );
 };
 
 const parseChangesetPackages = (content: string): readonly string[] => {
@@ -657,7 +677,8 @@ export const checkReleaseRules = (
   const versionRelease = isVersionReleaseChangeSet(
     input.changedFiles,
     input.workspaces,
-    coveredPackages
+    coveredPackages,
+    input
   );
   const uncoveredPackages = affectedPackages.filter(
     (packageName) => !coveredPackages.includes(packageName)
