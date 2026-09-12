@@ -1,5 +1,11 @@
 # trails
 
+## 0.2.2
+
+### Patch Changes
+
+- [`0ae6a5d`](https://github.com/outfitter-dev/trails/commit/0ae6a5de15fd36bff2997a163b2ce64772151514): Wait up to two minutes for npm metadata and dist-tags to converge during post-publish verification. Retain confirmed package proofs, bound in-flight npm probes by the same deadline, and fail immediately on registry access errors or newer tags without retrying publication.
+
 ## 0.2.1
 
 ### Patch Changes
