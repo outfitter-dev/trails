@@ -116,8 +116,6 @@ export {
   npmRegistryVersionView,
   npmRegistryView,
   registryPostureErrors,
-  runRegistryPreflight,
-  runRegistryPreflightCli,
   type PackageRegistryFacts,
   type PackageRegistryState,
   type RegistryCheckPhase,
@@ -127,6 +125,10 @@ export {
   type RegistryView,
   type RegistryWorkspace,
 } from './native-bun-registry.js';
+export {
+  runRegistryPreflight,
+  runRegistryPreflightCli,
+} from './native-bun-registry-preflight.js';
 export {
   collectReleaseNotesInput,
   dedupeReleaseChanges,

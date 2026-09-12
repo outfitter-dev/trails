@@ -71,6 +71,17 @@ const failingRegistryView: RegistryView = async () => {
 const publishedVersionView: RegistryVersionView = async () => true;
 const unpublishedVersionView: RegistryVersionView = async () => false;
 
+const currentWorkspaceRegistryView = async (): Promise<RegistryView> => {
+  const current = await discoverRegistryWorkspaces();
+  const versions = new Map(current.map(({ name, version }) => [name, version]));
+  return async (name) => {
+    const version = versions.get(name);
+    return version === undefined
+      ? null
+      : { 'dist-tags': { beta: version }, name, version };
+  };
+};
+
 const withConsoleOutput = async (
   invoke: () => Promise<number>
 ): Promise<{
@@ -219,10 +230,11 @@ describe('checkRegistryPosture', () => {
 
 describe('runRegistryPreflight', () => {
   test('keeps injected registry views no-network unless a version view is supplied', async () => {
+    const registryView = await currentWorkspaceRegistryView();
     const output = await withConsoleOutput(() =>
       runRegistryPreflight(
         { requirePublished: false, tag: 'beta' },
-        staleTagRegistryView
+        registryView
       )
     );
 
@@ -232,10 +244,11 @@ describe('runRegistryPreflight', () => {
   });
 
   test('reports unpublished targets when callers explicitly pass a version view', async () => {
+    const registryView = await currentWorkspaceRegistryView();
     const output = await withConsoleOutput(() =>
       runRegistryPreflight(
         { requirePublished: false, tag: 'beta' },
-        staleTagRegistryView,
+        registryView,
         unpublishedVersionView
       )
     );
@@ -243,6 +256,32 @@ describe('runRegistryPreflight', () => {
     expect(output.code).toBe(0);
     expect(output.stdout).toContain('target version not published yet');
   });
+
+  test('waits for a lagging package while retaining confirmed packages', async () => {
+    const registryView = await currentWorkspaceRegistryView();
+    const current = await discoverRegistryWorkspaces();
+    const lagging = current[0]?.name;
+    expect(lagging).toBeDefined();
+    const calls = new Map<string, number>();
+    const view: RegistryView = async (name) => {
+      const count = (calls.get(name) ?? 0) + 1;
+      calls.set(name, count);
+      return name === lagging && count === 1 ? null : registryView(name);
+    };
+    const output = await withConsoleOutput(() =>
+      runRegistryPreflight(
+        { requirePublished: true, tag: 'beta' },
+        view,
+        publishedVersionView
+      )
+    );
+
+    expect(output.code).toBe(0);
+    for (const { name } of current) {
+      expect(calls.get(name)).toBe(name === lagging ? 2 : 1);
+    }
+    expect(output.stdout).toContain('Waiting for registry propagation');
+  }, 10_000);
 });
 
 describe('discoverRegistryWorkspaces', () => {

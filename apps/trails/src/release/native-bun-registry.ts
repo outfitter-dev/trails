@@ -1,4 +1,3 @@
-/* oxlint-disable max-statements -- release preflight CLI with explicit reporting */
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
@@ -179,55 +178,6 @@ export const factsFromRegistryResult = (
   };
 };
 
-const USAGE = `Usage: bun scripts/check-registry-preflight.ts [options]
-
-Read-only npm registry preflight for public @ontrails/* workspaces.
-
-Options:
-  --tag <tag>            Expected npm dist-tag. Defaults to .changeset/pre.json
-                         tag while in prerelease mode, otherwise "latest".
-  --require-published    Fail when any workspace package is missing from npm.
-                         Use after publication to require exact metadata or
-                         equivalent consumer package-fetch proof.
-  -h, --help             Show this help and exit.
-
-Exit codes: 0 success, 1 registry posture failure, 2 arg-parse error.`;
-
-const parseArgs = (argv: readonly string[]): RegistryPreflightOptions => {
-  let requirePublished = false;
-  let tag: string | undefined;
-
-  const needsValue = (flag: string, value: string | undefined): string => {
-    if (value === undefined || value.startsWith('--')) {
-      console.error(`${flag} requires a value`);
-      console.error(USAGE);
-      process.exit(2);
-    }
-    return value;
-  };
-
-  let i = 0;
-  while (i < argv.length) {
-    const arg = argv[i] as string;
-    if (arg === '--require-published') {
-      requirePublished = true;
-    } else if (arg === '--tag') {
-      i += 1;
-      tag = needsValue('--tag', argv[i]);
-    } else if (arg === '-h' || arg === '--help') {
-      console.log(USAGE);
-      process.exit(0);
-    } else {
-      console.error(`Unknown argument: ${arg}`);
-      console.error(USAGE);
-      process.exit(2);
-    }
-    i += 1;
-  }
-
-  return { requirePublished, tag };
-};
-
 const readJson = async <T>(path: string): Promise<T> => {
   const file = Bun.file(path);
   if (!(await file.exists())) {
@@ -242,21 +192,6 @@ const errorCode = (error: unknown): string | undefined => {
   }
   const { code } = error as { readonly code?: unknown };
   return typeof code === 'string' ? code : undefined;
-};
-
-const resolveDefaultTag = async (): Promise<string> => {
-  const prePath = join(REPO_ROOT, '.changeset', 'pre.json');
-  if (!(await Bun.file(prePath).exists())) {
-    return 'latest';
-  }
-  const pre = await readJson<{ mode?: string; tag?: string }>(prePath);
-  if (pre.mode !== 'pre') {
-    return 'latest';
-  }
-  if (typeof pre.tag === 'string' && pre.tag.length > 0) {
-    return pre.tag;
-  }
-  throw new Error(`${prePath} is in prerelease mode but has no tag`);
 };
 
 const discoverWorkspaceDirs = async (
@@ -348,14 +283,21 @@ const readSpawnResult = async (
   return { exitCode, stderr, stdout };
 };
 
-const runNpmCommand: NpmCommandRunner = async (args) =>
-  readSpawnResult(
+/** Run a read-only npm registry command, aborting its subprocess at the verification deadline. */
+export const runNpmRegistryCommand = async (
+  args: readonly string[],
+  signal?: AbortSignal
+): Promise<NpmCommandResult> => {
+  signal?.throwIfAborted();
+  return readSpawnResult(
     Bun.spawn(['npm', ...args], {
       stderr: 'pipe',
       stdin: 'ignore',
       stdout: 'pipe',
+      ...(signal === undefined ? {} : { killSignal: 'SIGKILL', signal }),
     })
   );
+};
 
 const isNpmNotFoundOutput = (stdout: string, stderr: string): boolean => {
   const combined = `${stdout}\n${stderr}`;
@@ -453,7 +395,7 @@ const npmDistTagRegistryView = async (
 };
 
 export const createNpmRegistryView =
-  (runNpm: NpmCommandRunner = runNpmCommand): RegistryView =>
+  (runNpm: NpmCommandRunner = runNpmRegistryCommand): RegistryView =>
   async (name) => {
     const { exitCode, stderr, stdout } = await runNpm([
       'view',
@@ -498,7 +440,9 @@ const unknownRegistryVersionView: RegistryVersionView = async () =>
   UNKNOWN_REGISTRY_VERSION_STATE.published;
 
 export const createNpmRegistryVersionProofView =
-  (runNpm: NpmCommandRunner = runNpmCommand): RegistryVersionProofView =>
+  (
+    runNpm: NpmCommandRunner = runNpmRegistryCommand
+  ): RegistryVersionProofView =>
   async (name, version) => {
     const { exitCode, stderr, stdout } = await runNpm([
       'view',
@@ -548,7 +492,7 @@ export const createNpmRegistryVersionProofView =
   };
 
 export const createNpmRegistryVersionView = (
-  runNpm: NpmCommandRunner = runNpmCommand
+  runNpm: NpmCommandRunner = runNpmRegistryCommand
 ): RegistryVersionView => {
   const proofView = createNpmRegistryVersionProofView(runNpm);
   return async (name, version) => {
@@ -738,111 +682,3 @@ export const formatDistTagSummary = (
   SUMMARY_DIST_TAGS.map((tag) => `${tag}=${distTags[tag] ?? 'missing'}`).join(
     ', '
   );
-
-const formatTargetVersionStatus = (
-  proof: RegistryVersionProof | undefined,
-  versionPublished: boolean | undefined
-): string => {
-  if (proof?.kind === 'exact-metadata') {
-    return 'exact-version metadata available';
-  }
-  if (proof?.kind === 'consumer-pack') {
-    return 'exact-version metadata unavailable, consumer pack available';
-  }
-  if (proof?.kind === 'unavailable') {
-    return 'exact-version metadata and consumer pack unavailable';
-  }
-  if (versionPublished === true) {
-    return 'target version published';
-  }
-  if (versionPublished === false) {
-    return 'target version not published yet';
-  }
-  return 'target version publish state unknown';
-};
-
-const printResults = (
-  results: readonly RegistryResult[],
-  expectedTag: string
-): void => {
-  console.log(`Registry preflight for dist-tag "${expectedTag}"`);
-  for (const result of results) {
-    if (result.status === 'published') {
-      const targetStatus = formatTargetVersionStatus(
-        result.versionProof,
-        result.versionPublished
-      );
-      console.log(
-        `✓ ${result.name}@${result.workspaceVersion}: package exists, ${targetStatus} (registry version ${result.version}, expected ${expectedTag}=${result.expectedTagVersion ?? 'missing'}, tags ${formatDistTagSummary(result.distTags)})`
-      );
-    } else if (result.status === 'missing') {
-      console.log(
-        `• ${result.name}@${result.workspaceVersion}: first-time package candidate (not found on registry)`
-      );
-    } else {
-      console.log(`✗ ${result.name}: registry probe failed: ${result.error}`);
-    }
-  }
-};
-
-const normalizeRegistryPreflightViews = (
-  view: RegistryView | undefined,
-  versionView: RegistryVersionView | undefined
-): {
-  readonly versionView: RegistryVersionProbeView;
-  readonly view: RegistryView;
-} => {
-  if (view === undefined) {
-    return {
-      versionView: npmRegistryVersionProofView,
-      view: npmRegistryView,
-    };
-  }
-  return { versionView: versionView ?? unknownRegistryVersionView, view };
-};
-
-export const runRegistryPreflight = async (
-  options: RegistryPreflightOptions,
-  view?: RegistryView,
-  versionView?: RegistryVersionView
-): Promise<number> => {
-  const registryViews = normalizeRegistryPreflightViews(view, versionView);
-  const expectedTag = options.tag ?? (await resolveDefaultTag());
-  const workspaces = await discoverRegistryWorkspaces();
-  const results = await checkRegistryPosture(
-    workspaces,
-    registryViews.view,
-    registryViews.versionView,
-    expectedTag
-  );
-  printResults(results, expectedTag);
-  const errors = registryPostureErrors(
-    results,
-    expectedTag,
-    options.requirePublished ? 'published' : 'ready'
-  );
-  if (errors.length > 0) {
-    console.error('\nRegistry preflight failed:');
-    for (const error of errors) {
-      console.error(`- ${error}`);
-    }
-    return 1;
-  }
-  console.log('\nRegistry preflight passed.');
-  return 0;
-};
-
-export const runRegistryPreflightCli = async (
-  args: readonly string[] = process.argv.slice(2)
-): Promise<number> => {
-  try {
-    return await runRegistryPreflight(parseArgs(args));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    return 1;
-  }
-};
-
-if (import.meta.main) {
-  process.exit(await runRegistryPreflightCli(process.argv.slice(2)));
-}

@@ -353,6 +353,10 @@ bun run publish:registry-check:published
 
 Package access and dist-tag visibility are not sufficient. The strict check requires exact-version metadata or an equivalent consumer package fetch before it reports a package complete.
 
+After publication, the check waits up to two minutes for missing packages, missing exact-version proof, or lagging dist-tags. Read-only probes back off from 5 seconds to a 30-second cap, and confirmed packages keep their proof without being probed again. The deadline includes npm subprocess time. Pre-publish readiness remains a single pass.
+
+A newer dist-tag or an inaccessible registry fails immediately because it is not evidence of propagation lag. A timeout reports the remaining observations as a post-publish verification failure; it does not retry publication or establish that publication failed. Inspect those observations before choosing recovery.
+
 Spot-check representative packages directly when debugging:
 
 ```bash
