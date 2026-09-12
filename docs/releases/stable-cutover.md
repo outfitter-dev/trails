@@ -302,7 +302,7 @@ The normal publication path is the GitHub release workflow after the generated v
 
 When merge authority excludes publication and tags, verify the live policy reports `decision=manual` and `should_publish=true`, with the intended stable versions unpublished and the intended Git tag and GitHub release absent. The manual label alone does not hold back release assets or GitHub release creation when the registry already matches the release: those jobs may run with `should_publish=false`. Stop for a scoped authority decision if the registry is already complete or contradicts the intended unpublished state.
 
-After the GitHub release assets are published and validated, the release workflow dispatches **Publish Homebrew**. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR. The tap PR is deliberately not auto-merged: completion requires review, merge, and a clean install or upgrade verification from the tap.
+After the GitHub release assets are published and validated, the release workflow calls **Publish Homebrew** for that exact tag. The handoff also runs after a successful recovery release when npm publication jobs were intentionally skipped. It requires the GitHub release job to succeed and the run to remain uncancelled. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR. The tap PR is deliberately not auto-merged: completion requires review, merge, and a clean install or upgrade verification from the tap.
 
 Use clean, synced `main` for final read-only verification:
 

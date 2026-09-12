@@ -10,6 +10,7 @@ interface WorkflowStep {
 }
 
 interface WorkflowJob {
+  readonly if?: string;
   readonly needs?: string | readonly string[];
   readonly secrets?: Record<string, string>;
   readonly steps?: readonly WorkflowStep[];
@@ -32,6 +33,15 @@ const homebrewTapToken = `\${{ secrets.HOMEBREW_TAP_TOKEN }}`;
 const releaseTag = `\${{ needs.github-release.outputs.tag }}`;
 
 describe('TRL-1291 release workflow contract', () => {
+  test('hands off after skipped npm ancestors only when release succeeds and the run is not cancelled', () => {
+    const homebrew = readWorkflow('release.yml').jobs?.homebrew;
+    // An explicit status function avoids Actions' implicit success() check
+    // propagating skipped npm ancestors through a successful release job.
+    expect(homebrew?.if).toBe(
+      `\${{ !cancelled() && needs.github-release.result == 'success' }}`
+    );
+  });
+
   test('stages assets on a draft before publishing and invokes Homebrew directly', () => {
     const workflow = readWorkflow('release.yml');
     const release = workflow.jobs?.['github-release'];

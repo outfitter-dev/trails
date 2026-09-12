@@ -289,7 +289,7 @@ jobs:
   homebrew:
     name: Open Homebrew tap PR
     needs: github-release
-    if: needs.github-release.result == 'success'
+    if: ${{ !cancelled() && needs.github-release.result == 'success' }}
     uses: ./.github/workflows/publish-homebrew.yml
     with:
       tag: ${{ needs.github-release.outputs.tag }}
