@@ -82,11 +82,12 @@ jobs:
           branch: release/trails-${{ steps.release.outputs.version }}
           commit-message: 'trails ${{ steps.release.outputs.version }}'
           title: 'chore: update Trails to ${{ steps.release.outputs.version }}'
+          draft: always-true
           body: |
             Update the Trails formula from the published [v${{ steps.release.outputs.version }}](https://github.com/outfitter-dev/trails/releases/tag/v${{ steps.release.outputs.version }}) assets.
 
             > [!WARNING]
-            > Do not merge this pull request through GitHub.
+            > Keep this pull request in draft. Do not mark it ready or merge it through GitHub.
             >
             > After every `brew test-bot` job passes, dispatch the tap `brew pr-pull` workflow from `main` with this pull request number and its exact tested head SHA.
 

@@ -304,7 +304,7 @@ When merge authority excludes publication and tags, verify the live policy repor
 
 After the GitHub release assets are published and validated, the release workflow calls **Publish Homebrew** for that exact tag. The handoff also runs after a successful recovery release when npm publication jobs were intentionally skipped. It requires the GitHub release job to succeed and the run to remain uncancelled. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR.
 
-Keep the tap PR open while it is reviewed. Do not merge it through GitHub. After every `brew test-bot` job passes at the exact PR head, dispatch the tap's **brew pr-pull** workflow from `main` with the PR number and tested head SHA. That workflow owns the landing operation: it downloads the reviewed bottle artifacts, updates the formula with bottle metadata, publishes the bottle release, and pushes the resulting commit to tap `main`.
+Keep the tap PR open and in draft while it is reviewed. Do not mark it ready or merge it through GitHub. The tap's formula landing policy rejects a formula PR that leaves draft. After every required Homebrew job passes at the exact PR head, dispatch the tap's **brew pr-pull** workflow from `main` with the PR number and tested head SHA. That workflow rechecks the draft state and exact-head job conclusions before Homebrew setup, then owns the landing operation: it downloads the reviewed bottle artifacts, updates the formula with bottle metadata, publishes and attests the bottles, and pushes the resulting commit to tap `main`.
 
 Use clean, synced `main` for final read-only verification:
 

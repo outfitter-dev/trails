@@ -93,7 +93,9 @@ describe('TRL-1291 release workflow contract', () => {
 
     const openPr = steps.find(({ name }) => name === 'Open or update tap PR');
     const prBody = String(openPr?.with?.body ?? '');
-    expect(prBody).toContain('Do not merge this pull request through GitHub');
+    expect(openPr?.with?.draft).toBe('always-true');
+    expect(prBody).toContain('Keep this pull request in draft');
+    expect(prBody).toContain('Do not mark it ready or merge it through GitHub');
     expect(prBody).toContain(
       'dispatch the tap `brew pr-pull` workflow from `main`'
     );
