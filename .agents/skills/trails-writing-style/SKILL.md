@@ -3,7 +3,7 @@ description: Trails prose craft and lexicon style. Use when writing or reviewing
 metadata:
   author: trails
   category: content
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: trails-writing-style
 ---

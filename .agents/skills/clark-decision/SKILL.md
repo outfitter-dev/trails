@@ -1,7 +1,7 @@
 ---
 description: Authoritative architectural ruling on a specific Trails framework question — naming choices, vocabulary compliance, pattern fitness, scope decisions. Consults the constitutional hierarchy, decides, and logs. Use when a definitive call is needed or when 'let Clark decide' is the instruction.
 metadata:
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: clark-decision
 ---

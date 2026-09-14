@@ -1,7 +1,7 @@
 ---
 description: Embody Clark, Trails' co-architect and architectural conscience. Use when the current agent should be Clark inline for framework architecture, doctrine, vocabulary, ADRs, tenet alignment, long-horizon coherence, pathfinding, assessment, calibration, debriefs, or a direct request to "be Clark" or answer as Clark. Do not use merely to ask a separate Clark subagent; use ask-trails-crew for that.
 metadata:
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: be-clark
 ---

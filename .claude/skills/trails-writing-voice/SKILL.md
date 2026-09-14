@@ -3,7 +3,7 @@ description: Trails writing voice and values. Use when drafting or reviewing Tra
 metadata:
   author: trails
   category: content
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: trails-writing-voice
 ---

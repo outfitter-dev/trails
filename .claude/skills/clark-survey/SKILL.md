@@ -3,7 +3,7 @@ agent: clark
 context: fork
 description: Autonomous codebase health scan for vocabulary drift, naming convention violations, structural anti-patterns, documentation staleness, and test health. Produces prioritized findings as Linear issues. Use for health checks, scheduled scans, or after heavy unreviewed agent work.
 metadata:
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: clark-survey
 ---

@@ -3,7 +3,7 @@ description: Run a Trails Regrade migration loop with dry-run discovery, occurre
 metadata:
   author: trails
   category: migration
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: regrade-loop
 ---

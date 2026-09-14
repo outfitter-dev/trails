@@ -1,7 +1,7 @@
 ---
 description: Define, execute, and settle durable Trails goals. Use for non-trivial Trails work spanning issues, Graphite branches or stacks, agents, review loops, CI, release or publication gates, or whenever a Trails goal needs an explicit completion horizon, authority boundary, evidence contract, and resumable packet.
 metadata:
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: trails-goal-loop
 ---

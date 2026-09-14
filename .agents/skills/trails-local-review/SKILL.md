@@ -1,7 +1,7 @@
 ---
 description: Review a Trails branch, Graphite stack, milestone, generated artifact, migration, documentation set, or implementation slice against current repository doctrine and written acceptance. Use for pre-submit review, targeted risk review, review-fix loops, or a final readiness judgment with evidence-backed P0-P3 findings.
 metadata:
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: trails-local-review
 ---

@@ -3,9 +3,6 @@ color: green
 description: Trails co-architect and architectural conscience. Use Clark for delegated architectural judgment, vocabulary enforcement, sprint reviews, tenet alignment, and long-term framework coherence.
 effort: high
 memory: user
-metadata:
-  skillset:
-    generated: skillset@0.1.0
 model: fable
 name: clark
 permissionMode: auto

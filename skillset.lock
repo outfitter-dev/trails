@@ -14,7 +14,7 @@
       ],
       "kind": "project-agent",
       "name": "clark",
-      "outputHash": "sha256:fcce04482cf1c940e3fb66f0d599b21c1865ae980e50149fa45ff4cd355e16dc",
+      "outputHash": "sha256:18ab7d7203947100e7aef2ecec9887370a7ee2a79d785129a0474e7e9d95bed0",
       "outputPath": ".claude/agents/clark.md",
       "preprocessDependencies": [],
       "skillReferences": [
@@ -49,7 +49,7 @@
           "rendered": "trails"
         }
       ],
-      "sourceHash": "sha256:ffe417bf23dda0ed0efa6ac81d8458c3ffc25d01e58d60054c6f5c134c0b3372",
+      "sourceHash": "sha256:3fe4747201242e1c60aac9b6bb9124a4f899aa93286220eba719e17d91adbf50",
       "sourcePath": ".skillset/agents/clark.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -63,7 +63,7 @@
       ],
       "kind": "project-agent",
       "name": "lewis",
-      "outputHash": "sha256:9e3cc31db76f1971baf2c337369b439a03901a51531dc195fba5079d994c5f88",
+      "outputHash": "sha256:7c33b7dfc3c2b07084bd494b2aff41ee162af36296ceef1360cab671b1cdfaae",
       "outputPath": ".claude/agents/lewis.md",
       "preprocessDependencies": [],
       "skillReferences": [
@@ -73,7 +73,7 @@
           "rendered": "be-lewis"
         }
       ],
-      "sourceHash": "sha256:6739daa67ff2c64e7f94a961f595d7cad1ee53191f1acd083757289508a0b28f",
+      "sourceHash": "sha256:1f79e5a80c7abb0569a01269ab9e446079620d3bbc5fe257997833f7975c5803",
       "sourcePath": ".skillset/agents/lewis.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -87,7 +87,7 @@
       ],
       "kind": "project-agent",
       "name": "maintainer",
-      "outputHash": "sha256:eba67135caa1188f3eef3fe0b86a515c8324f472c6303ef7254ee17c0a4bdf37",
+      "outputHash": "sha256:87d8347f266a8bad2146445cb1ea731277b8246567ddcc95c60b03c7e56e1d31",
       "outputPath": ".claude/agents/maintainer.md",
       "preprocessDependencies": [],
       "skillReferences": [
@@ -97,7 +97,7 @@
           "rendered": "trails-adrs"
         }
       ],
-      "sourceHash": "sha256:583869fd66775ac84b53a534c064a8c361428473bdf14bc3b116813a235aced3",
+      "sourceHash": "sha256:e2d8bda1348cd0e884de48914adebcaf250be49b3dda20218db2510622531526",
       "sourcePath": ".skillset/agents/maintainer.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -111,11 +111,11 @@
       ],
       "kind": "project-agent",
       "name": "clark",
-      "outputHash": "sha256:aaa0155ad98935b7a5f15d17657614a29110b952af124b9d5fb3d6fdbf03434e",
+      "outputHash": "sha256:19ee52a44bda9125b7fdf48e67eef70c3da2f34a6fbf441c65f4659920dbefd7",
       "outputPath": ".codex/agents/clark.toml",
       "preprocessDependencies": [],
       "skillReferences": [],
-      "sourceHash": "sha256:2de63f68f174732242820aa2c2e65a74ed7b90c2d3cfe31845d6d6204fdb6f39",
+      "sourceHash": "sha256:899aa039964610e5cd079bff23599c9fd7029ab1c7208709f16e449c7f7cabbb",
       "sourcePath": ".skillset/agents/clark.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -129,17 +129,18 @@
       ],
       "kind": "project-agent",
       "name": "lewis",
-      "outputHash": "sha256:a254c1b5bd350c322dd870abb714a074c2734300fa242a58486f689c15e0648c",
+      "outputHash": "sha256:a6a60fddb71585a3751a0381398d41c786ffcdbec031f9288283378d8d8223a5",
       "outputPath": ".codex/agents/lewis.toml",
       "preprocessDependencies": [],
       "skillReferences": [],
-      "sourceHash": "sha256:e99d529a98e3e432592b5885b43c5b9182116c40d293bb2ccd4c82cc67bfbe69",
+      "sourceHash": "sha256:8e6c20f127eac3ac3716569127ba432cba2d767ae70455ae06c527409a181cff",
       "sourcePath": ".skillset/agents/lewis.md",
       "validation": "structured",
       "version": "0.1.0"
     }
   ],
   "outputRoot": ".",
+  "provenanceHash": "sha256:83cf3ddb0319c5923ee9e7107466442204bde083225f0c461b3a1c9500eeb2aa",
   "renderResults": [
     {
       "destination": "agent",

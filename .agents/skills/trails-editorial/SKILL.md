@@ -3,7 +3,7 @@ description: Complete Trails editorial review workflow. Use when reviewing docs,
 metadata:
   author: trails
   category: documentation
-  generated: skillset@0.1.0
+  skillset.schema: "1"
   version: 0.1.0
 name: trails-editorial
 ---

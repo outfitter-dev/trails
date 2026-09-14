@@ -5,6 +5,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
@@ -114,6 +115,7 @@ const fileMode = async (path: string): Promise<number> => {
 };
 
 const generatedBy = 'skillset@0.1.0';
+const renderedMetadataSchema = '1';
 
 const expectGeneratedSkillMetadata = (
   actual: Record<string, unknown>,
@@ -122,20 +124,15 @@ const expectGeneratedSkillMetadata = (
   const actualMetadata = asRecord(actual.metadata);
   const expectedMetadata =
     expected.metadata === undefined ? undefined : asRecord(expected.metadata);
-  expect(actualMetadata.generated).toBe(generatedBy);
+  expect(actualMetadata).not.toHaveProperty('generated');
+  expect(actualMetadata['skillset.schema']).toBe(renderedMetadataSchema);
   expect(actualMetadata.version).toBe(expectedMetadata?.version ?? '0.1.0');
 };
 
-const expectGeneratedAgentMetadata = (
-  actual: Record<string, unknown>,
-  kind: 'portable' | 'target-native'
+const expectNoGeneratedAgentMetadata = (
+  actual: Record<string, unknown>
 ): void => {
-  if (kind === 'target-native') {
-    expect(actual).not.toHaveProperty('metadata');
-    return;
-  }
-  const metadata = asRecord(actual.metadata);
-  expect(asRecord(metadata.skillset).generated).toBe(generatedBy);
+  expect(actual).not.toHaveProperty('metadata');
 };
 
 const runCli = async (
@@ -198,7 +195,7 @@ const makeClaudeOnlyAgentSource = async (name: 'maintainer'): Promise<string> =>
 const createBareFixture = async (
   prefix = 'trails-skillset-parity-'
 ): Promise<ParityFixture> => {
-  const root = await mkdtemp(join(tmpdir(), prefix));
+  const root = await realpath(await mkdtemp(join(tmpdir(), prefix)));
   fixtureRoots.push(root);
 
   const workspace = join(root, 'workspace');
@@ -442,7 +439,7 @@ describe('standalone Skillset parity', () => {
         )
       );
       expect(actualClaude.body).toBe(expectedClaude.body);
-      expectGeneratedAgentMetadata(actualClaude.frontmatter, 'portable');
+      expectNoGeneratedAgentMetadata(actualClaude.frontmatter);
       expect(actualClaude.frontmatter).toEqual(expectedClaude.frontmatter);
 
       const expectedCodex = Bun.TOML.parse(
@@ -454,6 +451,7 @@ describe('standalone Skillset parity', () => {
           'utf8'
         )
       ) as Record<string, unknown>;
+      expectNoGeneratedAgentMetadata(actualCodex);
       expect(actualCodex).toEqual(expectedCodex);
     }
 
@@ -467,7 +465,7 @@ describe('standalone Skillset parity', () => {
       )
     );
     expect(actualMaintainer.body).toBe(expectedMaintainer.body);
-    expectGeneratedAgentMetadata(actualMaintainer.frontmatter, 'portable');
+    expectNoGeneratedAgentMetadata(actualMaintainer.frontmatter);
     expect(actualMaintainer.frontmatter).toEqual(
       expectedMaintainer.frontmatter
     );
