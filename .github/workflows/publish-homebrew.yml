@@ -85,4 +85,9 @@ jobs:
           body: |
             Update the Trails formula from the published [v${{ steps.release.outputs.version }}](https://github.com/outfitter-dev/trails/releases/tag/v${{ steps.release.outputs.version }}) assets.
 
-            This pull request was opened by the Trails release workflow and is intentionally not merged automatically.
+            > [!WARNING]
+            > Do not merge this pull request through GitHub.
+            >
+            > After every `brew test-bot` job passes, dispatch the tap `brew pr-pull` workflow from `main` with this pull request number and its exact tested head SHA.
+
+            The `brew pr-pull` workflow owns both landing the formula and publishing its bottles.

@@ -302,7 +302,9 @@ The normal publication path is the GitHub release workflow after the generated v
 
 When merge authority excludes publication and tags, verify the live policy reports `decision=manual` and `should_publish=true`, with the intended stable versions unpublished and the intended Git tag and GitHub release absent. The manual label alone does not hold back release assets or GitHub release creation when the registry already matches the release: those jobs may run with `should_publish=false`. Stop for a scoped authority decision if the registry is already complete or contradicts the intended unpublished state.
 
-After the GitHub release assets are published and validated, the release workflow calls **Publish Homebrew** for that exact tag. The handoff also runs after a successful recovery release when npm publication jobs were intentionally skipped. It requires the GitHub release job to succeed and the run to remain uncancelled. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR. The tap PR is deliberately not auto-merged: completion requires review, merge, and a clean install or upgrade verification from the tap.
+After the GitHub release assets are published and validated, the release workflow calls **Publish Homebrew** for that exact tag. The handoff also runs after a successful recovery release when npm publication jobs were intentionally skipped. It requires the GitHub release job to succeed and the run to remain uncancelled. That workflow validates the already published tag and its complete checksum-backed asset set before it checks out `outfitter-dev/homebrew-tap`. It then opens or updates a reviewable tap PR.
+
+Keep the tap PR open while it is reviewed. Do not merge it through GitHub. After every `brew test-bot` job passes at the exact PR head, dispatch the tap's **brew pr-pull** workflow from `main` with the PR number and tested head SHA. That workflow owns the landing operation: it downloads the reviewed bottle artifacts, updates the formula with bottle metadata, publishes the bottle release, and pushes the resulting commit to tap `main`.
 
 Use clean, synced `main` for final read-only verification:
 
@@ -435,10 +437,12 @@ The stable release is complete only when:
 - `bun run publish:registry-check:published` passes;
 - fresh generated-app install, typecheck, and tests pass from a clean cache;
 - release notes and package changelogs reflect the stable release;
-- the Homebrew tap PR has been reviewed and merged, and a clean `brew install outfitter-dev/tap/trails` or `brew upgrade trails` followed by `trails --version` reports the released version;
+- the Homebrew tap PR has been reviewed and the tap's **brew pr-pull** workflow has landed it and published its bottles, and a clean `brew install outfitter-dev/tap/trails` or `brew upgrade trails` followed by `trails --version` reports the released version;
 - no generated `.trails` or `.trails-tmp` runtime state is staged;
 - the release issue or project update links to the final evidence.
 
 ### Homebrew Handoff Recovery Boundary
 
 Treat GitHub release assets, checksums, and the generated tap formula as one handoff. Do not hand-edit a release asset or `Formula/trails.rb` to recover a failed handoff. If the tag is already published, first validate that every expected platform archive and the checksum manifest are present and correct; then rerun **Publish Homebrew** for that existing tag so the formula and tap PR are regenerated from reviewed release evidence. If asset validation fails, repair the release incident before rerunning the Homebrew workflow.
+
+If a formula PR was merged through GitHub before **brew pr-pull** ran, do not revert the formula or rerun the ordinary open-PR path. Treat it as a tap publication incident. Use the tap workflow's opt-in `merged_pr_recovery` mode only after its exact head, base, merge topology, ancestry, dispatch SHA, and formula equality guards pass. Recovery preserves the reviewed formula and uses Homebrew's no-cherry-pick path to create the missing bottle commit without rewriting tap history.

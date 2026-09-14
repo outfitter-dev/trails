@@ -91,6 +91,16 @@ describe('TRL-1291 release workflow contract', () => {
     );
     expect(steps[tapIndex]?.with?.token).toBe(homebrewTapToken);
 
+    const openPr = steps.find(({ name }) => name === 'Open or update tap PR');
+    const prBody = String(openPr?.with?.body ?? '');
+    expect(prBody).toContain('Do not merge this pull request through GitHub');
+    expect(prBody).toContain(
+      'dispatch the tap `brew pr-pull` workflow from `main`'
+    );
+    expect(prBody).toContain(
+      'owns both landing the formula and publishing its bottles'
+    );
+
     const serialized = JSON.stringify(workflow);
     expect(serialized).not.toContain('gh pr merge');
     expect(serialized).not.toContain('npm publish');
