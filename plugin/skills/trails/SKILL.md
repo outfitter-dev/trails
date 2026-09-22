@@ -1,9 +1,10 @@
 ---
-name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
-  trails:
-    version: 0.2.2
+  skillset.schema: "1"
+  trails: 0.2.2
+  version: 0.3.4
+name: trails
 ---
 
 # Trails
@@ -171,7 +172,7 @@ import { surface } from '@ontrails/commander';
 await surface(graph);
 ```
 
-Use `cli` on a trail only for canonical command overrides or trail-owned aliases that still normalize into the same trail contract. String aliases are sibling leaf aliases (`find` beside `search`); string-array aliases are absolute command paths (`['wf', 'search']`). App-owned compatibility aliases belong in CLI surface options and should also be exported from the app module as `cliAliases` or `trailsCliAliases` so compile, validate, Wayfinder, and `trails schema` inspect the same routes the runtime CLI accepts.
+Use `cli` on a trail only for canonical command overrides or trail-owned aliases that still normalize into the same trail contract. String aliases are sibling leaf aliases (`find` beside `search`); string-array aliases are absolute command paths (`['wf', 'search']`). Author app-owned compatibility routes in an exported `trailsOverlays = [surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } })]` in the app module, then pass `trailsOverlays` to the CLI surface's `overlays` option. Compile, validate, Wayfinder, and `trails schema` then inspect the same routes the runtime CLI accepts. See [CLI surface](references/cli-surface.md).
 
 Treat aliases, future input mappings, and trailheads as **surface accommodations**: render-level fit adjustments, not alternate behavior. The trail stays the capability. A surface entry is the invocable affordance on a surface; an approach is the way a caller reaches it. Aliases add alternate approaches to the same trail, input mappings normalize surface-shaped input into the same trail input, and trailheads group several trails into one entry while preserving the selected trail ID. Use the ADR-0050 test: if the fit would change intent, permits, errors, outputs, lifecycle, side effects, or hide which trail is running, call it a trail fork and author a distinct or composing trail instead.
 

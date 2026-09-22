@@ -140,7 +140,7 @@
     }
   ],
   "outputRoot": ".",
-  "provenanceHash": "sha256:64f25c7128bbdf4d7cfaebacfd2942a6a3224f746232e6fad46efeb4dedc1623",
+  "provenanceHash": "sha256:c2c4dc1cc4effaa66e554029c3f61aaa62300dc486e10f0f99321b3dbbb4540c",
   "renderResults": [
     {
       "destination": "agent",
@@ -301,10 +301,42 @@
       "sourceUnit": "agent:maintainer",
       "status": "rendered",
       "target": "claude"
+    },
+    {
+      "destination": "agents",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-agents",
+      "policy": "unsupported:warn",
+      "reason": "agent-plugins-1.0 does not declare plugin-agents in its support envelope",
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails/agents",
+      "sourceUnit": "plugin.trails.feature:agents",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "unsupported"
     }
   ],
   "schemaVersion": 3,
   "selectedStandards": [
+    "agent-plugins-1.0",
     "agent-skills"
   ],
   "selectedTargets": [
@@ -314,6 +346,7 @@
   "skillsetMetadata": true,
   "sourceRoot": ".skillset",
   "standardProfileEvidence": {
+    "agent-plugins-1.0": "sha256:f1b89300d6c879de1c7a89f060faee2e6e6c76c71bbbcd9b0909d8ec00c18984",
     "agent-skills": "sha256:984d0c3d846d1a89cb0fdadb09f2bb82e476dd81217688cfeab3ecdee16e58b2"
   },
   "target": "workspace"

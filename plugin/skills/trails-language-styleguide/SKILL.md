@@ -1,6 +1,9 @@
 ---
-name: trails-language-styleguide
 description: Compatibility pointer for older Trails prompts. Prefer `trails-writing-voice`, `trails-writing-style`, `trails-writing-docs`, or `trails-editorial` when writing or reviewing Trails docs, ADRs, agent prompts, examples, comments, or contributor guidance.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-language-styleguide
 ---
 
 # Trails Language Styleguide

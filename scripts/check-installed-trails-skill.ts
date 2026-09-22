@@ -82,10 +82,6 @@ const STALE_VOCABULARY_PATTERNS: readonly {
     term: staleTerm(['Surface', ' maps']),
   },
   {
-    pattern: exactWordPattern(['trail', 'head'], 'i'),
-    term: staleTerm(['trail', 'head']),
-  },
-  {
     pattern: exactWordPattern(['connect', 'or'], 'i'),
     term: staleTerm(['connect', 'or']),
   },
@@ -246,9 +242,13 @@ const unquoteScalar = (value: string): string | undefined => {
 
 const parseSkillTrailsVersion = (source: string): string | undefined => {
   const frontmatter = source.match(/^---\n([\s\S]*?)\n---/)?.[1];
-  const version = frontmatter?.match(
-    /^metadata:\n(?:^[ \t]+.*\n)*?^ {2}trails:\n(?:^ {4}(?!version:).*\n)*?^ {4}version:\s*(.+)$/m
-  )?.[1];
+  const version =
+    frontmatter?.match(
+      /^metadata:\n(?:^[ \t]+.*\n)*?^ {2}trails:\s*(.+)$/m
+    )?.[1] ??
+    frontmatter?.match(
+      /^metadata:\n(?:^[ \t]+.*\n)*?^ {2}trails:\n(?:^ {4}(?!version:).*\n)*?^ {4}version:\s*(.+)$/m
+    )?.[1];
 
   return version ? unquoteScalar(version) : undefined;
 };
@@ -353,7 +353,7 @@ const makeVersionFinding = (
 
   return {
     code: 'version-drift',
-    message: `metadata.trails.version is ${version ?? 'missing'}, expected ${sourceVersion}.`,
+    message: `metadata.trails is ${version ?? 'missing'}, expected ${sourceVersion}.`,
     severity: 'error',
   };
 };
@@ -450,7 +450,7 @@ export const checkInstalledTrailsSkills = async ({
   const sourceVersion = await readSkillVersion(sourceDir);
   if (!sourceVersion) {
     throw new Error(
-      `check-installed-trails-skill: expected metadata.trails.version in ${join(
+      `check-installed-trails-skill: expected metadata.trails in ${join(
         sourceDir,
         'SKILL.md'
       )}.`
@@ -477,7 +477,7 @@ const renderReport = (report: InstalledSkillCheckReport): string => {
   const lines = [
     'Installed Trails skill drift report',
     `Source: ${report.sourcePath}`,
-    `Source metadata.trails.version: ${report.sourceVersion}`,
+    `Source metadata.trails: ${report.sourceVersion}`,
     '',
   ];
 
@@ -494,7 +494,7 @@ const renderReport = (report: InstalledSkillCheckReport): string => {
       lines.push(`  realpath: ${candidateReport.realPath}`);
     }
     if (candidateReport.version) {
-      lines.push(`  metadata.trails.version: ${candidateReport.version}`);
+      lines.push(`  metadata.trails: ${candidateReport.version}`);
     }
 
     for (const finding of candidateReport.findings) {

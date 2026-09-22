@@ -1,8 +1,8 @@
 # Plugin Release Runbook
 
-This runbook covers the Trails Claude plugin and bundled skills under `plugin/` plus the marketplace manifest at `.claude-plugin/marketplace.json`. It is separate from the framework package publish path in [Stable Cutover Runbook](./stable-cutover.md).
+This runbook covers canonical source at `.skillset/plugins/trails`, generated Claude bundle under `plugin/`, and generated marketplace manifest at `.claude-plugin/marketplace.json`. It is separate from the framework package publish path in [Stable Cutover Runbook](./stable-cutover.md).
 
-The current plugin manifest version is `0.3.4`. The bundled `trails` skill targets the current Trails framework package version through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
+The current plugin manifest version is `0.3.4`. The bundled `trails` skill targets the current Trails framework package version through `metadata.trails`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
 
 ## Stop Rules
 
@@ -54,10 +54,11 @@ The stable-RC refresh has newer framework evidence than the older beta.18 plugin
 
 ## Plugin 0.3.4 Bundle
 
-The refreshed bundle is recorded as plugin manifest version `0.3.4`. If the marketplace requires another version bump before publication, update `plugin/.claude-plugin/plugin.json`, then run:
+The refreshed bundle is recorded as plugin manifest version `0.3.4`. If the marketplace requires another version bump before publication, update `.skillset/plugins/trails/skillset.yaml`, then run:
 
 ```bash
 bun run plugin:metadata:sync
+bun run skillset:sync
 bun run plugin:metadata:check
 ```
 

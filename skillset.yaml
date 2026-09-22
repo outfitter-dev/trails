@@ -5,6 +5,8 @@ workspace:
   cacheKey: trails
 compile:
   build: all
+  # The portable plugin package cannot represent the Claude-only agent and hook.
+  unsupportedDestination: warn
   targets:
     - claude
     - codex

@@ -13,7 +13,7 @@ import {
 export const SKILLSET_SKILL_WARDEN_GUIDE_PATH =
   '.skillset/skills/be-clark/references/warden-guide.md';
 export const PLUGIN_SKILL_WARDEN_GUIDE_PATH =
-  'plugin/skills/trails/references/warden-guide.md';
+  '.skillset/plugins/trails/skills/trails/references/warden-guide.md';
 export const SKILL_WARDEN_GUIDE_PATHS = [
   SKILLSET_SKILL_WARDEN_GUIDE_PATH,
   PLUGIN_SKILL_WARDEN_GUIDE_PATH,

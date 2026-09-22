@@ -1,3 +1,7 @@
+---
+{}
+---
+
 # Trails Lexicon
 
 Use Trails-branded terms consistently. These are non-negotiable in code, docs, and conversation.

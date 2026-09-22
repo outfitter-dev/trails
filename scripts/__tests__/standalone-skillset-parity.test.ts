@@ -331,10 +331,10 @@ afterAll(async () => {
 describe('standalone Skillset parity', () => {
   test('reproduces the complete skill inventory, companions, and modes', async () => {
     const expectedFiles = await listFiles(join(repoRoot, '.skillset/skills'));
-    expect(expectedFiles).toHaveLength(39);
+    expect(expectedFiles).toHaveLength(34);
     expect(
       expectedFiles.filter((path) => path.endsWith('/SKILL.md'))
-    ).toHaveLength(16);
+    ).toHaveLength(12);
 
     for (const outputRoot of ['.claude/skills', '.agents/skills']) {
       const absoluteOutputRoot = join(fixture.workspace, outputRoot);

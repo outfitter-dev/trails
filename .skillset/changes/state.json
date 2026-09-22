@@ -16,6 +16,91 @@
       "updatedAt": "2026-08-18T16:41:39.434Z",
       "version": "0.1.0"
     },
+    "plugin.trails.companion:README.md": {
+      "sourceHash": "sha256:44700ad612acf75b405ce3e838f61b9157f26273d7a48343d047a16d05987ac2",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.companion:agents": {
+      "sourceHash": "sha256:d8e1eac31481a13bf54d682b7b46e2393710d8b7728afe3a825b67ef86777db4",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.companion:hooks": {
+      "sourceHash": "sha256:9efd71d39b41eabf22fc6516f30935c89cbdb661faa6cec082488c95c36650d1",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.config:root": {
+      "sourceHash": "sha256:dc88a839d18d10714313ebcc1f9098fcecdfde1e770a3541259b6c82ec37f47d",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails": {
+      "sourceHash": "sha256:394cb716b0619276ebf2ba0c521382512cde98f69d9e350db5b8472b4006268e",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-derive-from-source": {
+      "sourceHash": "sha256:6cb5487ef7794988912c8974d35a75d0dce57895fda81c2c9b8e205366d24042",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-discriminate-union": {
+      "sourceHash": "sha256:4e49069a380a3ca8243a51e60ee7ed5edd0f7cd54e41cba4c67431964c42ed70",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-dogfood-check": {
+      "sourceHash": "sha256:d989546700655017297ba0d34095ac899cccf3cf8654374aa4b0eda62b57edb6",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-editorial": {
+      "sourceHash": "sha256:796fced5758356462180fe90dc6f8a07927c09914c4e3e3ba88f4e3c5dc5d08c",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-error-format": {
+      "sourceHash": "sha256:921b9811ef2155ea4ef917e9cad360b3ccef1c8b9b0fa5c75fee0e6074006143",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-language-styleguide": {
+      "sourceHash": "sha256:1cabb9efa527288c1cc9b9d08fc895e0b1b03920697ab968f91faa00e6ca4c9e",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-primitive-parity": {
+      "sourceHash": "sha256:5bfc2c2466245b074aee64fee576794f935b88ee26fb95f1be33fcb05f02cc3a",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-warden-advisory": {
+      "sourceHash": "sha256:caef5b325e939581b831aece2197fb73d856d82782f89f976737d2485a98f02e",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-writing-docs": {
+      "sourceHash": "sha256:b756ba6923f17aeea86762a2e6210be6f97b51344daa4576a82e009f20ea63d6",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-writing-style": {
+      "sourceHash": "sha256:449400522ef173697fa2fe1dcd5be41a9567c03ec4cd359b22001afe2a53eb1b",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin.trails.skill:trails-writing-voice": {
+      "sourceHash": "sha256:dd240030463a2a3c20768bb44470f7f3800f3405a8db9cffa337f48a0452eab2",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
+    "plugin:trails": {
+      "sourceHash": "sha256:28ea32ce87461e0e823de30263a59399e25f377ecb30a473b655812dafcf89c8",
+      "updatedAt": "2026-09-21T20:46:07.288Z",
+      "version": "0.3.4"
+    },
     "skill:ask-trails-crew": {
       "sourceHash": "sha256:69188c5c903821d4b8b01ab9d7f3816609d6785fa38d247534cf9dd69ae59772",
       "updatedAt": "2026-08-18T16:41:45.198Z",

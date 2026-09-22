@@ -1,10 +1,11 @@
 ---
-name: trails-writing-docs
-description: 'Trails documentation structure and maintenance guidance. Use when creating or reorganizing Trails docs, READMEs, guides, reference pages, release docs, or agent-facing documentation.'
+description: Trails documentation structure and maintenance guidance. Use when creating or reorganizing Trails docs, READMEs, guides, reference pages, release docs, or agent-facing documentation.
 metadata:
-  version: '0.1.0'
   author: trails
   category: documentation
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-writing-docs
 ---
 
 # Trails Writing Docs

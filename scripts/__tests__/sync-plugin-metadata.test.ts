@@ -12,9 +12,9 @@ import {
 
 interface FixtureOptions {
   frameworkVersion?: string;
-  marketplaceMetadataVersion?: string;
   marketplacePluginVersion?: string;
   pluginVersion?: string;
+  renderedPluginVersion?: string;
   skillVersion?: string;
 }
 
@@ -25,8 +25,7 @@ const renderSkill = (version: string): string => `---
 name: trails
 description: Build with the Trails framework.
 metadata:
-  trails:
-    version: ${version}
+  trails: ${version}
 ---
 
 # Trails
@@ -38,15 +37,16 @@ const writeFixture = async (
 ): Promise<void> => {
   const pluginVersion = options.pluginVersion ?? '0.3.0';
   const frameworkVersion = options.frameworkVersion ?? '1.0.0-beta.18';
-  const marketplaceMetadataVersion =
-    options.marketplaceMetadataVersion ?? pluginVersion;
   const marketplacePluginVersion =
     options.marketplacePluginVersion ?? pluginVersion;
+  const renderedPluginVersion = options.renderedPluginVersion ?? pluginVersion;
   const skillVersion = options.skillVersion ?? frameworkVersion;
 
   await mkdir(join(rootDir, '.claude-plugin'), { recursive: true });
+  await mkdir(join(rootDir, '.skillset/plugins/trails/skills/trails'), {
+    recursive: true,
+  });
   await mkdir(join(rootDir, 'plugin/.claude-plugin'), { recursive: true });
-  await mkdir(join(rootDir, 'plugin/skills/trails'), { recursive: true });
   await mkdir(join(rootDir, 'packages/core'), { recursive: true });
 
   await writeFile(
@@ -54,7 +54,7 @@ const writeFixture = async (
     renderJson({
       metadata: {
         description: 'Build with Trails.',
-        version: marketplaceMetadataVersion,
+        version: '0.1.0',
       },
       name: 'trails',
       plugins: [
@@ -72,12 +72,16 @@ const writeFixture = async (
     renderJson({
       description: 'Build with Trails.',
       name: 'trails',
-      version: pluginVersion,
+      version: renderedPluginVersion,
     })
   );
   await writeFile(
-    join(rootDir, 'plugin/skills/trails/SKILL.md'),
+    join(rootDir, '.skillset/plugins/trails/skills/trails/SKILL.md'),
     renderSkill(skillVersion)
+  );
+  await writeFile(
+    join(rootDir, '.skillset/plugins/trails/skillset.yaml'),
+    `skillset:\n  name: trails\n  version: ${pluginVersion}\n`
   );
   await writeFile(
     join(rootDir, 'packages/core/package.json'),
@@ -129,8 +133,8 @@ describe('sync-plugin-metadata', () => {
   test('reports every derived metadata drift independently', async () => {
     await withFixture(
       {
-        marketplaceMetadataVersion: '0.2.0',
         marketplacePluginVersion: '0.2.0',
+        renderedPluginVersion: '0.2.0',
         skillVersion: '1.0.0-beta.17',
       },
       async (rootDir) => {
@@ -140,9 +144,9 @@ describe('sync-plugin-metadata', () => {
 
         expect(diagnostics).toHaveLength(3);
         expect(diagnostics.map((diagnostic) => diagnostic.path)).toEqual([
-          '.claude-plugin/marketplace.json:metadata.version',
+          'plugin/.claude-plugin/plugin.json:version',
           '.claude-plugin/marketplace.json:plugins[trails].version',
-          'plugin/skills/trails/SKILL.md:metadata.trails.version',
+          '.skillset/plugins/trails/skills/trails/SKILL.md:metadata.trails',
         ]);
         expect(diagnostics.map((diagnostic) => diagnostic.expected)).toEqual([
           '0.3.0',
@@ -153,24 +157,23 @@ describe('sync-plugin-metadata', () => {
     );
   });
 
-  test('sync updates only marketplace plugin metadata and skill target version', async () => {
+  test('sync updates only canonical skill metadata', async () => {
     await withFixture(
       {
-        marketplaceMetadataVersion: '0.2.0',
         marketplacePluginVersion: '0.2.0',
+        renderedPluginVersion: '0.2.0',
         skillVersion: '1.0.0-beta.17',
       },
       async (rootDir) => {
         const result = await syncPluginMetadata(rootDir);
 
         expect(result.changedPaths).toEqual([
-          '.claude-plugin/marketplace.json',
-          'plugin/skills/trails/SKILL.md',
+          '.skillset/plugins/trails/skills/trails/SKILL.md',
         ]);
         expect(result.diagnostics).toEqual([]);
         expect(
           checkPluginMetadata(await readPluginMetadataState(rootDir))
-        ).toEqual([]);
+        ).toHaveLength(2);
 
         const marketplace = JSON.parse(
           await readFile(
@@ -179,12 +182,12 @@ describe('sync-plugin-metadata', () => {
           )
         );
         const skill = await readFile(
-          join(rootDir, 'plugin/skills/trails/SKILL.md'),
+          join(rootDir, '.skillset/plugins/trails/skills/trails/SKILL.md'),
           'utf8'
         );
 
-        expect(marketplace.metadata.version).toBe('0.3.0');
-        expect(marketplace.plugins[0].version).toBe('0.3.0');
+        expect(marketplace.metadata.version).toBe('0.1.0');
+        expect(marketplace.plugins[0].version).toBe('0.2.0');
         expect(skill).toBe(renderSkill('1.0.0-beta.18'));
       }
     );

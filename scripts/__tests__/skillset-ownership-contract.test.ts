@@ -26,12 +26,15 @@ const readPriority = (command: string): number => {
 
 const MANAGED_SKILLSET_PATHS = [
   '.skillset/skills/be-clark/references/warden-guide.md',
+  '.skillset/plugins/trails/skills/trails/references/warden-guide.md',
+  '.claude-plugin/marketplace.json',
   '.claude/agents',
   '.claude/skills',
   '.agents/skills',
   '.codex/agents',
   'skillset.lock',
-  'plugin/skills/trails/references/warden-guide.md',
+  'plugin',
+  'plugins',
 ] as const;
 
 const gitEnv = Object.fromEntries(
@@ -78,6 +81,21 @@ const runShell = async (
 };
 
 describe('Skillset ownership contract', () => {
+  test('renders Claude plugin components without duplicate default hook wiring', async () => {
+    const manifest = JSON.parse(
+      await readRepoFile('plugin/.claude-plugin/plugin.json')
+    ) as { agents?: unknown; hooks?: unknown };
+
+    expect(manifest.agents).toBe('./agents/trail-engineer.md');
+    expect(manifest).not.toHaveProperty('hooks');
+    expect(await readRepoFile('plugin/agents/trail-engineer.md')).toContain(
+      'name: trail-engineer'
+    );
+    expect(await readRepoFile('plugin/hooks/hooks.json')).toContain(
+      '"SessionStart"'
+    );
+  });
+
   test('keeps standalone Skillset as the normal writer and checker', async () => {
     const packageJson = JSON.parse(
       await readRepoFile('package.json')
@@ -152,13 +170,16 @@ describe('Skillset ownership contract', () => {
       '.skillset/**',
       'skillset.yaml',
       'skillset.lock',
+      '.claude-plugin/marketplace.json',
       '.claude/agents/**',
       '.claude/skills/**',
       '.agents/skills/**',
       '.codex/agents/**',
       'packages/warden/**',
       'scripts/sync-skill-warden-guide.ts',
-      'plugin/skills/trails/references/warden-guide.md',
+      '.skillset/plugins/trails/skills/trails/references/warden-guide.md',
+      'plugin/**',
+      'plugins/**',
     ]) {
       expect(teamSkills).toContain(scope);
     }
@@ -247,7 +268,8 @@ describe('Skillset ownership contract', () => {
     const createdPath = '.codex/agents/clark.toml';
     const canonicalGuide =
       '.skillset/skills/be-clark/references/warden-guide.md';
-    const pluginGuide = 'plugin/skills/trails/references/warden-guide.md';
+    const pluginGuide =
+      '.skillset/plugins/trails/skills/trails/references/warden-guide.md';
     const unrelatedPath = 'unrelated.txt';
     const baselineFiles = [
       '.claude/agents/baseline.md',
@@ -255,6 +277,9 @@ describe('Skillset ownership contract', () => {
       '.agents/skills/skillset.lock',
       canonicalGuide,
       pluginGuide,
+      '.claude-plugin/marketplace.json',
+      'plugin/README.md',
+      'plugins/README.md',
       'skillset.lock',
       unrelatedPath,
     ];

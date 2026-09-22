@@ -729,8 +729,17 @@ const evaluateGeneratedReleaseDiff = (
 
   for (const file of changedFiles) {
     if (
-      (file.path === 'bun.lock' ||
-        file.path === 'plugin/skills/trails/SKILL.md') &&
+      [
+        'bun.lock',
+        '.skillset/plugins/trails/skills/trails/SKILL.md',
+        '.agents/skills/trails/SKILL.md',
+        '.agents/skills/skillset.lock',
+        'plugin/skills/trails/SKILL.md',
+        'plugin/skillset.lock',
+        'plugins/trails/agents/skills/trails/SKILL.md',
+        'plugins/skillset.lock',
+        'skillset.lock',
+      ].includes(file.path) &&
       file.status === 'M'
     ) {
       continue;

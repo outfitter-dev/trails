@@ -104,6 +104,7 @@ if (trailsAppWorkspaceEntry) {
 }
 
 const config: KnipConfig = {
+  ignore: ['scripts/__fixtures__/**'],
   ignoreExportsUsedInFile: true,
   treatConfigHintsAsErrors: true,
   workspaces: {

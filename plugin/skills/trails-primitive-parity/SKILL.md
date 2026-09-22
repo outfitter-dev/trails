@@ -1,6 +1,9 @@
 ---
-name: trails-primitive-parity
 description: Use when comparing maturity across Trails primitives without assuming every primitive must match trail capabilities. Helps agents identify deliberate gaps, real user-facing gaps, and future-facing symmetry pressure.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-primitive-parity
 ---
 
 # Trails Primitive Parity

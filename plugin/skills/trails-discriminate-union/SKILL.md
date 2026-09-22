@@ -1,6 +1,9 @@
 ---
-name: trails-discriminate-union
 description: Use when reviewing public or queryable Trails outputs that expose union-like shapes to agents or surfaces. Helps decide whether stable discriminants are required and whether the issue is schema cleanup, advisory guidance, or Warden work.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-discriminate-union
 ---
 
 # Trails Discriminate Union

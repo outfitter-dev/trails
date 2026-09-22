@@ -1,6 +1,9 @@
 ---
-name: trails-dogfood-check
 description: Use when reviewing Trails-owned framework code for Result-shaped failures, resource and cwd boundaries, app loading, and documented host construction exceptions.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-dogfood-check
 ---
 
 # Trails Dogfood Check

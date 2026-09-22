@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-const FIXTURE_ROOT = resolve('plugin/hooks/__fixtures__/detect-trails');
+const FIXTURE_ROOT = resolve('scripts/__fixtures__/detect-trails');
 const HOOK_PATH = resolve('plugin/hooks/detect-trails.sh');
 
 const runHookAt = async (

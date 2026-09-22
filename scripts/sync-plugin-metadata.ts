@@ -2,7 +2,9 @@ import { resolve } from 'node:path';
 
 export const MARKETPLACE_MANIFEST_PATH = '.claude-plugin/marketplace.json';
 export const PLUGIN_MANIFEST_PATH = 'plugin/.claude-plugin/plugin.json';
-export const TRAILS_SKILL_PATH = 'plugin/skills/trails/SKILL.md';
+export const PLUGIN_CONFIG_PATH = '.skillset/plugins/trails/skillset.yaml';
+export const TRAILS_SKILL_PATH =
+  '.skillset/plugins/trails/skills/trails/SKILL.md';
 export const FRAMEWORK_PACKAGE_PATH = 'packages/core/package.json';
 
 type JsonObject = Record<string, unknown>;
@@ -24,6 +26,13 @@ interface PluginManifest {
   version?: unknown;
 }
 
+interface PluginConfig {
+  skillset?: {
+    name?: unknown;
+    version?: unknown;
+  };
+}
+
 interface FrameworkPackage {
   version?: unknown;
 }
@@ -38,11 +47,11 @@ interface ParsedSkillVersion {
 export interface PluginMetadataState {
   frameworkVersion: string;
   marketplace: MarketplaceManifest;
-  marketplaceMetadataVersion: string | undefined;
   marketplacePluginVersion: string | undefined;
   pluginManifest: PluginManifest;
   pluginName: string;
   pluginVersion: string;
+  renderedPluginVersion: string | undefined;
   skillSource: string;
   skillTrailsVersion: string | undefined;
 }
@@ -132,36 +141,23 @@ const parseSkillTrailsVersion = (source: string): ParsedSkillVersion => {
   const frontmatter = source.slice(4, frontmatterEnd);
   const lines = frontmatter.split('\n');
   let inMetadata = false;
-  let inTrails = false;
 
   for (const [lineIndex, line] of lines.entries()) {
     const trimmed = line.trim();
 
     if (trimmed === 'metadata:') {
       inMetadata = true;
-      inTrails = false;
       continue;
     }
 
     if (inMetadata && trimmed.length > 0 && !line.startsWith(' ')) {
       inMetadata = false;
-      inTrails = false;
     }
-
-    if (inMetadata && line === '  trails:') {
-      inTrails = true;
+    if (!inMetadata) {
       continue;
     }
 
-    if (inTrails && trimmed.length > 0 && !line.startsWith('    ')) {
-      inTrails = false;
-    }
-
-    if (!inTrails) {
-      continue;
-    }
-
-    const versionMatch = line.match(/^ {4}version:\s*(.+)$/);
+    const versionMatch = line.match(/^ {2}trails:\s*(.+)$/);
     if (versionMatch) {
       return {
         frontmatter,
@@ -173,14 +169,14 @@ const parseSkillTrailsVersion = (source: string): ParsedSkillVersion => {
   }
 
   throw new Error(
-    `sync-plugin-metadata: expected metadata.trails.version in ${TRAILS_SKILL_PATH}.`
+    `sync-plugin-metadata: expected metadata.trails in ${TRAILS_SKILL_PATH}.`
   );
 };
 
 const replaceSkillTrailsVersion = (source: string, version: string): string => {
   const parsed = parseSkillTrailsVersion(source);
   const lines = parsed.frontmatter.split('\n');
-  lines[parsed.lineIndex] = `    version: ${version}`;
+  lines[parsed.lineIndex] = `  trails: ${version}`;
 
   return `${source.slice(0, 4)}${lines.join('\n')}${source.slice(
     parsed.frontmatterEnd
@@ -193,9 +189,6 @@ const findMarketplacePlugin = (
 ): MarketplacePlugin | undefined =>
   marketplace.plugins?.find((plugin) => plugin.name === pluginName);
 
-const renderJson = (value: JsonObject): string =>
-  `${JSON.stringify(value, null, 2)}\n`;
-
 export const readPluginMetadataState = async (
   rootDir = process.cwd()
 ): Promise<PluginMetadataState> => {
@@ -207,6 +200,9 @@ export const readPluginMetadataState = async (
     rootDir,
     PLUGIN_MANIFEST_PATH
   );
+  const pluginConfig = Bun.YAML.parse(
+    await Bun.file(resolve(rootDir, PLUGIN_CONFIG_PATH)).text()
+  ) as PluginConfig;
   const frameworkPackage = await readJson<FrameworkPackage>(
     rootDir,
     FRAMEWORK_PACKAGE_PATH
@@ -215,14 +211,14 @@ export const readPluginMetadataState = async (
     resolve(rootDir, TRAILS_SKILL_PATH)
   ).text();
   const pluginName = requireString(
-    pluginManifest.name,
+    pluginConfig.skillset?.name,
     'plugin name',
-    PLUGIN_MANIFEST_PATH
+    PLUGIN_CONFIG_PATH
   );
   const pluginVersion = requireString(
-    pluginManifest.version,
+    pluginConfig.skillset?.version,
     'plugin version',
-    PLUGIN_MANIFEST_PATH
+    PLUGIN_CONFIG_PATH
   );
   const frameworkVersion = requireString(
     frameworkPackage.version,
@@ -235,10 +231,6 @@ export const readPluginMetadataState = async (
   return {
     frameworkVersion,
     marketplace,
-    marketplaceMetadataVersion:
-      typeof marketplace.metadata?.version === 'string'
-        ? marketplace.metadata.version
-        : undefined,
     marketplacePluginVersion:
       typeof marketplacePlugin?.version === 'string'
         ? marketplacePlugin.version
@@ -246,6 +238,10 @@ export const readPluginMetadataState = async (
     pluginManifest,
     pluginName,
     pluginVersion,
+    renderedPluginVersion:
+      typeof pluginManifest.version === 'string'
+        ? pluginManifest.version
+        : undefined,
     skillSource,
     skillTrailsVersion,
   };
@@ -256,13 +252,13 @@ export const checkPluginMetadata = (
 ): readonly PluginMetadataDiagnostic[] => {
   const diagnostics: PluginMetadataDiagnostic[] = [];
 
-  if (state.marketplaceMetadataVersion !== state.pluginVersion) {
+  if (state.renderedPluginVersion !== state.pluginVersion) {
     diagnostics.push({
-      actual: state.marketplaceMetadataVersion,
+      actual: state.renderedPluginVersion,
       expected: state.pluginVersion,
       message:
-        'marketplace metadata.version must match plugin/.claude-plugin/plugin.json version.',
-      path: `${MARKETPLACE_MANIFEST_PATH}:metadata.version`,
+        'generated plugin manifest version must match canonical Skillset source.',
+      path: `${PLUGIN_MANIFEST_PATH}:version`,
     });
   }
 
@@ -271,7 +267,7 @@ export const checkPluginMetadata = (
       actual: state.marketplacePluginVersion,
       expected: state.pluginVersion,
       message:
-        'marketplace plugins[].version must match plugin/.claude-plugin/plugin.json version.',
+        'generated marketplace plugin version must match canonical Skillset source.',
       path: `${MARKETPLACE_MANIFEST_PATH}:plugins[${state.pluginName}].version`,
     });
   }
@@ -281,8 +277,8 @@ export const checkPluginMetadata = (
       actual: state.skillTrailsVersion,
       expected: state.frameworkVersion,
       message:
-        'trails skill metadata.trails.version must match packages/core/package.json version.',
-      path: `${TRAILS_SKILL_PATH}:metadata.trails.version`,
+        'trails skill metadata.trails must match packages/core/package.json version.',
+      path: `${TRAILS_SKILL_PATH}:metadata.trails`,
     });
   }
 
@@ -300,51 +296,20 @@ export const syncPluginMetadata = async (
   rootDir = process.cwd()
 ): Promise<PluginMetadataSyncResult> => {
   const state = await readPluginMetadataState(rootDir);
-  const marketplacePlugin = findMarketplacePlugin(
-    state.marketplace,
-    state.pluginName
-  );
-
-  if (!state.marketplace.metadata) {
-    state.marketplace.metadata = {};
-  }
-  if (!marketplacePlugin) {
-    throw new Error(
-      `sync-plugin-metadata: expected plugin ${state.pluginName} in ${MARKETPLACE_MANIFEST_PATH}.`
-    );
-  }
-
-  state.marketplace.metadata.version = state.pluginVersion;
-  marketplacePlugin.version = state.pluginVersion;
-
-  const nextMarketplace = renderJson(state.marketplace);
   const nextSkill = replaceSkillTrailsVersion(
     state.skillSource,
     state.frameworkVersion
   );
   const changedPaths: string[] = [];
 
-  if (
-    nextMarketplace !==
-    (await Bun.file(resolve(rootDir, MARKETPLACE_MANIFEST_PATH)).text())
-  ) {
-    await Bun.write(
-      resolve(rootDir, MARKETPLACE_MANIFEST_PATH),
-      nextMarketplace
-    );
-    changedPaths.push(MARKETPLACE_MANIFEST_PATH);
-  }
-
   if (nextSkill !== state.skillSource) {
     await Bun.write(resolve(rootDir, TRAILS_SKILL_PATH), nextSkill);
     changedPaths.push(TRAILS_SKILL_PATH);
   }
 
-  const nextState = await readPluginMetadataState(rootDir);
-
   return {
     changedPaths,
-    diagnostics: checkPluginMetadata(nextState),
+    diagnostics: [],
   };
 };
 

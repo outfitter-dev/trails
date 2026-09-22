@@ -35,7 +35,7 @@ describe('sync-skill-warden-guide', () => {
       '.skillset/skills/be-clark/references/warden-guide.md'
     );
     expect(PLUGIN_SKILL_WARDEN_GUIDE_PATH).toBe(
-      'plugin/skills/trails/references/warden-guide.md'
+      '.skillset/plugins/trails/skills/trails/references/warden-guide.md'
     );
     expect(SKILL_WARDEN_GUIDE_PATHS).toHaveLength(2);
     expect(guide).toStartWith('# Warden Guidance For Trails Skills');

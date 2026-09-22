@@ -1,3 +1,7 @@
+---
+{}
+---
+
 # Trails Code Patterns
 
 ## Implementations

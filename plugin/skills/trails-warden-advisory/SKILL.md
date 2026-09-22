@@ -1,6 +1,9 @@
 ---
-name: trails-warden-advisory
 description: Use when deciding whether a Trails hardening finding belongs in Warden, repo-local Oxlint, docs, an advisory skill, or no rule. Helps agents classify prevention candidates by owner source, Warden tier, lifecycle, diagnostic shape, and false-positive risk.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-warden-advisory
 ---
 
 # Trails Warden Advisory

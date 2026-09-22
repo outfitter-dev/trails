@@ -345,14 +345,24 @@ describe('evaluateReleasePolicy', () => {
     );
   });
 
-  test('allows canonical lock and skill metadata updates in generated releases', () => {
+  test('allows canonical skill metadata and exact generated outputs in releases', () => {
     const input = baseInput();
     const report = evaluateReleasePolicy({
       ...input,
       changedFiles: [
         ...input.changedFiles,
         { path: 'bun.lock', status: 'M' },
+        {
+          path: '.skillset/plugins/trails/skills/trails/SKILL.md',
+          status: 'M',
+        },
+        { path: '.agents/skills/trails/SKILL.md', status: 'M' },
+        { path: '.agents/skills/skillset.lock', status: 'M' },
         { path: 'plugin/skills/trails/SKILL.md', status: 'M' },
+        { path: 'plugin/skillset.lock', status: 'M' },
+        { path: 'plugins/trails/agents/skills/trails/SKILL.md', status: 'M' },
+        { path: 'plugins/skillset.lock', status: 'M' },
+        { path: 'skillset.lock', status: 'M' },
       ],
     });
 
@@ -368,6 +378,8 @@ describe('evaluateReleasePolicy', () => {
     { path: 'plugin/skills/other/SKILL.md', status: 'M' },
     { path: 'plugin/skills/trails/SKILL.md', status: 'A' },
     { path: 'plugin/skills/trails/SKILL.md', status: 'D' },
+    { path: 'plugins/skillset.lock', status: 'A' },
+    { path: 'plugins/skillset.lock', status: 'D' },
     { path: 'bun.lock', status: 'A' },
     { path: 'bun.lock', status: 'D' },
     { path: 'apps/trails/bun.lock', status: 'M' },

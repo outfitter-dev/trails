@@ -1,6 +1,9 @@
 ---
-name: trails-derive-from-source
 description: Use when a Trails change derives framework facts, derived views, rule data, or surface metadata. Helps agents find authoritative owner exports and avoid shadow registries, duplicated maps, and canonical-source indirection.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-derive-from-source
 ---
 
 # Trails Derive From Source

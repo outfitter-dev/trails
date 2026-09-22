@@ -1,6 +1,9 @@
 ---
-name: trails-error-format
 description: Use when reviewing Trails error taxonomy, surface error rendering, redaction, retryability, or Result-vs-throw boundaries. Helps distinguish runtime failures from intentional construction and host-boundary throws.
+metadata:
+  skillset.schema: "1"
+  version: 0.3.4
+name: trails-error-format
 ---
 
 # Trails Error Format

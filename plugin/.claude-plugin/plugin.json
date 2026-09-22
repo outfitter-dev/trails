@@ -1,10 +1,12 @@
 {
-  "name": "trails",
-  "version": "0.3.4",
-  "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance for agent-assisted development.",
+  "agents": "./agents/trail-engineer.md",
   "author": {
     "name": "Outfitter",
     "url": "https://github.com/outfitter-dev"
   },
-  "license": "MIT"
+  "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance for agent-assisted development.",
+  "license": "MIT",
+  "name": "trails",
+  "skills": "./skills/",
+  "version": "0.3.4"
 }

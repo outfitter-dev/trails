@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "author": {
+    "name": "Outfitter",
+    "url": "https://github.com/outfitter-dev"
+  },
+  "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance for agent-assisted development.",
+  "license": "MIT",
+  "name": "trails",
+  "version": "0.3.4"
+}
