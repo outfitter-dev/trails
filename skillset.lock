@@ -140,7 +140,7 @@
     }
   ],
   "outputRoot": ".",
-  "provenanceHash": "sha256:83cf3ddb0319c5923ee9e7107466442204bde083225f0c461b3a1c9500eeb2aa",
+  "provenanceHash": "sha256:64f25c7128bbdf4d7cfaebacfd2942a6a3224f746232e6fad46efeb4dedc1623",
   "renderResults": [
     {
       "destination": "agent",
@@ -168,7 +168,7 @@
           "path": ".claude/agents/clark.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/agents/clark.md",
       "sourceUnit": "agent:clark",
       "status": "rendered",
@@ -200,7 +200,7 @@
           "path": ".codex/agents/clark.toml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/agents/clark.md",
       "sourceUnit": "agent:clark",
       "status": "transformed",
@@ -232,7 +232,7 @@
           "path": ".claude/agents/lewis.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/agents/lewis.md",
       "sourceUnit": "agent:lewis",
       "status": "rendered",
@@ -264,7 +264,7 @@
           "path": ".codex/agents/lewis.toml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/agents/lewis.md",
       "sourceUnit": "agent:lewis",
       "status": "transformed",
@@ -296,19 +296,25 @@
           "path": ".claude/agents/maintainer.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/agents/maintainer.md",
       "sourceUnit": "agent:maintainer",
       "status": "rendered",
       "target": "claude"
     }
   ],
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "selectedStandards": [
+    "agent-skills"
+  ],
   "selectedTargets": [
     "claude",
     "codex"
   ],
   "skillsetMetadata": true,
   "sourceRoot": ".skillset",
+  "standardProfileEvidence": {
+    "agent-skills": "sha256:984d0c3d846d1a89cb0fdadb09f2bb82e476dd81217688cfeab3ecdee16e58b2"
+  },
   "target": "workspace"
 }

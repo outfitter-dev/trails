@@ -6,30 +6,74 @@
   "generatedBy": "skillset@0.1.0",
   "items": [
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "ask-trails-crew/SKILL.md": "0644",
-        "ask-trails-crew/agents/openai.yaml": "0644",
         "ask-trails-crew/references/claude-subagents.md": "0644",
         "ask-trails-crew/references/codex-subagents.md": "0644"
       },
       "files": [
         "ask-trails-crew/SKILL.md",
-        "ask-trails-crew/agents/openai.yaml",
         "ask-trails-crew/references/claude-subagents.md",
         "ask-trails-crew/references/codex-subagents.md"
       ],
       "kind": "standalone-skill",
       "name": "ask-trails-crew",
-      "outputHash": "sha256:462fedd5dfae5ad8fc8b8e2949d21fafd59b6c61d9f231b0d781363d2113d3fb",
+      "outputHash": "sha256:25ca16fae182f014f05c5d0e1362204d06cc0d4e735a86550f8ccab438517a1f",
       "outputPath": "ask-trails-crew/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:f1c244eced2cedbcead02485f0e5f917012bf5ded1ad1b489313bee75b2f1439",
       "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
+      "fileModes": {
+        "ask-trails-crew/agents/openai.yaml": "0644"
+      },
+      "files": [
+        "ask-trails-crew/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "ask-trails-crew",
+      "outputHash": "sha256:e7efd6fa9e93ac5a393728f982746e90cf58c417f2608ebc35c6dfc7ae407ecb",
+      "outputPath": "ask-trails-crew/agents/openai.yaml",
+      "owner": {
+        "target": "codex"
+      },
+      "sourceHash": "sha256:f1c244eced2cedbcead02485f0e5f917012bf5ded1ad1b489313bee75b2f1439",
+      "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "be-clark/SKILL.md": "0644",
-        "be-clark/agents/openai.yaml": "0644",
         "be-clark/references/assess.md": "0644",
         "be-clark/references/calibrate.md": "0644",
         "be-clark/references/debrief.md": "0644",
@@ -37,7 +81,6 @@
       },
       "files": [
         "be-clark/SKILL.md",
-        "be-clark/agents/openai.yaml",
         "be-clark/references/assess.md",
         "be-clark/references/calibrate.md",
         "be-clark/references/debrief.md",
@@ -45,30 +88,102 @@
       ],
       "kind": "standalone-skill",
       "name": "be-clark",
-      "outputHash": "sha256:1e3ad427d4da0de169baa1883ca3887b57bf434e128f074faffd93b749fda4c8",
+      "outputHash": "sha256:cc236d32892de4e48f0893817edf88ec313d24f2fb71496c7f480d77a6d9660f",
       "outputPath": "be-clark/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:0deefcd1af6c4495a58ca8f178003d2d76b5c635866b92c201a431cc191ab051",
       "sourcePath": ".skillset/skills/be-clark/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
-        "be-lewis/SKILL.md": "0644",
-        "be-lewis/agents/openai.yaml": "0644"
+        "be-clark/agents/openai.yaml": "0644"
       },
       "files": [
-        "be-lewis/SKILL.md",
-        "be-lewis/agents/openai.yaml"
+        "be-clark/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "be-clark",
+      "outputHash": "sha256:ef9ce8b634a290afdbccfb63d2c703ab64d0a472ae4b754d5f485845cec1c34d",
+      "outputPath": "be-clark/agents/openai.yaml",
+      "owner": {
+        "target": "codex"
+      },
+      "sourceHash": "sha256:0deefcd1af6c4495a58ca8f178003d2d76b5c635866b92c201a431cc191ab051",
+      "sourcePath": ".skillset/skills/be-clark/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
+      "fileModes": {
+        "be-lewis/SKILL.md": "0644"
+      },
+      "files": [
+        "be-lewis/SKILL.md"
       ],
       "kind": "standalone-skill",
       "name": "be-lewis",
-      "outputHash": "sha256:5d6e499c24964e38115278d02cfc4cf5decbd025646ab9fee80f13bc269e7cad",
+      "outputHash": "sha256:c931e9e87f0a51869c4974cf262d58fead213b736706e2b083ce65847f000d41",
       "outputPath": "be-lewis/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:ef02924e8b6f6f19d7aeaf1cb747aa57b1c002857610cae852840847d03b5b09",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
+      "fileModes": {
+        "be-lewis/agents/openai.yaml": "0644"
+      },
+      "files": [
+        "be-lewis/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "be-lewis",
+      "outputHash": "sha256:955e43bbe82006aba061a5e2ea8d9edd055e155af317723eb92b2fd3e75145e2",
+      "outputPath": "be-lewis/agents/openai.yaml",
+      "owner": {
+        "target": "codex"
+      },
+      "sourceHash": "sha256:ef02924e8b6f6f19d7aeaf1cb747aa57b1c002857610cae852840847d03b5b09",
+      "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "building-trails/SKILL.md": "0644"
       },
@@ -79,11 +194,24 @@
       "name": "building-trails",
       "outputHash": "sha256:c6e464195bf59ee5eb4ed7882deaf40119ade24d3c8a23fe6a28ae2be05b4d7c",
       "outputPath": "building-trails/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:b0014a47f1ed8c3fe17aab91f4af6542f8879421924f389cf18846b6ed8a6dcb",
       "sourcePath": ".skillset/skills/building-trails/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "clark-decision/SKILL.md": "0644"
       },
@@ -94,11 +222,24 @@
       "name": "clark-decision",
       "outputHash": "sha256:b99322557e2b8b4057176218b8792e881ae79042b43fcd6f5aa964e0e2ccbd56",
       "outputPath": "clark-decision/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:45d13641f6e2fe36414643737dc4d2b8442d569de1d8fd595e6fc7d90c4c2695",
       "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "clark-pathfinding/SKILL.md": "0644"
       },
@@ -109,11 +250,24 @@
       "name": "clark-pathfinding",
       "outputHash": "sha256:35338621f8cb8ea86a24c76d3a903c6b668782e5f572b0424160de2432760c72",
       "outputPath": "clark-pathfinding/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:10954c87a4c25c7f64d98917c6ae1dc6ce03542810f9437f80fa31904c852382",
       "sourcePath": ".skillset/skills/clark-pathfinding/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "clark-survey/SKILL.md": "0644"
       },
@@ -124,11 +278,24 @@
       "name": "clark-survey",
       "outputHash": "sha256:f2d50a0c266cbcdff52d6dc4a356448ae5dadb2b14ee8ec8c17b72522160f5c8",
       "outputPath": "clark-survey/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:d4130a7551e044126a8adff2d72ab498b2d8a14e3071f706451c769f20fbbf58",
       "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "regrade-loop/SKILL.md": "0644"
       },
@@ -139,11 +306,24 @@
       "name": "regrade-loop",
       "outputHash": "sha256:468b9718b645d06dce2208552bc3d2b2386d03d3a8fee56f771959193f14ab48",
       "outputPath": "regrade-loop/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:d72fea072d24b5de34429e7cad5fe229911acc183429ad33f2580f1e468ac86f",
       "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "tenets/SKILL.md": "0644"
       },
@@ -154,11 +334,24 @@
       "name": "tenets",
       "outputHash": "sha256:c4f3dfc008ca85fa2f5c511c66cf299cfdefe103c6e79cfb302b0e91ad617f3d",
       "outputPath": "tenets/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:ac2d1428925ccd8a307fa15ed4df29285bc0ff18b7f6be09f728dfdffbc16dfd",
       "sourcePath": ".skillset/skills/tenets/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "trails-adrs/SKILL.md": "0644",
         "trails-adrs/assets/adr-management.md": "0644",
@@ -191,11 +384,24 @@
       "name": "trails-adrs",
       "outputHash": "sha256:f402d8e8c9fb6f4ade076c9f86e7e0d2f6ed01761fc43894312959366ad4b73a",
       "outputPath": "trails-adrs/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:8c794f03bd523afc9926cfdb5165067939818da52102280fba957467be130a68",
       "sourcePath": ".skillset/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "trails-editorial/SKILL.md": "0644"
       },
@@ -206,45 +412,128 @@
       "name": "trails-editorial",
       "outputHash": "sha256:eaa3e9b0c0bf627e3a043bc41a6622a9c33b2344ee080f1cfee0534093621d8f",
       "outputPath": "trails-editorial/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:f0f93536d8d1aa61fe2736c3355637d4ff870ed439b2e6ca88b2a39da2ec557c",
       "sourcePath": ".skillset/skills/trails-editorial/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
-        "trails-goal-loop/SKILL.md": "0644",
-        "trails-goal-loop/agents/openai.yaml": "0644"
+        "trails-goal-loop/SKILL.md": "0644"
       },
       "files": [
-        "trails-goal-loop/SKILL.md",
-        "trails-goal-loop/agents/openai.yaml"
+        "trails-goal-loop/SKILL.md"
       ],
       "kind": "standalone-skill",
       "name": "trails-goal-loop",
-      "outputHash": "sha256:3ae99f3a3e69ce8c9f43fe09cf32ad37f445a0d87d7db90e69c4050d61d22c5c",
+      "outputHash": "sha256:75afadf95b537c6690b3befb01a58d94c56142b53d56292e8bd209a64866ff5e",
       "outputPath": "trails-goal-loop/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:2c699420cb9f4b9843b220a115e5e9addd021b982d1dfc3998ba22040372105b",
       "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
-        "trails-local-review/SKILL.md": "0644",
-        "trails-local-review/agents/openai.yaml": "0644"
+        "trails-goal-loop/agents/openai.yaml": "0644"
       },
       "files": [
-        "trails-local-review/SKILL.md",
-        "trails-local-review/agents/openai.yaml"
+        "trails-goal-loop/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-goal-loop",
+      "outputHash": "sha256:29d269ce5999d6a12fb62f1ef0db579b7b8f6c10fe0c0b79f68eff35770105f7",
+      "outputPath": "trails-goal-loop/agents/openai.yaml",
+      "owner": {
+        "target": "codex"
+      },
+      "sourceHash": "sha256:2c699420cb9f4b9843b220a115e5e9addd021b982d1dfc3998ba22040372105b",
+      "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
+      "fileModes": {
+        "trails-local-review/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-local-review/SKILL.md"
       ],
       "kind": "standalone-skill",
       "name": "trails-local-review",
-      "outputHash": "sha256:18b88834066d9e2b6de0054b2d58d33e57ef0cae7f1c5d00f1b415708a8323ed",
+      "outputHash": "sha256:a524c2e1dc42e4ef584db3ff2ece24a4f0486058e697374409d10bba3c916042",
       "outputPath": "trails-local-review/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:2d688da3a36f9d93859b55b5f76a580cbb248b33a9cdc07fd907079de0a5086d",
       "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
+      "fileModes": {
+        "trails-local-review/agents/openai.yaml": "0644"
+      },
+      "files": [
+        "trails-local-review/agents/openai.yaml"
+      ],
+      "kind": "standalone-skill",
+      "name": "trails-local-review",
+      "outputHash": "sha256:b8ec1cc1155c3eb90eef2aa5c47f16db8f2d5b55500e2cc594f98bd0f34c36c7",
+      "outputPath": "trails-local-review/agents/openai.yaml",
+      "owner": {
+        "target": "codex"
+      },
+      "sourceHash": "sha256:2d688da3a36f9d93859b55b5f76a580cbb248b33a9cdc07fd907079de0a5086d",
+      "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "trails-writing-docs/SKILL.md": "0644"
       },
@@ -255,11 +544,24 @@
       "name": "trails-writing-docs",
       "outputHash": "sha256:47e0c4d8b397b9f94b57e5f80d56e843c3706cd07ed31f1b6f88787977e5238c",
       "outputPath": "trails-writing-docs/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:9b423f8f893b56bdd9a89dc1f35fa9410d48c6bcdf31b613211def3e121c7288",
       "sourcePath": ".skillset/skills/trails-writing-docs/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "trails-writing-style/SKILL.md": "0644",
         "trails-writing-style/assets/SAMPLES.md": "0644"
@@ -272,11 +574,24 @@
       "name": "trails-writing-style",
       "outputHash": "sha256:84e77d6c8ea106211bcaea559a74260f82975af158b511a9b692d0a8580100ec",
       "outputPath": "trails-writing-style/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:ce4bef69894d6e52f0c940d129fbc27c548dadd6e4a54fa767d639f4b080a2de",
       "sourcePath": ".skillset/skills/trails-writing-style/SKILL.md",
       "version": "0.1.0"
     },
     {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-skills"
+        },
+        {
+          "phase": "delta",
+          "target": "codex"
+        }
+      ],
       "fileModes": {
         "trails-writing-voice/SKILL.md": "0644"
       },
@@ -287,14 +602,48 @@
       "name": "trails-writing-voice",
       "outputHash": "sha256:f4316d13ea2a8ac00b8c17afceb4ed19569c959be5066af5c0bb2a14075a98cc",
       "outputPath": "trails-writing-voice/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-skills"
+      },
       "sourceHash": "sha256:12e7dc3079181f34b8ac27e0c3c79e603d14b16ac6c2146f1e2dfa3dc22fd913",
       "sourcePath": ".skillset/skills/trails-writing-voice/SKILL.md",
       "version": "0.1.0"
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:d460c6df617a3d0818db0652a2d917f1c9e3807a5243b1ca423ae318b41a5fe0",
+  "provenanceHash": "sha256:8293419bf70acb5c0030964069e7c1b3e50cd14653ccd29ae8f333ebc6c2fb46",
   "renderResults": [
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/ask-trails-crew/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/ask-trails-crew/references/claude-subagents.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/ask-trails-crew/references/codex-subagents.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
+      "sourceUnit": "skill:ask-trails-crew",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
+    },
     {
       "destination": "skill",
       "evidence": [
@@ -334,11 +683,50 @@
           "path": ".agents/skills/ask-trails-crew/references/codex-subagents.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
       "sourceUnit": "skill:ask-trails-crew",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/be-clark/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/be-clark/references/assess.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/be-clark/references/calibrate.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/be-clark/references/debrief.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/be-clark/references/warden-guide.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/be-clark/SKILL.md",
+      "sourceUnit": "skill:be-clark",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -387,11 +775,34 @@
           "path": ".agents/skills/be-clark/references/warden-guide.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/be-clark/SKILL.md",
       "sourceUnit": "skill:be-clark",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/be-lewis/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
+      "sourceUnit": "skill:be-lewis",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -424,11 +835,34 @@
           "path": ".agents/skills/be-lewis/agents/openai.yaml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "sourceUnit": "skill:be-lewis",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/building-trails/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/building-trails/SKILL.md",
+      "sourceUnit": "skill:building-trails",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -457,11 +891,34 @@
           "path": ".agents/skills/building-trails/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/building-trails/SKILL.md",
       "sourceUnit": "skill:building-trails",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/clark-decision/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
+      "sourceUnit": "skill:clark-decision",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -490,11 +947,34 @@
           "path": ".agents/skills/clark-decision/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
       "sourceUnit": "skill:clark-decision",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/clark-pathfinding/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/clark-pathfinding/SKILL.md",
+      "sourceUnit": "skill:clark-pathfinding",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -523,11 +1003,34 @@
           "path": ".agents/skills/clark-pathfinding/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/clark-pathfinding/SKILL.md",
       "sourceUnit": "skill:clark-pathfinding",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/clark-survey/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
+      "sourceUnit": "skill:clark-survey",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -556,11 +1059,34 @@
           "path": ".agents/skills/clark-survey/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
       "sourceUnit": "skill:clark-survey",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/regrade-loop/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
+      "sourceUnit": "skill:regrade-loop",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -589,11 +1115,34 @@
           "path": ".agents/skills/regrade-loop/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
       "sourceUnit": "skill:regrade-loop",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/tenets/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/tenets/SKILL.md",
+      "sourceUnit": "skill:tenets",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -622,11 +1171,78 @@
           "path": ".agents/skills/tenets/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/tenets/SKILL.md",
       "sourceUnit": "skill:tenets",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/assets/adr-management.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/adr.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/cli.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/decision-map.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/discovery.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/frontmatter.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/git.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/index.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/paths.ts"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-adrs/scripts/lib/references.ts"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-adrs/SKILL.md",
+      "sourceUnit": "skill:trails-adrs",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -699,11 +1315,34 @@
           "path": ".agents/skills/trails-adrs/scripts/lib/references.ts"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-adrs/SKILL.md",
       "sourceUnit": "skill:trails-adrs",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-editorial/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-editorial/SKILL.md",
+      "sourceUnit": "skill:trails-editorial",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -732,11 +1371,34 @@
           "path": ".agents/skills/trails-editorial/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-editorial/SKILL.md",
       "sourceUnit": "skill:trails-editorial",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-goal-loop/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
+      "sourceUnit": "skill:trails-goal-loop",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -769,11 +1431,34 @@
           "path": ".agents/skills/trails-goal-loop/agents/openai.yaml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
       "sourceUnit": "skill:trails-goal-loop",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-local-review/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
+      "sourceUnit": "skill:trails-local-review",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -806,11 +1491,34 @@
           "path": ".agents/skills/trails-local-review/agents/openai.yaml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
       "sourceUnit": "skill:trails-local-review",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-writing-docs/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-writing-docs/SKILL.md",
+      "sourceUnit": "skill:trails-writing-docs",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -839,11 +1547,38 @@
           "path": ".agents/skills/trails-writing-docs/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-writing-docs/SKILL.md",
       "sourceUnit": "skill:trails-writing-docs",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-writing-style/SKILL.md"
+        },
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-writing-style/assets/SAMPLES.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-writing-style/SKILL.md",
+      "sourceUnit": "skill:trails-writing-style",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -876,11 +1611,34 @@
           "path": ".agents/skills/trails-writing-style/assets/SAMPLES.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-writing-style/SKILL.md",
       "sourceUnit": "skill:trails-writing-style",
       "status": "rendered",
       "target": "codex"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Skills unversioned specification",
+          "ref": "https://raw.githubusercontent.com/agentskills/agentskills/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "standalone-skills",
+      "outputs": [
+        {
+          "kind": "standalone-skill",
+          "path": ".agents/skills/trails-writing-voice/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/trails-writing-voice/SKILL.md",
+      "sourceUnit": "skill:trails-writing-voice",
+      "standardProfile": "agent-skills",
+      "status": "rendered"
     },
     {
       "destination": "skill",
@@ -909,19 +1667,25 @@
           "path": ".agents/skills/trails-writing-voice/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-writing-voice/SKILL.md",
       "sourceUnit": "skill:trails-writing-voice",
       "status": "rendered",
       "target": "codex"
     }
   ],
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "selectedStandards": [
+    "agent-skills"
+  ],
   "selectedTargets": [
     "claude",
     "codex"
   ],
   "skillsetMetadata": true,
   "sourceRoot": ".skillset",
+  "standardProfileEvidence": {
+    "agent-skills": "sha256:984d0c3d846d1a89cb0fdadb09f2bb82e476dd81217688cfeab3ecdee16e58b2"
+  },
   "target": "workspace"
 }

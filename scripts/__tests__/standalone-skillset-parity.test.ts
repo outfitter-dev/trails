@@ -41,9 +41,18 @@ interface SkillsetLock {
   readonly buildMode: string;
   readonly generatedBy: string;
   readonly items: readonly {
+    readonly consumers?: readonly {
+      readonly phase: string;
+      readonly standardProfile?: string;
+      readonly target?: string;
+    }[];
     readonly files: readonly string[];
     readonly kind: string;
     readonly name: string;
+    readonly owner?: {
+      readonly standardProfile?: string;
+      readonly target?: string;
+    };
     readonly outputPath: string;
     readonly sourcePath: string;
   }[];
@@ -486,14 +495,49 @@ describe('standalone Skillset parity', () => {
       expect(lock.generatedBy).toBe(generatedBy);
       expect(lock.buildMode).toBe('all');
       expect(lock.outputRoot).toBe(outputRoot);
-      expect(lock.schemaVersion).toBe(2);
+      expect(lock.schemaVersion).toBe(3);
       expect(lock.selectedTargets).toEqual(['claude', 'codex']);
       expect(lock.sourceRoot).toBe('.skillset');
       expect(lock.target).toBe('workspace');
-      expect(lock.items).toHaveLength(16);
       const skillNames = expectedSkillFiles
         .filter((path) => path.endsWith('/SKILL.md'))
         .map((path) => path.slice(0, -'/SKILL.md'.length));
+      const expectedItems = skillNames.flatMap((name) => {
+        const files = expectedSkillFiles.filter((path) =>
+          path.startsWith(`${name}/`)
+        );
+        const outputPath = `${name}/SKILL.md`;
+        const sourcePath = `.skillset/skills/${name}/SKILL.md`;
+        if (outputRoot === '.claude/skills') {
+          return [
+            { files, kind: 'standalone-skill', name, outputPath, sourcePath },
+          ];
+        }
+
+        const baseFiles = files.filter(
+          (path) => !path.endsWith('/agents/openai.yaml')
+        );
+        const sidecarFiles = files.filter((path) =>
+          path.endsWith('/agents/openai.yaml')
+        );
+        return [
+          {
+            files: baseFiles,
+            kind: 'standalone-skill',
+            name,
+            outputPath,
+            sourcePath,
+          },
+          ...sidecarFiles.map((path) => ({
+            files: [path],
+            kind: 'standalone-skill',
+            name,
+            outputPath: path,
+            sourcePath,
+          })),
+        ];
+      });
+      expect(lock.items).toHaveLength(expectedItems.length);
       expect(
         lock.items.map(({ files, kind, name, outputPath, sourcePath }) => ({
           files,
@@ -502,17 +546,23 @@ describe('standalone Skillset parity', () => {
           outputPath,
           sourcePath,
         }))
-      ).toEqual(
-        skillNames.map((name) => ({
-          files: expectedSkillFiles.filter((path) =>
-            path.startsWith(`${name}/`)
-          ),
-          kind: 'standalone-skill',
-          name,
-          outputPath: `${name}/SKILL.md`,
-          sourcePath: `.skillset/skills/${name}/SKILL.md`,
-        }))
-      );
+      ).toEqual(expectedItems);
+      if (outputRoot === '.agents/skills') {
+        for (const item of lock.items) {
+          if (item.files.some((path) => path.endsWith('/agents/openai.yaml'))) {
+            expect(item.owner).toEqual({ target: 'codex' });
+            expect(item.consumers).toEqual([
+              { phase: 'delta', target: 'codex' },
+            ]);
+          } else {
+            expect(item.owner).toEqual({ standardProfile: 'agent-skills' });
+            expect(item.consumers).toEqual([
+              { phase: 'baseline', standardProfile: 'agent-skills' },
+              { phase: 'delta', target: 'codex' },
+            ]);
+          }
+        }
+      }
     }
 
     const rootLock = JSON.parse(
@@ -521,7 +571,7 @@ describe('standalone Skillset parity', () => {
     expect(rootLock.generatedBy).toBe(generatedBy);
     expect(rootLock.buildMode).toBe('all');
     expect(rootLock.outputRoot).toBe('.');
-    expect(rootLock.schemaVersion).toBe(2);
+    expect(rootLock.schemaVersion).toBe(3);
     expect(rootLock.selectedTargets).toEqual(['claude', 'codex']);
     expect(rootLock.sourceRoot).toBe('.skillset');
     expect(rootLock.target).toBe('workspace');

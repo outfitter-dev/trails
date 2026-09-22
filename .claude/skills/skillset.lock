@@ -293,7 +293,7 @@
     }
   ],
   "outputRoot": ".claude/skills",
-  "provenanceHash": "sha256:229c88b5cf96a36ab1e2045e98d0c48761b13b378f3ddafaa9d40178f867e9ce",
+  "provenanceHash": "sha256:90db6abb3bcb520d2a87502a36b9c2e24ad56ab3cf3be25af95012e857a2c26e",
   "renderResults": [
     {
       "destination": "skill",
@@ -333,7 +333,7 @@
           "path": ".claude/skills/ask-trails-crew/references/codex-subagents.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/ask-trails-crew/SKILL.md",
       "sourceUnit": "skill:ask-trails-crew",
       "status": "rendered",
@@ -385,7 +385,7 @@
           "path": ".claude/skills/be-clark/references/warden-guide.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/be-clark/SKILL.md",
       "sourceUnit": "skill:be-clark",
       "status": "rendered",
@@ -421,7 +421,7 @@
           "path": ".claude/skills/be-lewis/agents/openai.yaml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "sourceUnit": "skill:be-lewis",
       "status": "rendered",
@@ -453,7 +453,7 @@
           "path": ".claude/skills/building-trails/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/building-trails/SKILL.md",
       "sourceUnit": "skill:building-trails",
       "status": "rendered",
@@ -485,7 +485,7 @@
           "path": ".claude/skills/clark-decision/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
       "sourceUnit": "skill:clark-decision",
       "status": "rendered",
@@ -517,7 +517,7 @@
           "path": ".claude/skills/clark-pathfinding/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/clark-pathfinding/SKILL.md",
       "sourceUnit": "skill:clark-pathfinding",
       "status": "rendered",
@@ -549,7 +549,7 @@
           "path": ".claude/skills/clark-survey/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
       "sourceUnit": "skill:clark-survey",
       "status": "rendered",
@@ -581,7 +581,7 @@
           "path": ".claude/skills/regrade-loop/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/regrade-loop/SKILL.md",
       "sourceUnit": "skill:regrade-loop",
       "status": "rendered",
@@ -613,7 +613,7 @@
           "path": ".claude/skills/tenets/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/tenets/SKILL.md",
       "sourceUnit": "skill:tenets",
       "status": "rendered",
@@ -689,7 +689,7 @@
           "path": ".claude/skills/trails-adrs/scripts/lib/references.ts"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-adrs/SKILL.md",
       "sourceUnit": "skill:trails-adrs",
       "status": "rendered",
@@ -721,7 +721,7 @@
           "path": ".claude/skills/trails-editorial/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-editorial/SKILL.md",
       "sourceUnit": "skill:trails-editorial",
       "status": "rendered",
@@ -757,7 +757,7 @@
           "path": ".claude/skills/trails-goal-loop/agents/openai.yaml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-goal-loop/SKILL.md",
       "sourceUnit": "skill:trails-goal-loop",
       "status": "rendered",
@@ -793,7 +793,7 @@
           "path": ".claude/skills/trails-local-review/agents/openai.yaml"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
       "sourceUnit": "skill:trails-local-review",
       "status": "rendered",
@@ -825,7 +825,7 @@
           "path": ".claude/skills/trails-writing-docs/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-writing-docs/SKILL.md",
       "sourceUnit": "skill:trails-writing-docs",
       "status": "rendered",
@@ -861,7 +861,7 @@
           "path": ".claude/skills/trails-writing-style/assets/SAMPLES.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-writing-style/SKILL.md",
       "sourceUnit": "skill:trails-writing-style",
       "status": "rendered",
@@ -893,19 +893,25 @@
           "path": ".claude/skills/trails-writing-voice/SKILL.md"
         }
       ],
-      "schema": "skillset-render-result@1",
+      "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/skills/trails-writing-voice/SKILL.md",
       "sourceUnit": "skill:trails-writing-voice",
       "status": "rendered",
       "target": "claude"
     }
   ],
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "selectedStandards": [
+    "agent-skills"
+  ],
   "selectedTargets": [
     "claude",
     "codex"
   ],
   "skillsetMetadata": true,
   "sourceRoot": ".skillset",
+  "standardProfileEvidence": {
+    "agent-skills": "sha256:984d0c3d846d1a89cb0fdadb09f2bb82e476dd81217688cfeab3ecdee16e58b2"
+  },
   "target": "workspace"
 }
