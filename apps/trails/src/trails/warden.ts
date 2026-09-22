@@ -290,6 +290,7 @@ export const buildWardenCommandArgs = (
 ): readonly string[] => {
   const args: string[] = [];
 
+  pushValue(args, '--root-dir', input.rootDir);
   pushFlag(args, input.prePush, '--pre-push');
   pushFlag(args, input.ci, '--ci');
   pushValue(args, '--depth', input.depth);
@@ -524,6 +525,7 @@ export const wardenTrail = trail('warden', {
       args: buildWardenCommandArgs({
         ...input,
         apps: apps.value.apps === undefined ? undefined : [...apps.value.apps],
+        rootDir: context.projectRoot,
       }),
       cwd: context.projectRoot,
       env: ctx.env ?? {},

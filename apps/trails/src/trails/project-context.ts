@@ -385,6 +385,7 @@ const resolveStandaloneRoot = (
       const markerPath = join(current, candidate);
       try {
         if (
+          resolved.marker !== 'source' &&
           statSync(markerPath).isDirectory() &&
           !isPreviouslyOwnedSourceMarker(
             current,

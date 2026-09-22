@@ -99,6 +99,8 @@ Each layer overrides the previous. Environment variables always win.
 - `trails.lock`
 - source-shaped projects with `src/trails/` or `trails/` when no committed marker exists above them
 
+A nested `trails/` directory inside another project's `src/` does not take over source-only root discovery unless its parent has its own `package.json`, `src/app.ts`, or `.git` marker. Use an explicit root for a nested project without one of those markers.
+
 `trails.config.local.*` is a per-developer override and does not mark a project root by itself. A bare `.trails/` directory also does not mark a root; it is the committed-control home for project-local sections after a project root is known.
 
 ## Workspace app identity

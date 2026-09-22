@@ -159,6 +159,39 @@ const findSourceRootMarkerIn = (
   return undefined;
 };
 
+const isIncidentalNestedSourceRoot = (
+  fallback: TrailsProjectRootResolution,
+  ancestorRoot: string,
+  ancestorMarkerPath: string
+): boolean => {
+  if (
+    (ancestorMarkerPath !== join(ancestorRoot, 'src', 'trails') &&
+      ancestorMarkerPath !== join(ancestorRoot, 'trails')) ||
+    fallback.markerPath !== join(fallback.rootDir, 'trails') ||
+    !isWithinBoundary(join(ancestorRoot, 'src'), fallback.rootDir)
+  ) {
+    return false;
+  }
+
+  return (
+    !isFile(join(fallback.rootDir, 'package.json')) &&
+    !isFile(join(fallback.rootDir, trailsAppEntryRelativePath)) &&
+    !isFile(join(fallback.rootDir, '.git')) &&
+    !isDirectory(join(fallback.rootDir, '.git'))
+  );
+};
+
+const shouldPreferSourceRoot = (
+  fallback: TrailsProjectRootResolution | undefined,
+  marker: Omit<TrailsProjectRootResolution, 'rootDir'> | undefined,
+  rootDir: string
+): boolean =>
+  marker !== undefined &&
+  (fallback === undefined ||
+    fallback.markerPath === marker.markerPath ||
+    (marker.markerPath !== undefined &&
+      isIncidentalNestedSourceRoot(fallback, rootDir, marker.markerPath)));
+
 export const findTrailsProjectRoot = ({
   boundaryDir,
   startDir = process.cwd(),
@@ -195,7 +228,12 @@ export const findTrailsProjectRoot = ({
     }
 
     const sourceMarker = findSourceRootMarkerIn(current);
-    if (sourceMarker !== undefined) {
+    if (
+      sourceMarker !== undefined &&
+      shouldPreferSourceRoot(sourceFallback, sourceMarker, current)
+    ) {
+      // src/trails also looks like a trails root from src; keep the outer owner
+      // when both markers point there or the inner marker is incidental.
       sourceFallback = { ...sourceMarker, rootDir: current };
     }
 

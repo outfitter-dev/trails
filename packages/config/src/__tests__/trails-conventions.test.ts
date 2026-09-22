@@ -120,6 +120,78 @@ describe('Trails project root conventions', () => {
     }
   });
 
+  test('keeps the nearest source-shaped project when a parent has another source marker', () => {
+    const parent = makeTempDir();
+    try {
+      const app = join(parent, 'app');
+      mkdirSync(join(app, 'src', 'trails'), { recursive: true });
+      mkdirSync(join(parent, 'trails'), { recursive: true });
+
+      expect(findTrailsProjectRoot({ startDir: app })).toMatchObject({
+        marker: 'source',
+        markerPath: join(app, 'src', 'trails'),
+        rootDir: app,
+      });
+    } finally {
+      rmSync(parent, { force: true, recursive: true });
+    }
+  });
+
+  test('ignores an incidental trails directory inside a project source tree', () => {
+    const root = makeTempDir();
+    try {
+      const sourceRoot = join(root, 'src', 'trails');
+      const nested = join(root, 'src', 'features', 'trails');
+      mkdirSync(sourceRoot, { recursive: true });
+      mkdirSync(nested, { recursive: true });
+
+      expect(findTrailsProjectRoot({ startDir: nested })).toMatchObject({
+        marker: 'source',
+        markerPath: sourceRoot,
+        rootDir: root,
+      });
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('keeps an independently owned nested trails project', () => {
+    const root = makeTempDir();
+    try {
+      const nestedRoot = join(root, 'src', 'features');
+      mkdirSync(join(root, 'src', 'trails'), { recursive: true });
+      mkdirSync(join(nestedRoot, 'trails'), { recursive: true });
+      writeFileSync(join(nestedRoot, 'package.json'), '{}\n');
+
+      expect(
+        findTrailsProjectRoot({ startDir: join(nestedRoot, 'trails') })
+      ).toMatchObject({
+        marker: 'source',
+        markerPath: join(nestedRoot, 'trails'),
+        rootDir: nestedRoot,
+      });
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('recognizes a bare root trails directory above incidental nested source', () => {
+    const root = makeTempDir();
+    try {
+      const nested = join(root, 'src', 'features', 'trails');
+      mkdirSync(join(root, 'trails'), { recursive: true });
+      mkdirSync(nested, { recursive: true });
+
+      expect(findTrailsProjectRoot({ startDir: nested })).toMatchObject({
+        marker: 'source',
+        markerPath: join(root, 'trails'),
+        rootDir: root,
+      });
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('treats source-shaped projects as fallback below committed workspace markers', () => {
     const workspace = makeTempDir();
     try {

@@ -14,7 +14,13 @@ import {
   writeTrailsLock,
 } from '@ontrails/topography';
 import { describe, expect, test } from 'bun:test';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -305,6 +311,112 @@ const writeInvalidWorkspaceLockFixture = async (
 };
 
 describe('trails warden', () => {
+  test(
+    'keeps a fresh app root out of a parent workspace with a sibling violation',
+    () => {
+      const parent = makeTempDir();
+      try {
+        const app = join(parent, 'app');
+        const sibling = join(parent, 'trailblazing');
+        mkdirSync(join(app, 'src', 'trails'), { recursive: true });
+        mkdirSync(join(sibling, 'scripts'), { recursive: true });
+        mkdirSync(join(sibling, 'hike', 'bin'), { recursive: true });
+        mkdirSync(join(parent, 'trails'), { recursive: true });
+        writeFileSync(join(app, 'package.json'), '{"name":"fresh-app"}\n');
+        writeFileSync(
+          join(sibling, 'package.json'),
+          '{"name":"trailblazing"}\n'
+        );
+        writeFileSync(
+          join(sibling, 'hike', 'package.json'),
+          '{"name":"@trailwork/hike","exports":"./bin/hike-trails.ts"}\n'
+        );
+        writeFileSync(
+          join(sibling, 'hike', 'bin', 'hike-trails.ts'),
+          'export const hike = true;\n'
+        );
+        writeFileSync(
+          join(sibling, 'scripts', 'hike-trails.ts'),
+          'import "../hike/bin/hike-trails.ts";\n'
+        );
+        writeFileSync(
+          join(sibling, 'scripts', 'bad.ts'),
+          `trail("bad", {
+  implementation: async () => {
+    throw new Error("boom");
+  },
+});\n`
+        );
+
+        const raw = runCli(
+          trailsBinPath,
+          ['warden', '--depth', 'source', '--lock', 'skip', '--json'],
+          app
+        );
+
+        expect(raw.exitCode).toBe(0);
+        expect(raw.json.diagnostics).toEqual([]);
+
+        const explicit = runCli(
+          trailsBinPath,
+          [
+            'warden',
+            '--root-dir',
+            app,
+            '--depth',
+            'source',
+            '--lock',
+            'skip',
+            '--json',
+          ],
+          app
+        );
+        expect(explicit.exitCode).toBe(0);
+        expect(explicit.json.diagnostics).toEqual([]);
+      } finally {
+        rmSync(parent, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs
+  );
+
+  test(
+    'scans the owning app when cwd is an incidental nested trails directory',
+    () => {
+      const root = makeTempDir();
+      try {
+        const nested = join(root, 'src', 'features', 'trails');
+        mkdirSync(join(root, 'src', 'trails'), { recursive: true });
+        mkdirSync(nested, { recursive: true });
+        writeFileSync(
+          join(root, 'src', 'bad.ts'),
+          `trail("bad", {
+  implementation: async () => {
+    throw new Error("boom");
+  },
+});\n`
+        );
+
+        const raw = runCli(
+          trailsBinPath,
+          ['warden', '--depth', 'source', '--lock', 'skip', '--json'],
+          nested
+        );
+
+        expect(raw.json.project).toMatchObject({
+          projectRoot: realpathSync(root),
+        });
+        expect(raw.exitCode).toBe(1);
+        expect(raw.json.diagnostics).toContainEqual(
+          expect.objectContaining({ rule: 'no-throw-in-implementation' })
+        );
+      } finally {
+        rmSync(root, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs
+  );
+
   test('declares write intent because --fix can mutate source files', () => {
     expect(wardenTrail.intent).toBe('write');
   });
@@ -333,6 +445,7 @@ describe('trails warden', () => {
       onlyDrafts: false,
       prePush: false,
       refresh: false,
+      rootDir: '/project',
       scopeExclude: ['.agents/notes/**', '.scratch/**'],
       skipLock: false,
       strict: true,
@@ -340,6 +453,8 @@ describe('trails warden', () => {
     });
 
     expect(args).toEqual([
+      '--root-dir',
+      '/project',
       '--ci',
       '--depth',
       'topo',
