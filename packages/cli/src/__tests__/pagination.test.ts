@@ -103,6 +103,38 @@ describe('CLI surface absorbs pagination — flag derivation', () => {
     expect(allFlag?.required).toBe(false);
   });
 
+  test('defaulted paginated input retains --all and iterates pages', async () => {
+    const cursors: (string | undefined)[] = [];
+    const t = trail('items.defaulted', {
+      implementation: (input: PageInput) => {
+        cursors.push(input.cursor);
+        return Result.ok(
+          input.cursor === undefined
+            ? { hasMore: true, items: ['first'], nextCursor: 'page-2' }
+            : { hasMore: false, items: ['second'] }
+        );
+      },
+      input: PaginatedInput.default({}),
+      output: PaginatedOutput,
+    });
+    const app = topo('test-app', { [t.id]: t });
+    const command = requireCommand(buildCommands(app));
+
+    expect(command.flags.map((flag) => flag.name)).toContain('cursor');
+    expect(command.flags.map((flag) => flag.name)).toContain('all');
+
+    const result = await command.execute({}, { all: true });
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.value).toEqual({
+      hasMore: false,
+      items: ['first', 'second'],
+    });
+    expect(cursors).toEqual([undefined, 'page-2']);
+  });
+
   test('non-paginated trail does NOT get --all flag', () => {
     const t = trail('greet', {
       implementation: (input: { name: string }) =>

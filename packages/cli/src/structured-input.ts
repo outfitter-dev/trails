@@ -64,7 +64,14 @@ export const normalizeParsedFlags = (
 const getObjectShape = (
   schema: z.ZodType
 ): Record<string, ZodInternals> | undefined => {
-  const zod = schema as unknown as ZodInternals;
+  let zod = schema as unknown as ZodInternals;
+  while (
+    zod._zod.def['type'] === 'optional' ||
+    zod._zod.def['type'] === 'default' ||
+    zod._zod.def['type'] === 'readonly'
+  ) {
+    zod = zod._zod.def['innerType'] as ZodInternals;
+  }
   if ((zod._zod.def['type'] as string) !== 'object') {
     return undefined;
   }

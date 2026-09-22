@@ -40,6 +40,11 @@ describe('structured input helpers', () => {
 
   test('supportsStructuredInput returns true only for non-empty object schemas', () => {
     expect(supportsStructuredInput(z.object({ query: z.string() }))).toBe(true);
+    expect(
+      supportsStructuredInput(
+        z.object({ query: z.string() }).default({ query: '' })
+      )
+    ).toBe(true);
     expect(supportsStructuredInput(z.object({}))).toBe(false);
     expect(supportsStructuredInput(z.string())).toBe(false);
   });

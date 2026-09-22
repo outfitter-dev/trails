@@ -466,7 +466,7 @@ export const deriveFields = (
   schema: z.ZodType,
   overrides?: Record<string, FieldOverride>
 ): Field[] => {
-  const s = schema as unknown as ZodInternals;
+  const { inner: s } = unwrap(schema as unknown as ZodInternals);
   if ((s._zod.def['type'] as string) !== 'object') {
     return [];
   }

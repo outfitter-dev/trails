@@ -50,7 +50,16 @@ export const isPaginatedOutput = (trail: AnyTrail): boolean => {
  * onto the merged input record.
  */
 export const inputHasCursorField = (trail: AnyTrail): boolean => {
-  const fields = objectShapeOf(trail.input);
+  const { input: schema } = trail;
+  let input: unknown = schema;
+  while (
+    input instanceof z.ZodOptional ||
+    input instanceof z.ZodDefault ||
+    input instanceof z.ZodReadonly
+  ) {
+    input = input.unwrap();
+  }
+  const fields = objectShapeOf(input);
   if (fields === null) {
     return false;
   }

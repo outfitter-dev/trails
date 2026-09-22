@@ -79,6 +79,27 @@ const requireFire = (fire: TrailContext['fire']) => {
 // ---------------------------------------------------------------------------
 
 describe('buildCommands path derivation', () => {
+  test('exposes starter flags through a defaulted input object', async () => {
+    const hello = trail('hello', {
+      implementation: (input) =>
+        Result.ok({ message: `Hello, ${input.name ?? 'world'}!` }),
+      input: z.object({ name: z.string().optional() }).default({}),
+      output: z.object({ message: z.string() }),
+    });
+    const command = requireCommand(buildCommands(makeApp(hello)));
+
+    expect(command.flags.map((flag) => flag.name)).toContain('name');
+    expect(command.flags.map((flag) => flag.name)).toContain('input-json');
+    const defaultResult = await command.execute({}, {});
+    expect(defaultResult.value).toEqual({
+      message: 'Hello, world!',
+    });
+    const namedResult = await command.execute({}, { name: 'Matt' });
+    expect(namedResult.value).toEqual({
+      message: 'Hello, Matt!',
+    });
+  });
+
   test('builds commands from a simple app with one trail', () => {
     const t = trail('greet', {
       implementation: (input: { name: string }) =>
@@ -1523,6 +1544,23 @@ describe('buildCommands date-shortcut absorption', () => {
     const value = result.value as { day?: string };
     expect(value.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(value.day).not.toContain('T');
+  });
+
+  test("expands 'today' through a defaulted top-level date input", async () => {
+    const t = trail('events.defaulted-day', {
+      implementation: (input: { day?: string | undefined }) => Result.ok(input),
+      input: z.object({ day: z.iso.date().optional() }).default({}),
+    });
+    const cmd = requireCommand(buildCommands(makeApp(t)));
+
+    expect(cmd.flags.map((flag) => flag.name)).toContain('day');
+    const result = await cmd.execute({}, { day: 'today' });
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    const value = result.value as { day?: string };
+    expect(value.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   test("expands 'today' to a Date for z.date fields before validation", async () => {

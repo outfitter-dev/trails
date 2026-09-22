@@ -330,6 +330,14 @@ describe('derive', () => {
   });
 
   describe('sorting and edge cases', () => {
+    test('derives fields through a defaulted top-level object', () => {
+      const schema = z.object({ name: z.string().optional() }).default({});
+
+      expect(deriveFields(schema)).toMatchObject([
+        { name: 'name', required: false, type: 'string' },
+      ]);
+    });
+
     test('returns fields sorted by name', () => {
       const schema = z.object({
         alpha: z.string(),

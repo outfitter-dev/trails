@@ -136,7 +136,7 @@ export const detectDateFieldKinds = (
   if (!hasZodInternals(schema)) {
     return {};
   }
-  const { def } = schema._zod;
+  const { def } = unwrapToInner(schema)._zod;
   if (def['type'] !== 'object') {
     return {};
   }

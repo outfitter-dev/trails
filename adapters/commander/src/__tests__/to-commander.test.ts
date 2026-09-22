@@ -160,6 +160,24 @@ const withMockedProcess = async (
 // ---------------------------------------------------------------------------
 
 describe('toCommander command trees', () => {
+  test('parses flags from a defaulted top-level input object', async () => {
+    const received: string[] = [];
+    const hello = trail('hello', {
+      implementation: (input) => {
+        received.push(input.name ?? 'world');
+        return Result.ok({ message: `Hello, ${input.name ?? 'world'}!` });
+      },
+      input: z.object({ name: z.string().optional() }).default({}),
+      output: z.object({ message: z.string() }),
+    });
+    const program = toCommander(
+      buildCommands(makeApp(hello), { onResult: noopResult })
+    );
+
+    await program.parseAsync(['node', 'test', 'hello', '--name', 'Matt']);
+    expect(received).toEqual(['Matt']);
+  });
+
   test('creates a Commander program with correct commands', () => {
     const t = trail('greet', {
       implementation: (input: { name: string }) =>
