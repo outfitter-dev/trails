@@ -90,9 +90,11 @@ Fix any violations before considering the work done. For the current generated r
 - `composes-declarations` — update `composes` to match `ctx.compose()` calls
 - `public-output-schema` — add `output` to public MCP/HTTP trails
 - `no-throw-in-implementation` — replace thrown failures with `Result.err()`
-- `example-valid` — update examples when input or output schemas change
+- `example-valid` — keep entity examples aligned with their entity schemas
 - `resource-declarations` — update `resources` to match `db.from(ctx)` and `ctx.resource()` calls
 - `resource-exists` — ensure every declared resource is registered in the topo
+
+Warden's `example-valid` rule checks entity examples. Run `testAll(graph)` to validate and execute trail examples.
 
 If warden reports drift:
 

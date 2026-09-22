@@ -45,9 +45,9 @@
       ],
       "kind": "standalone-skill",
       "name": "be-clark",
-      "outputHash": "sha256:17dd54adf7270ee722593ba409ea7161a34e8261149f9505eb11deeb9a43eacd",
+      "outputHash": "sha256:39f869fd720b6a86bffc78796e578d7b53ea8345cb8867af196b4876cea598c0",
       "outputPath": "be-clark/SKILL.md",
-      "sourceHash": "sha256:a462cd70cb5d045fbc51dc89f77bb9a8d931c7712f467756e84e112b2c90c4d1",
+      "sourceHash": "sha256:0deefcd1af6c4495a58ca8f178003d2d76b5c635866b92c201a431cc191ab051",
       "sourcePath": ".skillset/skills/be-clark/SKILL.md",
       "version": "0.1.0"
     },
@@ -293,7 +293,7 @@
     }
   ],
   "outputRoot": ".claude/skills",
-  "provenanceHash": "sha256:3f5df27daef5aca99f11b2e58baf52768035cc3bfd54422b0864ca9203c55a04",
+  "provenanceHash": "sha256:229c88b5cf96a36ab1e2045e98d0c48761b13b378f3ddafaa9d40178f867e9ce",
   "renderResults": [
     {
       "destination": "skill",

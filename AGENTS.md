@@ -136,7 +136,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `circular-refs` (warn, project/project-static, external): Entity reference graphs must be acyclic.
 - `duplicate-exported-symbol` (warn, project/project-static, repo-local): First-party packages should not define the same exported symbol name in parallel.
 - `entity-exists` (error, project/project-static, external): Declared entity references resolve to known entities.
-- `example-valid` (error, source/source-static, external): Trail examples remain valid against their authored schema.
+- `example-valid` (error, source/source-static, external): Entity examples remain valid against their authored schema.
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
 - `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface renderings.
@@ -222,7 +222,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `dead-public-trail`: Anchor exported public trails in a topo, composition edge, or activation source.
 - `duplicate-exported-symbol`: Keep exported symbol ownership from drifting across first-party packages.
 - `duplicate-public-contract`: Keep duplicate public contract facts from drifting into separate capabilities.
-- `example-valid`: Keep trail examples synchronized with their authored schemas.
+- `example-valid`: Keep entity examples synchronized with their authored schemas.
 - `governed-symbol-residue`: Require committed Regrade evidence before completing a governed vocabulary migration.
 - `governed-vocabulary-permutation-watch`: Classify unknown governed-stem permutations recorded by committed Regrade history.
 - `library-render-coherence`: Keep resolved derived library exports collision-free and attached to one trail contract.

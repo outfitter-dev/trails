@@ -27,7 +27,7 @@ const search = trail('search', {
 });
 ```
 
-Those examples serve six consumers at once:
+Those examples serve five consumers at once:
 
 | Consumer               | What it does                            |
 | ---------------------- | --------------------------------------- |
@@ -36,7 +36,8 @@ Those examples serve six consumers at once:
 | Agents (via survey)    | Sees what the trail does with real data |
 | Guide                  | Generates usage documentation           |
 | MCP apps               | Pre-fills forms with example inputs     |
-| Warden                 | Verifies examples parse against schemas |
+
+Warden's `example-valid` rule validates entity examples, not trail examples. Run `testExamples(graph)` or `testAll(graph)` to validate and execute trail examples.
 
 ## TDD Workflow
 

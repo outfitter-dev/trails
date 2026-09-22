@@ -4,7 +4,7 @@ slug: core-premise
 title: Core Premise — Contract-First, Surface-Agnostic Design
 status: accepted
 created: 2026-03-26
-updated: 2026-04-17
+updated: 2026-09-21
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -90,7 +90,7 @@ Side effects happen through structured channels: `ctx.compose()` for composition
 
 Zod validates input before execution enters the blaze. If the blaze receives `input`, the input is already valid. No defensive checking inside blazes. No `if (!input.name)` guards for required fields.
 
-This moves validation from a developer responsibility scattered across every function to a framework guarantee enforced once at the boundary. It also means examples can be validated statically — the warden checks that example inputs parse against the schema before any code runs.
+This moves validation from a developer responsibility scattered across every function to a framework guarantee enforced once at the boundary. `validateTopo` checks trail example inputs, and `@ontrails/testing` executes them. Warden's `example-valid` rule checks entity examples against their schemas.
 
 ### Derive by default, override deliberately
 
@@ -118,16 +118,14 @@ examples: [
 ];
 ```
 
-Because they're structured, they serve multiple purposes simultaneously:
+Because they're structured, trail examples serve several purposes simultaneously:
 
 - **Testing:** `testExamples(topo)` runs every example as an assertion
 - **Documentation:** Agents and developers read examples to understand behavior
-- **Validation:** The warden checks that examples parse against schemas
-- **Mock data:** Testing infrastructure derives mocks from example data
+- **Validation:** `validateTopo(topo)` checks trail example inputs against their schemas
 - **Composition testing:** Failure injection references examples from composed trails
-- **Contract coverage:** The warden reports which behaviors have examples and which don't
 
-One write, many reads. The developer authors an example. The framework reads it six different ways.
+One write, many reads. The developer authors an example, and the framework reads it through these four paths. Warden's `example-valid` rule separately validates entity examples; it does not validate trail examples.
 
 ### The contract is queryable
 

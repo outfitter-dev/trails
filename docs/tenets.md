@@ -213,7 +213,7 @@ No separate data sources, no sync problems.
 
 The testing and development workflow follows a progression:
 
-- **Specify.** Define the trail with schema and examples before the implementation is complete. The warden checks spec consistency.
+- **Specify.** Define the trail with schema and examples before the implementation is complete. The warden checks structural contracts; `testExamples` checks trail examples.
 - **Satisfy.** Implement the trail so examples pass.
 - **Tighten.** Explicitly author the output schema, add safety markers, write error examples, extract compositions. The warden suggests improvements.
 

@@ -294,14 +294,14 @@ const builtinWardenRuleMetadataInput = {
   'example-valid': {
     ...durableExternal,
     guidance: {
-      docs: [trailContractDocs],
+      docs: [{ label: 'Entity', path: 'docs/lexicon.md#entity' }],
       steps: [
-        'Update the example input, expected output, or schema so they describe the same contract.',
-        'Run the package tests that exercise the affected trail examples.',
+        'Update the entity example or schema so the example matches the schema.',
+        'Run Warden to verify the affected entity examples.',
       ],
-      summary: 'Keep trail examples synchronized with their authored schemas.',
+      summary: 'Keep entity examples synchronized with their authored schemas.',
     },
-    invariant: 'Trail examples remain valid against their authored schema.',
+    invariant: 'Entity examples remain valid against their authored schema.',
     tier: 'source-static',
   },
   'fires-declarations': {
