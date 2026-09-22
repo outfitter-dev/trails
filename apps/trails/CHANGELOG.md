@@ -1,5 +1,11 @@
 # trails
 
+## 0.2.3
+
+### Patch Changes
+
+- [`807ebda`](https://github.com/outfitter-dev/trails/commit/807ebdaeabfee0cd06539dc9b86e3ba9a817ab40): Keep Warden scoped to the nearest fresh Trails app when a parent has another Trails source marker, and pass the operator's resolved project root to the shared Warden command.
+
 ## 0.2.2
 
 ### Patch Changes

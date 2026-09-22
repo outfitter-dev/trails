@@ -1,5 +1,11 @@
 # @ontrails/warden
 
+## 0.2.3
+
+### Patch Changes
+
+- [`3555995`](https://github.com/outfitter-dev/trails/commit/3555995e0d3a9bc2fda52b233832aae1d1908ff4): Describe the `example-valid` rule as validating entity examples, matching its diagnostics and actual source checks. Regenerate the Warden guide outputs so agents see the accurate invariant.
+
 ## 0.2.2
 
 No changes in this release.

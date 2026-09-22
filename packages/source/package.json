@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/source",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Shared source-code AST parsing, walking, location, edit, literal, and Trails syntax helpers.",
   "repository": {
     "type": "git",

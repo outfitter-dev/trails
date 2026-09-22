@@ -1,5 +1,11 @@
 # @ontrails/cli
 
+## 0.2.3
+
+### Patch Changes
+
+- [`06b53ef`](https://github.com/outfitter-dev/trails/commit/06b53ef053b4dab5ac8cdcc7ffcf260a9f1260e8): Derive CLI flags and structured input channels from defaulted top-level object schemas, so scaffolded `hello --name` and other optional-input trails accept their declared fields.
+
 ## 0.2.2
 
 No changes in this release.
