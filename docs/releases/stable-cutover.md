@@ -397,6 +397,22 @@ Record:
 - `bun test` result;
 - final registry/dist-tag check result.
 
+## Historical Beta Tag Retirement
+
+After stable publication, the old `beta` tag can still select `1.0.0-beta.50` instead of the current `0.2.x` release. [ADR-0047](../adr/0047-stable-release-line-discipline.md#retire-an-inactive-prerelease-tag) authorizes a one-time retirement of that inactive tag, subject to a separate release-owner decision. This is a registry operation after merge, not part of a source PR or normal package publication.
+
+On clean `main`, first run `bun run publish:registry-check:published` to verify the complete public family on `latest`. Capture its package inventory and the full `npm view <package> dist-tags --json` output for every public package. Confirm that each `latest` tag points at the expected stable version and each `beta` tag still points at the historical beta version. Stop if any package differs; a new beta channel or an incomplete stable release needs its own decision.
+
+With explicit release-owner authorization for the recorded package set, remove the tag one package at a time and read it back before proceeding:
+
+```bash
+pkg='@ontrails/core' # Replace with each package in the verified inventory.
+npm dist-tag rm "$pkg" beta
+npm view "$pkg" dist-tags --json
+```
+
+The readback must show `beta` absent and `latest` unchanged. Repeat for every public package, then capture the full family readback. `npm view @ontrails/trails@beta version` should fail after the CLI package's tag is gone; an exact `@ontrails/trails@1.0.0-beta.50` lookup should still resolve. If any removal or readback fails, stop and record which packages changed before choosing recovery. Do not leave a partial family state as complete. [npm's dist-tag command](https://docs.npmjs.com/cli/v11/commands/npm-dist-tag/) removes a tag without unpublishing the referenced version.
+
 ## Partial-Publish Recovery
 
 If `bun run publish:packages` fails after publishing one or more packages, stop immediately. A retry is safe after investigating the failure: the command queries each exact package version and skips versions already present in npm.

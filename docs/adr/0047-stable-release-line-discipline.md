@@ -4,7 +4,7 @@ slug: stable-release-line-discipline
 title: Stable Release Line Discipline
 status: accepted
 created: 2026-05-13
-updated: 2026-09-11
+updated: 2026-09-21
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [29, 35, 37, 44, 46]
 ---
@@ -87,6 +87,14 @@ The publish script is the authority for this default:
 - if prerelease mode is active but no usable tag exists, fail loudly.
 
 Release PRs and runbooks should verify the intended dist-tag before publish and verify the actual dist-tag after publish.
+
+### Retire an inactive prerelease tag
+
+An npm prerelease tag names an active release channel. After the `0.2.0` transition, `beta` still pointed at the historical `1.0.0-beta.50` line even as `latest` advanced through `0.2.x`. An `@beta` install therefore selected the old scaffold without a warning. Retire the stale `beta` tag across the complete public Trails package family until a new beta channel is deliberately opened.
+
+This is a one-time, release-owner-approved registry cleanup, separate from ordinary package publication. The operator must record the full public package inventory and each package's current `latest` and `beta` tags, verify the current stable release on `latest`, remove only the historical `beta` tags, and read back every package. A partial cleanup is an incident to reconcile before completion. Exact published beta versions remain available by version; this decision neither unpublishes nor deprecates them. A future beta release must use the normal prerelease publication policy to establish a new tag.
+
+This allowance does not broaden the initial descending `latest` transition or permit arbitrary dist-tag reassignment. The [stable cutover runbook](../releases/stable-cutover.md#historical-beta-tag-retirement) owns the one-time procedure.
 
 ### The 0.x line reserves compatibility changes for minor releases
 
