@@ -4,7 +4,7 @@ license: MIT
 metadata:
   skillset.schema: "1"
   trails: 0.2.3
-  version: 0.3.4
+  version: 0.4.0
 name: trails
 ---
 

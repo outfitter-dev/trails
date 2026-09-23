@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 export const MARKETPLACE_MANIFEST_PATH = '.claude-plugin/marketplace.json';
 export const PLUGIN_MANIFEST_PATH = 'plugin/.claude-plugin/plugin.json';
 export const PLUGIN_CONFIG_PATH = '.skillset/plugins/trails/skillset.yaml';
+export const RELEASE_STATE_PATH = '.skillset/changes/state.json';
 export const TRAILS_SKILL_PATH =
   '.skillset/plugins/trails/skills/trails/SKILL.md';
 export const FRAMEWORK_PACKAGE_PATH = 'packages/core/package.json';
@@ -31,6 +32,10 @@ interface PluginConfig {
     name?: unknown;
     version?: unknown;
   };
+}
+
+interface ReleaseState {
+  scopes?: Record<string, { version?: unknown }>;
 }
 
 interface FrameworkPackage {
@@ -203,6 +208,10 @@ export const readPluginMetadataState = async (
   const pluginConfig = Bun.YAML.parse(
     await Bun.file(resolve(rootDir, PLUGIN_CONFIG_PATH)).text()
   ) as PluginConfig;
+  const releaseStateFile = Bun.file(resolve(rootDir, RELEASE_STATE_PATH));
+  const releaseState = (await releaseStateFile.exists())
+    ? ((await releaseStateFile.json()) as ReleaseState)
+    : undefined;
   const frameworkPackage = await readJson<FrameworkPackage>(
     rootDir,
     FRAMEWORK_PACKAGE_PATH
@@ -216,9 +225,10 @@ export const readPluginMetadataState = async (
     PLUGIN_CONFIG_PATH
   );
   const pluginVersion = requireString(
-    pluginConfig.skillset?.version,
+    releaseState?.scopes?.[`plugin:${pluginName}`]?.version ??
+      pluginConfig.skillset?.version,
     'plugin version',
-    PLUGIN_CONFIG_PATH
+    releaseState ? RELEASE_STATE_PATH : PLUGIN_CONFIG_PATH
   );
   const frameworkVersion = requireString(
     frameworkPackage.version,
@@ -257,7 +267,7 @@ export const checkPluginMetadata = (
       actual: state.renderedPluginVersion,
       expected: state.pluginVersion,
       message:
-        'generated plugin manifest version must match canonical Skillset source.',
+        'generated plugin manifest version must match Skillset release authority.',
       path: `${PLUGIN_MANIFEST_PATH}:version`,
     });
   }
@@ -267,7 +277,7 @@ export const checkPluginMetadata = (
       actual: state.marketplacePluginVersion,
       expected: state.pluginVersion,
       message:
-        'generated marketplace plugin version must match canonical Skillset source.',
+        'generated marketplace plugin version must match Skillset release authority.',
       path: `${MARKETPLACE_MANIFEST_PATH}:plugins[${state.pluginName}].version`,
     });
   }

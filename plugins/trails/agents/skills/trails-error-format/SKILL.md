@@ -3,7 +3,7 @@ description: Use when reviewing Trails error taxonomy, surface error rendering, 
 license: MIT
 metadata:
   skillset.schema: "1"
-  version: 0.3.4
+  version: 0.4.0
 name: trails-error-format
 ---
 

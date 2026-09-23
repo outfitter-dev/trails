@@ -330,7 +330,10 @@ afterAll(async () => {
 
 describe('standalone Skillset parity', () => {
   test('reproduces the complete skill inventory, companions, and modes', async () => {
-    const expectedFiles = await listFiles(join(repoRoot, '.skillset/skills'));
+    const canonicalFiles = await listFiles(join(repoRoot, '.skillset/skills'));
+    const expectedFiles = canonicalFiles.filter(
+      (path) => !path.endsWith('/CHANGELOG.md')
+    );
     expect(expectedFiles).toHaveLength(19);
     expect(
       expectedFiles.filter((path) => path.endsWith('/SKILL.md'))
@@ -481,8 +484,9 @@ describe('standalone Skillset parity', () => {
   });
 
   test('records complete managed-output provenance in locks', async () => {
-    const expectedSkillFiles = await listFiles(
-      join(repoRoot, '.skillset/skills')
+    const canonicalFiles = await listFiles(join(repoRoot, '.skillset/skills'));
+    const expectedSkillFiles = canonicalFiles.filter(
+      (path) => !path.endsWith('/CHANGELOG.md')
     );
 
     for (const outputRoot of ['.claude/skills', '.agents/skills']) {

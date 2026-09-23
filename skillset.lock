@@ -126,11 +126,406 @@
       "sourcePath": ".skillset/agents/lewis.md",
       "validation": "structured",
       "version": "0.1.0"
+    },
+    {
+      "feature": "plugin",
+      "fileModes": {
+        ".skillset/plugins/trails-dev/CHANGELOG.md": "0644"
+      },
+      "files": [
+        ".skillset/plugins/trails-dev/CHANGELOG.md"
+      ],
+      "kind": "changelog",
+      "name": "trails-dev",
+      "outputHash": "sha256:4e5cae508625cb2f53f79dcec2ed6e4c7d7fc8705869ee25539eacaf9aed24ed",
+      "outputPath": ".skillset/plugins/trails-dev/CHANGELOG.md",
+      "sourceHash": "sha256:dec408955185cb93fd29098fc4d2a28e38716c92ac956e97f36df6f3a0d933cb",
+      "sourcePath": ".skillset/plugins/trails-dev/skillset.yaml",
+      "targetState": "generated",
+      "validation": "structured"
+    },
+    {
+      "feature": "plugin",
+      "fileModes": {
+        ".skillset/plugins/trails/CHANGELOG.md": "0644"
+      },
+      "files": [
+        ".skillset/plugins/trails/CHANGELOG.md"
+      ],
+      "kind": "changelog",
+      "name": "trails",
+      "outputHash": "sha256:2e034a9d4558ab654bcbf72685af2971fc4e41da42d84f0e35c17b6c49dd2db7",
+      "outputPath": ".skillset/plugins/trails/CHANGELOG.md",
+      "sourceHash": "sha256:a43d0085ba24c16aa46cc484748de4f47f6eed549549b1fb6fba26739427db77",
+      "sourcePath": ".skillset/plugins/trails/skillset.yaml",
+      "targetState": "generated",
+      "validation": "structured"
+    },
+    {
+      "feature": "skill",
+      "fileModes": {
+        ".skillset/skills/be-clark/CHANGELOG.md": "0644"
+      },
+      "files": [
+        ".skillset/skills/be-clark/CHANGELOG.md"
+      ],
+      "kind": "changelog",
+      "name": "be-clark",
+      "outputHash": "sha256:f3a31c0357c94b8152d32e03d7cc851e220248f5ef7bc4b2037e427bd3d34dfe",
+      "outputPath": ".skillset/skills/be-clark/CHANGELOG.md",
+      "sourceHash": "sha256:0cbccd927b933a8ae3d163a296cb4fc35039516e9cf3cfdbe9091f006556cee5",
+      "sourcePath": ".skillset/skills/be-clark/SKILL.md",
+      "targetState": "generated",
+      "validation": "structured"
+    },
+    {
+      "feature": "skill",
+      "fileModes": {
+        ".skillset/skills/clark-decision/CHANGELOG.md": "0644"
+      },
+      "files": [
+        ".skillset/skills/clark-decision/CHANGELOG.md"
+      ],
+      "kind": "changelog",
+      "name": "clark-decision",
+      "outputHash": "sha256:98726f85a5a2d084e797b5ae379cbb7abade41bd8eb3b1e9117e2c701220e0da",
+      "outputPath": ".skillset/skills/clark-decision/CHANGELOG.md",
+      "sourceHash": "sha256:72ac070ad43a4de83fc9a1e5e5897f83ecac47fb2ebbed2734d005af511b7636",
+      "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
+      "targetState": "generated",
+      "validation": "structured"
+    },
+    {
+      "feature": "skill",
+      "fileModes": {
+        ".skillset/skills/clark-survey/CHANGELOG.md": "0644"
+      },
+      "files": [
+        ".skillset/skills/clark-survey/CHANGELOG.md"
+      ],
+      "kind": "changelog",
+      "name": "clark-survey",
+      "outputHash": "sha256:15ab041349673d2fd7ccc34005efdc73151b6c73c4fa0964c8c2d7caa2ca5027",
+      "outputPath": ".skillset/skills/clark-survey/CHANGELOG.md",
+      "sourceHash": "sha256:179f5364c0fe761d807c9b889e0f38461dd7a5643ff6673d4ab4d9ee80291c96",
+      "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
+      "targetState": "generated",
+      "validation": "structured"
     }
   ],
+  "marketplaces": {
+    "activeCatalogs": {
+      "claude": "trails"
+    },
+    "entries": [
+      {
+        "catalog": "trails",
+        "entryId": "trails",
+        "generatedPath": "plugin/.claude-plugin/plugin.json",
+        "generatedPaths": [
+          ".claude-plugin/marketplace.json",
+          "plugin/.claude-plugin/plugin.json",
+          "plugin/LICENSE.txt",
+          "plugin/README.md",
+          "plugin/agents/trail-engineer.md",
+          "plugin/hooks/detect-trails.sh",
+          "plugin/hooks/hooks.json",
+          "plugin/rules/lexicon.md",
+          "plugin/rules/patterns.md",
+          "plugin/skills/trails-error-format/LICENSE.txt",
+          "plugin/skills/trails-error-format/SKILL.md",
+          "plugin/skills/trails/LICENSE.txt",
+          "plugin/skills/trails/SKILL.md",
+          "plugin/skills/trails/examples/cli-command.md",
+          "plugin/skills/trails/examples/composition.md",
+          "plugin/skills/trails/examples/express-handler.md",
+          "plugin/skills/trails/examples/mcp-tool.md",
+          "plugin/skills/trails/examples/patterns.md",
+          "plugin/skills/trails/references/architecture.md",
+          "plugin/skills/trails/references/cli-surface.md",
+          "plugin/skills/trails/references/common-pitfalls.md",
+          "plugin/skills/trails/references/contract-patterns.md",
+          "plugin/skills/trails/references/error-taxonomy.md",
+          "plugin/skills/trails/references/getting-started.md",
+          "plugin/skills/trails/references/http-surface.md",
+          "plugin/skills/trails/references/mcp-surface.md",
+          "plugin/skills/trails/references/migration-checklist.md",
+          "plugin/skills/trails/references/testing-patterns.md",
+          "plugin/skills/trails/references/warden-guide.md",
+          "plugin/skills/trails/templates/composition.md",
+          "plugin/skills/trails/templates/trail.md"
+        ],
+        "plugin": "trails",
+        "providerSource": "./plugin",
+        "readiness": "marketplace-ready",
+        "requested": {
+          "kind": "local"
+        },
+        "requestedTarget": "claude",
+        "resolved": {
+          "generatedPath": "plugin/.claude-plugin/plugin.json",
+          "generatedPaths": [
+            ".claude-plugin/marketplace.json",
+            "plugin/.claude-plugin/plugin.json",
+            "plugin/LICENSE.txt",
+            "plugin/README.md",
+            "plugin/agents/trail-engineer.md",
+            "plugin/hooks/detect-trails.sh",
+            "plugin/hooks/hooks.json",
+            "plugin/rules/lexicon.md",
+            "plugin/rules/patterns.md",
+            "plugin/skills/trails-error-format/LICENSE.txt",
+            "plugin/skills/trails-error-format/SKILL.md",
+            "plugin/skills/trails/LICENSE.txt",
+            "plugin/skills/trails/SKILL.md",
+            "plugin/skills/trails/examples/cli-command.md",
+            "plugin/skills/trails/examples/composition.md",
+            "plugin/skills/trails/examples/express-handler.md",
+            "plugin/skills/trails/examples/mcp-tool.md",
+            "plugin/skills/trails/examples/patterns.md",
+            "plugin/skills/trails/references/architecture.md",
+            "plugin/skills/trails/references/cli-surface.md",
+            "plugin/skills/trails/references/common-pitfalls.md",
+            "plugin/skills/trails/references/contract-patterns.md",
+            "plugin/skills/trails/references/error-taxonomy.md",
+            "plugin/skills/trails/references/getting-started.md",
+            "plugin/skills/trails/references/http-surface.md",
+            "plugin/skills/trails/references/mcp-surface.md",
+            "plugin/skills/trails/references/migration-checklist.md",
+            "plugin/skills/trails/references/testing-patterns.md",
+            "plugin/skills/trails/references/warden-guide.md",
+            "plugin/skills/trails/templates/composition.md",
+            "plugin/skills/trails/templates/trail.md"
+          ],
+          "pluginVersion": "0.4.0",
+          "providerSource": "./plugin",
+          "ref": "trl-1363-settle-trails-plugin-version-ownership-and-distribution",
+          "sha": "27d31e9adc80b05929039adf4cb8a1b80a5f40d1",
+          "sourceKind": "current"
+        }
+      },
+      {
+        "catalog": "trails",
+        "entryId": "trails-dev",
+        "generatedPath": "plugin-dev/.claude-plugin/plugin.json",
+        "generatedPaths": [
+          ".claude-plugin/marketplace.json",
+          "plugin-dev/.claude-plugin/plugin.json",
+          "plugin-dev/LICENSE.txt",
+          "plugin-dev/README.md",
+          "plugin-dev/skills/building-trails/LICENSE.txt",
+          "plugin-dev/skills/building-trails/SKILL.md",
+          "plugin-dev/skills/regrade-loop/LICENSE.txt",
+          "plugin-dev/skills/regrade-loop/SKILL.md",
+          "plugin-dev/skills/tenets/LICENSE.txt",
+          "plugin-dev/skills/tenets/SKILL.md",
+          "plugin-dev/skills/trails-adrs/LICENSE.txt",
+          "plugin-dev/skills/trails-adrs/SKILL.md",
+          "plugin-dev/skills/trails-adrs/assets/adr-management.md",
+          "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+          "plugin-dev/skills/trails-adrs/scripts/adr.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/discovery.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/frontmatter.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/git.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/index.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/paths.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/references.ts",
+          "plugin-dev/skills/trails-derive-from-source/LICENSE.txt",
+          "plugin-dev/skills/trails-derive-from-source/SKILL.md",
+          "plugin-dev/skills/trails-discriminate-union/LICENSE.txt",
+          "plugin-dev/skills/trails-discriminate-union/SKILL.md",
+          "plugin-dev/skills/trails-dogfood-check/LICENSE.txt",
+          "plugin-dev/skills/trails-dogfood-check/SKILL.md",
+          "plugin-dev/skills/trails-editorial/LICENSE.txt",
+          "plugin-dev/skills/trails-editorial/SKILL.md",
+          "plugin-dev/skills/trails-editorial/assets/SAMPLES.md",
+          "plugin-dev/skills/trails-language-styleguide/LICENSE.txt",
+          "plugin-dev/skills/trails-language-styleguide/SKILL.md",
+          "plugin-dev/skills/trails-primitive-parity/LICENSE.txt",
+          "plugin-dev/skills/trails-primitive-parity/SKILL.md",
+          "plugin-dev/skills/trails-warden-advisory/LICENSE.txt",
+          "plugin-dev/skills/trails-warden-advisory/SKILL.md",
+          "plugin-dev/skills/trails-writing-docs/LICENSE.txt",
+          "plugin-dev/skills/trails-writing-docs/SKILL.md",
+          "plugin-dev/skills/trails-writing-style/LICENSE.txt",
+          "plugin-dev/skills/trails-writing-style/SKILL.md",
+          "plugin-dev/skills/trails-writing-voice/LICENSE.txt",
+          "plugin-dev/skills/trails-writing-voice/SKILL.md"
+        ],
+        "plugin": "trails-dev",
+        "providerSource": "./plugin-dev",
+        "readiness": "marketplace-ready",
+        "requested": {
+          "kind": "local"
+        },
+        "requestedTarget": "claude",
+        "resolved": {
+          "generatedPath": "plugin-dev/.claude-plugin/plugin.json",
+          "generatedPaths": [
+            ".claude-plugin/marketplace.json",
+            "plugin-dev/.claude-plugin/plugin.json",
+            "plugin-dev/LICENSE.txt",
+            "plugin-dev/README.md",
+            "plugin-dev/skills/building-trails/LICENSE.txt",
+            "plugin-dev/skills/building-trails/SKILL.md",
+            "plugin-dev/skills/regrade-loop/LICENSE.txt",
+            "plugin-dev/skills/regrade-loop/SKILL.md",
+            "plugin-dev/skills/tenets/LICENSE.txt",
+            "plugin-dev/skills/tenets/SKILL.md",
+            "plugin-dev/skills/trails-adrs/LICENSE.txt",
+            "plugin-dev/skills/trails-adrs/SKILL.md",
+            "plugin-dev/skills/trails-adrs/assets/adr-management.md",
+            "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+            "plugin-dev/skills/trails-adrs/scripts/adr.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/discovery.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/frontmatter.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/git.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/index.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/paths.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/references.ts",
+            "plugin-dev/skills/trails-derive-from-source/LICENSE.txt",
+            "plugin-dev/skills/trails-derive-from-source/SKILL.md",
+            "plugin-dev/skills/trails-discriminate-union/LICENSE.txt",
+            "plugin-dev/skills/trails-discriminate-union/SKILL.md",
+            "plugin-dev/skills/trails-dogfood-check/LICENSE.txt",
+            "plugin-dev/skills/trails-dogfood-check/SKILL.md",
+            "plugin-dev/skills/trails-editorial/LICENSE.txt",
+            "plugin-dev/skills/trails-editorial/SKILL.md",
+            "plugin-dev/skills/trails-editorial/assets/SAMPLES.md",
+            "plugin-dev/skills/trails-language-styleguide/LICENSE.txt",
+            "plugin-dev/skills/trails-language-styleguide/SKILL.md",
+            "plugin-dev/skills/trails-primitive-parity/LICENSE.txt",
+            "plugin-dev/skills/trails-primitive-parity/SKILL.md",
+            "plugin-dev/skills/trails-warden-advisory/LICENSE.txt",
+            "plugin-dev/skills/trails-warden-advisory/SKILL.md",
+            "plugin-dev/skills/trails-writing-docs/LICENSE.txt",
+            "plugin-dev/skills/trails-writing-docs/SKILL.md",
+            "plugin-dev/skills/trails-writing-style/LICENSE.txt",
+            "plugin-dev/skills/trails-writing-style/SKILL.md",
+            "plugin-dev/skills/trails-writing-voice/LICENSE.txt",
+            "plugin-dev/skills/trails-writing-voice/SKILL.md"
+          ],
+          "pluginVersion": "0.1.0",
+          "providerSource": "./plugin-dev",
+          "ref": "trl-1363-settle-trails-plugin-version-ownership-and-distribution",
+          "sha": "27d31e9adc80b05929039adf4cb8a1b80a5f40d1",
+          "sourceKind": "current"
+        }
+      }
+    ]
+  },
   "outputRoot": ".",
-  "provenanceHash": "sha256:e0f3fd3f4c751b890778f81ed07ba8ad9f62a03114200241069279d88d268c69",
+  "provenanceHash": "sha256:7189759005029a7f6ff1114689af3cc2fdc350260eee44068ec37e396de6707e",
   "renderResults": [
+    {
+      "destination": "changelog",
+      "evidence": [
+        {
+          "kind": "test",
+          "note": "SET-38 release apply coverage",
+          "ref": "apps/skillset/src/__tests__/contract.test.ts"
+        }
+      ],
+      "featureId": "releases",
+      "outputs": [
+        {
+          "kind": "changelog",
+          "path": ".skillset/plugins/trails-dev/CHANGELOG.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skillset.yaml",
+      "sourceUnit": ".skillset/plugins/trails-dev/skillset.yaml",
+      "status": "metadata_only"
+    },
+    {
+      "destination": "changelog",
+      "evidence": [
+        {
+          "kind": "test",
+          "note": "SET-38 release apply coverage",
+          "ref": "apps/skillset/src/__tests__/contract.test.ts"
+        }
+      ],
+      "featureId": "releases",
+      "outputs": [
+        {
+          "kind": "changelog",
+          "path": ".skillset/plugins/trails/CHANGELOG.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails/skillset.yaml",
+      "sourceUnit": ".skillset/plugins/trails/skillset.yaml",
+      "status": "metadata_only"
+    },
+    {
+      "destination": "changelog",
+      "evidence": [
+        {
+          "kind": "test",
+          "note": "SET-38 release apply coverage",
+          "ref": "apps/skillset/src/__tests__/contract.test.ts"
+        }
+      ],
+      "featureId": "releases",
+      "outputs": [
+        {
+          "kind": "changelog",
+          "path": ".skillset/skills/be-clark/CHANGELOG.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/be-clark/SKILL.md",
+      "sourceUnit": ".skillset/skills/be-clark/SKILL.md",
+      "status": "metadata_only"
+    },
+    {
+      "destination": "changelog",
+      "evidence": [
+        {
+          "kind": "test",
+          "note": "SET-38 release apply coverage",
+          "ref": "apps/skillset/src/__tests__/contract.test.ts"
+        }
+      ],
+      "featureId": "releases",
+      "outputs": [
+        {
+          "kind": "changelog",
+          "path": ".skillset/skills/clark-decision/CHANGELOG.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/clark-decision/SKILL.md",
+      "sourceUnit": ".skillset/skills/clark-decision/SKILL.md",
+      "status": "metadata_only"
+    },
+    {
+      "destination": "changelog",
+      "evidence": [
+        {
+          "kind": "test",
+          "note": "SET-38 release apply coverage",
+          "ref": "apps/skillset/src/__tests__/contract.test.ts"
+        }
+      ],
+      "featureId": "releases",
+      "outputs": [
+        {
+          "kind": "changelog",
+          "path": ".skillset/skills/clark-survey/CHANGELOG.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/skills/clark-survey/SKILL.md",
+      "sourceUnit": ".skillset/skills/clark-survey/SKILL.md",
+      "status": "metadata_only"
+    },
     {
       "destination": "agent",
       "evidence": [
