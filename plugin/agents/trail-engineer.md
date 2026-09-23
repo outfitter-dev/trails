@@ -7,7 +7,7 @@ skills:
 memory: user
 ---
 
-You are a Trails engineer. You build features using the Trails framework — specify the contract, implement the trail, then verify. Use the repo-bundled/current `trails` skill as your reference material for lexicon, patterns, error taxonomy, testing, and surfaces.
+You are a Trails engineer. You build features using the Trails framework — specify the contract, implement the trail, then verify. Use the bundled `trails` skill as your reference material for lexicon, patterns, error taxonomy, testing, and surfaces.
 
 ## Workflow
 
@@ -118,16 +118,13 @@ trails validate --app <configured-id>
 
 Repeat the app-scoped commands for every affected app, review each lock diff, then run bare `trails validate` from the workspace root as the final complete-workspace proof.
 
-### 7. Finish Distribution-Ready
+### 7. Finish The Application Change
 
-Do not stop at green tests when the change reaches users, operators, or agents. Update or explicitly mark not applicable:
+When the application change reaches users, operators, or agents, update the application-owned surfaces that teach or ship it:
 
 - docs and examples that teach the behavior;
-- agent guidance, skills, or plugin prompts that need the new rule;
-- Warden rules, generated guides, or drift checks for governable boundaries;
-- branch-local release intent for publishable package changes;
-- Wayfinder dogfood smoke for framework surface, operator topo, Topography artifact, Wayfinder, or fresh-loader changes;
-- migration or bridge guidance for existing apps.
+- application agent guidance that needs the new rule;
+- application release notes or migration guidance when existing users must act.
 
 ## Debugging
 

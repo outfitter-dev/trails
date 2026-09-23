@@ -318,7 +318,7 @@ let fixture: ParityFixture;
 
 beforeAll(async () => {
   fixture = await createFixture();
-});
+}, 30_000);
 
 afterAll(async () => {
   await Promise.all(
@@ -331,10 +331,10 @@ afterAll(async () => {
 describe('standalone Skillset parity', () => {
   test('reproduces the complete skill inventory, companions, and modes', async () => {
     const expectedFiles = await listFiles(join(repoRoot, '.skillset/skills'));
-    expect(expectedFiles).toHaveLength(34);
+    expect(expectedFiles).toHaveLength(19);
     expect(
       expectedFiles.filter((path) => path.endsWith('/SKILL.md'))
-    ).toHaveLength(12);
+    ).toHaveLength(8);
 
     for (const outputRoot of ['.claude/skills', '.agents/skills']) {
       const absoluteOutputRoot = join(fixture.workspace, outputRoot);
@@ -815,10 +815,7 @@ describe('standalone Skillset parity', () => {
   });
 
   test('detects target-side byte drift without touching live outputs', async () => {
-    const output = join(
-      fixture.workspace,
-      '.agents/skills/building-trails/SKILL.md'
-    );
+    const output = join(fixture.workspace, '.agents/skills/be-lewis/SKILL.md');
     const original = await readFile(output);
     await writeFile(
       output,
@@ -838,8 +835,8 @@ describe('standalone Skillset parity', () => {
     expect(
       drift.diagnostics.some(
         ({ message, path }) =>
-          path?.includes('building-trails/SKILL.md') === true ||
-          message.includes('building-trails/SKILL.md')
+          path?.includes('be-lewis/SKILL.md') === true ||
+          message.includes('be-lewis/SKILL.md')
       )
     ).toBe(true);
 

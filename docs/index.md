@@ -53,6 +53,7 @@
 - **[Language Styleguide](./contributing/language-styleguide.md)** — How to write about Trails terms precisely, starting with `implementation`
 - **[Code Standards](./contributing/code-standards.md)** — TSDoc, source anchors, escape-hatch criteria, and code-shape conventions
 - **[Codebase Navigation](./contributing/codebase-navigation.md)** — Repo orientation, source-of-truth locations, generated files, and symbol navigation
+- **[Agent Guidance Ownership](./contributing/agent-guidance-ownership.md)** — Repo-local, contributor-plugin, adopter-plugin, and generated Skillset boundaries
 - **[Warden Rules](./contributing/warden-rules.md)** — Methodology for durable Warden rules, owner-held rule data, and rule-family collapse
 
 ## Design decisions

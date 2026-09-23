@@ -24,15 +24,10 @@ Use this skill when a change touches error classes, `Result.err`, CLI/HTTP/MCP r
 
 ## Authoritative Sources
 
-- `plugin/skills/trails/references/error-taxonomy.md`
-- `docs/contributing/warden-rules.md`
-- `packages/core/src/errors.ts`
-- `packages/core/src/transport-error-map.ts`
-- Surface packages: CLI, MCP, HTTP, and Hono.
-
-## Advisory Context
-
-- TRL-564 / PR #300 for host-boundary examples.
+- [Bundled error taxonomy](../trails/references/error-taxonomy.md)
+- Public error exports from the installed `@ontrails/core` package.
+- The installed CLI, MCP, HTTP, and Hono surface packages when their rendering
+  behavior is under review.
 
 ## Must Not
 

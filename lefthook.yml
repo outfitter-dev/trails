@@ -27,8 +27,8 @@ pre-commit:
       priority: 4
       env:
         GIT_PAGER: cat
-      glob: '{.skillset/**,skillset.yaml,skillset.lock,.claude-plugin/marketplace.json,.claude/agents/**,.claude/skills/**,.agents/skills/**,.codex/agents/**,packages/warden/**,scripts/sync-skill-warden-guide.ts,plugin/**,plugins/**,package.json,bun.lock}'
-      run: git diff --quiet -- .skillset skillset.yaml && test -z "$(git ls-files --others --exclude-standard -- .skillset skillset.yaml)" || { echo "Skillset canonical inputs have unstaged or untracked changes; stage or stash them before committing." >&2; exit 1; }; bun run skillset:sync && git add -- .skillset/skills/be-clark/references/warden-guide.md .skillset/plugins/trails/skills/trails/references/warden-guide.md .claude-plugin/marketplace.json .claude/agents .claude/skills .agents/skills .codex/agents skillset.lock plugin plugins
+      glob: '{.skillset/**,skillset.yaml,skillset.lock,.claude-plugin/marketplace.json,.claude/agents/**,.claude/skills/**,.agents/skills/**,.codex/agents/**,packages/warden/**,scripts/sync-skill-warden-guide.ts,plugin/**,plugin-dev/**,plugins/**,package.json,bun.lock}'
+      run: git diff --quiet -- .skillset skillset.yaml && test -z "$(git ls-files --others --exclude-standard -- .skillset skillset.yaml)" || { echo "Skillset canonical inputs have unstaged or untracked changes; stage or stash them before committing." >&2; exit 1; }; bun run skillset:sync && git add -- .skillset/skills/be-clark/references/warden-guide.md .skillset/plugins/trails/skills/trails/references/warden-guide.md .claude-plugin/marketplace.json .claude/agents .claude/skills .agents/skills .codex/agents skillset.lock plugin plugin-dev plugins
       stage_fixed: true
     markdownlint:
       priority: 3

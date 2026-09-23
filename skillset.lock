@@ -14,7 +14,7 @@
       ],
       "kind": "project-agent",
       "name": "clark",
-      "outputHash": "sha256:18ab7d7203947100e7aef2ecec9887370a7ee2a79d785129a0474e7e9d95bed0",
+      "outputHash": "sha256:d357788cabbf1751c094e31ce78a913193b3eeca6a17793f90611765000d969e",
       "outputPath": ".claude/agents/clark.md",
       "preprocessDependencies": [],
       "skillReferences": [
@@ -22,11 +22,6 @@
           "authored": "be-clark",
           "ownership": "managed",
           "rendered": "be-clark"
-        },
-        {
-          "authored": "tenets",
-          "ownership": "managed",
-          "rendered": "tenets"
         },
         {
           "authored": "clark-pathfinding",
@@ -49,7 +44,7 @@
           "rendered": "trails"
         }
       ],
-      "sourceHash": "sha256:3fe4747201242e1c60aac9b6bb9124a4f899aa93286220eba719e17d91adbf50",
+      "sourceHash": "sha256:0726426e9fe02c3be589c80392ccc57b5ae5c4a515a7b0a1a7d195e3c9db1d60",
       "sourcePath": ".skillset/agents/clark.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -87,17 +82,11 @@
       ],
       "kind": "project-agent",
       "name": "maintainer",
-      "outputHash": "sha256:87d8347f266a8bad2146445cb1ea731277b8246567ddcc95c60b03c7e56e1d31",
+      "outputHash": "sha256:b9c9df1317318ed6476e595bf0900700d275d8ab845af2a45e36412d93d3b2a4",
       "outputPath": ".claude/agents/maintainer.md",
       "preprocessDependencies": [],
-      "skillReferences": [
-        {
-          "authored": "trails-adrs",
-          "ownership": "managed",
-          "rendered": "trails-adrs"
-        }
-      ],
-      "sourceHash": "sha256:e2d8bda1348cd0e884de48914adebcaf250be49b3dda20218db2510622531526",
+      "skillReferences": [],
+      "sourceHash": "sha256:fa09a8563f20203f25541ef6c66bca7494233a0e59bdc72b31f0a1ff1b8f825a",
       "sourcePath": ".skillset/agents/maintainer.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -115,7 +104,7 @@
       "outputPath": ".codex/agents/clark.toml",
       "preprocessDependencies": [],
       "skillReferences": [],
-      "sourceHash": "sha256:899aa039964610e5cd079bff23599c9fd7029ab1c7208709f16e449c7f7cabbb",
+      "sourceHash": "sha256:13e07dbc75152d0e4a935d179419e6b1f371721dcd06246deed5e85396181cb7",
       "sourcePath": ".skillset/agents/clark.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -140,7 +129,7 @@
     }
   ],
   "outputRoot": ".",
-  "provenanceHash": "sha256:c2c4dc1cc4effaa66e554029c3f61aaa62300dc486e10f0f99321b3dbbb4540c",
+  "provenanceHash": "sha256:e0f3fd3f4c751b890778f81ed07ba8ad9f62a03114200241069279d88d268c69",
   "renderResults": [
     {
       "destination": "agent",

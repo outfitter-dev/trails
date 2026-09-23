@@ -13,6 +13,439 @@
         }
       ],
       "fileModes": {
+        "trails-dev/agents/LICENSE.txt": "0644",
+        "trails-dev/agents/README.md": "0644",
+        "trails-dev/agents/plugin.json": "0644"
+      },
+      "files": [
+        "trails-dev/agents/LICENSE.txt",
+        "trails-dev/agents/README.md",
+        "trails-dev/agents/plugin.json"
+      ],
+      "kind": "plugin",
+      "name": "trails-dev",
+      "outputHash": "sha256:7cdc3abcc8043ed03ec2a0cf80e4297ed7abbe1ea9acb35a157a50c6492ef823",
+      "outputPath": "trails-dev/agents/plugin.json",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "renderInputsHash": "sha256:9e90018b0fb7e78c6e36e64b2585658127cbd5dd4a2d55acbfcb1bf96f3f06ab",
+      "sourceHash": "sha256:b026953ab7199cbffa99c957c4115a585b99137514b3477b80a40c3e9c933515",
+      "sourcePath": ".skillset/plugins/trails-dev",
+      "targetState": "sync",
+      "validation": "structured",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/building-trails/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/building-trails/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/building-trails/LICENSE.txt",
+        "trails-dev/agents/skills/building-trails/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "building-trails",
+      "outputHash": "sha256:c606a33da6d4eba93738f432a1376d45ae4b988b0f8ffa036cee631a03654d0d",
+      "outputPath": "trails-dev/agents/skills/building-trails/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:1040a2b0faecca70e1cd6b6c4d756a548e7b44e812e31f91a2d0e6530fe35981",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/building-trails/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/regrade-loop/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/regrade-loop/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/regrade-loop/LICENSE.txt",
+        "trails-dev/agents/skills/regrade-loop/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "regrade-loop",
+      "outputHash": "sha256:64c97cb7106483711a2a8f2205897c547b01082bbdd65e7a55bda45d99abdacb",
+      "outputPath": "trails-dev/agents/skills/regrade-loop/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:402e3ea4eccc8b8e8773cdb6af7cd9a8971e03b904eaed5e4cf96845153eaf25",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/regrade-loop/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/tenets/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/tenets/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/tenets/LICENSE.txt",
+        "trails-dev/agents/skills/tenets/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "tenets",
+      "outputHash": "sha256:86fefb1547ea3e34ca6fa2a5848db68c3e0c587ff9d8f18b6e93d17de8f6d8bb",
+      "outputPath": "trails-dev/agents/skills/tenets/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:e1b9bb4624c2380a2e0503ae3b70dd048bfbfcc4e616771aaa6475caeab60609",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/tenets/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-adrs/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-adrs/SKILL.md": "0644",
+        "trails-dev/agents/skills/trails-adrs/assets/adr-management.md": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/adr.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/discovery.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/paths.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-adrs/LICENSE.txt",
+        "trails-dev/agents/skills/trails-adrs/SKILL.md",
+        "trails-dev/agents/skills/trails-adrs/assets/adr-management.md",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/adr.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/discovery.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/paths.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-adrs",
+      "outputHash": "sha256:680182ebf64e6eec8ca7bba01064bbadb86e7fe8e291ab8e1af8e10521f9a53f",
+      "outputPath": "trails-dev/agents/skills/trails-adrs/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:bfce6fbf8fb84b2124205e0281d073797afae7a1a331f9690f62cb48387ba0a4",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-derive-from-source/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-derive-from-source/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-derive-from-source/LICENSE.txt",
+        "trails-dev/agents/skills/trails-derive-from-source/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-derive-from-source",
+      "outputHash": "sha256:35f8ed95471e12f9e48ad856fc3c9a64909df7e55d64ab5acf8c6c1fa8351d24",
+      "outputPath": "trails-dev/agents/skills/trails-derive-from-source/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:e8a2acbe7965b9f531e337cd0e9865d9ce9de7dc9dedddf7f2a77be845831779",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-derive-from-source/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-discriminate-union/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-discriminate-union/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-discriminate-union/LICENSE.txt",
+        "trails-dev/agents/skills/trails-discriminate-union/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-discriminate-union",
+      "outputHash": "sha256:a29d5933551f99b75021a329d06ed8c4188763f4481cccc4b54a0a30d68c0de1",
+      "outputPath": "trails-dev/agents/skills/trails-discriminate-union/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:f95c0de82c1c9975995be6e95a08540eed21748491c7b5bae2cdde803b3f8964",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-discriminate-union/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-dogfood-check/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-dogfood-check/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-dogfood-check/LICENSE.txt",
+        "trails-dev/agents/skills/trails-dogfood-check/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-dogfood-check",
+      "outputHash": "sha256:ff2670c91a516888167c6cb2d14154423c2af6deb88bfd7699a4c08ee6dbc923",
+      "outputPath": "trails-dev/agents/skills/trails-dogfood-check/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:7a12efd300a11e41e40db8ca83ecb091b626a8c0c3d2bc2f8bdbf87166ab7624",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-dogfood-check/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-editorial/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-editorial/SKILL.md": "0644",
+        "trails-dev/agents/skills/trails-editorial/assets/SAMPLES.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-editorial/LICENSE.txt",
+        "trails-dev/agents/skills/trails-editorial/SKILL.md",
+        "trails-dev/agents/skills/trails-editorial/assets/SAMPLES.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-editorial",
+      "outputHash": "sha256:712e46ec65d7d29d371bc2614be580dbce85b19929c89252a5ef484fee917a0a",
+      "outputPath": "trails-dev/agents/skills/trails-editorial/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:09765cc357a3b89b22782dd6490cce301a84b56071bbefced87333639c3b957d",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-editorial/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-language-styleguide/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-language-styleguide/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-language-styleguide/LICENSE.txt",
+        "trails-dev/agents/skills/trails-language-styleguide/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-language-styleguide",
+      "outputHash": "sha256:15689ed12940593f8aec2707b3c7dd44336ae50203c4110907849cc67b15077b",
+      "outputPath": "trails-dev/agents/skills/trails-language-styleguide/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:6389571c3f5b92d72de6cbee1b494c6f5ae24b144786bce35ecd8a40c862149c",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-language-styleguide/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-primitive-parity/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-primitive-parity/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-primitive-parity/LICENSE.txt",
+        "trails-dev/agents/skills/trails-primitive-parity/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-primitive-parity",
+      "outputHash": "sha256:80575fdb41152c56fb4db15fd8ca2f17e0332ed7defde2e39659dc76bd87d610",
+      "outputPath": "trails-dev/agents/skills/trails-primitive-parity/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:283d613da67e7f372cc71cf7cf617fbc02397c1423ea96006675c0bc0509388d",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-primitive-parity/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-warden-advisory/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-warden-advisory/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-warden-advisory/LICENSE.txt",
+        "trails-dev/agents/skills/trails-warden-advisory/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-warden-advisory",
+      "outputHash": "sha256:22f647e289f294c1c43f23c5b9265f3b54d80931f2ac8cb203cb374c727bb3f3",
+      "outputPath": "trails-dev/agents/skills/trails-warden-advisory/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:b7133a2cdd234b078d55694bf928002d159ce224c53e5d953cd9178fb7cb02fc",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-warden-advisory/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-writing-docs/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-writing-docs/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-writing-docs/LICENSE.txt",
+        "trails-dev/agents/skills/trails-writing-docs/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-writing-docs",
+      "outputHash": "sha256:edb7f5e4ccde11250fd0b0e7f1bc5a289b4742f514647759f75bced4bb8a2217",
+      "outputPath": "trails-dev/agents/skills/trails-writing-docs/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:76fdbc2a00e9c04f9f29505118483eb43e42511c1c7c6346e1b255e56b655f4c",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-writing-docs/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-writing-style/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-writing-style/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-writing-style/LICENSE.txt",
+        "trails-dev/agents/skills/trails-writing-style/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-writing-style",
+      "outputHash": "sha256:71273091b68f41e9d0e15dfad050ad8ab486692e646e314d033098d6eeaef6be",
+      "outputPath": "trails-dev/agents/skills/trails-writing-style/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:0380c094c58fcb0b64be42c5b4c0c360b4cc61a4992c30380972b49ea6089f7f",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-writing-style/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
+        "trails-dev/agents/skills/trails-writing-voice/LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-writing-voice/SKILL.md": "0644"
+      },
+      "files": [
+        "trails-dev/agents/skills/trails-writing-voice/LICENSE.txt",
+        "trails-dev/agents/skills/trails-writing-voice/SKILL.md"
+      ],
+      "kind": "plugin-skill",
+      "name": "trails-writing-voice",
+      "outputHash": "sha256:0aa2111dae39ed5ec0ced07a8397085285f094e9d6f86d01521df4d07461444b",
+      "outputPath": "trails-dev/agents/skills/trails-writing-voice/SKILL.md",
+      "owner": {
+        "standardProfile": "agent-plugins-1.0"
+      },
+      "plugin": "trails-dev",
+      "sourceHash": "sha256:21c3527a48b0eb3a708fcbd92a60247bd46b56e6cac7aa9fee4cdd2d03286ff4",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-writing-voice/SKILL.md",
+      "version": "0.1.0"
+    },
+    {
+      "consumers": [
+        {
+          "phase": "baseline",
+          "standardProfile": "agent-plugins-1.0"
+        }
+      ],
+      "fileModes": {
         "trails/agents/LICENSE.txt": "0644",
         "trails/agents/README.md": "0644",
         "trails/agents/plugin.json": "0644"
@@ -24,124 +457,16 @@
       ],
       "kind": "plugin",
       "name": "trails",
-      "outputHash": "sha256:a9c410724db6e6014346c7585c0727016c3ff00a083a2ad0afe17e4b302c7b21",
+      "outputHash": "sha256:f76fd38fbbe918e7258ba4d3e32c3c87ff04151f6d13e157cf5152b5f45e0781",
       "outputPath": "trails/agents/plugin.json",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "renderInputsHash": "sha256:3b61ef08140d26b7fec251532102bcddf1b8e7560fdf28234f37a5d04e507072",
-      "sourceHash": "sha256:e82d1258e9c825ec848388bd5286e56bec4a0636c6171fe437fc63c425953f78",
+      "sourceHash": "sha256:647f115fc93d67976d3c3d09b659ba21c14ec5681e25b289f093b8ceb202c0f0",
       "sourcePath": ".skillset/plugins/trails",
       "targetState": "sync",
       "validation": "structured",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-derive-from-source/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-derive-from-source/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-derive-from-source/LICENSE.txt",
-        "trails/agents/skills/trails-derive-from-source/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-derive-from-source",
-      "outputHash": "sha256:cadd423d6c50c4e8a5ff944ab9c7c077be516104a93101a5805b784436e3f004",
-      "outputPath": "trails/agents/skills/trails-derive-from-source/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:94e92882654deb70593cdaf4e55d4899053beaf1f32a1e220ced916bdd809b5e",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-derive-from-source/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-discriminate-union/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-discriminate-union/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-discriminate-union/LICENSE.txt",
-        "trails/agents/skills/trails-discriminate-union/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-discriminate-union",
-      "outputHash": "sha256:1eb5b4b85a5d213f0d239e1f42fde6c534912569a59ba8f3a911e146f8b20c0f",
-      "outputPath": "trails/agents/skills/trails-discriminate-union/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:2dfc3a8c32a74705d8c95750374c6aa783a7e38315660e5dbbe5a1aff7881c9a",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-discriminate-union/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-dogfood-check/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-dogfood-check/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-dogfood-check/LICENSE.txt",
-        "trails/agents/skills/trails-dogfood-check/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-dogfood-check",
-      "outputHash": "sha256:09298d2e3d76c5f1490ba8584603a39f15060ae31774e55f1fbfe4ed9924c27f",
-      "outputPath": "trails/agents/skills/trails-dogfood-check/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:4c1b22398af84938656d3f74a381b22bd90198aa0ba4746c2348b931fee2aad3",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-dogfood-check/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-editorial/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-editorial/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-editorial/LICENSE.txt",
-        "trails/agents/skills/trails-editorial/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-editorial",
-      "outputHash": "sha256:8e67dddd82166ed1fe4d96e0b5fb64205e42df29cdca034cb5fe9aedec120280",
-      "outputPath": "trails/agents/skills/trails-editorial/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:efb37a17484a9d78efb7e3e7defac8ab3f31bf02c6bccd1e3ab9e52c776be233",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-editorial/SKILL.md",
       "version": "0.3.4"
     },
     {
@@ -161,178 +486,14 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-error-format",
-      "outputHash": "sha256:ef6476f33ce9f5b9491efa43bed5d25093ff7c65db8ff0aaaebfbbdbf347f4d1",
+      "outputHash": "sha256:3a409b17021fa9bde9d8c4c59aef016083bb61841b24f53b31b6ff74c2d5f8c1",
       "outputPath": "trails/agents/skills/trails-error-format/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "plugin": "trails",
-      "sourceHash": "sha256:4dc0e98f95e0a934da64dee59d2674ca2c76e4b3982f55053d9b08c01a528855",
+      "sourceHash": "sha256:d3f7c01c04eda3c5c9a183f3fd96bf852b4c0d527a109c90859fe6439f5c55ca",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-language-styleguide/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-language-styleguide/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-language-styleguide/LICENSE.txt",
-        "trails/agents/skills/trails-language-styleguide/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-language-styleguide",
-      "outputHash": "sha256:57c1c8503a85774d949f2971c72f57fc6e14f6f4ecc8c00aedb28b3768007442",
-      "outputPath": "trails/agents/skills/trails-language-styleguide/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:75e6cfb200f2af513348628446b32cf6dcffddaa538828002d32bef23aae22e2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-language-styleguide/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-primitive-parity/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-primitive-parity/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-primitive-parity/LICENSE.txt",
-        "trails/agents/skills/trails-primitive-parity/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-primitive-parity",
-      "outputHash": "sha256:75b646b56471d03820d5da6a38b6a381c5eb6c782d8e2f6428abb0ae17933c39",
-      "outputPath": "trails/agents/skills/trails-primitive-parity/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:3919621ac3291e5aa54f3e1f034de8597c01fd77e936be410244c19c9ab9adff",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-primitive-parity/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-warden-advisory/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-warden-advisory/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-warden-advisory/LICENSE.txt",
-        "trails/agents/skills/trails-warden-advisory/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-warden-advisory",
-      "outputHash": "sha256:293a4bd91ed9da58cb218a492f7b032c09f909908cff1ff887e9e2075fa475de",
-      "outputPath": "trails/agents/skills/trails-warden-advisory/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:73e8964adba7429f12cc6415bea69be15f6d7f00b0893f1d35c9b89dbaa12da9",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-warden-advisory/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-writing-docs/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-writing-docs/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-writing-docs/LICENSE.txt",
-        "trails/agents/skills/trails-writing-docs/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-writing-docs",
-      "outputHash": "sha256:c2f9610c8f4b0612dba6ae5a2ef9843b79c1d7d2152d077de5c716aa9a140426",
-      "outputPath": "trails/agents/skills/trails-writing-docs/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:cc0aada95cb6665ebd12a00e6eccf98acba09ac53c09c6ec750ec8de5e74c53f",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-docs/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-writing-style/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-writing-style/SKILL.md": "0644",
-        "trails/agents/skills/trails-writing-style/assets/SAMPLES.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-writing-style/LICENSE.txt",
-        "trails/agents/skills/trails-writing-style/SKILL.md",
-        "trails/agents/skills/trails-writing-style/assets/SAMPLES.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-writing-style",
-      "outputHash": "sha256:3b9c10be542f476b2fb69a1a8c7a40ba4a25fbb7b7bf2d2961d7fe26804af27d",
-      "outputPath": "trails/agents/skills/trails-writing-style/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:886c26208fc4f3eb578fd52f8b194c941c3a6e168b75c3851a731c134d56ed74",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-style/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "consumers": [
-        {
-          "phase": "baseline",
-          "standardProfile": "agent-plugins-1.0"
-        }
-      ],
-      "fileModes": {
-        "trails/agents/skills/trails-writing-voice/LICENSE.txt": "0644",
-        "trails/agents/skills/trails-writing-voice/SKILL.md": "0644"
-      },
-      "files": [
-        "trails/agents/skills/trails-writing-voice/LICENSE.txt",
-        "trails/agents/skills/trails-writing-voice/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-writing-voice",
-      "outputHash": "sha256:9a7e1241402d563c2130522c747da34c5e14bb2a7a6996c6eb4cd61378c58586",
-      "outputPath": "trails/agents/skills/trails-writing-voice/SKILL.md",
-      "owner": {
-        "standardProfile": "agent-plugins-1.0"
-      },
-      "plugin": "trails",
-      "sourceHash": "sha256:7988e061724b6cce0bf6c0e64607f7c56d695a3dff76096cfce62be675b53749",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-voice/SKILL.md",
       "version": "0.3.4"
     },
     {
@@ -388,20 +549,653 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:8d541d5ab643822b99febea4c2154152e8f5431d0c4a7688e243210843d89265",
+      "outputHash": "sha256:2e4768f8d594e36e396b76ebe0e6ab4b6ea09b96b2664a156f52b8ae7b2935c6",
       "outputPath": "trails/agents/skills/trails/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "plugin": "trails",
-      "sourceHash": "sha256:243ea10962f0be790fb1580af126b426459305a5bb3c4dda241227d1f6bb5f9a",
+      "sourceHash": "sha256:aa96d4be9b49838642a2483636eb8c1a188c223861d8d44c77826464b766e209",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
       "version": "0.3.4"
     }
   ],
   "outputRoot": "plugins",
-  "provenanceHash": "sha256:f152948b4be86be8ab4b16126d84313b7533098e3491c77d7b48f5a3a4b984c5",
+  "provenanceHash": "sha256:2b78b621a061cf3695cee8c0037dc9650d24f9d7c59f568cc7386323f182e492",
   "renderResults": [
+    {
+      "destination": "plugin-manifest",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-manifests",
+      "outputs": [
+        {
+          "kind": "plugin",
+          "path": "plugins/trails-dev/agents/LICENSE.txt"
+        },
+        {
+          "kind": "plugin",
+          "path": "plugins/trails-dev/agents/plugin.json"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev",
+      "sourceUnit": "plugin.trails-dev.config:root",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/building-trails/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/building-trails/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/building-trails/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:building-trails",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/regrade-loop/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/regrade-loop/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/regrade-loop/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:regrade-loop",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/tenets/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/tenets/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/tenets/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:tenets",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/SKILL.md"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/assets/adr-management.md"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/adr.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/discovery.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/paths.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-adrs",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-derive-from-source/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-derive-from-source/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-derive-from-source/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-derive-from-source",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-discriminate-union/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-discriminate-union/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-discriminate-union/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-discriminate-union",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-dogfood-check/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-dogfood-check/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-dogfood-check/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-dogfood-check",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-editorial/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-editorial/SKILL.md"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-editorial/assets/SAMPLES.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-editorial/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-editorial",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-language-styleguide/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-language-styleguide/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-language-styleguide/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-language-styleguide",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-primitive-parity/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-primitive-parity/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-primitive-parity/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-primitive-parity",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-warden-advisory/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-warden-advisory/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-warden-advisory/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-warden-advisory",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-writing-docs/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-writing-docs/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-writing-docs/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-writing-docs",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-writing-style/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-writing-style/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-writing-style/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-writing-style",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
+    {
+      "destination": "skill",
+      "evidence": [
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 schema",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        },
+        {
+          "kind": "external-docs",
+          "note": "Agent Plugins 1.0 1.0.0 specification",
+          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
+          "verifiedAt": "2026-09-12T15:34:39.000Z"
+        }
+      ],
+      "featureId": "plugin-skills",
+      "outputs": [
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-writing-voice/LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-writing-voice/SKILL.md"
+        }
+      ],
+      "schema": "skillset-render-result@2",
+      "sourcePath": ".skillset/plugins/trails-dev/skills/trails-writing-voice/SKILL.md",
+      "sourceUnit": "plugin.trails-dev.skill:trails-writing-voice",
+      "standardProfile": "agent-plugins-1.0",
+      "status": "rendered"
+    },
     {
       "destination": "plugin-manifest",
       "evidence": [
@@ -609,162 +1403,6 @@
       "outputs": [
         {
           "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-derive-from-source/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-derive-from-source/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-derive-from-source/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-derive-from-source",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-discriminate-union/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-discriminate-union/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-discriminate-union/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-discriminate-union",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-dogfood-check/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-dogfood-check/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-dogfood-check/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-dogfood-check",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-editorial/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-editorial/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-editorial/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-editorial",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
           "path": "plugins/trails/agents/skills/trails-error-format/LICENSE.txt"
         },
         {
@@ -775,244 +1413,6 @@
       "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
       "sourceUnit": "plugin.trails.skill:trails-error-format",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-language-styleguide/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-language-styleguide/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-language-styleguide/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-language-styleguide",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-primitive-parity/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-primitive-parity/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-primitive-parity/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-primitive-parity",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-warden-advisory/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-warden-advisory/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-warden-advisory/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-warden-advisory",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-docs/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-docs/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-docs/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-writing-docs",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-style/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-style/SKILL.md"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-style/assets/SAMPLES.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-style/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-writing-style",
-      "standardProfile": "agent-plugins-1.0",
-      "status": "rendered"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/mcp.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 schema",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/schemas/1.0.0/plugin.schema.json",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        },
-        {
-          "kind": "external-docs",
-          "note": "Agent Plugins 1.0 1.0.0 specification",
-          "ref": "https://raw.githubusercontent.com/agentplugins/agent-plugins-spec/1fc1b6270e3cc492ec2d24ad7a34277c6d53b9c1/spec/1.0.0.md",
-          "verifiedAt": "2026-09-12T15:34:39.000Z"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-voice/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails/agents/skills/trails-writing-voice/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-voice/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-writing-voice",
       "standardProfile": "agent-plugins-1.0",
       "status": "rendered"
     }

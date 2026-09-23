@@ -1,10 +1,10 @@
 # Warden Guidance For Trails Skills
 
-<!-- GENERATED: run `bun run warden:skills:sync`; check with `bun run warden:skills:check`. -->
+<!-- GENERATED from the bundled @ontrails/warden manifest. Do not edit. -->
 
-This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
+This file is generated from the `@ontrails/warden` rule manifest bundled with this skill. Skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
-- Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
+- Source: bundled `@ontrails/warden` rule manifest
 - Rule count: 76
 
 ## Agent Instructions
@@ -12,8 +12,8 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - Treat Warden rules as enforceable Trails doctrine when working in this repository.
 - Prefer the rule guidance summary and ordered steps over diagnostic prose when deciding how to remediate a finding.
 - When guidance is absent, use the invariant, concern, tier, and scope as classification metadata rather than inventing a rule-specific fix.
-- Treat `docs/tenets.md`, `docs/lexicon.md`, and `AGENTS.md` as higher-authority orientation when prose conflicts with generated rule summaries.
-- Do not manually duplicate the rule index into skill prompts. Refresh this file when Warden metadata changes.
+- Use the inspected project's governing guidance as higher-authority orientation when prose conflicts with generated rule summaries.
+- Do not manually duplicate the rule index into skill prompts. Refresh the bundled guide when Warden metadata changes.
 
 ## Rule Index
 

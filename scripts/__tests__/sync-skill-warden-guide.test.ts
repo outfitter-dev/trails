@@ -40,11 +40,14 @@ describe('sync-skill-warden-guide', () => {
     expect(SKILL_WARDEN_GUIDE_PATHS).toHaveLength(2);
     expect(guide).toStartWith('# Warden Guidance For Trails Skills');
     expect(guide).toContain(
-      '- Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`'
+      '- Source: bundled `@ontrails/warden` rule manifest'
     );
     expect(guide).toMatch(/Rule count: \d+/);
     expect(guide).toContain('## Agent Instructions');
-    expect(guide).toContain('Repo-tracked skills, agents, and plugin prompts');
+    expect(guide).toContain('Skills, agents, and plugin prompts');
+    expect(guide).not.toContain('bun apps/trails/bin/trails.ts');
+    expect(guide).not.toContain('bun run warden:');
+    expect(guide).not.toContain('docs/tenets.md');
     expect(guide).toContain('### Results');
     expect(guide).toContain('`no-throw-in-implementation`');
   });

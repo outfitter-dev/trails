@@ -8,7 +8,6 @@ name: clark
 permissionMode: auto
 skills:
   - be-clark
-  - tenets
   - clark-pathfinding
   - clark-decision
   - clark-survey

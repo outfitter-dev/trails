@@ -7,4 +7,4 @@
  * and the skill stay aligned, while contributors can still run
  * `bun scripts/adr.ts ...` from the project root.
  */
-import '../.claude/skills/trails-adrs/scripts/adr.ts';
+import '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/adr.ts';

@@ -3,8 +3,20 @@ import { describe, expect, test } from 'bun:test';
 import {
   checkMarkdownDocumentLinks,
   collectAnchors,
+  discoverMarkdownFiles,
   extractMarkdownLinks,
 } from '../check-markdown-links.ts';
+
+describe('discoverMarkdownFiles', () => {
+  test('includes canonical Skillset source', () => {
+    expect(discoverMarkdownFiles()).toContain(
+      '.skillset/plugins/trails/skills/trails/SKILL.md'
+    );
+    expect(discoverMarkdownFiles()).toContain(
+      '.skillset/plugins/trails-dev/skills/trails-editorial/SKILL.md'
+    );
+  });
+});
 
 describe('extractMarkdownLinks', () => {
   test('skips fenced code blocks while collecting markdown links', () => {

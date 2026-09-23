@@ -41,7 +41,7 @@
     "skillset:sync": "bun run warden:skills:sync && skillset build --yes --root .",
     "skillset:check": "bun run warden:skills:check && skillset check --only outputs --root .",
     "skillset:ownership": "bun test scripts/__tests__/skillset-ownership-contract.test.ts",
-    "skillset:parity": "bun test scripts/__tests__/standalone-skillset-parity.test.ts",
+    "skillset:parity": "bun test scripts/__tests__/standalone-skillset-parity.test.ts scripts/__tests__/skillset-plugin-boundaries.test.ts",
     "dead-code": "knip --no-progress",
     "pre-push:checks": "bun scripts/pre-push-checks.ts",
     "trails": "bun apps/trails/bin/trails.ts",

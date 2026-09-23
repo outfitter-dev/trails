@@ -34,6 +34,7 @@ const MANAGED_SKILLSET_PATHS = [
   '.codex/agents',
   'skillset.lock',
   'plugin',
+  'plugin-dev',
   'plugins',
 ] as const;
 
@@ -110,6 +111,9 @@ describe('Skillset ownership contract', () => {
     expect(packageJson.scripts?.['skillset:ownership']).toBe(
       'bun test scripts/__tests__/skillset-ownership-contract.test.ts'
     );
+    expect(packageJson.scripts?.['skillset:parity']).toBe(
+      'bun test scripts/__tests__/standalone-skillset-parity.test.ts scripts/__tests__/skillset-plugin-boundaries.test.ts'
+    );
   });
 
   test('keeps Warden source refresh ahead of standalone Skillset projection', async () => {
@@ -179,6 +183,7 @@ describe('Skillset ownership contract', () => {
       'scripts/sync-skill-warden-guide.ts',
       '.skillset/plugins/trails/skills/trails/references/warden-guide.md',
       'plugin/**',
+      'plugin-dev/**',
       'plugins/**',
     ]) {
       expect(teamSkills).toContain(scope);
@@ -266,6 +271,7 @@ describe('Skillset ownership contract', () => {
     const modifiedPath = '.claude/skills/be-clark/SKILL.md';
     const deletedPath = '.agents/skills/skillset.lock';
     const createdPath = '.codex/agents/clark.toml';
+    const createdPluginDevPath = 'plugin-dev/skills/example/SKILL.md';
     const canonicalGuide =
       '.skillset/skills/be-clark/references/warden-guide.md';
     const pluginGuide =
@@ -303,6 +309,11 @@ describe('Skillset ownership contract', () => {
     await rm(join(rootDir, deletedPath));
     await mkdir(join(rootDir, createdPath, '..'), { recursive: true });
     await writeFile(join(rootDir, createdPath), 'new managed file\n');
+    await mkdir(join(rootDir, createdPluginDevPath, '..'), { recursive: true });
+    await writeFile(
+      join(rootDir, createdPluginDevPath),
+      'new contributor skill\n'
+    );
     await writeFile(
       join(rootDir, canonicalGuide),
       'modified canonical guide\n'
@@ -320,6 +331,7 @@ describe('Skillset ownership contract', () => {
     expect(stagedFiles.trim().split('\n').toSorted()).toEqual(
       [
         `A\t${createdPath}`,
+        `A\t${createdPluginDevPath}`,
         `D\t${deletedPath}`,
         `M\t${canonicalGuide}`,
         `M\t${modifiedPath}`,

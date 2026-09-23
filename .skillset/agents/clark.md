@@ -5,7 +5,6 @@ claude:
   color: green
   skills:
     - be-clark
-    - tenets
     - clark-pathfinding
     - clark-decision
     - clark-survey

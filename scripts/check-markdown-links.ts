@@ -35,7 +35,13 @@ interface LinkCheckOptions {
 }
 
 const repoRoot = resolve(import.meta.dir, '..');
-const scanRoots = ['docs', 'packages', 'apps', 'adapters'] as const;
+const scanRoots = [
+  'docs',
+  'packages',
+  'apps',
+  'adapters',
+  '.skillset',
+] as const;
 const markdownExtensions = new Set(['.md', '.mdx']);
 const externalSchemePattern = /^[a-z][a-z0-9+.-]*:/i;
 

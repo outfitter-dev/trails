@@ -92,7 +92,7 @@ done
 
 [[ -n "$reason" ]] || exit 0
 
-msg="This looks like a Trails project ($reason). Use the repo-bundled/current Trails skill guidance before writing trail code; do not assume a global installed trails skill is current."
+msg="This looks like a Trails project ($reason). Use this plugin's bundled Trails skill guidance before writing trail code."
 
 if [[ -x "$project_dir/node_modules/.bin/trails" ]]; then
   msg="$msg Non-mutating Warden probe: \`./node_modules/.bin/trails warden --lock cached --no-lock-mutation\`."
@@ -103,7 +103,5 @@ elif command -v trails >/dev/null 2>&1; then
 else
   msg="$msg No project-local or PATH \`trails\` CLI was found; install or use the project-pinned \`@ontrails/trails\` before running Warden."
 fi
-
-msg="$msg This hook is read-only; run the Trails repo's \`bun run plugin:installed-skill:check\` before relying on installed/global skill copies."
 
 echo "$msg"

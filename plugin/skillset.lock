@@ -19,26 +19,16 @@
         "agents/trail-engineer.md"
       ],
       "includedSkills": [
-        "trails-derive-from-source@0.3.4",
-        "trails-discriminate-union@0.3.4",
-        "trails-dogfood-check@0.3.4",
-        "trails-editorial@0.3.4",
         "trails-error-format@0.3.4",
-        "trails-language-styleguide@0.3.4",
-        "trails-primitive-parity@0.3.4",
-        "trails-warden-advisory@0.3.4",
-        "trails-writing-docs@0.3.4",
-        "trails-writing-style@0.3.4",
-        "trails-writing-voice@0.3.4",
         "trails@0.3.4"
       ],
       "kind": "plugin",
       "name": "trails",
-      "outputHash": "sha256:acba6403c35af6a021c64b7f3b0d496e32b8c61ea19e3a8f9c57eb4e0c99d74f",
+      "outputHash": "sha256:203be7e02d774737e9dbacd087f0216398c2743183795f336898ed982868b6de",
       "outputPath": ".claude-plugin/plugin.json",
       "renderInputsHash": "sha256:c343536160d7ae8f5ab00912fb08990b20ef611fc945df032f36b42134d016db",
       "skippedSkills": [],
-      "sourceHash": "sha256:7eebd9d8b21b03692903c75606d7a7ac72c3e5e7750a1cb4500bf125d93ce7dd",
+      "sourceHash": "sha256:5b4dbed150388f41b7e873bcb351be4558341eeb1495c22ca797df3f7edede18",
       "sourcePath": ".skillset/plugins/trails",
       "targetState": "sync",
       "version": "0.3.4"
@@ -52,11 +42,11 @@
       ],
       "kind": "island",
       "name": "claude:trails:hooks/detect-trails.sh",
-      "outputHash": "sha256:f4175579b9e70a6440ccf8053b8930dc6e5c6dc780f1d86b478db27c58cc8d76",
+      "outputHash": "sha256:bdfc663ecf28112509612f06cd641b92f1aaf4c44118ba0213e341d1a27b3937",
       "outputPath": "hooks/detect-trails.sh",
       "plugin": "trails",
       "preprocessDependencies": [],
-      "sourceHash": "sha256:e38336e849513eb5775a8eb9c57493acb9e30722480fd355e92a44631eb42b1f",
+      "sourceHash": "sha256:4eac89f6e51c46e7fd351a271f3268cab9ebebd5eb647ec4e1fde2f700ebe797",
       "sourcePath": ".skillset/plugins/trails/_claude/hooks/detect-trails.sh",
       "validation": "opaque-copy",
       "version": "0.1.0"
@@ -117,78 +107,6 @@
     },
     {
       "fileModes": {
-        "skills/trails-derive-from-source/LICENSE.txt": "0644",
-        "skills/trails-derive-from-source/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-derive-from-source/LICENSE.txt",
-        "skills/trails-derive-from-source/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-derive-from-source",
-      "outputHash": "sha256:76cffed178ca065598bc09d1692a9c0f9217af1d1ec81953e50b0d3f25232cad",
-      "outputPath": "skills/trails-derive-from-source/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:94e92882654deb70593cdaf4e55d4899053beaf1f32a1e220ced916bdd809b5e",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-derive-from-source/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-discriminate-union/LICENSE.txt": "0644",
-        "skills/trails-discriminate-union/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-discriminate-union/LICENSE.txt",
-        "skills/trails-discriminate-union/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-discriminate-union",
-      "outputHash": "sha256:67fb2fe6b508055f7edb62d8eb3ecce1d5a3dbacfb0b05384965234f7aa61b5c",
-      "outputPath": "skills/trails-discriminate-union/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:2dfc3a8c32a74705d8c95750374c6aa783a7e38315660e5dbbe5a1aff7881c9a",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-discriminate-union/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-dogfood-check/LICENSE.txt": "0644",
-        "skills/trails-dogfood-check/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-dogfood-check/LICENSE.txt",
-        "skills/trails-dogfood-check/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-dogfood-check",
-      "outputHash": "sha256:6fadb15900b9224adb7613771057389500cf7782e59c3f6ba9734327189b5cbd",
-      "outputPath": "skills/trails-dogfood-check/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:4c1b22398af84938656d3f74a381b22bd90198aa0ba4746c2348b931fee2aad3",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-dogfood-check/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-editorial/LICENSE.txt": "0644",
-        "skills/trails-editorial/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-editorial/LICENSE.txt",
-        "skills/trails-editorial/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-editorial",
-      "outputHash": "sha256:17ed6871f8b5c259e320e3db8bc8e817fda81729c44afb2c1549f8d34ae44827",
-      "outputPath": "skills/trails-editorial/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:efb37a17484a9d78efb7e3e7defac8ab3f31bf02c6bccd1e3ab9e52c776be233",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-editorial/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
         "skills/trails-error-format/LICENSE.txt": "0644",
         "skills/trails-error-format/SKILL.md": "0644"
       },
@@ -198,121 +116,11 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-error-format",
-      "outputHash": "sha256:065bcad6b5574ca24aaf40d54106d29928ad1ac0ea2754cbd212f28dce72b1d7",
+      "outputHash": "sha256:e70c277a1ee5343fa1415f6fd7ad1f22bf54940068459a8c296dfe4b84e3dbe5",
       "outputPath": "skills/trails-error-format/SKILL.md",
       "plugin": "trails",
-      "sourceHash": "sha256:4dc0e98f95e0a934da64dee59d2674ca2c76e4b3982f55053d9b08c01a528855",
+      "sourceHash": "sha256:d3f7c01c04eda3c5c9a183f3fd96bf852b4c0d527a109c90859fe6439f5c55ca",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-language-styleguide/LICENSE.txt": "0644",
-        "skills/trails-language-styleguide/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-language-styleguide/LICENSE.txt",
-        "skills/trails-language-styleguide/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-language-styleguide",
-      "outputHash": "sha256:85486ffbdbed9835f3d27dd352b93ed173b33352a932de35930bf5eb28061630",
-      "outputPath": "skills/trails-language-styleguide/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:75e6cfb200f2af513348628446b32cf6dcffddaa538828002d32bef23aae22e2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-language-styleguide/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-primitive-parity/LICENSE.txt": "0644",
-        "skills/trails-primitive-parity/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-primitive-parity/LICENSE.txt",
-        "skills/trails-primitive-parity/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-primitive-parity",
-      "outputHash": "sha256:458e09dfab23acc577364510742d7c629bb8369fd8f4edae46dac6f38bd59809",
-      "outputPath": "skills/trails-primitive-parity/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:3919621ac3291e5aa54f3e1f034de8597c01fd77e936be410244c19c9ab9adff",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-primitive-parity/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-warden-advisory/LICENSE.txt": "0644",
-        "skills/trails-warden-advisory/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-warden-advisory/LICENSE.txt",
-        "skills/trails-warden-advisory/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-warden-advisory",
-      "outputHash": "sha256:f8878d908f88d32ea9ac765d36ffb9232de4a3500a3abe08f6b3f92aa009de6f",
-      "outputPath": "skills/trails-warden-advisory/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:73e8964adba7429f12cc6415bea69be15f6d7f00b0893f1d35c9b89dbaa12da9",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-warden-advisory/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-writing-docs/LICENSE.txt": "0644",
-        "skills/trails-writing-docs/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-writing-docs/LICENSE.txt",
-        "skills/trails-writing-docs/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-writing-docs",
-      "outputHash": "sha256:1c534193f21ed25dd7c83f3f80c1f4d7a7ddc427386f1b546d4abea47a176007",
-      "outputPath": "skills/trails-writing-docs/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:cc0aada95cb6665ebd12a00e6eccf98acba09ac53c09c6ec750ec8de5e74c53f",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-docs/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-writing-style/LICENSE.txt": "0644",
-        "skills/trails-writing-style/SKILL.md": "0644",
-        "skills/trails-writing-style/assets/SAMPLES.md": "0644"
-      },
-      "files": [
-        "skills/trails-writing-style/LICENSE.txt",
-        "skills/trails-writing-style/SKILL.md",
-        "skills/trails-writing-style/assets/SAMPLES.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-writing-style",
-      "outputHash": "sha256:eac716d0acc54f44e2991b1ec967f59cf7647bd775230adc9cf6edec4f61089f",
-      "outputPath": "skills/trails-writing-style/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:886c26208fc4f3eb578fd52f8b194c941c3a6e168b75c3851a731c134d56ed74",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-style/SKILL.md",
-      "version": "0.3.4"
-    },
-    {
-      "fileModes": {
-        "skills/trails-writing-voice/LICENSE.txt": "0644",
-        "skills/trails-writing-voice/SKILL.md": "0644"
-      },
-      "files": [
-        "skills/trails-writing-voice/LICENSE.txt",
-        "skills/trails-writing-voice/SKILL.md"
-      ],
-      "kind": "plugin-skill",
-      "name": "trails-writing-voice",
-      "outputHash": "sha256:c58f0140d1bc90f77220bbb816d6f8ee54341e4df5c3aa8c1d167138291c482d",
-      "outputPath": "skills/trails-writing-voice/SKILL.md",
-      "plugin": "trails",
-      "sourceHash": "sha256:7988e061724b6cce0bf6c0e64607f7c56d695a3dff76096cfce62be675b53749",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-voice/SKILL.md",
       "version": "0.3.4"
     },
     {
@@ -362,16 +170,16 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:02e6a609f7a5c57bed13e30dc4697a823d4e1d8b7ee5a47e47126002644f192a",
+      "outputHash": "sha256:929a024aac4c2fa00e2f96a36185142567d452dcc544e1ccf7c338cb36d51039",
       "outputPath": "skills/trails/SKILL.md",
       "plugin": "trails",
-      "sourceHash": "sha256:243ea10962f0be790fb1580af126b426459305a5bb3c4dda241227d1f6bb5f9a",
+      "sourceHash": "sha256:aa96d4be9b49838642a2483636eb8c1a188c223861d8d44c77826464b766e209",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
       "version": "0.3.4"
     }
   ],
   "outputRoot": "plugin",
-  "provenanceHash": "sha256:18d7c8ca9f2ca779e8345e8e4cb3cb3db60ffc4c02d7ebba3734c8824c1b735d",
+  "provenanceHash": "sha256:5f04b4f8d5f5d7ed4fee9c23eeefe8f8b6cc5a160f2e2767d9c99d4de7c1a788",
   "renderResults": [
     {
       "destination": "target-native-island",
@@ -682,150 +490,6 @@
       "outputs": [
         {
           "kind": "plugin-skill",
-          "path": "plugin/skills/trails-derive-from-source/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-derive-from-source/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-derive-from-source/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-derive-from-source",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-discriminate-union/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-discriminate-union/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-discriminate-union/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-discriminate-union",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-dogfood-check/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-dogfood-check/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-dogfood-check/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-dogfood-check",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-editorial/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-editorial/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-editorial/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-editorial",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
           "path": "plugin/skills/trails-error-format/LICENSE.txt"
         },
         {
@@ -836,226 +500,6 @@
       "schema": "skillset-render-result@2",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
       "sourceUnit": "plugin.trails.skill:trails-error-format",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-language-styleguide/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-language-styleguide/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-language-styleguide/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-language-styleguide",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-primitive-parity/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-primitive-parity/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-primitive-parity/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-primitive-parity",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-warden-advisory/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-warden-advisory/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-warden-advisory/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-warden-advisory",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-docs/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-docs/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-docs/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-writing-docs",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-style/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-style/SKILL.md"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-style/assets/SAMPLES.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-style/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-writing-style",
-      "status": "rendered",
-      "target": "claude"
-    },
-    {
-      "destination": "skill",
-      "evidence": [
-        {
-          "kind": "docs",
-          "ref": "docs/reference/features/skills.md"
-        },
-        {
-          "kind": "provider-overlay",
-          "note": "Claude skill structure is currently documented in prose; no adopted JSON Schema source is available.",
-          "ref": "claude-skill-frontmatter-overlay"
-        },
-        {
-          "kind": "provider-snapshot",
-          "note": "sha256:a67aece088a7d8b3baa57791ab66796f2479b207ddb1d01296fed73f99bae4bc",
-          "ref": "claude-skill",
-          "verifiedAt": "2026-06-23"
-        }
-      ],
-      "featureId": "plugin-skills",
-      "outputs": [
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-voice/LICENSE.txt"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugin/skills/trails-writing-voice/SKILL.md"
-        }
-      ],
-      "schema": "skillset-render-result@2",
-      "sourcePath": ".skillset/plugins/trails/skills/trails-writing-voice/SKILL.md",
-      "sourceUnit": "plugin.trails.skill:trails-writing-voice",
       "status": "rendered",
       "target": "claude"
     }
