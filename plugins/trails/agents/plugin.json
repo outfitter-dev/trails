@@ -7,5 +7,5 @@
   "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance for agent-assisted development.",
   "license": "MIT",
   "name": "trails",
-  "version": "0.3.4"
+  "version": "0.4.0"
 }

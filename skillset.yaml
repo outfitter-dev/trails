@@ -10,3 +10,11 @@ compile:
   targets:
     - claude
     - codex
+marketplaces:
+  trails:
+    title: Trails
+    targets:
+      - claude
+    plugins:
+      - plugin: trails
+      - plugin: trails-dev

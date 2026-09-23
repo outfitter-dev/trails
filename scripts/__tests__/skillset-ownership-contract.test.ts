@@ -103,10 +103,10 @@ describe('Skillset ownership contract', () => {
     ) as Record<string, Record<string, string>>;
 
     expect(packageJson.scripts?.['skillset:sync']).toBe(
-      'bun run warden:skills:sync && skillset build --yes --root .'
+      'bun run warden:skills:sync && skillset build --yes --root . && skillset marketplace update trails --yes --root .'
     );
     expect(packageJson.scripts?.['skillset:check']).toBe(
-      'bun run warden:skills:check && skillset check --only outputs --root .'
+      'bun run warden:skills:check && bun scripts/check-skillset-outputs.ts'
     );
     expect(packageJson.scripts?.['skillset:ownership']).toBe(
       'bun test scripts/__tests__/skillset-ownership-contract.test.ts'
@@ -114,6 +114,13 @@ describe('Skillset ownership contract', () => {
     expect(packageJson.scripts?.['skillset:parity']).toBe(
       'bun test scripts/__tests__/standalone-skillset-parity.test.ts scripts/__tests__/skillset-plugin-boundaries.test.ts'
     );
+  });
+
+  test('keeps release state and marketplace provenance in the normal gate', async () => {
+    const checkScript = await readRepoFile('scripts/check-skillset-outputs.ts');
+
+    expect(checkScript).toContain("'change',\n    'check'");
+    expect(checkScript).toContain("'marketplace',\n    'check'");
   });
 
   test('keeps Warden source refresh ahead of standalone Skillset projection', async () => {

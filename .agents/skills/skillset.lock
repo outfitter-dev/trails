@@ -514,7 +514,7 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-error-format",
-      "outputHash": "sha256:9d82bae93652ebf45ffcb131ecd48a1c0385f1d597f88b9da3aefd4c2cb13190",
+      "outputHash": "sha256:c66d4ef7e21229f6fc024f6d212ed48a7a7a7f147736c5e940997f472d00410b",
       "outputPath": "trails-error-format/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
@@ -522,7 +522,7 @@
       "plugin": "trails",
       "sourceHash": "sha256:d3f7c01c04eda3c5c9a183f3fd96bf852b4c0d527a109c90859fe6439f5c55ca",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "consumers": [
@@ -843,7 +843,7 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:f292987e3373045866089fa0d7258d22e87652544758945fea25a171f6cfb87e",
+      "outputHash": "sha256:28cfe48ed70e41c85cf6c5f16b8daa4d65e133bc5ba2ec064596b480324c1e53",
       "outputPath": "trails/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
@@ -851,11 +851,11 @@
       "plugin": "trails",
       "sourceHash": "sha256:aa96d4be9b49838642a2483636eb8c1a188c223861d8d44c77826464b766e209",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
-      "version": "0.3.4"
+      "version": "0.4.0"
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:27210f94161f1862e459db827aa96bc715ed21f6ef3478d0fe8a5e54ae2a7a46",
+  "provenanceHash": "sha256:d0719bc281daa542eb661993092cd47cdfb3ac59ee79ca4b24f79a7d5fde03b5",
   "renderResults": [
     {
       "destination": "skill",

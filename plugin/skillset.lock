@@ -19,19 +19,19 @@
         "agents/trail-engineer.md"
       ],
       "includedSkills": [
-        "trails-error-format@0.3.4",
-        "trails@0.3.4"
+        "trails-error-format@0.4.0",
+        "trails@0.4.0"
       ],
       "kind": "plugin",
       "name": "trails",
-      "outputHash": "sha256:203be7e02d774737e9dbacd087f0216398c2743183795f336898ed982868b6de",
+      "outputHash": "sha256:259f3d72fc010df417642efab87a4db2a3cb303a699aeae24c8d89e9e83b7668",
       "outputPath": ".claude-plugin/plugin.json",
-      "renderInputsHash": "sha256:c343536160d7ae8f5ab00912fb08990b20ef611fc945df032f36b42134d016db",
+      "renderInputsHash": "sha256:db8cfb369217f0f1aab8a90bc84b67634393611b209fffc64ecf4cd342296776",
       "skippedSkills": [],
-      "sourceHash": "sha256:5b4dbed150388f41b7e873bcb351be4558341eeb1495c22ca797df3f7edede18",
+      "sourceHash": "sha256:79fc8f556e5717b0ed30bd93dbf33ccbeaf03df82f9419505c389ae13fa2ff47",
       "sourcePath": ".skillset/plugins/trails",
       "targetState": "sync",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "fileModes": {
@@ -116,12 +116,12 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-error-format",
-      "outputHash": "sha256:e70c277a1ee5343fa1415f6fd7ad1f22bf54940068459a8c296dfe4b84e3dbe5",
+      "outputHash": "sha256:41ce9dd29d089883e2d85974aa0d0eb7cb4c9431c0954d406305bf8b095a6599",
       "outputPath": "skills/trails-error-format/SKILL.md",
       "plugin": "trails",
       "sourceHash": "sha256:d3f7c01c04eda3c5c9a183f3fd96bf852b4c0d527a109c90859fe6439f5c55ca",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "fileModes": {
@@ -170,16 +170,16 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:929a024aac4c2fa00e2f96a36185142567d452dcc544e1ccf7c338cb36d51039",
+      "outputHash": "sha256:1e990ea9b3330faec3361a72a20d334646be6f8be92d3411583be0d7cdefcabf",
       "outputPath": "skills/trails/SKILL.md",
       "plugin": "trails",
       "sourceHash": "sha256:aa96d4be9b49838642a2483636eb8c1a188c223861d8d44c77826464b766e209",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
-      "version": "0.3.4"
+      "version": "0.4.0"
     }
   ],
   "outputRoot": "plugin",
-  "provenanceHash": "sha256:5f04b4f8d5f5d7ed4fee9c23eeefe8f8b6cc5a160f2e2767d9c99d4de7c1a788",
+  "provenanceHash": "sha256:b93e088beca7b9e915ebca7c9c7c996a535d31c9057f2e5558efea23760d544d",
   "renderResults": [
     {
       "destination": "target-native-island",

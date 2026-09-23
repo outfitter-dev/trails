@@ -14,6 +14,7 @@ interface FixtureOptions {
   frameworkVersion?: string;
   marketplacePluginVersion?: string;
   pluginVersion?: string;
+  releasedPluginVersion?: string | null;
   renderedPluginVersion?: string;
   skillVersion?: string;
 }
@@ -40,12 +41,17 @@ const writeFixture = async (
   const marketplacePluginVersion =
     options.marketplacePluginVersion ?? pluginVersion;
   const renderedPluginVersion = options.renderedPluginVersion ?? pluginVersion;
+  const releasedPluginVersion =
+    options.releasedPluginVersion === undefined
+      ? pluginVersion
+      : options.releasedPluginVersion;
   const skillVersion = options.skillVersion ?? frameworkVersion;
 
   await mkdir(join(rootDir, '.claude-plugin'), { recursive: true });
   await mkdir(join(rootDir, '.skillset/plugins/trails/skills/trails'), {
     recursive: true,
   });
+  await mkdir(join(rootDir, '.skillset/changes'), { recursive: true });
   await mkdir(join(rootDir, 'plugin/.claude-plugin'), { recursive: true });
   await mkdir(join(rootDir, 'packages/core'), { recursive: true });
 
@@ -83,6 +89,16 @@ const writeFixture = async (
     join(rootDir, '.skillset/plugins/trails/skillset.yaml'),
     `skillset:\n  name: trails\n  version: ${pluginVersion}\n`
   );
+  if (releasedPluginVersion !== null) {
+    await writeFile(
+      join(rootDir, '.skillset/changes/state.json'),
+      renderJson({
+        scopes: {
+          'plugin:trails': { version: releasedPluginVersion },
+        },
+      })
+    );
+  }
   await writeFile(
     join(rootDir, 'packages/core/package.json'),
     renderJson({
@@ -128,6 +144,32 @@ describe('sync-plugin-metadata', () => {
         expect(checkPluginMetadata(state)).toEqual([]);
       }
     );
+  });
+
+  test('uses release state ahead of the compatibility baseline', async () => {
+    await withFixture(
+      {
+        marketplacePluginVersion: '0.4.0',
+        pluginVersion: '0.3.4',
+        releasedPluginVersion: '0.4.0',
+        renderedPluginVersion: '0.4.0',
+      },
+      async (rootDir) => {
+        const state = await readPluginMetadataState(rootDir);
+
+        expect(state.pluginVersion).toBe('0.4.0');
+        expect(checkPluginMetadata(state)).toEqual([]);
+      }
+    );
+  });
+
+  test('uses the compatibility baseline before release state exists', async () => {
+    await withFixture({ releasedPluginVersion: null }, async (rootDir) => {
+      const state = await readPluginMetadataState(rootDir);
+
+      expect(state.pluginVersion).toBe('0.3.0');
+      expect(checkPluginMetadata(state)).toEqual([]);
+    });
   });
 
   test('reports every derived metadata drift independently', async () => {

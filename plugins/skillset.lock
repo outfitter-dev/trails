@@ -13,24 +13,26 @@
         }
       ],
       "fileModes": {
+        "trails-dev/agents/CHANGELOG.md": "0644",
         "trails-dev/agents/LICENSE.txt": "0644",
         "trails-dev/agents/README.md": "0644",
         "trails-dev/agents/plugin.json": "0644"
       },
       "files": [
+        "trails-dev/agents/CHANGELOG.md",
         "trails-dev/agents/LICENSE.txt",
         "trails-dev/agents/README.md",
         "trails-dev/agents/plugin.json"
       ],
       "kind": "plugin",
       "name": "trails-dev",
-      "outputHash": "sha256:7cdc3abcc8043ed03ec2a0cf80e4297ed7abbe1ea9acb35a157a50c6492ef823",
+      "outputHash": "sha256:ea2322111e40e16b34f31c832b5529418e046f95006ec05bf6f9e3cefa0baa02",
       "outputPath": "trails-dev/agents/plugin.json",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "renderInputsHash": "sha256:9e90018b0fb7e78c6e36e64b2585658127cbd5dd4a2d55acbfcb1bf96f3f06ab",
-      "sourceHash": "sha256:b026953ab7199cbffa99c957c4115a585b99137514b3477b80a40c3e9c933515",
+      "sourceHash": "sha256:c5014bb58ec43e14e3e69fdcb1261eb54b8ccea1d90b3bb6dd6599ea674a0382",
       "sourcePath": ".skillset/plugins/trails-dev",
       "targetState": "sync",
       "validation": "structured",
@@ -446,28 +448,30 @@
         }
       ],
       "fileModes": {
+        "trails/agents/CHANGELOG.md": "0644",
         "trails/agents/LICENSE.txt": "0644",
         "trails/agents/README.md": "0644",
         "trails/agents/plugin.json": "0644"
       },
       "files": [
+        "trails/agents/CHANGELOG.md",
         "trails/agents/LICENSE.txt",
         "trails/agents/README.md",
         "trails/agents/plugin.json"
       ],
       "kind": "plugin",
       "name": "trails",
-      "outputHash": "sha256:f76fd38fbbe918e7258ba4d3e32c3c87ff04151f6d13e157cf5152b5f45e0781",
+      "outputHash": "sha256:84833b850786a4309d8a59dc7ff2348290927333b90f69799b65065a3551d925",
       "outputPath": "trails/agents/plugin.json",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
-      "renderInputsHash": "sha256:3b61ef08140d26b7fec251532102bcddf1b8e7560fdf28234f37a5d04e507072",
-      "sourceHash": "sha256:647f115fc93d67976d3c3d09b659ba21c14ec5681e25b289f093b8ceb202c0f0",
+      "renderInputsHash": "sha256:a651c35a76802bf5c6762182aeefb3e9c728d60a6fcea1fd324904ca8e97ced3",
+      "sourceHash": "sha256:bcbab3b7ba61f4efc1075e1a4f998af92032171bc97154a4a3729a8c9fe4b14b",
       "sourcePath": ".skillset/plugins/trails",
       "targetState": "sync",
       "validation": "structured",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "consumers": [
@@ -486,7 +490,7 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-error-format",
-      "outputHash": "sha256:3a409b17021fa9bde9d8c4c59aef016083bb61841b24f53b31b6ff74c2d5f8c1",
+      "outputHash": "sha256:5f912530a996297c064c956bb3ce1506d9932136ff74e4492b32363e124803dc",
       "outputPath": "trails/agents/skills/trails-error-format/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
@@ -494,7 +498,7 @@
       "plugin": "trails",
       "sourceHash": "sha256:d3f7c01c04eda3c5c9a183f3fd96bf852b4c0d527a109c90859fe6439f5c55ca",
       "sourcePath": ".skillset/plugins/trails/skills/trails-error-format/SKILL.md",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "consumers": [
@@ -549,7 +553,7 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:2e4768f8d594e36e396b76ebe0e6ab4b6ea09b96b2664a156f52b8ae7b2935c6",
+      "outputHash": "sha256:bfd154e47bfb1fbcadb5aa6703ebebc9ae3d2f2757221bd373ff3d83fc101dea",
       "outputPath": "trails/agents/skills/trails/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
@@ -557,11 +561,11 @@
       "plugin": "trails",
       "sourceHash": "sha256:aa96d4be9b49838642a2483636eb8c1a188c223861d8d44c77826464b766e209",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
-      "version": "0.3.4"
+      "version": "0.4.0"
     }
   ],
   "outputRoot": "plugins",
-  "provenanceHash": "sha256:2b78b621a061cf3695cee8c0037dc9650d24f9d7c59f568cc7386323f182e492",
+  "provenanceHash": "sha256:43fd60cf2e71be7ccaedcfdeb8755306e151d0672126d97bdb5871e20451c2d1",
   "renderResults": [
     {
       "destination": "plugin-manifest",
