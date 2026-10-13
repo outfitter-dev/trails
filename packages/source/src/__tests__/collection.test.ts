@@ -476,3 +476,43 @@ describe('collectSourceTree Git boundaries', () => {
     }
   });
 });
+
+describe('collectSourceTree concurrent removal', () => {
+  test('reports a directory removed mid-walk as vanished, not unreadable', () => {
+    const root = mkdtempSync(join(tmpdir(), 'source-collection-vanished-'));
+    try {
+      mkdirSync(join(root, 'kept'));
+      mkdirSync(join(root, 'transient', 'nested'), { recursive: true });
+      writeFileSync(join(root, 'kept', 'kept.ts'), 'export const kept = 1;\n');
+
+      // Another process (for example a parallel test cleaning its temp dir)
+      // removes the directory after it is listed but before it is read.
+      const collection = collectSourceTree(root, {
+        classify: (entry) => {
+          if (entry.kind === 'directory') {
+            if (entry.path === 'transient') {
+              rmSync(join(root, 'transient'), { force: true, recursive: true });
+            }
+            return { action: 'recurse' };
+          }
+          return { action: 'collect' };
+        },
+      });
+
+      expect(collection?.files.map((file) => file.path)).toEqual([
+        'kept/kept.ts',
+      ]);
+      expect(collection?.skipped).toContainEqual({
+        path: 'transient',
+        reason: 'vanished-directory',
+      });
+      expect(
+        collection?.skipped.some((entry) =>
+          entry.reason.startsWith('unreadable-')
+        )
+      ).toBe(false);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+});
