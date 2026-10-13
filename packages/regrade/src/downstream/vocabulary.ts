@@ -23,6 +23,7 @@ import { z } from 'zod';
 import {
   DEFAULT_IGNORED_DIRECTORIES,
   collectDownstreamSources,
+  isIncompleteDirectorySkip,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import type {
@@ -2232,8 +2233,7 @@ const unreadableVocabularyPaths = (
   skipped
     .filter(
       (entry) =>
-        entry.reason === 'unreadable-file' ||
-        entry.reason === 'unreadable-directory'
+        entry.reason === 'unreadable-file' || isIncompleteDirectorySkip(entry)
     )
     .map((entry) => entry.path);
 
