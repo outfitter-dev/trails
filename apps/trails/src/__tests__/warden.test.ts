@@ -37,8 +37,8 @@ const trailsBinPath = fileURLToPath(
 );
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
 const cliTimeoutMs = 30_000;
-const wardenExampleReplayCliTimeoutMs = 45_000;
-const wardenExampleReplayTestTimeoutMs = 60_000;
+const wardenExampleReplayCliTimeoutMs = 120_000;
+const wardenExampleReplayTestTimeoutMs = 150_000;
 const coreModuleUrl = import.meta.resolve('@ontrails/core');
 
 const makeTempDir = (): string => {

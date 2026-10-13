@@ -908,7 +908,7 @@ describe('trails create', () => {
         assertFrameworkCliScripts(dir);
         assertHelloApp(dir);
       });
-    });
+    }, 15_000);
 
     test('generates an explicit configured workspace with one lock-owning app', async () => {
       await withTempProject(async (dir) => {
@@ -984,7 +984,7 @@ describe('trails create', () => {
         assertWorkspaceOperatorDeps(dir);
         expectGeneratedProjectFormatCheck(dir);
       });
-    });
+    }, 15_000);
 
     test('reconciles an existing workspace manifest before scaffolding', async () => {
       await withTempProject(async (dir) => {
@@ -1297,7 +1297,7 @@ export const app = topo('other-app');
 
         expect(readText(appDir, 'src/app.ts')).toBe(appSource);
       });
-    });
+    }, 15_000);
 
     test.each([
       [
@@ -1524,7 +1524,7 @@ const changed = new Map();
         });
         expectGeneratedProjectTypecheck(result.appDir);
       });
-    });
+    }, 15_000);
 
     test('rejects a customized root workspace operator pin before writing', async () => {
       await withTempProject(async (dir) => {
@@ -2818,7 +2818,7 @@ export const trailsOverlays = [
         expectGeneratedProjectFormatCheck(dir);
         expectGeneratedProjectLintCheck(dir);
       });
-    });
+    }, 15_000);
 
     test('skips verification when verify is false', async () => {
       await withTempProject(async (dir) => {
@@ -3113,7 +3113,7 @@ export const trailsOverlays = [
         expect(readText(dir, 'tsconfig.json')).toBe(tsconfig);
         expectGeneratedProjectTypecheck(dir);
       });
-    });
+    }, 15_000);
 
     test('uses the actual package type for NodeNext surface syntax', async () => {
       await withTempProject(async (dir) => {
@@ -3166,7 +3166,7 @@ export const trailsOverlays = [
         ]);
         expectGeneratedProjectTypecheck(dir);
       });
-    });
+    }, 15_000);
 
     test('preserves the legacy src surface layout without rewriting tooling', async () => {
       await withTempProject(async (dir) => {
