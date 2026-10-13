@@ -4,8 +4,10 @@ import { dirname, relative, resolve } from 'node:path';
 import { ValidationError } from '@ontrails/core';
 import { collectSourceTree } from '@ontrails/source';
 import type {
+  CollectSourceTreeOptions,
   SourceCollectionBoundaryReason,
   SourceCollectionDecision,
+  SourceTreeCollection,
 } from '@ontrails/source';
 
 import {
@@ -67,18 +69,48 @@ const collectionBoundaries = (
       };
     });
 
+const maxCollectionAttempts = 3;
+
+const hasVanishedDirectory = (
+  collection: SourceTreeCollection | null
+): boolean =>
+  collection?.skipped.some((entry) => entry.reason === 'vanished-directory') ??
+  false;
+
+/**
+ * Rescan while directories vanish mid-walk. A removed directory drops out of
+ * the next listing and a renamed one appears under its new path, so a clean
+ * rescan observes a consistent tree. Churn that outlasts the retries stays
+ * visible to {@link assertReadableCollectionEvidence}, which rejects it.
+ */
+export const collectStableSourceTree = (
+  root: string,
+  createClassify: () => NonNullable<CollectSourceTreeOptions['classify']>
+): SourceTreeCollection | null => {
+  let collection = collectSourceTree(root, { classify: createClassify() });
+  for (
+    let attempt = 1;
+    attempt < maxCollectionAttempts && hasVanishedDirectory(collection);
+    attempt += 1
+  ) {
+    collection = collectSourceTree(root, { classify: createClassify() });
+  }
+  return collection;
+};
+
 const assertReadableCollectionEvidence = (
   boundaryDir: string,
   skipped: readonly { readonly path: string; readonly reason: string }[]
 ): void => {
   const uncertain = skipped.filter(
     (entry) =>
-      entry.reason.startsWith('unreadable-') &&
-      entry.reason !== 'unreadable-git-boundary'
+      (entry.reason.startsWith('unreadable-') &&
+        entry.reason !== 'unreadable-git-boundary') ||
+      entry.reason === 'vanished-directory'
   );
   if (uncertain.length > 0) {
     throw new ValidationError(
-      `Unable to prove static project identity inside "${boundaryDir}" because collection evidence is unreadable.`,
+      `Unable to prove static project identity inside "${boundaryDir}" because collection evidence is unreadable or kept changing during collection.`,
       { context: { boundaryDir: resolve(boundaryDir), skipped: uncertain } }
     );
   }
@@ -129,8 +161,9 @@ export const collectConfigBoundariesThroughPaths = (
 ): readonly ConfigCollectionBoundary[] => {
   const canonicalBoundary = canonicalBoundaryPath(boundaryDir);
   const canonicalTargets = targetPaths.map(canonicalBoundaryPath);
-  const collection = collectSourceTree(canonicalBoundary, {
-    classify: (entry) => {
+  const collection = collectStableSourceTree(
+    canonicalBoundary,
+    () => (entry) => {
       if (entry.kind !== 'directory') {
         return { action: 'skip', reason: 'not-target-ancestor' };
       }
@@ -142,8 +175,8 @@ export const collectConfigBoundariesThroughPaths = (
       )
         ? { action: 'recurse' }
         : { action: 'skip', reason: 'not-target-ancestor' };
-    },
-  });
+    }
+  );
   if (collection === null) {
     throw new ValidationError(
       `Unable to read static project identity discovery boundary "${boundaryDir}".`,
@@ -260,19 +293,19 @@ export const collectConfigPathsWithinBoundary = (
     );
   }
   const includedRoots = includedRootDirs.map((rootDir) => resolve(rootDir));
-  const visitedCanonicalDirectories = new Set([canonicalCollectionBoundary]);
-  const recurseDirectoryOnce = (
-    absoluteEntryPath: string
-  ): SourceCollectionDecision => {
-    const canonicalEntryPath = canonicalBoundaryPath(absoluteEntryPath);
-    if (visitedCanonicalDirectories.has(canonicalEntryPath)) {
-      return { action: 'skip', reason: 'already-visited-directory' };
-    }
-    visitedCanonicalDirectories.add(canonicalEntryPath);
-    return { action: 'recurse' };
-  };
-  const collection = collectSourceTree(collectionBoundary, {
-    classify: (entry) => {
+  const collection = collectStableSourceTree(collectionBoundary, () => {
+    const visitedCanonicalDirectories = new Set([canonicalCollectionBoundary]);
+    const recurseDirectoryOnce = (
+      absoluteEntryPath: string
+    ): SourceCollectionDecision => {
+      const canonicalEntryPath = canonicalBoundaryPath(absoluteEntryPath);
+      if (visitedCanonicalDirectories.has(canonicalEntryPath)) {
+        return { action: 'skip', reason: 'already-visited-directory' };
+      }
+      visitedCanonicalDirectories.add(canonicalEntryPath);
+      return { action: 'recurse' };
+    };
+    return (entry) => {
       const absoluteEntryPath = resolve(collectionBoundary, entry.path);
       if (!isWithinBoundary(boundary, absoluteEntryPath)) {
         const traversesTowardBoundary = isWithinBoundary(
@@ -313,7 +346,7 @@ export const collectConfigPathsWithinBoundary = (
           : { action: 'skip', reason: 'outside-selected-boundary' };
       }
       return { action: 'skip', reason: 'not-trails-config' };
-    },
+    };
   });
   if (collection === null) {
     throw new ValidationError(
