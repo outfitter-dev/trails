@@ -1,6 +1,5 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -20,6 +19,38 @@ const repoTempDir = (): string =>
     '.tmp-tests',
     `draft-promote-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
+
+/**
+ * Make `Bun.file(target).text()` reject with EACCES while other reads pass.
+ *
+ * `chmod 000` cannot force this failure when the suite runs as root, as it
+ * does in many containers, so the fault is injected at the read boundary.
+ */
+const failReadsOf = (target: string) => {
+  const targetPath = resolve(target);
+  const { file: open } = Bun;
+  return spyOn(Bun, 'file').mockImplementation(((
+    path: Parameters<typeof Bun.file>[0],
+    options?: Parameters<typeof Bun.file>[1]
+  ) => {
+    const file = open(path, options);
+    if (typeof path !== 'string' || resolve(path) !== targetPath) {
+      return file;
+    }
+    return new Proxy(file, {
+      get: (source, key) =>
+        key === 'text'
+          ? () =>
+              Promise.reject(
+                Object.assign(
+                  new Error(`EACCES: permission denied, open '${path}'`),
+                  { code: 'EACCES', path, syscall: 'open' }
+                )
+              )
+          : Reflect.get(source, key),
+    });
+  }) as typeof Bun.file);
+};
 
 const expectOk = <T>(result: Result<T, Error>): T => {
   if (result.isErr()) {
@@ -318,10 +349,11 @@ describe('draft.promote', () => {
 
   test('returns ValidationError when a source file cannot be read', async () => {
     const dir = repoTempDir();
+    let readFailure: ReturnType<typeof failReadsOf> | undefined;
 
     try {
       writeDraftPromoteFixture(dir);
-      chmodSync(join(dir, 'src', 'export.ts'), 0o000);
+      readFailure = failReadsOf(join(dir, 'src', 'export.ts'));
 
       const error = expectErr(
         await draftPromoteTrail.implementation(
@@ -335,10 +367,12 @@ describe('draft.promote', () => {
         )
       );
 
+      expect(readFailure).toHaveBeenCalled();
       expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toContain('Cannot read source file');
       expect(error.message).toContain('export.ts');
     } finally {
+      readFailure?.mockRestore();
       rmSync(dir, { force: true, recursive: true });
     }
   });

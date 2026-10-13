@@ -1,7 +1,8 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import { ValidationError } from '@ontrails/core';
-import { describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, spyOn, test } from 'bun:test';
 import { createHash } from 'node:crypto';
+import * as fs from 'node:fs';
 import {
   chmodSync,
   copyFileSync,
@@ -10,6 +11,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -43,6 +45,31 @@ import {
   regradeTrail,
   runResolvedVocabularyPlan,
 } from '../trails/regrade.js';
+
+/**
+ * Make `writeFileSync` reject one path with EACCES while other writes pass.
+ *
+ * Read-only permission bits cannot force this failure when the suite runs as
+ * root, as it does in many containers, so the fault is injected at the fs
+ * boundary instead.
+ */
+const failWritesTo = (target: string) => {
+  const targetPath = realpathSync(target);
+  const { writeFileSync: write } = fs;
+  return spyOn(fs, 'writeFileSync').mockImplementation((file, ...rest) => {
+    if (
+      typeof file === 'string' &&
+      fs.existsSync(file) &&
+      realpathSync(file) === targetPath
+    ) {
+      throw Object.assign(
+        new Error(`EACCES: permission denied, open '${file}'`),
+        { code: 'EACCES', path: file, syscall: 'open' }
+      );
+    }
+    return write(file, ...rest);
+  });
+};
 
 const makeTempDir = (): string => {
   const dir = mkdtempSync(join(tmpdir(), `trails-regrade-test-${Date.now()}-`));
@@ -7951,15 +7978,14 @@ export default rule;
 
   test('apply mode returns a Trails error when a rewrite cannot be written', async () => {
     const dir = makeTempDir();
+    const target = join(dir, 'src', 'play.ts');
+    mkdirSync(join(dir, 'src'), { recursive: true });
+    writeFileSync(
+      target,
+      'export const play = trail("play", { crosses: [] });\n'
+    );
+    const writeFailure = failWritesTo(target);
     try {
-      mkdirSync(join(dir, 'src'), { recursive: true });
-      const target = join(dir, 'src', 'play.ts');
-      writeFileSync(
-        target,
-        'export const play = trail("play", { crosses: [] });\n'
-      );
-      chmodSync(target, 0o444);
-
       const result = await regradeTrail.implementation(
         { apply: true, rootDir: dir },
         {
@@ -7968,12 +7994,14 @@ export default rule;
         } as never
       );
 
+      expect(writeFailure).toHaveBeenCalled();
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error.constructor.name).toBe('InternalError');
       }
+      expect(readFileSync(target, 'utf8')).toContain('crosses');
     } finally {
-      chmodSync(join(dir, 'src', 'play.ts'), 0o644);
+      writeFailure.mockRestore();
       rmSync(dir, { force: true, recursive: true });
     }
   });

@@ -1,10 +1,11 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import type { WardenRule } from '@ontrails/warden';
+import * as fs from 'node:fs';
 import {
-  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -21,6 +22,31 @@ import {
 } from '../report.js';
 import type { RegradeClass, RegradeReport } from '../report.js';
 import { createAstIdentifierRenameClass } from '../ast-rewrite.js';
+
+/**
+ * Make `writeFileSync` reject one path with EACCES while other writes pass.
+ *
+ * Read-only permission bits cannot force this failure when the suite runs as
+ * root, as it does in many containers, so the fault is injected at the fs
+ * boundary instead.
+ */
+const failWritesTo = (target: string) => {
+  const targetPath = realpathSync(target);
+  const { writeFileSync: write } = fs;
+  return spyOn(fs, 'writeFileSync').mockImplementation((file, ...rest) => {
+    if (
+      typeof file === 'string' &&
+      fs.existsSync(file) &&
+      realpathSync(file) === targetPath
+    ) {
+      throw Object.assign(
+        new Error(`EACCES: permission denied, open '${file}'`),
+        { code: 'EACCES', path: file, syscall: 'open' }
+      );
+    }
+    return write(file, ...rest);
+  });
+};
 
 const signalToPing = createTermRewriteClass({ from: 'signal', to: 'ping' });
 
@@ -1512,7 +1538,7 @@ describe('runRegrade', () => {
       target,
       'export const play = trail("play", { crosses: [] });\n'
     );
-    chmodSync(target, 0o444);
+    const writeFailure = failWritesTo(target);
     try {
       const result = runRegrade({
         apply: true,
@@ -1521,12 +1547,14 @@ describe('runRegrade', () => {
         selection: { classIds: ['term-rewrite:no-retired-cross-vocabulary'] },
       });
 
+      expect(writeFailure).toHaveBeenCalled();
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error.constructor.name).toBe('InternalError');
       }
+      expect(readFileSync(target, 'utf8')).toContain('crosses');
     } finally {
-      chmodSync(target, 0o644);
+      writeFailure.mockRestore();
       rmSync(root, { force: true, recursive: true });
     }
   });
