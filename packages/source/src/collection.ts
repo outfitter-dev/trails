@@ -281,10 +281,16 @@ export const collectSourceTree = (
     if (!entries) {
       try {
         entries = readdirSync(current.absolutePath, { withFileTypes: true });
-      } catch {
+      } catch (error) {
+        // A directory removed after it was listed (for example a parallel
+        // test cleaning its temp dir) holds nothing to observe. Keep the skip
+        // visible without claiming the evidence is unreadable.
         skipped.push({
           path: toPosixRelative(absoluteRoot, current.absolutePath),
-          reason: 'unreadable-directory',
+          reason:
+            (error as NodeJS.ErrnoException).code === 'ENOENT'
+              ? 'vanished-directory'
+              : 'unreadable-directory',
         });
         continue;
       }
