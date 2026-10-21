@@ -54,6 +54,17 @@ export interface SkippedSource {
   readonly reason: string;
 }
 
+/**
+ * Whether a skipped directory leaves the collection incomplete.
+ *
+ * A directory that vanished mid-walk may have been renamed rather than
+ * removed, so its sources can still exist under a path the walk never saw.
+ * Regrade fails closed on both reasons.
+ */
+export const isIncompleteDirectorySkip = (entry: SkippedSource): boolean =>
+  entry.reason === 'unreadable-directory' ||
+  entry.reason === 'vanished-directory';
+
 /** Deterministic result of collecting downstream sources from a root. */
 export interface DownstreamSourceCollection {
   /** The root the collection ran against. */

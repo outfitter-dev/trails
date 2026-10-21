@@ -29,6 +29,7 @@ import {
   DEFAULT_IGNORED_DIRECTORIES,
   DEFAULT_SOURCE_EXTENSIONS,
   collectDownstreamSources,
+  isIncompleteDirectorySkip,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import {
@@ -1488,7 +1489,7 @@ const collectRegradeEvaluation = (
   const sourceBytes: { readonly bytes: string; readonly path: string }[] = [];
   const unreadable = new Set(
     collected.skipped
-      .filter((entry) => entry.reason === 'unreadable-directory')
+      .filter(isIncompleteDirectorySkip)
       .map((entry) => entry.path)
   );
   const manifestPaths = new Set<string>();
@@ -1589,7 +1590,7 @@ const collectRegradeSourceState = (
   const sourceBytes: { readonly bytes: string; readonly path: string }[] = [];
   const unreadable = new Set(
     collected.skipped
-      .filter((entry) => entry.reason === 'unreadable-directory')
+      .filter(isIncompleteDirectorySkip)
       .map((entry) => entry.path)
   );
   const manifestPaths = new Set<string>();

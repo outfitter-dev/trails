@@ -10,6 +10,7 @@ import {
   collectDownstreamSources,
   collectDownstreamSourcesTrail,
   DEFAULT_IGNORED_DIRECTORIES,
+  isIncompleteDirectorySkip,
 } from '../collect.js';
 
 describe('classifyDownstreamEntry', () => {
@@ -386,5 +387,27 @@ describe('collectDownstreamSourcesTrail', () => {
     if (result.isErr()) {
       expect(result.error.constructor.name).toBe('NotFoundError');
     }
+  });
+});
+
+describe('isIncompleteDirectorySkip', () => {
+  test('treats unreadable and vanished directories as incomplete evidence', () => {
+    // A directory renamed mid-walk reports ENOENT at its old path while its
+    // sources live on under a path the walk never listed.
+    expect(
+      isIncompleteDirectorySkip({
+        path: 'src/old',
+        reason: 'vanished-directory',
+      })
+    ).toBe(true);
+    expect(
+      isIncompleteDirectorySkip({
+        path: 'src/locked',
+        reason: 'unreadable-directory',
+      })
+    ).toBe(true);
+    expect(
+      isIncompleteDirectorySkip({ path: 'dist', reason: 'ignored-directory' })
+    ).toBe(false);
   });
 });
