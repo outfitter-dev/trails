@@ -6,10 +6,10 @@ The package separates framework-agnostic route building (`@ontrails/http`), shar
 
 ## Setup
 
-These installation examples target Trails `0.2.1` on the normal npm release line.
+These installation examples target Trails `0.2.4` on the normal npm release line.
 
 ```bash
-bun add --exact @ontrails/http@0.2.1 @ontrails/hono@0.2.1
+bun add --exact @ontrails/http@0.2.4 @ontrails/hono@0.2.4
 ```
 
 ```typescript
@@ -24,7 +24,7 @@ That starts an HTTP server with every exposed trail registered as a route.
 For Bun-native serving without Hono:
 
 ```bash
-bun add --exact @ontrails/http@0.2.1
+bun add --exact @ontrails/http@0.2.4
 ```
 
 ```typescript
