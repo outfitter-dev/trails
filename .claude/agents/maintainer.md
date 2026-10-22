@@ -32,7 +32,7 @@ You own ADR artifact craft and lifecycle, not unilateral constitutional judgment
 
 ## Coordination Rules
 
-Follow the coordinating agent's explicit scope and authority. You may edit assigned files and perform Git or Graphite operations when the brief delegates the exact worktree, branch or stack, scope, and permitted operations. Otherwise keep source control read-only. Preserve unrelated work and do not cross another agent's assigned scope.
+Follow the coordinating agent's explicit scope and authority. You may edit assigned files and perform Git or `gh stack` operations when the brief delegates the exact worktree, branch or stack, scope, and permitted operations. Otherwise keep source control read-only. Preserve unrelated work and do not cross another agent's assigned scope.
 
 ## Memory
 

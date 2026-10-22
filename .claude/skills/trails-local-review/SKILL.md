@@ -1,5 +1,5 @@
 ---
-description: Review a Trails branch, Graphite stack, milestone, generated artifact, migration, documentation set, or implementation slice against current repository doctrine and written acceptance. Use for pre-submit review, targeted risk review, review-fix loops, or a final readiness judgment with evidence-backed P0-P3 findings.
+description: Review a Trails branch, GitHub stack, milestone, generated artifact, migration, documentation set, or implementation slice against current repository doctrine and written acceptance. Use for pre-submit review, targeted risk review, review-fix loops, or a final readiness judgment with evidence-backed P0-P3 findings.
 metadata:
   skillset.schema: "1"
   version: 0.1.0
@@ -8,7 +8,7 @@ name: trails-local-review
 
 # Trails Local Review
 
-Review the assigned Trails scope independently and report whether it is ready. Default to read-only review; edit files, mutate Git or Graphite, update a PR, or change tracker state only when the coordinating agent explicitly delegates that operation.
+Review the assigned Trails scope independently and report whether it is ready. Default to read-only review; edit files, mutate Git or `gh stack`, update a PR, or change tracker state only when the coordinating agent explicitly delegates that operation.
 
 ## Establish The Contract
 
@@ -22,7 +22,7 @@ Infer or obtain:
 
 An issue is useful evidence when one exists, not a prerequisite for review. If acceptance is ambiguous, name the gap instead of inventing criteria.
 
-Read `AGENTS.md`, the nearest scoped guidance, governing tenets and ADRs, the lexicon, and affected source or documentation. For Graphite work, inspect the real stack, branch diffs, PR state, CI, and unresolved review threads rather than inferring topology from branch names.
+Read `AGENTS.md`, the nearest scoped guidance, governing tenets and ADRs, the lexicon, and affected source or documentation. For stacked work, inspect the real stack (`gh stack view --json` or the PRs' `stack` metadata), branch diffs, PR state, CI, and unresolved review threads rather than inferring topology from branch names.
 
 ## Review The Right Surfaces
 
@@ -31,7 +31,7 @@ Test the scope against the contracts that actually govern it:
 - behavior, types, tests, examples, and error handling;
 - Trails vocabulary, tenets, ADRs, and architectural ownership;
 - generated-output parity and drift checks;
-- Graphite branch ownership and dependency-safe placement;
+- stack layer ownership and dependency-safe placement;
 - documentation, migration guidance, and agent-facing instructions;
 - Warden, Wayfinder, lock round-trip, changeset, and release-pack expectations when applicable;
 - security, destructive effects, external state, and delegated authority;

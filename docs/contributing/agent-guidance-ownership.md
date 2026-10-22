@@ -56,7 +56,7 @@ Compatibility entries remain for the current plugin transition. Remove them in a
 | Claude lexicon and pattern rules | Adopter coding guidance enforced by the Claude bundle. |
 | Claude `SessionStart` hook | Read-only Trails-project detection and non-mutating Warden guidance. |
 
-Contributor ADR, Graphite, release, editorial, dogfood, and framework maintenance commands do not belong in this package.
+Contributor ADR, source-control (`gh stack`), release, editorial, dogfood, and framework maintenance commands do not belong in this package.
 
 ## Skillset 0.27 Local Output Contract
 
