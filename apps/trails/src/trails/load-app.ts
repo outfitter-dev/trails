@@ -33,7 +33,7 @@ import {
   createLoadAppMirrorRootPath,
   ensureLoadAppMirrorDirectory,
   LOAD_APP_MIRROR_ENTRY_PREFIX,
-  LOAD_APP_MIRROR_PARENT_DIRNAME,
+  loadAppMirrorFailure,
   removeLoadAppMirrorRootQuietly,
   resolveLoadAppMirrorFilePath,
   writeLoadAppMirrorFile,
@@ -691,7 +691,7 @@ const MIRROR_SKIP_DIRECTORIES = new Set([
  * artifacts.
  */
 /**
- * Age threshold (ms) above which a mirror entry in `.trails-tmp/` is
+ * Age threshold (ms) above which an abandoned mirror entry is
  * considered stale and safe to remove opportunistically.
  *
  * @remarks
@@ -709,6 +709,24 @@ const isStaleMirrorEntry = (entryPath: string, now: number): boolean => {
     RETAINED_MIRROR_ROOTS.has(entryPath)
   ) {
     return false;
+  }
+  const ownerPid = Number(
+    entryPath.split(LOAD_APP_MIRROR_ENTRY_PREFIX).at(-1)?.split('-')[0]
+  );
+  if (!Number.isSafeInteger(ownerPid) || ownerPid <= 0) {
+    return false;
+  }
+  try {
+    process.kill(ownerPid, 0);
+    return false;
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !('code' in error) ||
+      error.code !== 'ESRCH'
+    ) {
+      return false;
+    }
   }
   const entryStat = safeStat(entryPath);
   if (entryStat === undefined) {
@@ -748,9 +766,9 @@ const cleanupStaleMirrorRoots = (mirrorParent: string): void => {
 };
 
 const freshMirrorRootPath = (cwd: string): string => {
-  const mirrorParent = join(cwd, LOAD_APP_MIRROR_PARENT_DIRNAME);
-  cleanupStaleMirrorRoots(mirrorParent);
-  return createLoadAppMirrorRootPath(cwd);
+  const mirrorRoot = createLoadAppMirrorRootPath(cwd);
+  cleanupStaleMirrorRoots(dirname(mirrorRoot));
+  return mirrorRoot;
 };
 
 interface MirrorWalkContext {
@@ -858,7 +876,7 @@ const createPackageMirrorLink = (
       !('code' in error) ||
       error.code !== 'EEXIST'
     ) {
-      throw error;
+      throw loadAppMirrorFailure('write', error);
     }
   }
   context.linkedPackageNames.add(packageName);
