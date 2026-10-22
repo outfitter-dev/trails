@@ -316,4 +316,38 @@ describe('JSON-file context-bound signals', () => {
       }),
     ]);
   });
+
+  test('preserves successful mutations when emission and its diagnostic sink both throw', async () => {
+    const { db, raw } = await provision();
+    const warnings: unknown[] = [];
+    const logger = createObserveLogger(
+      {
+        name: 'throwing-test',
+        write: (record) => {
+          warnings.push(record);
+          throw new Error('Diagnostic failure');
+        },
+      },
+      'test',
+      {}
+    );
+    const emissionError = new Error('Emission failure');
+    const fire: NonNullable<TrailContext['fire']> = () =>
+      Promise.reject(emissionError);
+    const bound = db.from(
+      createTrailContext({ extensions: { [db.id]: raw }, fire, logger })
+    );
+    const created = { id: 'one', title: 'Created' };
+    const updated = { id: 'one', title: 'Updated' };
+    expect(await bound.notes.upsert(created)).toEqual(created);
+    expect(await raw.notes.get('one')).toEqual(created);
+    expect(await Bun.file(join(dir, 'notes.json')).json()).toEqual([created]);
+    expect(await bound.notes.upsert(updated)).toEqual(updated);
+    expect(await raw.notes.get('one')).toEqual(updated);
+    expect(await Bun.file(join(dir, 'notes.json')).json()).toEqual([updated]);
+    expect(await bound.notes.remove('one')).toEqual({ deleted: true });
+    expect(await raw.notes.get('one')).toBeNull();
+    expect(await Bun.file(join(dir, 'notes.json')).json()).toEqual([]);
+    expect(warnings).toHaveLength(3);
+  });
 });

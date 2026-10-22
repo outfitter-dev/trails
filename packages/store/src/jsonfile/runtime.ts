@@ -487,28 +487,33 @@ type LoadableTable<TTable extends AnyStoreTable> = BindableTable<TTable> & {
   readonly load: () => Promise<void>;
 };
 
+interface TableChange<TTable extends AnyStoreTable> {
+  readonly kind: 'created' | 'updated' | 'removed';
+  readonly entity: EntityOf<TTable>;
+}
+
 /**
  * Mirrors the awaited, write-preserving emission boundary in
  * adapters/drizzle/src/runtime.ts:1046 (fireDerivedSignal).
  */
 const fireChange = async <TTable extends AnyStoreTable>(
-  binding: SignalBinding | undefined,
-  change: 'created' | 'updated' | 'removed',
-  entity: EntityOf<TTable> | undefined
+  binding: SignalBinding,
+  { kind, entity }: TableChange<TTable>
 ): Promise<void> => {
-  if (binding === undefined || entity === undefined) {
-    return;
-  }
-  const signal = binding.table.signals[change];
+  const signal = binding.table.signals[kind];
   try {
     await binding.fire(signal, entity);
   } catch (error) {
-    const log = normalizeObserve(binding.logger)?.log;
-    if (log !== undefined) {
-      createObserveLogger(log, 'store.jsonfile', {}).warn(
-        `Signal "${signal.id}" emission threw after a successful write`,
-        { error }
-      );
+    try {
+      const log = normalizeObserve(binding.logger)?.log;
+      if (log !== undefined) {
+        createObserveLogger(log, 'store.jsonfile', {}).warn(
+          `Signal "${signal.id}" emission threw after a successful write`,
+          { error }
+        );
+      }
+    } catch {
+      // Diagnostic failures cannot turn a persisted mutation into a failed write.
     }
   }
 };
@@ -527,27 +532,29 @@ const createUpsert =
   ) =>
   async (input: UpsertOf<TTable>): Promise<EntityOf<TTable>> => {
     await mutex.acquire();
-    let existing: EntityOf<TTable> | undefined;
+    let change: TableChange<TTable> | undefined;
     let written: EntityOf<TTable>;
     try {
-      existing = resolveExisting(
+      const existing = resolveExisting(
         input as Record<string, unknown>,
         cfg.identityField,
         index
       );
       written = await executeUpsert(input, index, path, cfg);
+      if (
+        binding !== undefined &&
+        (existing === undefined || !Bun.deepEquals(existing, written))
+      ) {
+        change = {
+          entity: written,
+          kind: existing === undefined ? 'created' : 'updated',
+        };
+      }
     } finally {
       mutex.release();
     }
-    if (
-      binding !== undefined &&
-      (existing === undefined || !Bun.deepEquals(existing, written))
-    ) {
-      await fireChange(
-        binding,
-        existing === undefined ? 'created' : 'updated',
-        written
-      );
+    if (binding !== undefined && change !== undefined) {
+      await fireChange(binding, change);
     }
     return written;
   };
@@ -561,20 +568,19 @@ const createRemove =
     id: StoreIdentifierOf<TTable>
   ): Promise<{ readonly deleted: boolean }> => {
     await mutex.acquire();
-    let existing: EntityOf<TTable> | undefined;
+    let change: TableChange<TTable> | undefined;
     let removed: { readonly deleted: boolean };
     try {
-      existing = index.get(String(id));
+      const existing = index.get(String(id));
       removed = await executeRemove(String(id), index, path);
+      if (binding !== undefined && removed.deleted && existing !== undefined) {
+        change = { entity: structuredClone(existing), kind: 'removed' };
+      }
     } finally {
       mutex.release();
     }
-    if (binding !== undefined && removed.deleted) {
-      await fireChange(
-        binding,
-        'removed',
-        existing === undefined ? undefined : structuredClone(existing)
-      );
+    if (binding !== undefined && change !== undefined) {
+      await fireChange(binding, change);
     }
     return removed;
   };
