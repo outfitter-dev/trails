@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1389-runtime-adapters",
-          "sha": "ab333bfc60ff2dbe9af2fc5acd664ffd832e447a",
+          "sha": "d0296e531ab83917de85ef5d0a86f75aeb38f3c3",
           "sourceKind": "current"
         }
       },
@@ -412,14 +412,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1389-runtime-adapters",
-          "sha": "ab333bfc60ff2dbe9af2fc5acd664ffd832e447a",
+          "sha": "d0296e531ab83917de85ef5d0a86f75aeb38f3c3",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:65af67f44266a56f89d40fca3648efbea0742ced8e3401b9af1d278141bb8096",
+  "provenanceHash": "sha256:0eed9b2eb2aef4bd762b3e7241ed8122af5720beadf3c142358062c57e41a560",
   "renderResults": [
     {
       "destination": "changelog",
