@@ -843,19 +843,19 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:d2e91d038c03b04749352cce9046faf34962e2fc73b9a37eec3b6dfeaaef04d6",
+      "outputHash": "sha256:170280e27691019b180566acdd834811585129fbac292ab199cea0ce8af904a0",
       "outputPath": "trails/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
       "plugin": "trails",
-      "sourceHash": "sha256:5ff3b47fd9d9c76b38ade7e663179a6e037d11d43cba2a8d56fca7ee38c47869",
+      "sourceHash": "sha256:d99f74272ca1d7bfdc11f4c7a3d0d6378f6b8ac261a2530c52b66aa6c1f4cf13",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
       "version": "0.4.0"
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:f7c4b50b434e7750d99d2877ac0070c31a6b07f0fff2484a4e40ff161bdf3713",
+  "provenanceHash": "sha256:47e8b180df892b574e85759d7a82a4c97bb2ca4a854433b35eee39df77cb312b",
   "renderResults": [
     {
       "destination": "skill",

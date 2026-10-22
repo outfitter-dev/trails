@@ -2,24 +2,24 @@
 
 ## Installation
 
-These installation examples target Trails `0.2.1` on the normal npm release line.
+These installation examples target Trails `0.2.4` on the normal npm release line.
 
 ```bash
 # Requires Bun (https://bun.sh)
 
 # Scaffold a standalone app
-bunx @ontrails/trails@0.2.1 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.4 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or a configured workspace with one app under apps/my-app
-bunx @ontrails/trails@0.2.1 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.4 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
-bun add --exact @ontrails/core@0.2.1 @ontrails/cli@0.2.1 @ontrails/commander@0.2.1 zod
-bun add --exact @ontrails/mcp@0.2.1 @modelcontextprotocol/sdk # MCP surface (optional)
-bun add --exact @ontrails/http@0.2.1 @ontrails/hono@0.2.1 # Hono HTTP surface (optional)
+bun add --exact @ontrails/core@0.2.4 @ontrails/cli@0.2.4 @ontrails/commander@0.2.4 zod
+bun add --exact @ontrails/mcp@0.2.4 @modelcontextprotocol/sdk # MCP surface (optional)
+bun add --exact @ontrails/http@0.2.4 @ontrails/hono@0.2.4 # Hono HTTP surface (optional)
 # or, for Bun-native HTTP without Hono:
-bun add --exact @ontrails/http@0.2.1
-bun add --exact -d @ontrails/testing@0.2.1 # Testing (dev)
+bun add --exact @ontrails/http@0.2.4
+bun add --exact -d @ontrails/testing@0.2.4 # Testing (dev)
 ```
 
 After `bun install`, derive the app-owned lock with the locally installed Trails operator:

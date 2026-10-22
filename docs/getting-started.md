@@ -29,29 +29,29 @@ If Trails was the only formula you used from the tap, you may also remove the ta
 brew untap outfitter-dev/tap
 ```
 
-Normal Trails 0.2 releases use the npm `latest` tag. These installation examples target exact `0.2.1` versions for project dependencies and scaffolding:
+Normal Trails 0.2 releases use the npm `latest` tag. These installation examples target exact `0.2.4` versions for project dependencies and scaffolding, verified per package on npm on 2026-10-22. Workspace versions and merged version PRs are not publication proof. After each stable publication, the release owner must record the [active install-pin finding](./releases/stable-cutover.md#active-install-pin-finding) before closing the release packet.
 
 Existing 1.0 beta consumers should use the [0.x migration guide](./releases/migrate-to-0x.md). A normal package upgrade cannot select this numerically lower version. Normal 0.x releases use `latest`, with compatibility changes reserved for documented minor releases.
 
 ```bash
 # Recommended: scaffold a standalone app
 # (create writes a project, so it needs an explicit project:write permit)
-bunx @ontrails/trails@0.2.1 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.4 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or scaffold a configured workspace with one app under apps/my-app
-bunx @ontrails/trails@0.2.1 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.4 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
-bun add --exact @ontrails/core@0.2.1 @ontrails/cli@0.2.1 @ontrails/commander@0.2.1 zod
+bun add --exact @ontrails/core@0.2.4 @ontrails/cli@0.2.4 @ontrails/commander@0.2.4 zod
 
 # Add MCP surface (optional)
-bun add --exact @ontrails/mcp@0.2.1
+bun add --exact @ontrails/mcp@0.2.4
 
 # Add HTTP surface (optional, shipped today)
-bun add --exact @ontrails/http@0.2.1 @ontrails/hono@0.2.1
+bun add --exact @ontrails/http@0.2.4 @ontrails/hono@0.2.4
 
 # Add testing (dev dependency)
-bun add --exact -d @ontrails/testing@0.2.1
+bun add --exact -d @ontrails/testing@0.2.4
 ```
 
 `create` writes authored source, not a lock. After `bun install`, derive the app-owned lock with the locally installed Trails operator:
