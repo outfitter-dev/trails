@@ -21,6 +21,7 @@ import {
   renderPublicSurfaceError,
   ValidationError,
 } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 
 import {
   createLoadAppMirrorRootPath,
@@ -31,7 +32,7 @@ import {
   resolveLoadAppMirrorFilePath,
   writeLoadAppMirrorFile,
 } from '../load-app-mirror.js';
-import { loadFreshAppLease } from '../trails/load-app.js';
+import { loadApp, loadFreshAppLease } from '../trails/load-app.js';
 
 const roots: string[] = [];
 const temporaryRoot = (): string => {
@@ -86,6 +87,169 @@ const runWayfind = async (target: string, scratch: string) => {
   ]);
   return { exitCode, stderr, stdout };
 };
+
+const writeDependency = (
+  directory: string,
+  name: string,
+  value: string
+): void => {
+  const root = join(directory, 'node_modules', name);
+  mkdirSync(root, { recursive: true });
+  writeFileSync(
+    join(root, 'package.json'),
+    JSON.stringify({
+      exports: './index.ts',
+      name,
+      type: 'module',
+    })
+  );
+  writeFileSync(join(root, 'index.ts'), `export const value = '${value}';`);
+};
+
+const dependencyFixture = () => {
+  const root = temporaryRoot();
+  const target = join(root, 'target');
+  mkdirSync(join(target, 'parts'), { recursive: true });
+  writeFileSync(
+    join(target, 'package.json'),
+    JSON.stringify({
+      name: 'dependency-fixture',
+      type: 'module',
+    })
+  );
+  writeDependency(target, 'fixture-dep', 'root');
+  writeDependency(target, 'computed-dep', 'computed');
+  writeDependency(join(target, 'parts'), 'fixture-dep', 'nested');
+  writeDependency(join(target, 'parts'), 'late-dep', 'nested');
+  writeDependency(root, '@fixture/ancestor', 'ancestor');
+  writeFileSync(
+    join(target, 'parts/late.ts'),
+    `import { value } from 'late-dep';
+export const label = value + ':first';`
+  );
+  writeFileSync(
+    join(target, 'parts/eager.ts'),
+    `export { value } from 'fixture-dep';`
+  );
+  writeFileSync(
+    join(target, 'app.ts'),
+    `import { topo, trail, Result } from ${JSON.stringify(coreUrl)};
+import { value } from 'fixture-dep';
+import { value as nestedValue } from './parts/eager.ts';
+const file = './parts/late.ts';
+const dependency = 'computed-dep';
+const scoped = '@fixture/ancestor';
+export const app = topo(value + ':' + nestedValue, {
+  late: trail('fixture.late', { intent: 'read', implementation: async () => Result.ok((await import(file)).label) }),
+  bare: trail('fixture.bare', { intent: 'read', implementation: async () => Result.ok((await import(dependency)).value) }),
+  scoped: trail('fixture.scoped', { intent: 'read', implementation: async () => Result.ok((await import(scoped)).value) }),
+});`
+  );
+  return { root, target };
+};
+
+const invokeFixture = async (app: Topo, id: string) => {
+  const result = await app.get(id)?.implementation({}, {} as never);
+  expect(result?.isOk()).toBe(true);
+  return result?.isOk() ? result.value : undefined;
+};
+
+describe('external mirror dependency lookup', () => {
+  test('preserves eager, computed and deferred lookup with nested and scoped ancestor dependencies', async () => {
+    const { target } = dependencyFixture();
+    const first = await loadFreshAppLease('./app.ts', target);
+    writeFileSync(
+      join(target, 'parts/late.ts'),
+      `import { value } from 'late-dep';
+export const label = value + ':second';`
+    );
+    const second = await loadFreshAppLease('./app.ts', target);
+    try {
+      expect(first.app.name).toBe('root:nested');
+      expect(second.app.name).toBe('root:nested');
+      expect(await invokeFixture(first.app, 'fixture.late')).toBe(
+        'nested:first'
+      );
+      expect(await invokeFixture(second.app, 'fixture.late')).toBe(
+        'nested:second'
+      );
+      expect(await invokeFixture(first.app, 'fixture.bare')).toBe('computed');
+      expect(await invokeFixture(first.app, 'fixture.scoped')).toBe('ancestor');
+      const dependencyWrite = await writeLoadAppMirrorFile(
+        join(target, 'node_modules/computed-dep/index.ts'),
+        first.mirrorRoot
+      );
+      expect(dependencyWrite.isErr()).toBe(true);
+      const retained = await loadApp('./app.ts', target, { fresh: true });
+      first.release();
+      second.release();
+      expect(await invokeFixture(retained, 'fixture.late')).toBe(
+        'nested:second'
+      );
+      expect(await invokeFixture(retained, 'fixture.scoped')).toBe('ancestor');
+      expect(existsSync(join(target, '.trails-tmp'))).toBe(false);
+    } finally {
+      first.release();
+      second.release();
+      expect(existsSync(first.mirrorRoot)).toBe(false);
+      expect(existsSync(second.mirrorRoot)).toBe(false);
+      expect(
+        readFileSync(join(target, 'node_modules/fixture-dep/index.ts'), 'utf8')
+      ).toContain("'root'");
+    }
+  });
+
+  test('installed workspace links keep statically mirrored packages authoritative and fresh for deferred siblings', async () => {
+    const target = temporaryRoot();
+    const workspace = join(target, 'packages/label');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(join(target, 'node_modules/@fixture'), { recursive: true });
+    writeFileSync(
+      join(target, 'package.json'),
+      JSON.stringify({
+        name: 'workspace-fixture',
+        type: 'module',
+        workspaces: ['packages/*'],
+      })
+    );
+    writeFileSync(
+      join(workspace, 'package.json'),
+      JSON.stringify({
+        exports: './index.ts',
+        name: '@fixture/label',
+        type: 'module',
+      })
+    );
+    symlinkSync(workspace, join(target, 'node_modules/@fixture/label'), 'dir');
+    writeFileSync(join(workspace, 'index.ts'), "export const value = 'first';");
+    writeFileSync(
+      join(target, 'late.ts'),
+      `import { value } from '@fixture/label'; export { value };`
+    );
+    writeFileSync(
+      join(target, 'app.ts'),
+      `import { topo, trail, Result } from ${JSON.stringify(coreUrl)};
+import { value } from '@fixture/label';
+const file = './late.ts';
+export const app = topo(value, { late: trail('fixture.late', { intent: 'read', implementation: async () => Result.ok((await import(file)).value) }) });`
+    );
+    const first = await loadFreshAppLease('./app.ts', target);
+    writeFileSync(
+      join(workspace, 'index.ts'),
+      "export const value = 'second';"
+    );
+    const second = await loadFreshAppLease('./app.ts', target);
+    try {
+      expect(first.app.name).toBe('first');
+      expect(second.app.name).toBe('second');
+      expect(await invokeFixture(first.app, 'fixture.late')).toBe('first');
+      expect(await invokeFixture(second.app, 'fixture.late')).toBe('second');
+    } finally {
+      first.release();
+      second.release();
+    }
+  });
+});
 
 describe('fresh app-load scratch ownership', () => {
   test('uses an exclusive private owner with a deterministic internal temporary-directory seam', () => {
@@ -283,6 +447,65 @@ describe('fresh app-load scratch ownership', () => {
 });
 
 describe('live Wayfinder scratch boundary', () => {
+  test.skipIf(process.getuid?.() === 0 || process.platform === 'win32')(
+    'loads computed relative and bare dependencies from a read-only target and ancestor install',
+    async () => {
+      const { root, target } = dependencyFixture();
+      const scratch = join(root, 'scratch');
+      mkdirSync(scratch);
+      writeFileSync(
+        join(target, 'app.ts'),
+        `import { topo, trail, Result } from ${JSON.stringify(coreUrl)};
+const file = './parts/late.ts';
+const dependency = 'computed-dep';
+const scoped = '@fixture/ancestor';
+const late = await import(file);
+const bare = await import(dependency);
+const parent = await import(scoped);
+export const app = topo('computed-live', {
+  check: trail('fixture.' + late.label.replace(':', '.'), { intent: 'read', implementation: () => Result.ok({ ok: true }) }),
+  bare: trail('fixture.' + bare.value, { intent: 'read', implementation: () => Result.ok({ ok: true }) }),
+  parent: trail('fixture.' + parent.value, { intent: 'read', implementation: () => Result.ok({ ok: true }) }),
+});`
+      );
+      const setWritable = (directory: string, writable: boolean): void => {
+        chmodSync(directory, writable ? 0o700 : 0o555);
+        for (const entry of readdirSync(directory)) {
+          const path = join(directory, entry);
+          if (lstatSync(path).isDirectory()) {
+            setWritable(path, writable);
+          } else {
+            chmodSync(path, writable ? 0o600 : 0o444);
+          }
+        }
+      };
+      setWritable(target, false);
+      try {
+        expect(() =>
+          writeFileSync(join(target, 'denial-probe'), 'must fail')
+        ).toThrow();
+        const result = await runWayfind(target, scratch);
+        expect(result.exitCode).toBe(0);
+        expect(
+          JSON.parse(result.stdout)
+            .result.entries.map((entry: { id: string }) => entry.id)
+            .toSorted()
+        ).toEqual([
+          'fixture.ancestor',
+          'fixture.computed',
+          'fixture.nested.first',
+        ]);
+        expect(result.stderr).toBe('');
+        expect(existsSync(join(target, '.trails-tmp'))).toBe(false);
+        expect(
+          readdirSync(join(scratch, LOAD_APP_MIRROR_PARENT_DIRNAME))
+        ).toEqual([]);
+      } finally {
+        setWritable(target, true);
+      }
+    }
+  );
+
   test.skipIf(process.getuid?.() === 0 || process.platform === 'win32')(
     'reads a genuinely non-writable target without creating target-local scratch',
     async () => {
