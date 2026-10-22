@@ -44,7 +44,7 @@
           "rendered": "trails"
         }
       ],
-      "sourceHash": "sha256:0726426e9fe02c3be589c80392ccc57b5ae5c4a515a7b0a1a7d195e3c9db1d60",
+      "sourceHash": "sha256:5a876863f2401ad1f6edbad8804a75677b9fcb4aaa98d9d89e71166997b66598",
       "sourcePath": ".skillset/agents/clark.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -58,7 +58,7 @@
       ],
       "kind": "project-agent",
       "name": "lewis",
-      "outputHash": "sha256:7c33b7dfc3c2b07084bd494b2aff41ee162af36296ceef1360cab671b1cdfaae",
+      "outputHash": "sha256:f01687097688af0274428a4a7c7d770534a8513814e6714bb8ad5b37a797725e",
       "outputPath": ".claude/agents/lewis.md",
       "preprocessDependencies": [],
       "skillReferences": [
@@ -68,7 +68,7 @@
           "rendered": "be-lewis"
         }
       ],
-      "sourceHash": "sha256:1f79e5a80c7abb0569a01269ab9e446079620d3bbc5fe257997833f7975c5803",
+      "sourceHash": "sha256:59743617cc437ec01f037c0ad6bddcf4b7fdefcf26e707b044c59589d3cb9d8f",
       "sourcePath": ".skillset/agents/lewis.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -82,11 +82,11 @@
       ],
       "kind": "project-agent",
       "name": "maintainer",
-      "outputHash": "sha256:b9c9df1317318ed6476e595bf0900700d275d8ab845af2a45e36412d93d3b2a4",
+      "outputHash": "sha256:00ccf1cdc75ab5410240b508864d0ea9a358cef03e15a164246c7c49f995dc4a",
       "outputPath": ".claude/agents/maintainer.md",
       "preprocessDependencies": [],
       "skillReferences": [],
-      "sourceHash": "sha256:fa09a8563f20203f25541ef6c66bca7494233a0e59bdc72b31f0a1ff1b8f825a",
+      "sourceHash": "sha256:9c551118ed7a33e72943f62095ab153bdde8a103fd64e50418a47ada6ca4a012",
       "sourcePath": ".skillset/agents/maintainer.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -100,11 +100,11 @@
       ],
       "kind": "project-agent",
       "name": "clark",
-      "outputHash": "sha256:19ee52a44bda9125b7fdf48e67eef70c3da2f34a6fbf441c65f4659920dbefd7",
+      "outputHash": "sha256:0f7169e641dbc5c4e4cf1b8d7ecf146a39b5d8a4c07c30c538b94efef16c042c",
       "outputPath": ".codex/agents/clark.toml",
       "preprocessDependencies": [],
       "skillReferences": [],
-      "sourceHash": "sha256:13e07dbc75152d0e4a935d179419e6b1f371721dcd06246deed5e85396181cb7",
+      "sourceHash": "sha256:37be3ec92750c332aab359670985b7b2fb326e273523f94775665070658487ac",
       "sourcePath": ".skillset/agents/clark.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -118,11 +118,11 @@
       ],
       "kind": "project-agent",
       "name": "lewis",
-      "outputHash": "sha256:a6a60fddb71585a3751a0381398d41c786ffcdbec031f9288283378d8d8223a5",
+      "outputHash": "sha256:e57d4eb88217646460b8b9f8ff1fdb92a903a3ee773c50fcd079d1d5b5fcd391",
       "outputPath": ".codex/agents/lewis.toml",
       "preprocessDependencies": [],
       "skillReferences": [],
-      "sourceHash": "sha256:8e6c20f127eac3ac3716569127ba432cba2d767ae70455ae06c527409a181cff",
+      "sourceHash": "sha256:8f807e07ef33fa56075d8ec53c0b4932fd01a46ac49df91d394d57d4d6f5ffc3",
       "sourcePath": ".skillset/agents/lewis.md",
       "validation": "structured",
       "version": "0.1.0"
@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "devin/1792543210-release-skillset-coverage",
-          "sha": "b155fde9aa271ead2e76d675f2d281e28c9289f4",
+          "ref": "claude/project-thread-ooof7l",
+          "sha": "59b1c563a1087c687ceebf163949a66f42d65980",
           "sourceKind": "current"
         }
       },
@@ -411,15 +411,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "devin/1792543210-release-skillset-coverage",
-          "sha": "b155fde9aa271ead2e76d675f2d281e28c9289f4",
+          "ref": "claude/project-thread-ooof7l",
+          "sha": "59b1c563a1087c687ceebf163949a66f42d65980",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:88d8fe9528ba652ce073937a13275b449192787565a8f5b51c36064b43cac397",
+  "provenanceHash": "sha256:4a551f629a495802eb8fb3583dc11bf4afc09ef9839e97cf07857d4ee1716b16",
   "renderResults": [
     {
       "destination": "changelog",

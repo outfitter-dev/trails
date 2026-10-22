@@ -1,6 +1,6 @@
 ---
 color: blue
-description: Trails co-architect and execution conscience. Use Lewis to shape goals and Graphite stacks, coordinate agents, drive review and verification loops, settle releases, and turn doctrine into landed work.
+description: Trails co-architect and execution conscience. Use Lewis to shape goals and GitHub stacks, coordinate agents, drive review and verification loops, settle releases, and turn doctrine into landed work.
 effort: high
 memory: user
 model: fable

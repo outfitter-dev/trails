@@ -275,26 +275,33 @@ Small internal refactors do not need ceremonial docs. They do need an explicit "
 
 ## Workflow
 
-Use Graphite for source control operations.
+Use GitHub stacked pull requests for dependent work, driven by the `gh stack` extension for GitHub CLI (`gh extension install github/gh-stack`). Independent changes stay as ordinary single PRs off `main`. See [Stacked pull requests CLI commands](https://docs.github.com/en/pull-requests/reference/stacked-prs-cli-commands).
 
-| Instead of               | Use           |
-| ------------------------ | ------------- |
-| `git checkout -b`        | `gt create`   |
-| `git commit --amend`     | `gt modify`   |
-| `git push`               | `gt submit`   |
-| `git pull` / `git fetch` | `gt sync`     |
-| `git checkout`           | `gt checkout` |
+| Task                                    | Use                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| Start a stack / adopt existing branches | `gh stack init <branch>...`                                         |
+| Add the next layer on top               | `gh stack add <branch>` (from the top layer)                        |
+| Amend a layer                           | check out the layer, `git commit`, then `gh stack rebase --upstack` |
+| Pull trunk and restack                  | `gh stack sync` (or `gh stack rebase`)                              |
+| Push the stack                          | `gh stack push`                                                     |
+| Open or update the stack's PRs          | `gh stack submit --auto` (drafts by default)                        |
+| Link PRs made elsewhere into a stack    | `gh stack link <bottom> ... <top>`                                  |
+| Inspect                                 | `gh stack view --short` / `gh stack view --json`                    |
+| Merge up to an approved layer           | `gh stack merge <pr>`, only with explicit authority                 |
+
+Where `gh stack` is unavailable (cloud agent sessions, CI), build the same shape with plain git: one branch per layer, each layer's PR based on the branch below it (the bottom layer bases on `main`), restack with `git rebase --update-refs`, and push only your own unmerged layers with `--force-with-lease`. Then register the chain as a stack with `gh stack link` from a machine that has the extension, or from the GitHub website. Graphite (`gt`) is retired for this repo; do not create new Graphite stacks.
 
 - `git status` and `git diff` are the normal read-only exceptions.
 - We use Conventional Commits.
 - Keep PRs small, isolate mechanical changes when possible, and keep PRs in draft until CI is green.
 - When referencing Linear issues or GitHub PRs, use Markdown links whose label is only the short identifier, such as `[TRL-1091](...)` or `[#830](...)`, so handoffs stay easy to scan and jump through.
 - Treat a Greptile error comment (`Greptile encountered an error while reviewing this PR`) as a blocker, not as a completed review.
-- When performing fixes across stacked branches, prefer the owning branch: check it out, make the focused fix there, `gt modify`, restack, and verify upward. Use `gt absorb -a` only when the stack owner explicitly chooses a top-branch absorption workflow.
+- When performing fixes across stacked branches, prefer the owning branch: check it out, make the focused fix there, commit, then `gh stack rebase --upstack` (or `git rebase --update-refs` without the extension) and verify upward. Do not fold lower-layer fixes into the top layer.
 - During local review, missing branch-local release intent for public trail additions/removals, visibility transitions, input/output changes, or surface exposure changes is a P2 release-quality blocker. Identify the owning branch, add the changeset or explicit no-release reason there, restack, and re-run `bun run changeset:check` or `trails release check --json` upward.
-- For Codex/Crew worktree farming, the worker worktree must have a real branch checked out. `gt create` does not work from detached `HEAD`. A zero-diff Graphite-tracked base branch under `main` is acceptable as the worker lane base; workers may create child branches from that lane and hold before submit. Do not leave a lane branch checked out anywhere a fresh agent worktree will need it — git forbids checking out one branch in two worktrees; a worker that finds its lane captive should branch from `main` at the same commit and say so.
-- Never run `gt sync` from a worker worktree. It is repository-wide: it fetches, may prompt to delete merged or closed branches, restacks every eligible branch, and may overwrite trunk to match remote. A branch captive in another worktree can make its cleanup fail while other eligible branches still change. Worker worktrees stay on `gt create` / `gt modify` / `gt submit` / `gt log` / `gt status`; repository-wide syncing, restacking, and cleanup happen in the main workspace only.
-- To adopt a standalone agent-created PR that targets `main`, first verify its GitHub base and head, raw ancestry, clean worktrees, and absence from a stack. From the main workspace, detach the worktree holding its branch (`git -C <worktree> checkout --detach`), then `gt checkout <branch>`, `gt track <branch> --parent main`, and run `gt submit --no-stack --no-edit --no-interactive --dry-run` before the real submit. Run `gt merge --dry-run --no-interactive` too, and merge only with explicit authority. Stacked PRs stay in their owning stack workflow.
+- `gh stack` works across linked worktrees in one clone: all worktrees share one stack state, mutations are serialized, and `gh stack rebase` / `gh stack sync` update clean worktrees in place while refusing dirty or busy ones. Git still forbids checking out one branch in two worktrees, so do not leave a lane branch checked out anywhere a fresh agent worktree will need it; a worker that finds its lane captive should branch from `main` at the same commit and say so.
+- Worker worktrees build their own layers (`gh stack add`, `git commit`, `gh stack push`, `gh stack view`) and do not run `gh stack sync`, `gh stack rebase` without `--upstack`, `gh stack modify`, `gh stack unstack`, or `gh stack merge`. `gh stack sync` fetches, fast-forwards trunk, rebases every layer, pushes, and can prune, so stack-wide syncing, restructuring, pruning, and merging happen from the main workspace by the stack owner.
+- Every PR in a GitHub stack is evaluated against the stack's base (normally `main`): required checks, reviews, and CI run as if each layer targeted `main`. Merging a layer requires every layer below it to pass too, and the stack must have linear history; run `gh stack rebase` (or **Rebase stack** on GitHub) when it does not.
+- To adopt a standalone agent-created PR into a stack, verify its GitHub base and head, raw ancestry, and clean worktrees, then `gh stack link <existing-layers...> <pr>` (or `gh stack link <stack-number> <pr>` to append). `gh stack link` corrects mismatched bases. Merge only with explicit authority.
 - An agent-produced stack does not merge until a fresh-context verification pass has checked it against written acceptance criteria from the request, plan, issue, ADR, or specification — quoted evidence with file and line, "unable to verify" acceptable, invented citations a hard failure. Green CI plus evidence-shaped output is not verification.
 
 ## Subagent Rules
@@ -302,8 +309,8 @@ Use Graphite for source control operations.
 The coordinating agent assigns subagent ownership and source-control authority. Agent type alone grants no write authority.
 
 - Subagents may read, edit assigned files, run checks, and report results.
-- A subagent may perform Git or Graphite writes only when the coordinating agent explicitly delegates the worktree, branch or stack, scope, and permitted operations.
-- Without explicit source-control delegation, keep Git and Graphite read-only.
+- A subagent may perform Git or `gh stack` writes only when the coordinating agent explicitly delegates the worktree, branch or stack, scope, and permitted operations.
+- Without explicit source-control delegation, keep Git and `gh stack` read-only.
 - Before mutating source control, verify the active worktree, branch, stack ownership, and preserved changes. Do not cross another agent's assigned scope or undo its work.
 - Merge, publish, release, deployment, tracker or PR mutation, and external messaging still require explicit delegation within authority the user granted.
 - The coordinating agent owns conflict avoidance and integration unless it delegates those responsibilities explicitly.
@@ -368,14 +375,14 @@ bunx changeset add
 # 2. Version
 bun run version:packages
 
-# 3. Validate the generated version branch before its Graphite PR
+# 3. Validate the generated version branch before its PR
 bun run publish:check
 bun run publish:registry-check
 ```
 
-Stage only the generated version files, commit and submit the version branch through Graphite, and merge it after CI and review are clean. After merge, follow the [release policy](docs/releases/release-rules-check.md#generated-release-pr-policy) for automatic or explicitly dispatched manual publication through npm trusted publishing. Run `bun run publish:packages` locally only for first-time package bootstrap or explicit incident recovery.
+Stage only the generated version files, commit and push the version branch as a single (unstacked) draft PR, and merge it after CI and review are clean. After merge, follow the [release policy](docs/releases/release-rules-check.md#generated-release-pr-policy) for automatic or explicitly dispatched manual publication through npm trusted publishing. Run `bun run publish:packages` locally only for first-time package bootstrap or explicit incident recovery.
 
-Every PR that changes publishable `@ontrails/*` package contents must satisfy branch-local release rules. The normal intent source is a `.changeset/*.md` entry for the affected package. The compatibility `release:none` label/flag is allowed only when the branch truly does not ship user-visible package content, and the PR, issue, or handoff explains why. The CI release check reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole local stack. Public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes are release facts and need the same branch-local intent. Fix missing release intent on the owning Graphite branch; do not paper over lower-branch release gaps with a top-stack cleanup changeset.
+Every PR that changes publishable `@ontrails/*` package contents must satisfy branch-local release rules. The normal intent source is a `.changeset/*.md` entry for the affected package. The compatibility `release:none` label/flag is allowed only when the branch truly does not ship user-visible package content, and the PR, issue, or handoff explains why. The CI release check reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole stack. Public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes are release facts and need the same branch-local intent. Fix missing release intent on the owning stack layer; do not paper over lower-branch release gaps with a top-stack cleanup changeset.
 
 The initial `1.0.0` to `0.2.0` source reset is a reviewed, one-time transition; it uses `channel:stable` and `publish:manual`, with no ordinary release-size label. Prerelease mode has already exited, so do not repeat `changeset pre exit` for this cutover. [ADR-0047](docs/adr/0047-stable-release-line-discipline.md) owns the 0.x and eventual 1.x doctrine; the [Stable Cutover Runbook](docs/releases/stable-cutover.md) owns the procedure. Existing consumers need the [temporary manifest bridge](docs/releases/migrate-to-0x.md) because their old 1.0 ranges cannot resolve down to 0.x.
 

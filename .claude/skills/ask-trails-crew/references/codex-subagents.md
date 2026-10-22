@@ -18,7 +18,7 @@ These TOML files are Codex configuration layers for spawned sessions. They selec
 5. Use the native wait, follow-up, message, interrupt, and status tools for lifecycle control. Do not infer that an unavailable or not-yet-loaded agent is stopped.
 6. Wait for every required result and synthesize them in the parent conversation.
 
-Subagents inherit or remain bounded by the active runtime's permission policy, the user's authority, the repository rules, and the coordinating agent's brief. The coordinating agent decides whether Git and Graphite are read-only or delegated and, when delegated, names the exact worktree, branch or stack, scope, and permitted operations. Keep a pure consultation read-only because it does not need source-control writes; do not infer a blanket prohibition from the agent type.
+Subagents inherit or remain bounded by the active runtime's permission policy, the user's authority, the repository rules, and the coordinating agent's brief. The coordinating agent decides whether Git and `gh stack` are read-only or delegated and, when delegated, names the exact worktree, branch or stack, scope, and permitted operations. Keep a pure consultation read-only because it does not need source-control writes; do not infer a blanket prohibition from the agent type.
 
 If the requested custom role is unavailable, report that fact and return the prepared brief. Do not substitute a generic agent while labeling the result Clark or Lewis.
 

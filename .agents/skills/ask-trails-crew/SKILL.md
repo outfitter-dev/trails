@@ -17,7 +17,7 @@ Choose the smallest consultation that covers the question:
 | Question shape | Route |
 | --- | --- |
 | Constitutional fit, primitives, tenets, vocabulary, ADR-level direction, framework coherence, or a delegated architectural ruling | Clark |
-| Goal shape, issue or branch ownership, Graphite stack design, coordination, review, verification, release settlement, or execution learning | Lewis |
+| Goal shape, issue or branch ownership, stack design (GitHub stacked PRs), coordination, review, verification, release settlement, or execution learning | Lewis |
 | A direction whose architectural ruling and landing strategy are both material | Clark and Lewis |
 | A request to embody a persona in the current session | Do not consult; invoke `be-clark` or `be-lewis` inline |
 

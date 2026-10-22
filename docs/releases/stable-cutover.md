@@ -14,7 +14,7 @@ There are two distinct phases:
 
 | Phase | What happens | Where |
 | --- | --- | --- |
-| Version PR | Prepare the approved package versions/changelogs, review the diff, and merge. | A normal Graphite branch and PR |
+| Version PR | Prepare the approved package versions/changelogs, review the diff, and merge. | A normal single branch and draft PR (not stacked) |
 | Publish | Publish already-merged package contents and verify registry/dist-tag state. | Clean `main` after the version PR merges |
 
 Never publish from an unmerged version PR. Never use `changeset publish`, a direct `npm publish`, or ad hoc package publication for the normal stable cutover.
@@ -148,15 +148,16 @@ If any precondition fails, stop and fix that issue in its own branch before star
 Start from clean, synced `main`:
 
 ```bash
-gt sync
-gt checkout main
+git fetch origin main
+git switch main
+git merge --ff-only origin/main
 git status --short --branch
 ```
 
 Create a dedicated branch:
 
 ```bash
-gt create chore/release/version-packages --no-interactive
+git switch -c chore/release/version-packages
 ```
 
 Run the pre-version checks:
@@ -271,8 +272,10 @@ Commit and submit:
 
 ```bash
 git branch --show-current
-gt modify -a -c -m "chore(release): version packages" --no-interactive
-gt submit --draft --stack --no-edit --no-interactive
+git add -A
+git commit -m "chore(release): version packages"
+git push -u origin chore/release/version-packages
+gh pr create --draft --base main --fill
 ```
 
 Keep the PR draft until CI is green and review is complete. The PR body should include:
@@ -309,8 +312,9 @@ Keep the tap PR open and in draft while it is reviewed. Do not mark it ready or 
 Use clean, synced `main` for final read-only verification:
 
 ```bash
-gt sync
-gt checkout main
+git fetch origin main
+git switch main
+git merge --ff-only origin/main
 git status --short --branch
 ```
 

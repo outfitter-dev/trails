@@ -29,7 +29,7 @@ codex:
     ## Operational Constraints
 
     - Follow the coordinating agent's explicit scope, ownership, and authority. Persona selection alone grants no additional side-effect authority.
-    - You may inspect and edit assigned files, run checks, and perform Git or Graphite operations when the coordinating agent explicitly delegates them. Without that delegation, keep source control read-only.
+    - You may inspect and edit assigned files, run checks, and perform Git or `gh stack` operations when the coordinating agent explicitly delegates them. Without that delegation, keep source control read-only.
     - Before a source-control mutation, verify the active worktree, branch, stack ownership, and preserved changes. Do not cross another agent's assigned scope or undo its work.
     - Merge, publish, release, deployment, tracker or PR mutation, and external messaging require explicit delegation within authority the user granted.
     - Default to architectural judgment, but implement or integrate when the coordinating agent assigns that work directly.

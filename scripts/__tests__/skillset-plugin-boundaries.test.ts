@@ -359,6 +359,7 @@ describe('Skillset plugin ownership boundaries', () => {
         'docs/lexicon.md',
         'docs/tenets.md',
         'Graphite',
+        'gh stack',
         'scripts/adr.ts',
         'trails-adrs',
         'trails-editorial',

@@ -80,9 +80,9 @@ Retained prerelease changesets are validated too: Changesets validates workspace
 
 When release-check discovery returns no workspaces, changeset-name validation uses the pinned Changesets package reader to distinguish root-only repositories from pnpm, Bolt, and Lerna workspaces and collect their package names. This fallback only supplies names for changeset validation; release-fact discovery is unchanged. Malformed workspace configuration produces a package-inventory validation error instead of a root-package fallback.
 
-## Graphite Stacks
+## Stacked Pull Requests
 
-The GitHub workflow validates the PR file list for the current branch. In a Graphite stack, that file list is branch-local because GitHub compares the branch against its immediate base PR or branch. Fix missing release intent on the owning branch, then restack upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.
+The GitHub workflow validates the PR file list for the current branch. In a GitHub stack (`gh stack`), that file list is branch-local because GitHub compares the branch against its immediate base PR or branch. Fix missing release intent on the owning branch, then restack upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.
 
 To reproduce a hosted failure locally:
 
@@ -131,7 +131,7 @@ Managed release PR labels:
 
 | Family | Labels | Meaning |
 | --- | --- | --- |
-| Source evidence | `stack:boundary` | Applied to source PRs whose consumed changesets are complete enough for automatic publication. Trusted Graphite merge-queue proof may satisfy the same source-evidence requirement without the label. |
+| Source evidence | `stack:boundary` | Applied to source PRs whose consumed changesets are complete enough for automatic publication. Trusted Graphite merge-queue proof may satisfy the same source-evidence requirement without the label; GitHub stack merges produce no such proof, so label those source PRs explicitly. |
 | Publish intent | `publish:auto`, `publish:manual`, `publish:none`, `publish:block` | Select automatic publish, protected manual publish, intentional no-publish, or hard block. |
 | Channel intent | `channel:beta`, `channel:stable` | Declares the intended npm dist-tag family. `beta` maps to prerelease beta publication; `stable` maps to `latest`. |
 | Release size | `release:patch`, `release:minor`, `release:major` | Declares the semver movement expected on the generated release PR. |
@@ -154,7 +154,7 @@ The policy gate emits machine-readable GitHub Actions outputs and chooses `auto`
 bun run publish:policy
 ```
 
-`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated package version and changelog diffs plus the canonical command's modified `bun.lock`, canonical Trails skill metadata, and its exact Skillset-generated outputs and locks, CI proof green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and source evidence on every source PR that introduced a consumed changeset. The generated-file policy checks exact paths and statuses under the existing bot and PR provenance gates; it does not replace review of file contents. Other plugin files and added or deleted metadata artifacts still require manual review. Source evidence can come from an explicit `stack:boundary` label, or from trusted Graphite merge-queue evidence: the source PR was merged by the Graphite merge queue and the required GitHub Actions checks passed on the source PR merge/head SHA. Missing source PR evidence routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
+`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated package version and changelog diffs plus the canonical command's modified `bun.lock`, canonical Trails skill metadata, and its exact Skillset-generated outputs and locks, CI proof green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and source evidence on every source PR that introduced a consumed changeset. The generated-file policy checks exact paths and statuses under the existing bot and PR provenance gates; it does not replace review of file contents. Other plugin files and added or deleted metadata artifacts still require manual review. Source evidence can come from an explicit `stack:boundary` label, or from trusted Graphite merge-queue evidence: the source PR was merged by the Graphite merge queue and the required GitHub Actions checks passed on the source PR merge/head SHA. Graphite is retired as the repo's stack tool, so PRs merged through `gh stack merge` or the GitHub merge box need the `stack:boundary` label to qualify. Missing source PR evidence routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
 
 CI proof is gathered only when a generated release PR requests `publish:auto`. Manual, no-label, `publish:none`, and blocked paths do not wait on CI checks before routing to their decision. When auto proof is needed, the policy first reuses the generated release PR head checks if the current release commit and PR head commit resolve to the same Git tree. If that proof cannot be established, it falls back to exact-SHA checks on the current commit. Both paths read the required GitHub Actions checks (`Build`, `Lint & Format`, `Dead Code`, `Typecheck`, `Test`, and `Governance`). Duplicate pending checks do not mask an already-completed success for the same required check, but any completed failure still blocks automation.
 
@@ -168,7 +168,7 @@ The policy log separates three facts:
 
 ## Warden And Wayfinder
 
-`trails release check` owns branch-local release-rule evaluation. It reads the GitHub or local changed-file list, release config, Changesets intent, and first source-static public trail contract facts. Warden should not duplicate PR file-list logic or own Graphite and GitHub comparison state.
+`trails release check` owns branch-local release-rule evaluation. It reads the GitHub or local changed-file list, release config, Changesets intent, and first source-static public trail contract facts. Warden should not duplicate PR file-list logic or own stack and GitHub comparison state.
 
 Current recommendation:
 

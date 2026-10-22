@@ -1,5 +1,5 @@
 ---
-description: Define, execute, and settle durable Trails goals. Use for non-trivial Trails work spanning issues, Graphite branches or stacks, agents, review loops, CI, release or publication gates, or whenever a Trails goal needs an explicit completion horizon, authority boundary, evidence contract, and resumable packet.
+description: Define, execute, and settle durable Trails goals. Use for non-trivial Trails work spanning issues, branches or GitHub stacks, agents, review loops, CI, release or publication gates, or whenever a Trails goal needs an explicit completion horizon, authority boundary, evidence contract, and resumable packet.
 metadata:
   skillset.schema: "1"
   version: 0.1.0
@@ -12,11 +12,11 @@ Turn a substantial Trails objective into a current, executable contract and stay
 
 ## Ground The Goal
 
-Read `AGENTS.md`, the nearest scoped guidance, and `.agents/plans/PLANNING.md`. Treat those current repository sources as authoritative for packet shape, Graphite workflow, review policy, release readiness, and stop rules.
+Read `AGENTS.md`, the nearest scoped guidance, and `.agents/plans/PLANNING.md`. Treat those current repository sources as authoritative for packet shape, stacked-PR workflow, review policy, release readiness, and stop rules.
 
 Establish live truth before planning:
 
-- inspect the intended baseline and current worktree, branch, and Graphite stack;
+- inspect the intended baseline and current worktree, branch, and GitHub stack (`gh stack view`);
 - inspect the owning issue, PRs, review threads, and CI when they exist;
 - verify whether the requested outcome is already delivered on the relevant baseline or target state;
 - separate verified state, inference, and unknowns.
