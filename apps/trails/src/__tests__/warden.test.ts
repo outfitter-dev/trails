@@ -663,26 +663,43 @@ describe('trails warden', () => {
       writeConfiguredWorkspaceFixture(dir);
       for (const appId of ['alpha', 'beta']) {
         const app = topo(appId, []);
-        await writeAppManifest(
+        await writeAppRootLock(
           join(dir, 'apps', appId),
           appId,
-          deriveTopoGraphHash(deriveTopoGraph(app))
+          deriveTopoGraph(app)
         );
       }
 
+      const alphaLockPath = join(dir, 'apps', 'alpha', 'trails.lock');
+      const betaLockPath = join(dir, 'apps', 'beta', 'trails.lock');
+      const freshAlphaLock = readFileSync(alphaLockPath, 'utf8');
+      const betaLock = readFileSync(betaLockPath, 'utf8');
       const fresh = await wardenTrail.implementation(
         { depth: 'all', format: 'json', rootDir: dir },
         { cwd: dir, env: {} } as never
       );
-      await writeAppManifest(
+      expect(readFileSync(alphaLockPath, 'utf8')).toBe(freshAlphaLock);
+      expect(readFileSync(betaLockPath, 'utf8')).toBe(betaLock);
+      await writeAppRootLock(
         join(dir, 'apps', 'alpha'),
         'alpha',
-        '0'.repeat(64)
+        deriveTopoGraph(
+          topo('alpha', [
+            trail('alpha.previous', {
+              implementation: () => Result.ok(),
+              input: undefined,
+              intent: 'read',
+            }),
+          ])
+        )
       );
+      const priorAlphaLock = readFileSync(alphaLockPath, 'utf8');
       const stale = await wardenTrail.implementation(
         { depth: 'all', rootDir: dir },
         { cwd: dir, env: {} } as never
       );
+      expect(readFileSync(alphaLockPath, 'utf8')).toBe(priorAlphaLock);
+      expect(readFileSync(betaLockPath, 'utf8')).toBe(betaLock);
 
       expect(fresh.isOk()).toBe(true);
       expect(fresh.value?.drift).toMatchObject({ stale: false });
