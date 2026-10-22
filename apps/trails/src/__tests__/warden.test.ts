@@ -725,6 +725,82 @@ describe('trails warden', () => {
     }
   });
 
+  test('preserves custom-config workspace metadata and explicit app selection', async () => {
+    const dir = makeTempDir();
+    try {
+      writeConfiguredWorkspaceFixture(dir);
+      const configPath = join(dir, 'custom.config.ts');
+      writeFileSync(
+        configPath,
+        `export default ${readFileSync(join(dir, 'trails.config.json'), 'utf8')}`
+      );
+      rmSync(join(dir, 'trails.config.json'));
+      for (const appId of ['alpha', 'beta']) {
+        await writeAppManifest(
+          join(dir, 'apps', appId),
+          appId,
+          deriveTopoGraphHash(deriveTopoGraph(topo(appId, [])))
+        );
+      }
+
+      const workspace = await wardenTrail.implementation(
+        {
+          configPath: 'custom.config.ts',
+          depth: 'all',
+          format: 'json',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+      if (workspace.isErr()) {
+        throw workspace.error;
+      }
+      expect(workspace.isOk()).toBe(true);
+      expect(workspace.value.passed).toBe(true);
+      const selection = {
+        project: {
+          configuredAppIds: ['alpha', 'beta'],
+          projectRoot: dir,
+          selectedExtent: 'workspace',
+          selectionProvenance: 'root-dir',
+        },
+        workspaceEvidence: {
+          apps: [
+            { appId: 'alpha', binding: 'matched' },
+            { appId: 'beta', binding: 'matched' },
+          ],
+          completeness: 'complete',
+        },
+      };
+      expect(workspace.value).toMatchObject(selection);
+      expect(JSON.parse(workspace.value.formatted)).toMatchObject(selection);
+
+      const app = await wardenTrail.implementation(
+        {
+          app: 'alpha',
+          configPath,
+          depth: 'all',
+          format: 'json',
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+      expect(app.isOk()).toBe(true);
+      if (app.isErr()) {
+        throw app.error;
+      }
+      expect(app.value.passed).toBe(true);
+      expect(app.value.project).toMatchObject({
+        app: { appId: 'alpha' },
+        configuredAppIds: ['alpha', 'beta'],
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'app',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('rejects a foreign app-local lock before reporting matched workspace evidence', async () => {
     const dir = makeTempDir();
     try {

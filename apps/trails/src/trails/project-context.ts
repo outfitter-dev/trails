@@ -61,6 +61,7 @@ export type OperatorProjectContext =
 
 export interface OperatorProjectContextInput {
   readonly app?: string | undefined;
+  readonly configPath?: string | undefined;
   readonly module?: string | undefined;
   readonly rootDir?: string | undefined;
 }
@@ -432,6 +433,7 @@ export const resolveOperatorProjectContext = async (
     const startDir = explicitRoot ? boundaryDir : cwd;
     const identity = await readTrailsProjectIdentity({
       boundaryDir,
+      configPath: input.configPath,
       startDir,
     });
     if (identity.workspace !== undefined) {

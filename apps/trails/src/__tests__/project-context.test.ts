@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -143,6 +144,49 @@ afterEach(() => {
 });
 
 describe('resolveOperatorProjectContext', () => {
+  test.each(['custom.config.ts', 'absolute'])(
+    'selects workspace identity from an explicit %s config path',
+    async (pathKind) => {
+      const configPath = join(root, 'custom.config.ts');
+      renameSync(join(root, 'trails.config.ts'), configPath);
+      const input = {
+        configPath: pathKind === 'absolute' ? configPath : 'custom.config.ts',
+      };
+
+      const workspace = await resolveOperatorProjectContext(input, {
+        cwd: root,
+      });
+      expect(workspace.isOk()).toBe(true);
+      expect(workspace.value).toMatchObject({
+        identity: { apps: [{ id: 'alpha' }, { id: 'beta' }], configPath },
+        projectRoot: root,
+        selectedExtent: 'workspace',
+        selectionProvenance: 'cwd',
+      });
+
+      const app = await resolveOperatorProjectContext(
+        { ...input, app: 'beta' },
+        { cwd: root }
+      );
+      expect(app.isOk()).toBe(true);
+      expect(app.value).toMatchObject({
+        app: { id: 'beta', modulePath: 'custom/topo.ts' },
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'app',
+      });
+
+      const withoutSelection = await resolveOperatorProjectContext(
+        {},
+        { cwd: root }
+      );
+      expect(withoutSelection.isOk()).toBe(true);
+      expect(withoutSelection.value).toMatchObject({
+        identity: { apps: [] },
+        selectedExtent: 'standalone-app',
+      });
+    }
+  );
+
   test('selects an explicit configured app from the workspace root', async () => {
     const context = expectOk<{
       readonly app: {
