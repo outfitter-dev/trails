@@ -1,0 +1,4 @@
+Framework target metadata only; plugin behavior is unchanged.
+
+Bump: none
+Scope: plugin:trails

@@ -1,5 +1,12 @@
 # trails
 
+## 0.2.4
+
+### Patch Changes
+
+- [`cfeb154`](https://github.com/outfitter-dev/trails/commit/cfeb1547c9f866f34f94ff50c4a154d3638bb8b1): Accept GitHub stacked-PR merge evidence for `publish:auto`. A merged changeset source PR now earns trusted source evidence when its REST resource carries a GitHub `stack` object and required CI passed on its head SHA or merge SHA, recorded as `GitHub stack #N and required CI passed on <sha>`. Graphite merge-queue evidence and the `stack:boundary` label work as before. Standalone PRs and any unreadable or unrecognized response still fail closed to `publish:manual`.
+- [`53ed05f`](https://github.com/outfitter-dev/trails/commit/53ed05fca576e0a4292133d035eb77eabc601dc9): Retry transient GitHub API failures in release policy reads. `githubJson` now retries 5xx responses and network errors up to four attempts with exponential backoff (1s, 2s, 4s) before failing, so an intermittent `500` from `/commits/{sha}/pulls` no longer fails the Release workflow's `label-release-pr` step. 4xx responses still fail immediately.
+
 ## 0.2.3
 
 ### Patch Changes

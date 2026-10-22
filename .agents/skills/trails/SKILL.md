@@ -3,7 +3,7 @@ description: Build with the Trails framework — define trail contracts, open CL
 license: MIT
 metadata:
   skillset.schema: "1"
-  trails: 0.2.3
+  trails: 0.2.4
   version: 0.4.0
 name: trails
 ---
