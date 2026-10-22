@@ -1,5 +1,5 @@
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- result-shape assertions branch on isOk/isErr */
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,15 +9,21 @@ import {
   NotFoundError,
   Result,
   ValidationError,
+  createTrailContext,
   topo,
   trail,
 } from '@ontrails/core';
 import {
   deriveTopoGraph,
   deriveTopoGraphHash,
+  deriveWorkspaceView,
+  wayfinderTopo,
   writeTrailsLock,
 } from '@ontrails/topography';
 import type { TopoGraph, TrailsLock } from '@ontrails/topography';
+import * as topography from '@ontrails/topography';
+import { readTrailsProjectIdentity } from '@ontrails/config';
+import { z } from 'zod';
 
 import { wayfindDiffTrail, wayfindTrail } from '../trails/wayfind.js';
 import { surveyTrail } from '../trails/survey.js';
@@ -55,9 +61,9 @@ const writeAppLock = async (
   root: string,
   appId: string,
   trailId: string,
-  graphAppId: string = appId
+  graphAppId: string = appId,
+  graph: TopoGraph = graphFor(graphAppId, trailId)
 ): Promise<void> => {
-  const graph = graphFor(graphAppId, trailId);
   await writeTrailsLock(
     {
       scope: { app: graphAppId },
@@ -154,7 +160,204 @@ const fakeWayfindContext = (cwd: string) => {
   };
 };
 
+const savedWayfindContext = (
+  cwd: string,
+  beforeCompose: () => Promise<void>
+) => {
+  const calls: string[] = [];
+  return {
+    calls,
+    ctx: {
+      compose: async (id: string, input: unknown) => {
+        calls.push(id);
+        await beforeCompose();
+        const child = wayfinderTopo.get(id);
+        if (child === undefined || !(child.input instanceof z.ZodObject)) {
+          throw new Error(`Unexpected child trail ${id}`);
+        }
+        const schema =
+          child.composeInput instanceof z.ZodObject
+            ? child.input.merge(child.composeInput)
+            : child.input;
+        return await child.implementation(
+          schema.parse(input),
+          createTrailContext({ cwd })
+        );
+      },
+      cwd,
+    },
+  };
+};
+
 describe('Wayfinder shared project context', () => {
+  test('keeps workspace queries and includes on the captured lock generation', async () => {
+    const root = await createWorkspace({
+      alpha: 'shared.show',
+      beta: 'shared.show',
+    });
+    for (const appId of ['alpha', 'beta']) {
+      const graph = graphFor(appId, 'shared.show');
+      await writeAppLock(root, appId, 'shared.show', appId, {
+        ...graph,
+        entries: graph.entries.map((entry) => ({ ...entry, version: 1 })),
+      });
+    }
+    const identity = await readTrailsProjectIdentity({
+      boundaryDir: root,
+      startDir: root,
+    });
+    const captured = await deriveWorkspaceView({ identity });
+    const facts = savedWayfindContext(root, async () => {
+      await writeAppLock(root, 'alpha', 'alpha.replaced');
+      await writeAppLock(root, 'beta', 'beta.replaced');
+    });
+    const input = wayfindTrail.input.parse({
+      include: ['versions', 'adapters'],
+      rootDir: root,
+      trails: true,
+    });
+    const result = await wayfindTrail.implementation(input, facts.ctx);
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.value.result).toMatchObject({
+      apps: ['alpha', 'beta'].map((appId) => ({
+        appId,
+        result: {
+          includes: { versions: { versions: [{ trailId: 'shared.show' }] } },
+          result: { trails: [{ id: 'shared.show' }] },
+        },
+      })),
+      collisions: captured.content.collisions,
+      evidence: captured.evidence,
+      workspaceViewHash: captured.workspaceViewHash,
+    });
+    expect(facts.calls).toEqual([
+      'wayfind.trails',
+      'wayfind.versions',
+      'wayfind.adapters',
+      'wayfind.trails',
+      'wayfind.versions',
+      'wayfind.adapters',
+    ]);
+  });
+
+  test.each(['relations', 'overlays'] as const)(
+    'keeps workspace %s on the captured lock generation',
+    async (mode) => {
+      const root = await createWorkspace({
+        alpha: 'shared.show',
+        beta: 'shared.show',
+      });
+      for (const appId of ['alpha', 'beta']) {
+        const graph = graphFor(appId, 'shared.show');
+        const dependency = graphFor(appId, 'shared.dep').entries;
+        await writeAppLock(root, appId, 'shared.show', appId, {
+          ...graph,
+          entries: [
+            ...graph.entries.map((entry) => ({
+              ...entry,
+              composes: ['shared.dep'],
+            })),
+            ...dependency,
+          ],
+          overlays: { fixture: { generation: 'captured' } },
+        });
+      }
+      const facts = savedWayfindContext(root, async () => {
+        await writeAppLock(root, 'alpha', 'alpha.replaced');
+        await writeAppLock(root, 'beta', 'beta.replaced');
+      });
+      const input = wayfindTrail.input.parse({
+        rootDir: root,
+        ...(mode === 'relations'
+          ? { deps: true, target: 'shared.show' }
+          : { overlay: 'fixture' }),
+      });
+      const result = await wayfindTrail.implementation(input, facts.ctx);
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.result).toMatchObject({
+        apps: ['alpha', 'beta'].map((appId) => ({
+          appId,
+          result: {
+            result:
+              mode === 'relations'
+                ? {
+                    nodes: expect.arrayContaining([
+                      expect.objectContaining({
+                        id: 'shared.dep',
+                        kind: 'trail',
+                      }),
+                    ]),
+                    target: { id: 'shared.show' },
+                  }
+                : { facts: { generation: 'captured' }, namespace: 'fixture' },
+          },
+        })),
+      });
+      expect(facts.calls).toEqual(
+        mode === 'relations'
+          ? ['wayfind.impact', 'wayfind.impact']
+          : ['wayfind.overlay', 'wayfind.overlay']
+      );
+    }
+  );
+
+  test('fails closed when a lock changes between workspace derivation and snapshot capture', async () => {
+    const root = await createWorkspace({
+      alpha: 'alpha.original',
+      beta: 'beta.original',
+    });
+    const load = topography.loadWayfinderArtifacts;
+    const capture = spyOn(
+      topography,
+      'loadWayfinderArtifacts'
+    ).mockImplementationOnce(async (options) => {
+      await writeAppLock(root, 'alpha', 'alpha.replaced');
+      return await load(options);
+    });
+    try {
+      const facts = fakeWayfindContext(root);
+      const input = wayfindTrail.input.parse({ rootDir: root, trails: true });
+      const result = await wayfindTrail.implementation(input, facts.ctx);
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(ValidationError);
+        expect((result.error as ValidationError).context).toMatchObject({
+          appId: 'alpha',
+          reason: 'workspace-lock-generation-changed',
+        });
+      }
+      expect(facts.calls).toHaveLength(0);
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test('keeps non-workspace reads on the ordinary disk-loading path', async () => {
+    const root = await createWorkspace({ alpha: 'alpha.original' });
+    const facts = savedWayfindContext(root, async () => {
+      await writeAppLock(root, 'alpha', 'alpha.replaced');
+    });
+    const input = wayfindTrail.input.parse({
+      app: 'alpha',
+      rootDir: root,
+      trails: true,
+    });
+    const result = await wayfindTrail.implementation(input, facts.ctx);
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.value.result).toMatchObject({
+      trails: [{ id: 'alpha.replaced' }],
+    });
+  });
+
   test('discovers a sole nested standalone app for live navigation', async () => {
     const root = await mkdtemp(join(tmpdir(), 'trails-wayfind-standalone-'));
     tempRoots.push(root);
