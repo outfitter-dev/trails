@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "trl-1363-settle-trails-plugin-version-ownership-and-distribution",
-          "sha": "27d31e9adc80b05929039adf4cb8a1b80a5f40d1",
+          "ref": "devin/1792543210-release-skillset-coverage",
+          "sha": "b155fde9aa271ead2e76d675f2d281e28c9289f4",
           "sourceKind": "current"
         }
       },
@@ -411,15 +411,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "trl-1363-settle-trails-plugin-version-ownership-and-distribution",
-          "sha": "27d31e9adc80b05929039adf4cb8a1b80a5f40d1",
+          "ref": "devin/1792543210-release-skillset-coverage",
+          "sha": "b155fde9aa271ead2e76d675f2d281e28c9289f4",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:7189759005029a7f6ff1114689af3cc2fdc350260eee44068ec37e396de6707e",
+  "provenanceHash": "sha256:88d8fe9528ba652ce073937a13275b449192787565a8f5b51c36064b43cac397",
   "renderResults": [
     {
       "destination": "changelog",

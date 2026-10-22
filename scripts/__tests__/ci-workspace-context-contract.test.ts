@@ -8,6 +8,28 @@ const stableCutoverPath = new URL(
   import.meta.url
 );
 
+test('version preparation records framework-only Skillset changes before rendering', async () => {
+  const { scripts } = await Bun.file(
+    new URL('../../package.json', import.meta.url)
+  ).json();
+  const steps = scripts['version:packages'].split(' && ');
+  const sync = steps.indexOf('bun run plugin:metadata:sync');
+  const record = steps.indexOf('bun run plugin:metadata:record');
+  const render = steps.indexOf('bun run skillset:sync');
+
+  expect(sync).toBeGreaterThan(-1);
+  expect(record).toBeGreaterThan(sync);
+  expect(render).toBeGreaterThan(record);
+  for (const scope of ['plugin.trails.skill:trails', 'plugin:trails']) {
+    expect(scripts['plugin:metadata:record']).toContain(
+      `skillset change add --scope ${scope} --bump none --reason`
+    );
+  }
+  expect(scripts['plugin:metadata:record']).toContain(
+    'Framework target metadata only; plugin behavior is unchanged.'
+  );
+});
+
 test('CI Warden uses the operator workspace context', async () => {
   const [workflow, wrapper] = await Promise.all([
     readFile(workflowPath, 'utf8'),
