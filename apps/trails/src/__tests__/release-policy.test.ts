@@ -909,6 +909,48 @@ describe('enrichSourcePullRequestStackEvidence', () => {
     expect(calls).toContain('/pulls/99@2026-03-10');
   });
 
+  test('proves GitHub stack CI on the PR head while main CI on the squash commit is pending', async () => {
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader({
+        '/commits/abc1234def/check-runs?per_page=100': { check_runs: [] },
+        '/commits/fedcba98765/check-runs?per_page=100': checkRuns('success'),
+        '/issues/99/comments': [],
+        '/pulls/99': {
+          head: { sha: 'fedcba98765' },
+          merged_at: '2026-10-22T12:00:00Z',
+          stack: { number: 12 },
+        },
+      })
+    );
+
+    expect(enriched.trustedStackEvidence).toBe(
+      'GitHub stack #12 and required CI passed on fedcba9'
+    );
+  });
+
+  test('falls back to the merge SHA when GitHub stack head CI did not pass', async () => {
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader({
+        '/commits/abc1234def/check-runs?per_page=100': checkRuns('success'),
+        '/commits/fedcba98765/check-runs?per_page=100': checkRuns('failure'),
+        '/issues/99/comments': [],
+        '/pulls/99': {
+          head: { sha: 'fedcba98765' },
+          merged_at: '2026-10-22T12:00:00Z',
+          stack: { number: 12 },
+        },
+      })
+    );
+
+    expect(enriched.trustedStackEvidence).toBe(
+      'GitHub stack #12 and required CI passed on abc1234'
+    );
+  });
+
   test('keeps Graphite merge queue evidence ahead of GitHub stack membership', async () => {
     const calls: string[] = [];
     const enriched = await enrichSourcePullRequestStackEvidence(

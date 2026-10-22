@@ -284,9 +284,9 @@ Keep the PR draft until CI is green and review is complete. The PR body should i
 - the intended stable version;
 - intended generated release PR labels, including `channel:stable`, release
   size, and whether publication should be `publish:auto` or `publish:manual`;
-- source evidence (`stack:boundary`, GitHub stack membership, or Graphite
-  merge-queue proof, each with required CI) for source PRs that introduced
-  consumed changesets, or an explicit reason the release should use the protected manual publish
+- source evidence for source PRs that introduced consumed changesets: a
+  `stack:boundary` label, or GitHub stack membership or Graphite merge-queue
+  proof with required CI passed, or an explicit reason the release should use the protected manual publish
   path;
 - `bunx changeset status --verbose` summary;
 - `bun run publish:check` result;
