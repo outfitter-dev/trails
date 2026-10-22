@@ -705,7 +705,7 @@ const evaluateSourceStackEvidence = (
     missingEvidence.length > 0
   ) {
     return [
-      `publish:auto requires stack:boundary or trusted Graphite merge evidence on every changeset source PR in the release range; missing: ${missingEvidence
+      `publish:auto requires stack:boundary or trusted Graphite or GitHub stack merge evidence on every changeset source PR in the release range; missing: ${missingEvidence
         .map((pull) => `#${pull.number}`)
         .join(', ')}`,
     ];
@@ -1039,10 +1039,21 @@ const readRegistryPackages = async (
   return registryPackagesFromResults(results);
 };
 
-const githubJson = async <T>(repository: string, path: string): Promise<T> => {
+/**
+ * REST API version that exposes the `stack` object on pull request resources.
+ * Stack-aware reads opt in explicitly so the rest of release tooling keeps the
+ * long-standing default version.
+ */
+const githubStacksApiVersion = '2026-03-10';
+
+const githubJson = async <T>(
+  repository: string,
+  path: string,
+  apiVersion = '2022-11-28'
+): Promise<T> => {
   const headers: Record<string, string> = {
     accept: 'application/vnd.github+json',
-    'x-github-api-version': '2022-11-28',
+    'x-github-api-version': apiVersion,
   };
   if (process.env['GITHUB_TOKEN']) {
     headers['authorization'] = `Bearer ${process.env['GITHUB_TOKEN']}`;
@@ -1131,6 +1142,30 @@ interface GitHubPullRequest {
   readonly title: string;
   readonly user: { readonly login: string };
 }
+
+/**
+ * Pull request fields read when checking GitHub stacked-PR membership.
+ *
+ * GitHub documents a `stack` object (stack number, size, position, base) on
+ * stacked pull requests and `null` for standalone ones; standalone responses
+ * have also been observed without the key at all. Only `stack.number` is
+ * relied on, and every other shape is treated as "not stacked".
+ */
+export interface ReleasePolicyGitHubStackedPullRequest {
+  readonly head?: { readonly sha?: string | null } | null;
+  readonly merged_at?: string | null;
+  readonly stack?: unknown;
+}
+
+/**
+ * Reads one GitHub REST resource for a repository. Injected so stack evidence
+ * enrichment can be exercised without network access.
+ */
+export type ReleasePolicyGitHubJsonReader = <T>(
+  repository: string,
+  path: string,
+  apiVersion?: string
+) => Promise<T>;
 
 export interface ReleasePolicyGitHubComment {
   readonly author?: { readonly login?: string | null } | null;
@@ -1495,9 +1530,30 @@ const readSourcePullRequests = async (
   );
 };
 
-const enrichSourcePullRequestStackEvidence = async (
+/**
+ * Adds trusted stack evidence to a merged changeset source PR.
+ *
+ * Evidence comes from either a Graphite merge-queue comment or GitHub stacked-PR
+ * membership, and in both cases also requires required CI to have passed.
+ * Graphite proves CI on the merge (or last head) SHA, as before, and is checked
+ * first so its evidence string is unchanged for PRs that carry both. GitHub
+ * stack evidence checks the PR's own head SHA first, because a squash-merged
+ * stack lands a new `main` commit whose CI is usually still pending when the
+ * release PR is labeled, then falls back to the merge SHA.
+ *
+ * @example
+ * ```ts
+ * const enriched = await enrichSourcePullRequestStackEvidence(
+ *   'outfitter-dev/trails',
+ *   sourcePullRequest
+ * );
+ * enriched.trustedStackEvidence; // 'GitHub stack #12 and required CI passed on abc1234'
+ * ```
+ */
+export const enrichSourcePullRequestStackEvidence = async (
   repository: string,
-  pull: ReleasePolicySourcePullRequest
+  pull: ReleasePolicySourcePullRequest,
+  readJson: ReleasePolicyGitHubJsonReader = githubJson
 ): Promise<ReleasePolicySourcePullRequest> => {
   if (!pull.hasChangeset || pull.number <= 0 || hasSourceStackEvidence(pull)) {
     return pull;
@@ -1508,32 +1564,97 @@ const enrichSourcePullRequestStackEvidence = async (
   }
 
   try {
-    const comments = await githubJson<ReleasePolicyGitHubComment[]>(
-      repository,
-      `/issues/${pull.number}/comments`
-    );
-    if (!comments.some(isGraphiteMergeQueueComment)) {
+    const source = await readTrustedMergeSource(repository, pull, readJson);
+    if (!source) {
       return pull;
     }
 
-    const proofSha = pull.mergeCommitSha ?? pull.commitShas.at(-1);
-    if (!proofSha) {
-      return pull;
+    for (const proofSha of source.proofShas) {
+      const ciState = await readCiState(repository, proofSha, readJson);
+      if (ciState === 'passed') {
+        return {
+          ...pull,
+          trustedStackEvidence: `${source.label} and required CI passed on ${proofSha.slice(0, 7)}`,
+        };
+      }
     }
-
-    const ciState = await readCiState(repository, proofSha);
-    if (ciState !== 'passed') {
-      return pull;
-    }
-
-    return {
-      ...pull,
-      trustedStackEvidence: `Graphite merge queue and required CI passed on ${proofSha.slice(0, 7)}`,
-    };
+    return pull;
   } catch {
     // Optional trust enrichment must fail closed into publish:manual, not abort release labeling.
     return pull;
   }
+};
+
+interface TrustedMergeSource {
+  readonly label: string;
+  /** SHAs whose required CI may prove the source, in the order to try them. */
+  readonly proofShas: readonly string[];
+}
+
+const readTrustedMergeSource = async (
+  repository: string,
+  pull: ReleasePolicySourcePullRequest,
+  readJson: ReleasePolicyGitHubJsonReader
+): Promise<TrustedMergeSource | undefined> => {
+  const mergeProofSha = pull.mergeCommitSha ?? pull.commitShas.at(-1);
+  const comments = await readJson<ReleasePolicyGitHubComment[]>(
+    repository,
+    `/issues/${pull.number}/comments`
+  );
+  if (comments.some(isGraphiteMergeQueueComment)) {
+    return {
+      label: 'Graphite merge queue',
+      proofShas: mergeProofSha ? [mergeProofSha] : [],
+    };
+  }
+
+  const stackedPull = await readJson<ReleasePolicyGitHubStackedPullRequest>(
+    repository,
+    `/pulls/${pull.number}`,
+    githubStacksApiVersion
+  );
+  if (!stackedPull.merged_at) {
+    return undefined;
+  }
+  const stackNumber = gitHubStackNumber(stackedPull);
+  if (stackNumber === undefined) {
+    return undefined;
+  }
+  const headSha = stackedPull.head?.sha;
+  return {
+    label: `GitHub stack #${stackNumber}`,
+    proofShas: [
+      ...new Set(
+        [headSha, mergeProofSha].filter(
+          (sha): sha is string => typeof sha === 'string' && sha.length > 0
+        )
+      ),
+    ],
+  };
+};
+
+/**
+ * Returns the GitHub stack number for a stacked pull request resource, or
+ * `undefined` when the PR is standalone or the `stack` shape is unrecognized.
+ *
+ * @example
+ * ```ts
+ * gitHubStackNumber({ stack: { number: 12 } }); // 12
+ * gitHubStackNumber({ stack: null }); // undefined
+ * gitHubStackNumber({}); // undefined
+ * ```
+ */
+export const gitHubStackNumber = (
+  pull: ReleasePolicyGitHubStackedPullRequest
+): number | undefined => {
+  const { stack } = pull;
+  if (typeof stack !== 'object' || stack === null) {
+    return undefined;
+  }
+  const { number } = stack as { readonly number?: unknown };
+  return typeof number === 'number' && Number.isInteger(number) && number > 0
+    ? number
+    : undefined;
 };
 
 export const isGraphiteMergeQueueComment = (
@@ -1630,9 +1751,10 @@ const readCommitTreeSha = async (
 
 const readCiState = async (
   repository: string,
-  sha: string
+  sha: string,
+  readJson: ReleasePolicyGitHubJsonReader = githubJson
 ): Promise<'failed' | 'passed' | 'pending'> => {
-  const response = await githubJson<GitHubCheckRunsResponse>(
+  const response = await readJson<GitHubCheckRunsResponse>(
     repository,
     `/commits/${sha}/check-runs?per_page=100`
   );
