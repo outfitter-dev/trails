@@ -21,7 +21,7 @@ import type { ScheduleSpec } from './schedule.js';
 import type { WebhookSpec } from './webhook.js';
 import type { BasePermit } from './permits.js';
 import { Result } from './result.js';
-import type { ComposeFn, FireFn } from './types.js';
+import type { ComposeFn, FireFn, TrailContext } from './types.js';
 import type { ComposeInput, TrailInput, TrailOutput } from './type-utils.js';
 import type { DraftFinding as DirectDraftFinding } from './draft.js';
 import type { TopoIssue as DirectTopoIssue } from './validate-topo.js';
@@ -273,6 +273,120 @@ export const batchTrailObjectComposeOk: Promise<
   [composeTrail, { forkedFrom: 'root', name: 'Ada' }],
   ['audit.log', { event: 'typed' }],
 ] as const);
+
+declare const heterogeneousResults: readonly [
+  Result<{ id: string }, 'profile-missing'>,
+  Result<number[], 'orders-unavailable'>,
+];
+const combinedTuple = Result.combine(heterogeneousResults);
+export type CombinedTuple = Assert<
+  IsExact<
+    typeof combinedTuple,
+    Result<
+      readonly [{ id: string }, number[]],
+      'profile-missing' | 'orders-unavailable'
+    >
+  >
+>;
+
+declare const mutableResults: [
+  Result<string, 'missing'>,
+  Result<number, 'invalid'>,
+];
+const combinedMutableTuple = Result.combine(mutableResults);
+export type CombinedMutableTuple = Assert<
+  IsExact<
+    typeof combinedMutableTuple,
+    Result<[string, number], 'missing' | 'invalid'>
+  >
+>;
+declare const variadicResults: readonly [
+  Result<string, 'missing'>,
+  ...Result<number, 'invalid'>[],
+];
+const combinedVariadicTuple = Result.combine(variadicResults);
+export type CombinedVariadicTuple = Assert<
+  IsExact<
+    typeof combinedVariadicTuple,
+    Result<readonly [string, ...number[]], 'missing' | 'invalid'>
+  >
+>;
+
+const combinedOkTuple = Result.combine([
+  Result.ok(1),
+  Result.ok('two'),
+] as const);
+export type CombinedOkTuple = Assert<
+  IsExact<typeof combinedOkTuple, Result<readonly [number, string], never>>
+>;
+
+const combinedErrTuple = Result.combine([
+  Result.ok(1),
+  Result.err('missing' as const),
+] as const);
+export type CombinedErrTuple = Assert<
+  IsExact<typeof combinedErrTuple, Result<readonly [number, never], 'missing'>>
+>;
+
+const combinedEmptyTuple = Result.combine([] as const);
+export type CombinedEmptyTuple = Assert<
+  IsExact<typeof combinedEmptyTuple, Result<readonly [], never>>
+>;
+const combinedEmptyArray = Result.combine([]);
+export type CombinedEmptyArray = Assert<
+  IsExact<typeof combinedEmptyArray, Result<never[], never>>
+>;
+
+declare const ordinaryResults: Result<number, 'missing'>[];
+const combinedArray = Result.combine(ordinaryResults);
+export type CombinedArray = Assert<
+  IsExact<typeof combinedArray, Result<number[], 'missing'>>
+>;
+declare const readonlyResults: readonly Result<number, 'missing'>[];
+const combinedReadonlyArray = Result.combine(readonlyResults);
+export type CombinedReadonlyArray = Assert<
+  IsExact<typeof combinedReadonlyArray, Result<number[], 'missing'>>
+>;
+const combinedExplicitArray = Result.combine<number, 'missing'>(
+  ordinaryResults
+);
+export type CombinedExplicitArray = Assert<
+  IsExact<typeof combinedExplicitArray, Result<number[], 'missing'>>
+>;
+declare const mixedResults: (
+  | Result<string, 'missing'>
+  | Result<number, 'invalid'>
+)[];
+const combinedMixedArray = Result.combine(mixedResults);
+export type CombinedMixedArray = Assert<
+  IsExact<
+    typeof combinedMixedArray,
+    Result<(string | number)[], 'missing' | 'invalid'>
+  >
+>;
+
+const countTrail = trail('typecheck.combine.count', {
+  implementation: () => Result.ok(1),
+  input: z.object({}),
+  output: z.number(),
+});
+const combineComposeBatch = async (ctx: TrailContext) => {
+  if (!ctx.compose) {
+    return;
+  }
+  return Result.combine(
+    await ctx.compose([
+      [plainTrail, { name: 'Ada' }],
+      [countTrail, {}],
+    ] as const)
+  );
+};
+export type CombinedComposeBatch = Assert<
+  IsExact<
+    NonNullable<Awaited<ReturnType<typeof combineComposeBatch>>>,
+    Result<readonly [{ id: string }, number], Error>
+  >
+>;
 
 type StringIdComposeCallable = ComposeFn extends {
   (id: string, input: unknown): Promise<Result<unknown, Error>>;
