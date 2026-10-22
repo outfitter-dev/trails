@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -11,16 +11,24 @@ import {
   Result,
 } from '@ontrails/core';
 import {
+  annotateTopoGraphForces,
+  carryForwardTopoGraphForces,
   createTopoStore,
   deriveTopoGraphHash,
   deriveTopoGraph,
   LOCK_MANIFEST_SCHEMA_VERSION,
+  readTopoGraph,
+  TRAILS_LOCK_SCHEMA_VERSION,
   writeLockManifest,
+  writeTopoGraph,
+  writeTrailsLock,
 } from '@ontrails/topography';
+import type { TopoGraph } from '@ontrails/topography';
 import { createStoredTopoSnapshot } from '@ontrails/topography/backend-support';
 import { z } from 'zod';
 
 import { checkDrift, staleDriftMessage } from '../drift.js';
+import { pendingForce } from '../rules/trail-versioning-topo.js';
 
 const makeTopo = () => {
   const t = trail('test.hello', {
@@ -52,8 +60,11 @@ const committedLockDir = (dir: string): string => {
   return trailsDir;
 };
 
-const writeManifest = (dir: string, hash: string): Promise<string> =>
-  writeLockManifest(
+const writeManifest = async (dir: string, hash: string): Promise<string> => {
+  await writeTopoGraph(deriveTopoGraph(makeTopo()), {
+    dir: committedLockDir(dir),
+  });
+  return writeLockManifest(
     {
       artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
       scope: { app: 'test-app' },
@@ -62,6 +73,56 @@ const writeManifest = (dir: string, hash: string): Promise<string> =>
     },
     { dir: committedLockDir(dir) }
   );
+};
+
+const writeGraph = async (
+  dir: string,
+  graph: TopoGraph,
+  layout: 'root' | 'legacy'
+): Promise<string> => {
+  const hash = deriveTopoGraphHash(graph);
+  const summary = { entities: 0, resources: 0, signals: 0, trails: 1 };
+  if (layout === 'root') {
+    return writeTrailsLock(
+      {
+        scope: { app: 'test-app' },
+        summary,
+        topoGraph: graph,
+        topoGraphHash: hash,
+        version: TRAILS_LOCK_SCHEMA_VERSION,
+      },
+      { dir }
+    );
+  }
+  const legacyDir = committedLockDir(dir);
+  await writeTopoGraph(graph, { dir: legacyDir });
+  return writeLockManifest(
+    {
+      artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+      scope: { app: 'test-app' },
+      summary,
+      version: LOCK_MANIFEST_SCHEMA_VERSION,
+    },
+    { dir: legacyDir }
+  );
+};
+
+const forceCases = [
+  {
+    change: 'removed',
+    details: ['Trail "test.removed" removed'],
+    id: 'test.removed',
+    kind: 'trail',
+    severity: 'breaking',
+  },
+  {
+    change: 'modified',
+    details: ['Permit requirement tightened'],
+    id: 'test.hello',
+    kind: 'trail',
+    severity: 'breaking',
+  },
+] as const;
 
 const seedSavedTopo = (dir: string): string => {
   const db = openWriteTrailsDb({ rootDir: dir });
@@ -153,6 +214,131 @@ describe('checkDrift', () => {
     }
   });
 
+  for (const layout of ['root', 'legacy'] as const) {
+    for (const force of forceCases) {
+      test(`${layout}: ${force.change} force audit is not contract drift`, async () => {
+        const dir = createTempDir();
+        try {
+          const tp = makeTopo();
+          const contract = deriveTopoGraph(tp);
+          await writeGraph(dir, contract, layout);
+          expect(await checkDrift(dir, tp)).toMatchObject({ stale: false });
+
+          const forced = annotateTopoGraphForces(contract, [force]);
+          const carried = carryForwardTopoGraphForces(forced, contract);
+          const lockPath = await writeGraph(dir, carried, layout);
+          const before = readFileSync(lockPath, 'utf8');
+          const result = await checkDrift(dir, tp);
+
+          expect(result).toMatchObject({
+            committedHash: deriveTopoGraphHash(contract),
+            currentHash: deriveTopoGraphHash(contract),
+            stale: false,
+          });
+          expect(readFileSync(lockPath, 'utf8')).toBe(before);
+          const saved = await readTopoGraph({
+            dir: layout === 'root' ? dir : committedLockDir(dir),
+          });
+          expect(saved).toEqual(carried);
+          expect(await pendingForce.checkTopo(tp, { graph: carried })).toEqual([
+            expect.objectContaining({
+              rule: 'pending-force',
+              severity: 'warn',
+            }),
+          ]);
+          expect(await checkDrift(dir, makeChangedTopo())).toMatchObject({
+            stale: true,
+          });
+        } finally {
+          rmSync(dir, { force: true, recursive: true });
+        }
+      });
+    }
+
+    test(`${layout}: force history does not hide overlay drift`, async () => {
+      const dir = createTempDir();
+      try {
+        const tp = makeTopo();
+        const overlay = {
+          derive: () => ({ region: 'west' }),
+          namespace: 'deployment',
+          schema: z.object({ region: z.string() }),
+          version: 1,
+        };
+        const overlays = [overlay];
+        const graph = annotateTopoGraphForces(
+          deriveTopoGraph(tp, { overlays }),
+          forceCases
+        );
+        await writeGraph(dir, graph, layout);
+        expect(await checkDrift(dir, tp, { overlays })).toMatchObject({
+          stale: false,
+        });
+        const changedOverlays = [
+          {
+            ...overlay,
+            derive: () => ({ region: 'east' }),
+          },
+        ];
+        expect(
+          await checkDrift(dir, tp, { overlays: changedOverlays })
+        ).toMatchObject({
+          driftedOverlayNamespaces: ['deployment'],
+          stale: true,
+        });
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    });
+
+    test(`${layout}: rejects audit tampering even when the contract is unchanged`, async () => {
+      const dir = createTempDir();
+      try {
+        const graph = annotateTopoGraphForces(deriveTopoGraph(makeTopo()), [
+          forceCases[0],
+        ]);
+        const lockPath = await writeGraph(dir, graph, layout);
+        const graphPath =
+          layout === 'root'
+            ? lockPath
+            : join(committedLockDir(dir), 'topo.lock');
+        writeFileSync(
+          graphPath,
+          readFileSync(graphPath, 'utf8').replace(
+            'test.removed',
+            'test.tampered'
+          )
+        );
+
+        expect(await checkDrift(dir, makeTopo())).toMatchObject({
+          blockedReason: expect.stringContaining('hash'),
+          currentHash: 'blocked',
+          stale: true,
+        });
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    });
+  }
+
+  test('blocks when a legacy manifest has no graph artifact', async () => {
+    const dir = createTempDir();
+    try {
+      await writeManifest(
+        dir,
+        deriveTopoGraphHash(deriveTopoGraph(makeTopo()))
+      );
+      rmSync(join(committedLockDir(dir), 'topo.lock'));
+      expect(await checkDrift(dir, makeTopo())).toMatchObject({
+        blockedReason: expect.stringContaining('topo.lock'),
+        currentHash: 'blocked',
+        stale: true,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('uses the live topo hash even when a saved topo export exists', async () => {
     const dir = createTempDir();
     try {
@@ -172,7 +358,7 @@ describe('checkDrift', () => {
     }
   });
 
-  test('returns stale: true when lock does not match', async () => {
+  test('blocks when the recorded artifact hash does not match the graph', async () => {
     const dir = createTempDir();
     try {
       const outdatedHash = '0'.repeat(64);
@@ -180,7 +366,7 @@ describe('checkDrift', () => {
 
       const result = await checkDrift(dir, makeTopo());
       expect(result.stale).toBe(true);
-      expect(result.committedHash).toBe(outdatedHash);
+      expect(result.blockedReason).toContain('hash');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
