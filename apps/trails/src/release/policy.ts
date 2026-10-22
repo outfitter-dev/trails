@@ -1047,7 +1047,7 @@ const githubJson = async <T>(repository: string, path: string): Promise<T> => {
   if (process.env['GITHUB_TOKEN']) {
     headers['authorization'] = `Bearer ${process.env['GITHUB_TOKEN']}`;
   }
-  const response = await fetch(
+  const response = await fetchGitHubWithRetry(
     `https://api.github.com/repos/${repository}${path}`,
     {
       headers,
@@ -1059,6 +1059,65 @@ const githubJson = async <T>(repository: string, path: string): Promise<T> => {
     );
   }
   return (await response.json()) as T;
+};
+
+/** Injection seams for {@link fetchGitHubWithRetry}. */
+export interface GitHubRetryOptions {
+  readonly attempts?: number;
+  readonly baseDelayMs?: number;
+  readonly fetch?: (url: string, init: RequestInit) => Promise<Response>;
+  readonly sleep?: (ms: number) => Promise<void>;
+}
+
+/**
+ * Fetches a GitHub REST resource, retrying transient failures.
+ *
+ * GitHub intermittently answers reads such as `/commits/{sha}/pulls` with a 5xx
+ * that succeeds on the next try. Release labeling makes one such read per
+ * commit in the release range, so a single unretried 5xx fails the whole
+ * Release workflow. Server errors and network failures retry with exponential
+ * backoff; any other response, including 4xx, returns immediately so callers
+ * keep their existing failure handling.
+ *
+ * @example
+ * ```ts
+ * const response = await fetchGitHubWithRetry(
+ *   'https://api.github.com/repos/outfitter-dev/trails/commits/abc123/pulls',
+ *   { headers: { accept: 'application/vnd.github+json' } }
+ * );
+ * ```
+ */
+export const fetchGitHubWithRetry = async (
+  url: string,
+  init: RequestInit,
+  options: GitHubRetryOptions = {}
+): Promise<Response> => {
+  const attempts = options.attempts ?? 4;
+  const baseDelayMs = options.baseDelayMs ?? 1000;
+  const doFetch = options.fetch ?? fetch;
+  const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
+
+  for (let attempt = 1; ; attempt += 1) {
+    const isLastAttempt = attempt >= attempts;
+    let failure: string;
+    try {
+      const response = await doFetch(url, init);
+      if (response.status < 500 || isLastAttempt) {
+        return response;
+      }
+      failure = `${response.status} ${response.statusText}`;
+    } catch (error) {
+      if (isLastAttempt) {
+        throw error;
+      }
+      failure = error instanceof Error ? error.message : String(error);
+    }
+    const waitMs = baseDelayMs * 2 ** (attempt - 1);
+    console.error(
+      `trails: GitHub API ${failure} for ${url}; retrying in ${waitMs}ms (${attempt}/${attempts})`
+    );
+    await sleep(waitMs);
+  }
 };
 
 interface GitHubPullRequest {
