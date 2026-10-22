@@ -511,6 +511,46 @@ describe.each(['root', 'legacy'] as const)('lock integrity (%s)', (format) => {
     });
   });
 
+  test.each(['missing-export', 'hash-mismatch'] as const)(
+    'keeps readable-store %s before summary drift',
+    async (storeState) => {
+      await writeArtifacts('summary');
+      seedTopoStore(
+        storeState === 'hash-mismatch'
+          ? makeTopo({ accountListTrail })
+          : makeTopo()
+      );
+      if (storeState === 'missing-export') {
+        const db = openWriteTrailsDb({ rootDir: tempDir });
+        try {
+          db.run('DELETE FROM topo_exports');
+        } finally {
+          db.close();
+        }
+      }
+
+      const loaded = await loadWayfinderArtifacts({
+        dir: format === 'root' ? tempDir : artifactsDir(),
+        rootDir: tempDir,
+      });
+
+      expect(loaded.artifactStatus.status).toBe('stale');
+      if (loaded.artifactStatus.status !== 'stale') {
+        throw new Error('Expected combined store and summary drift');
+      }
+      expect(loaded.artifactStatus.reasons.map(({ reason }) => reason)).toEqual(
+        [
+          storeState === 'missing-export'
+            ? 'topo-store-export-missing'
+            : 'topo-store-hash-mismatch',
+          'lock-manifest-summary-mismatch',
+        ]
+      );
+      expect(loaded.topoStore).not.toBeNull();
+      expect(loaded.freshness).toBe(loaded.artifactStatus);
+    }
+  );
+
   test('keeps missing-store provenance absent for a consistent lock', async () => {
     await writeArtifacts();
     const dir = format === 'root' ? tempDir : artifactsDir();

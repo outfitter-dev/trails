@@ -446,8 +446,13 @@ export const loadWayfinderArtifacts = async (
 
   const fingerprintReason = sourceFingerprintReason(topoStore, options);
   const reasons = [
-    ...lockReasons,
+    ...lockReasons.filter(
+      ({ reason }) => reason !== 'lock-manifest-summary-mismatch'
+    ),
     ...topoStoreStaleReasons(topoGraph, topoStore),
+    ...lockReasons.filter(
+      ({ reason }) => reason === 'lock-manifest-summary-mismatch'
+    ),
     ...(fingerprintReason === undefined ? [] : [fingerprintReason]),
   ];
   return artifactLoad({
