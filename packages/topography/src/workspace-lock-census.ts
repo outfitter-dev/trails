@@ -4,7 +4,10 @@ import {
   NotFoundError,
 } from '@ontrails/core';
 import type { PathScope } from '@ontrails/core';
-import { trailsLockFileName } from '@ontrails/config';
+import {
+  trailsLockFileName,
+  workspaceIgnoredDirectoryNames,
+} from '@ontrails/config';
 import type {
   ReadTrailsProjectIdentityResult,
   ResolvedTrailsWorkspaceApp,
@@ -17,13 +20,7 @@ import type {
 } from './workspace-view-types.js';
 import { deriveConfiguredAppAliases } from './workspace-configured-aliases.js';
 
-const DEFAULT_IGNORED_DIRECTORIES = new Set([
-  '.git',
-  '.turbo',
-  'coverage',
-  'dist',
-  'node_modules',
-]);
+const DEFAULT_IGNORED_DIRECTORIES = new Set(workspaceIgnoredDirectoryNames);
 
 export interface WorkspaceLockCensus {
   readonly collectionSkips: readonly WorkspaceViewCollectionSkip[];

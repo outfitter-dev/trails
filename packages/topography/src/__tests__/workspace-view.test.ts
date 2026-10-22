@@ -1351,6 +1351,69 @@ describe('deriveWorkspaceView lock census', () => {
     expect(view.evidence.configuredCompleteness).toBe('complete');
   });
 
+  test('prunes cached locks outside and inside configured apps without granting ownership', async () => {
+    await writeAppLock(join(rootDir, 'apps/demo'), 'demo', graph([]));
+    await Bun.write(join(rootDir, '.cache/other/trails.lock'), '{}\n');
+    await Bun.write(
+      join(rootDir, 'apps/demo/.cache/other/trails.lock'),
+      '{}\n'
+    );
+    await Bun.write(join(rootDir, 'apps/unconfigured/trails.lock'), '{}\n');
+
+    const view = await deriveWorkspaceView({
+      identity: identity(rootDir, [{ id: 'demo', root: 'apps/demo' }]),
+    });
+
+    expect(view.evidence.collectionSkips).toEqual(
+      expect.arrayContaining([
+        {
+          path: '.cache',
+          provenance: 'source-collection',
+          reason: 'ignored-directory',
+        },
+        {
+          path: 'apps/demo/.cache',
+          provenance: 'source-collection',
+          reason: 'ignored-directory',
+        },
+      ])
+    );
+    expect(view.evidence.unownedLocks).toEqual([
+      expect.objectContaining({
+        kind: 'unconfigured-app-lock',
+        path: 'apps/unconfigured/trails.lock',
+      }),
+    ]);
+    expect(view.content.apps.map((app) => app.id)).toEqual(['demo']);
+    expect(view.evidence.apps[0]?.status).toBe('available');
+  });
+
+  test.each(['.cache', '.cache/demo', 'apps/demo/.cache/nested'])(
+    'retains the configured cache-root exemption at %s',
+    async (appRoot) => {
+      await writeAppLock(join(rootDir, appRoot), 'cached', graph([]));
+      await Bun.write(
+        join(rootDir, appRoot, '.cache/other/trails.lock'),
+        '{}\n'
+      );
+
+      const view = await deriveWorkspaceView({
+        identity: identity(rootDir, [{ id: 'cached', root: appRoot }]),
+      });
+
+      expect(view.evidence.apps[0]).toEqual(
+        expect.objectContaining({ binding: 'matched', status: 'available' })
+      );
+      expect(view.evidence.collectionSkips).toContainEqual({
+        path: `${appRoot}/.cache`,
+        provenance: 'source-collection',
+        reason: 'ignored-directory',
+      });
+      expect(view.evidence.unownedLocks).toEqual([]);
+      expect(view.content.apps.map((app) => app.id)).toEqual(['cached']);
+    }
+  );
+
   test('applies PathScope excludes only to observation census', async () => {
     await writeAppLock(join(rootDir, 'owned'), 'owned', graph([]));
     await Bun.write(join(rootDir, 'ignored/trails.lock'), '{}\n');
