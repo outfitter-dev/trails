@@ -156,6 +156,10 @@ The subpath owns `bindStoreDefinition`, `createStoreTableSignals`, `composeStore
 
 Writable bindings fire those canonical scoped signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
+For JSON-file resources, `upsert()` emits `created` for a new entity and `updated` when the persisted entity changes. `remove()` emits `removed` with the deleted entity. Failed writes, unchanged upserts, and missing removals emit nothing. Version increments count as changes.
+
+Emission is awaited after persistence and outside the table's write lock, so consumers can write to the same table. A thrown emission error is logged without masking the successful write. Raw `connectJsonFile()` connections and contexts without `ctx.fire` remain silent.
+
 See [Store Signal Identity Migration](../../docs/store-signal-identity-migration.md) when updating existing `on:` clauses, surface-map fixtures, or custom resource wrappers from bare ids to scoped ids.
 
 Tabular adapters such as `@ontrails/drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
