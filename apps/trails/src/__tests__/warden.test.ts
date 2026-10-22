@@ -735,13 +735,17 @@ describe('trails warden', () => {
         `export default ${readFileSync(join(dir, 'trails.config.json'), 'utf8')}`
       );
       rmSync(join(dir, 'trails.config.json'));
+      const lockPaths: string[] = [];
       for (const appId of ['alpha', 'beta']) {
-        await writeAppManifest(
-          join(dir, 'apps', appId),
-          appId,
-          deriveTopoGraphHash(deriveTopoGraph(topo(appId, [])))
+        lockPaths.push(
+          await writeAppRootLock(
+            join(dir, 'apps', appId),
+            appId,
+            deriveTopoGraph(topo(appId, []))
+          )
         );
       }
+      const lockBytes = lockPaths.map((lockPath) => readFileSync(lockPath));
 
       const workspace = await wardenTrail.implementation(
         {
@@ -774,6 +778,9 @@ describe('trails warden', () => {
       };
       expect(workspace.value).toMatchObject(selection);
       expect(JSON.parse(workspace.value.formatted)).toMatchObject(selection);
+      expect(lockPaths.map((lockPath) => readFileSync(lockPath))).toEqual(
+        lockBytes
+      );
 
       const app = await wardenTrail.implementation(
         {
@@ -796,6 +803,9 @@ describe('trails warden', () => {
         selectedExtent: 'configured-app',
         selectionProvenance: 'app',
       });
+      expect(lockPaths.map((lockPath) => readFileSync(lockPath))).toEqual(
+        lockBytes
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
