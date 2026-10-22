@@ -211,6 +211,18 @@
       "env": ["CI", "NODE_ENV", "TRAILS_ENV", "TZ"],
       "outputs": []
     },
+    "@ontrails/regrade#test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/trails.config.ts",
+        "$TURBO_ROOT$/examples/packlist/src/app.ts",
+        "$TURBO_ROOT$/apps/trails/src/app.ts"
+      ],
+      "env": ["CI", "NODE_ENV", "TRAILS_ENV", "TZ"],
+      "outputs": []
+    },
     "typecheck": {
       "dependsOn": ["^typecheck"]
     },
