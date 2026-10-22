@@ -19,7 +19,7 @@ There are two distinct phases:
 
 Never publish from an unmerged version PR. Never use `changeset publish`, a direct `npm publish`, or ad hoc package publication for the normal stable cutover.
 
-Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets should carry `stack:boundary` before the stable version PR is expected to reach `publish:auto`. Missing source evidence or missing `stack:boundary` requires the manual publication path: an explicit workflow dispatch with `publish=true`, followed by approval in the protected `npm` environment. Unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
+Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets need source evidence before the stable version PR is expected to reach `publish:auto`: a `stack:boundary` label, or trusted merge evidence from GitHub stack membership or the legacy Graphite merge queue plus required CI on the merge SHA (see [Release Rules Check](./release-rules-check.md)). Missing source evidence requires the manual publication path: an explicit workflow dispatch with `publish=true`, followed by approval in the protected `npm` environment. Unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
 
 ## Approved initial 0.x transition
 
@@ -284,8 +284,9 @@ Keep the PR draft until CI is green and review is complete. The PR body should i
 - the intended stable version;
 - intended generated release PR labels, including `channel:stable`, release
   size, and whether publication should be `publish:auto` or `publish:manual`;
-- `stack:boundary` evidence for source PRs that introduced consumed changesets,
-  or an explicit reason the release should use the protected manual publish
+- source evidence (`stack:boundary`, GitHub stack membership, or Graphite
+  merge-queue proof, each with required CI) for source PRs that introduced
+  consumed changesets, or an explicit reason the release should use the protected manual publish
   path;
 - `bunx changeset status --verbose` summary;
 - `bun run publish:check` result;

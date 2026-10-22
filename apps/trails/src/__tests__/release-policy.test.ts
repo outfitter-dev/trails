@@ -2,7 +2,9 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   ciStateFromCheckRuns,
+  enrichSourcePullRequestStackEvidence,
   evaluateReleasePolicy,
+  gitHubStackNumber,
   isGraphiteMergeQueueComment,
   labelsForReleasePullRequest,
   readReleaseLabelVersions,
@@ -14,7 +16,9 @@ import {
 } from '../release/policy.js';
 import type {
   ReleasePolicyCheckRun,
+  ReleasePolicyGitHubJsonReader,
   ReleasePolicyInput,
+  ReleasePolicySourcePullRequest,
 } from '../release/policy.js';
 
 const botCommit = {
@@ -303,7 +307,7 @@ describe('evaluateReleasePolicy', () => {
 
     expect(report.decision).toBe('manual');
     expect(report.diagnostics).toContain(
-      'publish:auto requires stack:boundary or trusted Graphite merge evidence on every changeset source PR in the release range; missing: #99'
+      'publish:auto requires stack:boundary or trusted Graphite or GitHub stack merge evidence on every changeset source PR in the release range; missing: #99'
     );
   });
 
@@ -319,6 +323,27 @@ describe('evaluateReleasePolicy', () => {
             title: 'feat: add release fact',
             trustedStackEvidence:
               'Graphite merge queue and required CI passed on abc123',
+          },
+        ],
+      })
+    );
+
+    expect(report.decision).toBe('auto');
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  test('allows trusted GitHub stack source evidence without stack boundary labels', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        sourcePullRequests: [
+          {
+            commitShas: ['abc123'],
+            hasChangeset: true,
+            labels: [],
+            number: 99,
+            title: 'feat: add release fact',
+            trustedStackEvidence:
+              'GitHub stack #12 and required CI passed on abc123',
           },
         ],
       })
@@ -696,6 +721,30 @@ describe('labelsForReleasePullRequest', () => {
   });
 });
 
+describe('labelsForReleasePullRequest with GitHub stacks', () => {
+  test('uses trusted GitHub stack source evidence to select publish:auto', () => {
+    expect(
+      labelsForReleasePullRequest({
+        currentVersion: '0.2.3',
+        existingLabels: [],
+        nextDistTag: 'latest',
+        nextVersion: '0.2.4',
+        sourcePullRequests: [
+          {
+            commitShas: ['abc123'],
+            hasChangeset: true,
+            labels: [],
+            number: 99,
+            title: 'feat: release fact',
+            trustedStackEvidence:
+              'GitHub stack #12 and required CI passed on abc123',
+          },
+        ],
+      })
+    ).toEqual(['publish:auto', 'channel:stable', 'release:patch']);
+  });
+});
+
 describe('readReleaseLabelVersions', () => {
   const releaseRefs = {
     baseRefName: 'main',
@@ -769,6 +818,188 @@ describe('isGraphiteMergeQueueComment', () => {
         user: { login: 'graphite-app[bot]' },
       })
     ).toBe(false);
+  });
+});
+
+describe('gitHubStackNumber', () => {
+  test('reads the stack number from a stacked pull request resource', () => {
+    expect(
+      gitHubStackNumber({
+        stack: { base: 'main', number: 12, position: 2, size: 3 },
+      })
+    ).toBe(12);
+  });
+
+  test.each([
+    ['missing stack key', {}],
+    ['null stack', { stack: null }],
+    ['non-object stack', { stack: 'stacked' }],
+    ['missing number', { stack: { size: 2 } }],
+    ['string number', { stack: { number: '12' } }],
+    ['non-positive number', { stack: { number: 0 } }],
+  ] as const)('treats %s as not stacked', (_label, pull) => {
+    expect(gitHubStackNumber(pull)).toBeUndefined();
+  });
+});
+
+describe('enrichSourcePullRequestStackEvidence', () => {
+  const requiredCheckNames = [
+    'Build',
+    'Lint & Format',
+    'Dead Code',
+    'Typecheck',
+    'Test',
+    'Governance',
+  ];
+  const checkRuns = (conclusion: string) => ({
+    check_runs: requiredCheckNames.map((name) => ({
+      check_suite: { app: { slug: 'github-actions' } },
+      conclusion,
+      name,
+      status: 'completed',
+    })),
+  });
+  const mergedSourcePull: ReleasePolicySourcePullRequest = {
+    commitShas: ['1111111aaaa'],
+    hasChangeset: true,
+    labels: [],
+    mergeCommitSha: 'abc1234def',
+    mergedAt: '2026-10-22T12:00:00Z',
+    number: 99,
+    title: 'feat: release fact',
+  };
+
+  const reader = (
+    responses: Record<string, unknown>,
+    calls: string[] = []
+  ): ReleasePolicyGitHubJsonReader =>
+    (async (_repository: string, path: string, apiVersion?: string) => {
+      calls.push(apiVersion ? `${path}@${apiVersion}` : path);
+      if (!(path in responses)) {
+        throw new Error(`unexpected GitHub path ${path}`);
+      }
+      const response = responses[path];
+      if (response instanceof Error) {
+        throw response;
+      }
+      return response;
+    }) as ReleasePolicyGitHubJsonReader;
+
+  test('earns trusted evidence from GitHub stack membership and passing CI', async () => {
+    const calls: string[] = [];
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader(
+        {
+          '/commits/abc1234def/check-runs?per_page=100': checkRuns('success'),
+          '/issues/99/comments': [],
+          '/pulls/99': {
+            merged_at: '2026-10-22T12:00:00Z',
+            stack: { base: 'main', number: 12, position: 1, size: 2 },
+          },
+        },
+        calls
+      )
+    );
+
+    expect(enriched.trustedStackEvidence).toBe(
+      'GitHub stack #12 and required CI passed on abc1234'
+    );
+    expect(calls).toContain('/pulls/99@2026-03-10');
+  });
+
+  test('keeps Graphite merge queue evidence ahead of GitHub stack membership', async () => {
+    const calls: string[] = [];
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader(
+        {
+          '/commits/abc1234def/check-runs?per_page=100': checkRuns('success'),
+          '/issues/99/comments': [
+            {
+              body: 'Merged by the [Graphite merge queue](https://app.graphite.com/queue).',
+              user: { login: 'graphite-app[bot]' },
+            },
+          ],
+        },
+        calls
+      )
+    );
+
+    expect(enriched.trustedStackEvidence).toBe(
+      'Graphite merge queue and required CI passed on abc1234'
+    );
+    expect(calls).not.toContain('/pulls/99@2026-03-10');
+  });
+
+  test.each([
+    ['a missing stack key', { merged_at: '2026-10-22T12:00:00Z' }],
+    ['a null stack', { merged_at: '2026-10-22T12:00:00Z', stack: null }],
+    ['an unmerged stacked PR', { merged_at: null, stack: { number: 12 } }],
+  ])('leaves %s without trusted evidence', async (_label, pullResponse) => {
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader({
+        '/commits/abc1234def/check-runs?per_page=100': checkRuns('success'),
+        '/issues/99/comments': [],
+        '/pulls/99': pullResponse,
+      })
+    );
+
+    expect(enriched.trustedStackEvidence).toBeUndefined();
+  });
+
+  test('requires required CI to pass for GitHub stack evidence', async () => {
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader({
+        '/commits/abc1234def/check-runs?per_page=100': checkRuns('failure'),
+        '/issues/99/comments': [],
+        '/pulls/99': {
+          merged_at: '2026-10-22T12:00:00Z',
+          stack: { number: 12 },
+        },
+      })
+    );
+
+    expect(enriched.trustedStackEvidence).toBeUndefined();
+  });
+
+  test.each([
+    ['comments', '/issues/99/comments'],
+    ['pull request', '/pulls/99'],
+    ['check runs', '/commits/abc1234def/check-runs?per_page=100'],
+  ])('fails closed when the %s request fails', async (_label, failingPath) => {
+    const responses: Record<string, unknown> = {
+      '/commits/abc1234def/check-runs?per_page=100': checkRuns('success'),
+      '/issues/99/comments': [],
+      '/pulls/99': {
+        merged_at: '2026-10-22T12:00:00Z',
+        stack: { number: 12 },
+      },
+      [failingPath]: new Error('GitHub API request failed: 502'),
+    };
+
+    const enriched = await enrichSourcePullRequestStackEvidence(
+      'outfitter-dev/trails',
+      mergedSourcePull,
+      reader(responses)
+    );
+
+    expect(enriched).toEqual(mergedSourcePull);
+    expect(
+      labelsForReleasePullRequest({
+        currentVersion: '0.2.3',
+        existingLabels: [],
+        nextDistTag: 'latest',
+        nextVersion: '0.2.4',
+        sourcePullRequests: [enriched],
+      })
+    ).toContain('publish:manual');
   });
 });
 
