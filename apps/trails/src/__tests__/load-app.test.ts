@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { PermissionError, ValidationError } from '@ontrails/core';
@@ -287,7 +287,7 @@ const seedStaleMirrorDir = (cwd: string): string => {
   const allocated = createLoadAppMirrorRootPath(cwd);
   const staleDir = resolve(
     dirname(allocated),
-    'load-app-fresh-2147483647-stalefixture'
+    `load-app-fresh-2147483647-${basename(allocated).split('-').at(-1)}`
   );
   renameSync(allocated, staleDir);
   writeFileSync(resolve(staleDir, 'marker'), 'stale');
@@ -309,7 +309,7 @@ const countFreshMirrorRoots = (): number => {
   }
 
   return readdirSync(mirrorParent).filter((entry) =>
-    entry.startsWith('load-app-fresh-')
+    entry.startsWith(`load-app-fresh-${process.pid}-`)
   ).length;
 };
 
