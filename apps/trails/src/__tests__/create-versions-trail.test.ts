@@ -15,6 +15,7 @@ import {
   diagnoseOntrailsPackagePin,
   syncScaffoldVersions,
 } from '../scaffold-version-sync.js';
+import { scaffoldDependencyVersions } from '../scaffold-versions.generated.js';
 import { createVersionsTrail } from '../trails/create-versions.js';
 
 const roots: string[] = [];
@@ -114,6 +115,17 @@ describe('diagnoseOntrailsPackagePin', () => {
 });
 
 describe('create.versions trail', () => {
+  test('keeps repository and scaffold Bun types on the supported 1.4 line', async () => {
+    const rootPackage = await Bun.file(
+      join(import.meta.dir, '../../../../package.json')
+    ).json();
+
+    expect(rootPackage.devDependencies['@types/bun']).toMatch(/^\^1\.4\.\d+$/);
+    expect(scaffoldDependencyVersions.bunTypes).toBe(
+      rootPackage.devDependencies['@types/bun']
+    );
+  });
+
   test('renders as a nested CLI command', () => {
     const commands = deriveCliCommands(app);
     if (commands.isErr()) {

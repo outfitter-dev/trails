@@ -66,7 +66,7 @@ const createFixture = (releaseType: 'major' | 'minor' | 'patch'): string => {
 
   writeJson(join(rootDir, 'package.json'), {
     name: 'changesets-zero-line-fixture',
-    packageManager: 'bun@1.3.10',
+    packageManager: 'bun@1.4.2',
     private: true,
     workspaces: ['packages/*'],
   });
