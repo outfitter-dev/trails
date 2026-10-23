@@ -1164,6 +1164,107 @@ describe('executeTrail', () => {
         expect(result.unwrap()).toEqual({ summary: 'abc123:entity.run' });
       });
 
+      test.each([
+        { input: { a: 'a' }, name: 'omitted resolver', valid: true },
+        {
+          input: { a: 'a', resolver: undefined },
+          name: 'explicit undefined resolver',
+          valid: true,
+        },
+        {
+          input: { a: 'a', resolver: 'pattern' },
+          name: 'supplied resolver',
+          valid: true,
+        },
+        { input: {}, name: 'missing required field', valid: false },
+        { input: { a: 1 }, name: 'wrong required field type', valid: false },
+        {
+          input: { a: 'a', resolver: 1 },
+          name: 'wrong optional field type',
+          valid: false,
+        },
+        { input: { a: 'bad-left' }, name: 'public object rule', valid: false },
+        {
+          input: { a: 'a', resolver: 'bad-right' },
+          name: 'compose object rule',
+          valid: false,
+        },
+      ])(
+        'preserves refined compose validation: $name',
+        async ({ input, valid }) => {
+          const observations: { left: boolean[]; right: boolean[] } = {
+            left: [],
+            right: [],
+          };
+          const helper = trail('refined.child', {
+            composeInput: z
+              .object({ resolver: z.string().optional() })
+              .strict()
+              .refine((value) => {
+                observations.right.push(Object.hasOwn(value, 'resolver'));
+                return value.resolver !== 'bad-right';
+              }),
+            implementation: (value) =>
+              Result.ok({
+                ...value,
+                hasResolver: Object.hasOwn(value, 'resolver'),
+              }),
+            input: z
+              .object({ a: z.string() })
+              .strict()
+              .refine((value) => {
+                observations.left.push(Object.hasOwn(value, 'resolver'));
+                return value.a !== 'bad-left';
+              }),
+            output: z.object({
+              a: z.string(),
+              hasResolver: z.boolean(),
+              resolver: z.string().optional(),
+            }),
+            visibility: 'internal',
+          });
+          const entry = trail('refined.parent', {
+            composes: [helper],
+            implementation: (value, ctx) =>
+              requireCompose(ctx)(helper.id, value),
+            input: z.unknown(),
+            output: z.unknown(),
+          });
+          const app = topo('refined-compose-topo', { entry, helper });
+
+          const result = await executeTrail(entry, input, { topo: app });
+
+          if (valid) {
+            const hasResolver = Object.hasOwn(input, 'resolver');
+            expect(result.isOk()).toBe(true);
+            expect(result.unwrap()).toEqual({ ...input, hasResolver });
+            const value = result.unwrap();
+            expect(
+              value !== null &&
+                typeof value === 'object' &&
+                Object.hasOwn(value, 'resolver')
+            ).toBe(hasResolver);
+            expect(observations.left).toEqual([hasResolver]);
+            expect(observations.right).toEqual([hasResolver]);
+          } else {
+            expect(result.isErr()).toBe(true);
+            expect(
+              result.match({ err: (error) => error, ok: () => {} })
+            ).toBeInstanceOf(ValidationError);
+          }
+
+          const publicResult = await executeTrail(
+            helper,
+            { a: 'a', resolver: 'pattern' },
+            { topo: app }
+          );
+          expect(publicResult.isErr()).toBe(true);
+          expect(
+            publicResult.match({ err: (error) => error, ok: () => {} })
+          ).toBeInstanceOf(ValidationError);
+        }
+      );
+
       test('executes batch ctx.compose() calls concurrently and preserves tuple order', async () => {
         const completionOrder: string[] = [];
         const slow = trail('entity.slow', {
