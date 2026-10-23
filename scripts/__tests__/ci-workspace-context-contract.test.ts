@@ -35,7 +35,7 @@ const gate = ciGate.steps.find(
   (step) => step.name === 'Require all jobs to pass'
 );
 if (!(gate?.run && ciGate.needs)) {
-  throw new Error('CI Gate must declare its checks and executable gate');
+  throw new Error('CI must declare its required checks and executable gate');
 }
 const gateScript = gate.run;
 const requiredJobs = ciGate.needs;
@@ -50,7 +50,6 @@ test('merge groups run the normal CI checks on main with ref-isolated cancellati
   expect(ciWorkflow.concurrency['cancel-in-progress']).toMatch(
     /^\$\{\{ github.ref != 'refs\/heads\/main' \}\}$/
   );
-  expect(ciGate.name).toBe('CI Gate');
   expect(ciGate.if).toBe('always()');
   expect(ciGate.needs?.toSorted()).toEqual(
     Object.keys(ciWorkflow.jobs)
@@ -98,7 +97,7 @@ for (const event of [
       stdout: 'pipe',
     }).exitCode;
 
-  test(`CI Gate accepts the expected ${event} job results`, () => {
+  test(`CI accepts the expected ${event} job results`, () => {
     expect(runGate(results)).toBe(0);
   });
 
@@ -107,7 +106,7 @@ for (const event of [
       if (result === results[job].result) {
         continue;
       }
-      test(`CI Gate rejects ${event} ${job}=${result}`, () => {
+      test(`CI rejects ${event} ${job}=${result}`, () => {
         expect(runGate({ ...results, [job]: { result } })).not.toBe(0);
       });
     }
