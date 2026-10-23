@@ -201,6 +201,111 @@ describe('JSON-file context-bound signals', () => {
     expect(second.events).toHaveLength(1);
   });
 
+  test.each([false, true])(
+    'classifies generated-ID collisions by the persisted identity (versioned: %s)',
+    async (versioned) => {
+      const generated = store({
+        notes: {
+          generated: ['id'],
+          identity: 'id',
+          schema: noteSchema.extend({ detail: z.string().optional() }),
+          versioned,
+        },
+      });
+      let calls = 0;
+      const generateIdentity = () => {
+        calls += 1;
+        return 'repeated';
+      };
+      const db = jsonFile(generated, {
+        dir,
+        generateIdentity,
+        id: 'collision',
+      });
+      const raw = await connectJsonFile(generated, { dir, generateIdentity });
+      const { events, fire } = recorder();
+      const bound = db.from(
+        createTrailContext({ extensions: { [db.id]: raw }, fire })
+      );
+      const version = versioned ? { version: 1 } : {};
+      const first = await bound.notes.upsert({ detail: 'Old', title: 'First' });
+      const second = await bound.notes.upsert({ title: 'Second' });
+      expect(first).toEqual({
+        detail: 'Old',
+        id: 'repeated',
+        title: 'First',
+        ...version,
+      });
+      expect(second).toEqual({ id: 'repeated', title: 'Second', ...version });
+      expect(calls).toBe(2);
+      expect(await raw.notes.list()).toEqual([second]);
+      expect(await Bun.file(join(dir, 'notes.json')).json()).toEqual([second]);
+      await bound.notes.upsert({ title: 'Second' });
+      expect(calls).toBe(3);
+      const explicit = await bound.notes.upsert({
+        id: 'repeated',
+        title: 'Explicit',
+      });
+      expect(explicit).toEqual({
+        id: 'repeated',
+        title: 'Explicit',
+        ...(versioned ? { version: 2 } : {}),
+      });
+      const missing = await bound.notes.upsert({ id: 'new', title: 'New' });
+      expect(missing).toEqual({ id: 'new', title: 'New', ...version });
+      expect(calls).toBe(3);
+      expect(events).toEqual([
+        { id: 'collision:notes.created', payload: first },
+        { id: 'collision:notes.updated', payload: second },
+        { id: 'collision:notes.updated', payload: explicit },
+        { id: 'collision:notes.created', payload: missing },
+      ]);
+    }
+  );
+
+  test('keeps failed generated-ID collisions and version conflicts silent', async () => {
+    const generated = store({
+      notes: {
+        generated: ['id'],
+        identity: 'id',
+        schema: noteSchema,
+        versioned: true,
+      },
+    });
+    let calls = 0;
+    const generateIdentity = () => {
+      calls += 1;
+      return 'repeated';
+    };
+    const db = jsonFile(generated, { dir, generateIdentity, id: 'collision' });
+    const raw = await connectJsonFile(generated, { dir, generateIdentity });
+    const { events, fire } = recorder();
+    const bound = db.from(
+      createTrailContext({ extensions: { [db.id]: raw }, fire })
+    );
+    const first = await bound.notes.upsert({ title: 'First' });
+    events.length = 0;
+    await expect(
+      bound.notes.upsert({ ...first, version: 0 })
+    ).rejects.toBeInstanceOf(ConflictError);
+    expect(calls).toBe(1);
+    const path = join(dir, 'notes.json');
+    await rm(path);
+    await mkdir(path);
+    await expect(bound.notes.upsert({ title: 'Failed' })).rejects.toThrow();
+    expect(calls).toBe(2);
+    expect(await raw.notes.list()).toEqual([first]);
+    expect(events).toEqual([]);
+    await rm(path, { recursive: true });
+    const retried = await bound.notes.upsert({ title: 'Retried' });
+    expect(retried).toEqual({ id: 'repeated', title: 'Retried', version: 1 });
+    expect(calls).toBe(3);
+    expect(await Bun.file(path).json()).toEqual([retried]);
+    expect(events).toEqual([
+      { id: 'collision:notes.updated', payload: retried },
+    ]);
+  });
+
   test('snapshots a removal after an already queued update', async () => {
     const { bound, events } = await provision();
     await bound.notes.upsert({ id: 'one', title: 'First' });

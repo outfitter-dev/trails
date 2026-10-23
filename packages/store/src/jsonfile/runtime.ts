@@ -281,12 +281,15 @@ const flushAndCommitUpsert = async <TTable extends AnyStoreTable>(
   return structuredClone(entity);
 };
 
-const executeUpsert = <TTable extends AnyStoreTable>(
+const executeUpsert = async <TTable extends AnyStoreTable>(
   input: UpsertOf<TTable>,
   index: Map<string, EntityOf<TTable>>,
   path: string,
   cfg: TableConfig
-): Promise<EntityOf<TTable>> => {
+): Promise<{
+  readonly previous: EntityOf<TTable> | undefined;
+  readonly written: EntityOf<TTable>;
+}> => {
   const raw = input as Record<string, unknown>;
   const existing = resolveExisting(raw, cfg.identityField, index);
   if (existing !== undefined) {
@@ -306,7 +309,9 @@ const executeUpsert = <TTable extends AnyStoreTable>(
     cfg.isVersioned
   );
   const id = String((entity as Record<string, unknown>)[cfg.identityField]);
-  return flushAndCommitUpsert(entity, id, index, path);
+  const previous = index.get(id);
+  const written = await flushAndCommitUpsert(entity, id, index, path);
+  return { previous, written };
 };
 
 // ---------------------------------------------------------------------------
@@ -535,19 +540,16 @@ const createUpsert =
     let change: TableChange<TTable> | undefined;
     let written: EntityOf<TTable>;
     try {
-      const existing = resolveExisting(
-        input as Record<string, unknown>,
-        cfg.identityField,
-        index
-      );
-      written = await executeUpsert(input, index, path, cfg);
+      const result = await executeUpsert(input, index, path, cfg);
+      ({ written } = result);
       if (
         binding !== undefined &&
-        (existing === undefined || !Bun.deepEquals(existing, written))
+        (result.previous === undefined ||
+          !Bun.deepEquals(result.previous, written))
       ) {
         change = {
           entity: written,
-          kind: existing === undefined ? 'created' : 'updated',
+          kind: result.previous === undefined ? 'created' : 'updated',
         };
       }
     } finally {
