@@ -149,6 +149,38 @@ describe('Result', () => {
   });
 
   describe('Result.combine()', () => {
+    test('preserves heterogeneous values in input order synchronously', () => {
+      const profile = { id: 'ada' };
+      const orders = [1, 2];
+      const combined = Result.combine([
+        Result.ok(profile),
+        Result.ok(orders),
+      ] as const);
+      expect(combined.unwrap()).toEqual([profile, orders]);
+      expect(combined.unwrap()[0]).toBe(profile);
+      expect(combined.unwrap()[1]).toBe(orders);
+    });
+
+    test('stops inspecting inputs at the first heterogeneous error', () => {
+      const first = { kind: 'missing' } as const;
+      const later = { kind: 'unavailable' } as const;
+      let inspectedLater = false;
+      const input = [Result.ok(1), Result.err(first), Result.err(later)];
+      Object.defineProperty(input, 2, {
+        get: () => {
+          inspectedLater = true;
+          return Result.err(later);
+        },
+      });
+      const combined = Result.combine(input);
+      expect(combined.isErr()).toBe(true);
+      combined.match({
+        err: (error) => expect(error).toBe(first),
+        ok: () => expect.unreachable(),
+      });
+      expect(inspectedLater).toBe(false);
+    });
+
     test('collects all Ok values into an array', () => {
       const results = [Result.ok(1), Result.ok(2), Result.ok(3)];
       const combined = Result.combine(results);
