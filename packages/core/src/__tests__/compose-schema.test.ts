@@ -6,6 +6,52 @@ import { Result } from '../result.js';
 import { trail } from '../trail.js';
 
 describe('buildComposeValidationSchema', () => {
+  test('preserves authored schema introspection and public input isolation', () => {
+    const input = z
+      .object({ a: z.string() })
+      .strict()
+      .refine((value) => value.a !== 'bad');
+    const composeInput = z
+      .object({ resolver: z.string().optional() })
+      .strict()
+      .refine((value) => value.resolver !== 'bad');
+    const inputShape = input.shape;
+    const composeShape = composeInput.shape;
+    const target = trail('compose.introspection', {
+      composeInput,
+      implementation: (value) => Result.ok(value),
+      input,
+    });
+    const schema = buildComposeValidationSchema(target);
+
+    expect(schema?.safeParse({ a: 'a', resolver: 'pattern' })).toEqual({
+      data: { a: 'a', resolver: 'pattern' },
+      success: true,
+    });
+    expect(schema?.safeParse({ a: 'bad', resolver: 'pattern' }).success).toBe(
+      false
+    );
+    expect(schema?.safeParse({ a: 'a', resolver: 'bad' }).success).toBe(false);
+    expect(target.input).toBe(input);
+    expect(target.composeInput).toBe(composeInput);
+    expect(input.shape).toBe(inputShape);
+    expect(composeInput.shape).toBe(composeShape);
+    expect(Object.keys(input.shape)).toEqual(['a']);
+    expect(Object.keys(composeInput.shape)).toEqual(['resolver']);
+    expect(input.shape.a.safeParse('a').success).toBe(true);
+    expect(composeInput.shape.resolver.safeParse().success).toBe(true);
+    expect(input.safeParse({ a: 'a' }).success).toBe(true);
+    expect(input.safeParse({ a: 'bad' }).success).toBe(false);
+    expect(input.safeParse({ a: 'a', resolver: 'pattern' }).success).toBe(
+      false
+    );
+    expect(composeInput.safeParse({ resolver: 'pattern' }).success).toBe(true);
+    expect(composeInput.safeParse({ resolver: 'bad' }).success).toBe(false);
+    expect(
+      composeInput.safeParse({ a: 'a', resolver: 'pattern' }).success
+    ).toBe(false);
+  });
+
   test('does not replace normal validation without composeInput', () => {
     const target = trail('compose.public', {
       implementation: (input) => Result.ok(input),
