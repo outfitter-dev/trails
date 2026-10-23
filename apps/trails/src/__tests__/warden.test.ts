@@ -725,6 +725,65 @@ describe('trails warden', () => {
     }
   });
 
+  test.each(['relative', 'absolute', 'omitted'] as const)(
+    'selects the owning app from nested CWD with a %s workspace config path',
+    async (pathKind) => {
+      const dir = makeTempDir();
+      try {
+        writeConfiguredWorkspaceFixture(dir);
+        const configPath = join(dir, 'trails.config.ts');
+        writeFileSync(
+          configPath,
+          `export default ${readFileSync(join(dir, 'trails.config.json'), 'utf8')}`
+        );
+        rmSync(join(dir, 'trails.config.json'));
+        const lockPaths: string[] = [];
+        for (const appId of ['alpha', 'beta']) {
+          lockPaths.push(
+            await writeAppRootLock(
+              join(dir, 'apps', appId),
+              appId,
+              deriveTopoGraph(topo(appId, []))
+            )
+          );
+        }
+        const lockBytes = lockPaths.map((lockPath) => readFileSync(lockPath));
+        const result = await wardenTrail.implementation(
+          {
+            configPath: {
+              absolute: configPath,
+              omitted: undefined,
+              relative: 'trails.config.ts',
+            }[pathKind],
+            depth: 'all',
+            format: 'json',
+          },
+          { cwd: join(dir, 'apps', 'alpha'), env: {} } as never
+        );
+        if (result.isErr()) {
+          throw result.error;
+        }
+        expect(result.value.passed).toBe(true);
+        const selection = {
+          app: { appId: 'alpha' },
+          configuredAppIds: ['alpha', 'beta'],
+          projectRoot: dir,
+          selectedExtent: 'configured-app',
+          selectionProvenance: 'cwd',
+        };
+        expect(result.value.project).toMatchObject(selection);
+        expect(JSON.parse(result.value.formatted).project).toMatchObject(
+          selection
+        );
+        expect(lockPaths.map((lockPath) => readFileSync(lockPath))).toEqual(
+          lockBytes
+        );
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    }
+  );
+
   test('preserves custom-config workspace metadata and explicit app selection', async () => {
     const dir = makeTempDir();
     try {
