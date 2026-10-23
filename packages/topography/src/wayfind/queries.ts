@@ -17,6 +17,7 @@ import type { TrailsError } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveTopoGraphDiff } from '../diff.js';
+import { topoGraphSchema } from '../types.js';
 import type { TopoGraph, TopoGraphEntry } from '../types.js';
 import {
   filterWayfinderEntityRefs,
@@ -60,6 +61,27 @@ const envelopeSchema = z.object({
   }),
   source: artifactSourceSchema,
 });
+
+/** Captured graph and provenance shared by one composed Wayfinder read. */
+export const wayfinderGraphSnapshotSchema = envelopeSchema.extend({
+  graph: topoGraphSchema.transform((graph): TopoGraph => graph),
+  source: z.object({
+    kind: z.literal('topoGraph'),
+    path: z.string(),
+    schemaVersion: z.number(),
+  }),
+});
+
+/** Graph snapshot accepted only through composition, never surface input. */
+export type WayfinderGraphSnapshot = z.output<
+  typeof wayfinderGraphSnapshotSchema
+>;
+
+const graphComposeInputSchema = z
+  .object({
+    graphSnapshot: wayfinderGraphSnapshotSchema.optional(),
+  })
+  .strict();
 
 const sourceInputSchema = z
   .object({
@@ -434,21 +456,14 @@ const adaptersOutputSchema = z.object({
   rootDir: z.string(),
 });
 
-type SourceInput = z.output<typeof sourceInputSchema>;
+type SourceInput = z.output<typeof sourceInputSchema> &
+  z.output<typeof graphComposeInputSchema>;
 type AdapterFactsInput = z.output<typeof adapterFactsInputSchema>;
 type InspectInput = z.output<typeof inspectInputSchema>;
 type ContractInput = z.output<typeof contractInputSchema>;
 type DiffInput = z.output<typeof diffInputSchema>;
 
-interface LoadedWayfinderGraph {
-  readonly graph: TopoGraph;
-  readonly load: WayfinderArtifactLoad;
-  readonly source: {
-    readonly kind: 'topoGraph';
-    readonly path: string;
-    readonly schemaVersion: number;
-  };
-}
+type LoadedWayfinderGraph = WayfinderGraphSnapshot;
 
 const toLoaderOptions = (
   input: SourceInput,
@@ -477,6 +492,9 @@ const loadGraph = async (
   input: SourceInput,
   cwd: string | undefined
 ): Promise<Result<LoadedWayfinderGraph, TrailsError>> => {
+  if (input.graphSnapshot !== undefined) {
+    return Result.ok(input.graphSnapshot);
+  }
   let load: WayfinderArtifactLoad;
   try {
     load = await loadWayfinderArtifacts(toLoaderOptions(input, cwd));
@@ -513,8 +531,8 @@ const loadGraph = async (
     );
   }
   return Result.ok({
+    drift: wayfinderDriftFromArtifactStatus(load.artifactStatus),
     graph: load.topoGraph,
-    load,
     source: {
       kind: 'topoGraph',
       path: topoGraphSourcePath(input, cwd) ?? 'trails.lock',
@@ -583,7 +601,7 @@ const filteredAdapterFacts = (
 const envelope = (
   loaded: LoadedWayfinderGraph
 ): z.output<typeof envelopeSchema> => ({
-  drift: wayfinderDriftFromArtifactStatus(loaded.load.artifactStatus),
+  drift: loaded.drift,
   source: loaded.source,
 });
 
@@ -1135,6 +1153,7 @@ const filteredErrorFacts = (
 };
 
 export const wayfindOverviewTrail = trail('wayfind.overview', {
+  composeInput: graphComposeInputSchema,
   description: 'Summarize the saved Wayfinder topo graph',
   examples: [{ input: {}, name: 'Overview' }],
   implementation: async (input, ctx) =>
@@ -1187,6 +1206,7 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
 });
 
 export const wayfindSearchTrail = trail('wayfind.search', {
+  composeInput: graphComposeInputSchema,
   description: 'Find topo graph entities with typed filters',
   examples: [{ input: { filters: { kind: 'trail' } }, name: 'Find trails' }],
   implementation: async (input, ctx) =>
@@ -1211,6 +1231,7 @@ export const wayfindSearchTrail = trail('wayfind.search', {
 });
 
 export const wayfindTrailsTrail = trail('wayfind.trails', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved trail contracts',
   examples: [{ input: {}, name: 'List trails' }],
   implementation: async (input, ctx) =>
@@ -1237,6 +1258,7 @@ export const wayfindTrailsTrail = trail('wayfind.trails', {
 });
 
 export const wayfindEntitiesTrail = trail('wayfind.entities', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved entity contracts',
   examples: [{ input: {}, name: 'List entities' }],
   implementation: async (input, ctx) =>
@@ -1263,6 +1285,7 @@ export const wayfindEntitiesTrail = trail('wayfind.entities', {
 });
 
 export const wayfindResourcesTrail = trail('wayfind.resources', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved resource contracts and usage',
   examples: [{ input: {}, name: 'List resources' }],
   implementation: async (input, ctx) =>
@@ -1289,6 +1312,7 @@ export const wayfindResourcesTrail = trail('wayfind.resources', {
 });
 
 export const wayfindSignalsTrail = trail('wayfind.signals', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved signal contracts and graph usage',
   examples: [{ input: {}, name: 'List signals' }],
   implementation: async (input, ctx) =>
@@ -1315,6 +1339,7 @@ export const wayfindSignalsTrail = trail('wayfind.signals', {
 });
 
 export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved direct and trailhead-rendered surfaces',
   examples: [{ input: {}, name: 'List surfaces' }],
   implementation: async (input, ctx) =>
@@ -1341,6 +1366,7 @@ export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
 });
 
 export const wayfindTrailheadsTrail = trail('wayfind.trailheads', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved trailhead membership',
   examples: [{ input: {}, name: 'List trailheads' }],
   implementation: async (input, ctx) =>
@@ -1367,6 +1393,7 @@ export const wayfindTrailheadsTrail = trail('wayfind.trailheads', {
 });
 
 export const wayfindVersionsTrail = trail('wayfind.versions', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved trail version contracts',
   examples: [{ input: {}, name: 'List versions' }],
   implementation: async (input, ctx) =>
@@ -1387,6 +1414,7 @@ export const wayfindVersionsTrail = trail('wayfind.versions', {
 });
 
 export const wayfindExamplesTrail = trail('wayfind.examples', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved examples without executing trails',
   examples: [{ input: {}, name: 'List examples' }],
   implementation: async (input, ctx) =>
@@ -1407,6 +1435,7 @@ export const wayfindExamplesTrail = trail('wayfind.examples', {
 });
 
 export const wayfindErrorsTrail = trail('wayfind.errors', {
+  composeInput: graphComposeInputSchema,
   description: 'List saved trail error facts with provenance',
   examples: [{ input: {}, name: 'List trail error facts' }],
   implementation: async (input, ctx) =>
@@ -1431,6 +1460,7 @@ export const wayfindAdaptersTrail = trail('wayfind.adapters', {
 });
 
 export const wayfindOverlayTrail = trail('wayfind.overlay', {
+  composeInput: graphComposeInputSchema,
   description: 'Read a namespaced fact overlay from the saved graph',
   examples: [
     { input: { namespace: 'cloudflare' }, name: 'Read cloudflare lock facts' },
@@ -1468,6 +1498,7 @@ export const wayfindOverlayTrail = trail('wayfind.overlay', {
 
 export const wayfindDescribeTrail = trail('wayfind.describe', {
   args: ['id'],
+  composeInput: graphComposeInputSchema,
   description: 'Inspect one saved topo graph entity',
   examples: [{ input: { id: 'user.create' }, name: 'Describe entity' }],
   implementation: async (input, ctx) => {
@@ -1492,6 +1523,7 @@ export const wayfindDescribeTrail = trail('wayfind.describe', {
 
 export const wayfindContractTrail = trail('wayfind.contract', {
   args: ['id'],
+  composeInput: graphComposeInputSchema,
   description: 'Inspect one saved input/output contract',
   examples: [{ input: { id: 'user.create' }, name: 'Inspect contract' }],
   implementation: async (input, ctx) => {
@@ -1516,6 +1548,7 @@ export const wayfindContractTrail = trail('wayfind.contract', {
 
 export const wayfindNearbyTrail = trail('wayfind.nearby', {
   args: ['id'],
+  composeInput: graphComposeInputSchema,
   description: 'Inspect direct graph relationships around one topo entity',
   examples: [{ input: { id: 'user.create' }, name: 'Nearby graph context' }],
   implementation: async (input, ctx) => {
@@ -1553,6 +1586,7 @@ export const wayfindNearbyTrail = trail('wayfind.nearby', {
 
 export const wayfindImpactTrail = trail('wayfind.impact', {
   args: ['id'],
+  composeInput: graphComposeInputSchema,
   description: 'Traverse multi-hop graph impact from one topo entity',
   examples: [
     {
