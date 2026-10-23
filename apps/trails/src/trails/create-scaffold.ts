@@ -175,6 +175,7 @@ const reconcileGeneratedScripts = (
  * prior generated pin so a rerun reconciles instead of hard-conflicting.
  * Anything else -- `workspace:*`, a caret range, a dist-tag, a URL -- is user
  * customization and still fails closed.
+ * Node types accept only the known prior generated range, not arbitrary ranges.
  *
  * Unlike `reconcileGeneratedScripts`, which preserves the established command,
  * this reconciler upgrades the pin to the current range: the rerun installs
@@ -183,7 +184,7 @@ const reconcileGeneratedScripts = (
  * stale pin would be the incoherent outcome. The general per-key reconciler
  * policy is tracked as TRL-1323.
  */
-const upgradePriorOntrailsPins = (
+const upgradePriorGeneratedPins = (
   existing: unknown,
   required: unknown
 ): unknown => {
@@ -194,10 +195,13 @@ const upgradePriorOntrailsPins = (
   const upgrades = Object.entries(required).filter(([key, value]) => {
     const existingValue = existing[key];
     return (
-      key.startsWith('@ontrails/') &&
-      value === ontrailsPackageRange &&
-      typeof existingValue === 'string' &&
-      parseSemver(existingValue) !== undefined
+      (key.startsWith('@ontrails/') &&
+        value === ontrailsPackageRange &&
+        typeof existingValue === 'string' &&
+        parseSemver(existingValue) !== undefined) ||
+      (key === '@types/node' &&
+        value === scaffoldDependencyVersions.nodeTypes &&
+        existingValue === '^25.5.0')
     );
   });
 
@@ -230,7 +234,7 @@ const mergeAppPackageJson = (
     ...generated,
     ...parsed,
     dependencies: mergeScaffoldOwnedMap(
-      upgradePriorOntrailsPins(
+      upgradePriorGeneratedPins(
         parsed['dependencies'],
         generated['dependencies']
       ),
@@ -238,7 +242,7 @@ const mergeAppPackageJson = (
       'dependencies'
     ),
     devDependencies: mergeScaffoldOwnedMap(
-      upgradePriorOntrailsPins(
+      upgradePriorGeneratedPins(
         parsed['devDependencies'],
         generated['devDependencies']
       ),
@@ -348,7 +352,7 @@ const mergeWorkspacePackageJson = (source: string): Record<string, unknown> => {
   return {
     ...parsed,
     devDependencies: mergeScaffoldOwnedMap(
-      upgradePriorOntrailsPins(
+      upgradePriorGeneratedPins(
         parsed['devDependencies'],
         requiredWorkspaceDevDependencies
       ),
