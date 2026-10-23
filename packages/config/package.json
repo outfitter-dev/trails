@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@ontrails/source": "workspace:^",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.1"
   },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
