@@ -69,7 +69,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.42.1",
-    "@changesets/cli": "3.0.2",
+    "@changesets/cli": "3.0.3",
     "@ontrails/config": "workspace:*",
     "@ontrails/core": "workspace:*",
     "@ontrails/oxlint-plugin": "workspace:*",
@@ -80,7 +80,7 @@
     "@types/node": "^25.5.0",
     "knip": "^6.12.2",
     "lefthook": "^2.1.1",
-    "markdownlint-cli2": "^0.22.0",
+    "markdownlint-cli2": "^0.22.1",
     "oxfmt": "0.47.0",
     "oxlint": "1.62.0",
     "turbo": "^2.8.10",
