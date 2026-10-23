@@ -13,9 +13,10 @@ import type { AnyTrail } from './trail.js';
 /**
  * Build the validation schema for a compose-invoked trail.
  *
- * When the target trail declares `composeInput`, returns the intersection of
- * `trail.input` and `trail.composeInput`. Returns `undefined` when no
- * `composeInput` is declared, signaling that normal input validation suffices.
+ * When the target trail declares `composeInput`, validates the merged object
+ * fields and both object rules, or intersects non-object schemas. Returns
+ * `undefined` when no `composeInput` is declared, signaling that normal input
+ * validation suffices.
  */
 export const buildComposeValidationSchema = (
   trailDef: AnyTrail
@@ -23,14 +24,22 @@ export const buildComposeValidationSchema = (
   if (!trailDef.composeInput) {
     return undefined;
   }
-  // Prefer .merge() for ZodObject pairs — produces a proper merged object
-  // schema that strips unknown keys and exposes .shape. Fall back to
-  // z.intersection for non-object schemas.
   if (
     trailDef.input instanceof z.ZodObject &&
     trailDef.composeInput instanceof z.ZodObject
   ) {
-    return trailDef.input.merge(trailDef.composeInput);
+    const selected = {
+      ...trailDef.input.shape,
+      ...trailDef.composeInput.shape,
+    };
+    const delegated = Object.fromEntries(
+      Object.keys(selected).map((key) => [key, z.any().optional()])
+    );
+    // Parse selected fields once with the right object's unknown-key policy,
+    // then retain the left object's rules on the materialized merged input.
+    return trailDef.composeInput
+      .safeExtend(selected)
+      .pipe(trailDef.input.safeExtend(delegated).passthrough());
   }
   return z.intersection(trailDef.input, trailDef.composeInput);
 };
