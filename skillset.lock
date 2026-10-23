@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "changeset-release/main",
-          "sha": "cfeb1547c9f866f34f94ff50c4a154d3638bb8b1",
+          "ref": "trl-1389-runtime-adapters",
+          "sha": "d0296e531ab83917de85ef5d0a86f75aeb38f3c3",
           "sourceKind": "current"
         }
       },
@@ -411,15 +411,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "changeset-release/main",
-          "sha": "cfeb1547c9f866f34f94ff50c4a154d3638bb8b1",
+          "ref": "trl-1389-runtime-adapters",
+          "sha": "d0296e531ab83917de85ef5d0a86f75aeb38f3c3",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:8a780678f5fde2f491a0308cf3a927bd9efebf2a3cff23b88633f36f801af982",
+  "provenanceHash": "sha256:0eed9b2eb2aef4bd762b3e7241ed8122af5720beadf3c142358062c57e41a560",
   "renderResults": [
     {
       "destination": "changelog",
