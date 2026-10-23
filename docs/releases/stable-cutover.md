@@ -409,12 +409,21 @@ After every stable publication, the release packet must include an active instal
 Probe the package names actually used by the active examples independently:
 
 ```bash
-for pkg in trails core cli commander testing mcp http hono warden; do
+for pkg in trails core cli commander testing mcp http hono warden \
+  config permits store drizzle observability logtape pino topography; do
   npm view "@ontrails/$pkg@latest" name version --json
 done
 ```
 
-Compare those results with scaffold, manual, CLI, MCP, HTTP, testing, and Warden install examples in `README.md`, [Getting Started](../getting-started.md#installation), `docs/surfaces/`, [Warden](../warden.md), and canonical `.skillset/plugins/trails/` guidance. Verify GitHub action tags separately from npm versions; if they intentionally differ, pin `warden-version` explicitly. Do not rewrite historical release, ADR, migration, or scaffold-repair evidence.
+Compare those results with every active scaffold, manual, CLI, MCP, HTTP, testing, and Warden install example in:
+
+- `README.md`, [Getting Started](../getting-started.md#installation), `docs/surfaces/`, and [Warden](../warden.md);
+- `packages/*/README.md`, including [CLI package installation](../../packages/cli/README.md#installation);
+- `adapters/*/README.md` and `apps/*/README.md`, including the [CLI scaffold guide](../../apps/trails/README.md);
+- `examples/*/README.md` when they provide installation commands;
+- canonical `.skillset/plugins/trails/` guidance, with generated copies verified by the Skillset checks below.
+
+Verify GitHub action tags separately from npm versions; if they intentionally differ, pin `warden-version` explicitly. Do not rewrite historical release, ADR, migration, or scaffold-repair evidence.
 
 Any stale active pin is a required release-packet drift finding: name the file, package, documented version, published version, owner, and corrective issue or PR. Keep release completion open until the pins are refreshed and proven in a disposable registry consumer, or the release owner records an explicit exception with a follow-up owner. For example, a newly published patch with unchanged guide pins must produce this finding; an unpublished version PR must not be reported as a published-guide mismatch. This is a required checklist finding, not an automated check.
 
