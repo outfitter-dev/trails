@@ -1,4 +1,12 @@
-import { ConflictError, InternalError, Result, resource } from '@ontrails/core';
+import {
+  ConflictError,
+  createObserveLogger,
+  InternalError,
+  normalizeObserve,
+  Result,
+  resource,
+} from '@ontrails/core';
+import type { TrailContext } from '@ontrails/core';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,
@@ -232,8 +240,8 @@ const resolveExisting = <TTable extends AnyStoreTable>(
   identityField: string,
   index: Map<string, EntityOf<TTable>>
 ): EntityOf<TTable> | undefined => {
-  const id = String(raw[identityField] ?? '');
-  return id ? index.get(id) : undefined;
+  const id = raw[identityField];
+  return id === undefined ? undefined : index.get(String(id));
 };
 
 const mergeAndBuild = <TTable extends AnyStoreTable>(
@@ -273,12 +281,15 @@ const flushAndCommitUpsert = async <TTable extends AnyStoreTable>(
   return structuredClone(entity);
 };
 
-const executeUpsert = <TTable extends AnyStoreTable>(
+const executeUpsert = async <TTable extends AnyStoreTable>(
   input: UpsertOf<TTable>,
   index: Map<string, EntityOf<TTable>>,
   path: string,
   cfg: TableConfig
-): Promise<EntityOf<TTable>> => {
+): Promise<{
+  readonly previous: EntityOf<TTable> | undefined;
+  readonly written: EntityOf<TTable>;
+}> => {
   const raw = input as Record<string, unknown>;
   const existing = resolveExisting(raw, cfg.identityField, index);
   if (existing !== undefined) {
@@ -298,7 +309,9 @@ const executeUpsert = <TTable extends AnyStoreTable>(
     cfg.isVersioned
   );
   const id = String((entity as Record<string, unknown>)[cfg.identityField]);
-  return flushAndCommitUpsert(entity, id, index, path);
+  const previous = index.get(id);
+  const written = await flushAndCommitUpsert(entity, id, index, path);
+  return { previous, written };
 };
 
 // ---------------------------------------------------------------------------
@@ -461,8 +474,135 @@ const tableRegistry = new Map<
   JsonFileTableRegistration<AnyStoreTable>
 >();
 
-type LoadableTable<TTable extends AnyStoreTable> = StoreAccessor<TTable> & {
+const bindSignals = Symbol('jsonfile.bindSignals');
+
+interface SignalBinding {
+  readonly table: AnyStoreTable;
+  readonly fire: NonNullable<TrailContext['fire']>;
+  readonly logger: TrailContext['logger'];
+}
+
+type BindableTable<TTable extends AnyStoreTable> = StoreAccessor<TTable> & {
+  readonly [bindSignals]: (
+    binding: SignalBinding | undefined
+  ) => StoreAccessor<TTable>;
+};
+
+type LoadableTable<TTable extends AnyStoreTable> = BindableTable<TTable> & {
   readonly load: () => Promise<void>;
+};
+
+interface TableChange<TTable extends AnyStoreTable> {
+  readonly kind: 'created' | 'updated' | 'removed';
+  readonly entity: EntityOf<TTable>;
+}
+
+/**
+ * Mirrors the awaited, write-preserving emission boundary in
+ * adapters/drizzle/src/runtime.ts:1046 (fireDerivedSignal).
+ */
+const fireChange = async <TTable extends AnyStoreTable>(
+  binding: SignalBinding,
+  { kind, entity }: TableChange<TTable>
+): Promise<void> => {
+  const signal = binding.table.signals[kind];
+  try {
+    await binding.fire(signal, entity);
+  } catch (error) {
+    try {
+      const log = normalizeObserve(binding.logger)?.log;
+      if (log !== undefined) {
+        createObserveLogger(log, 'store.jsonfile', {}).warn(
+          `Signal "${signal.id}" emission threw after a successful write`,
+          { error }
+        );
+      }
+    } catch {
+      // Diagnostic failures cannot turn a persisted mutation into a failed write.
+    }
+  }
+};
+
+interface TableState<TTable extends AnyStoreTable> {
+  readonly index: Map<string, EntityOf<TTable>>;
+  readonly mutex: MutexHandle;
+  readonly path: string;
+  readonly cfg: TableConfig;
+}
+
+const createUpsert =
+  <TTable extends AnyStoreTable>(
+    { index, mutex, path, cfg }: TableState<TTable>,
+    binding?: SignalBinding
+  ) =>
+  async (input: UpsertOf<TTable>): Promise<EntityOf<TTable>> => {
+    await mutex.acquire();
+    let change: TableChange<TTable> | undefined;
+    let written: EntityOf<TTable>;
+    try {
+      const result = await executeUpsert(input, index, path, cfg);
+      ({ written } = result);
+      if (
+        binding !== undefined &&
+        (result.previous === undefined ||
+          !Bun.deepEquals(result.previous, written))
+      ) {
+        change = {
+          entity: written,
+          kind: result.previous === undefined ? 'created' : 'updated',
+        };
+      }
+    } finally {
+      mutex.release();
+    }
+    if (binding !== undefined && change !== undefined) {
+      await fireChange(binding, change);
+    }
+    return written;
+  };
+
+const createRemove =
+  <TTable extends AnyStoreTable>(
+    { index, mutex, path }: TableState<TTable>,
+    binding?: SignalBinding
+  ) =>
+  async (
+    id: StoreIdentifierOf<TTable>
+  ): Promise<{ readonly deleted: boolean }> => {
+    await mutex.acquire();
+    let change: TableChange<TTable> | undefined;
+    let removed: { readonly deleted: boolean };
+    try {
+      const existing = index.get(String(id));
+      removed = await executeRemove(String(id), index, path);
+      if (binding !== undefined && removed.deleted && existing !== undefined) {
+        change = { entity: structuredClone(existing), kind: 'removed' };
+      }
+    } finally {
+      mutex.release();
+    }
+    if (binding !== undefined && change !== undefined) {
+      await fireChange(binding, change);
+    }
+    return removed;
+  };
+
+const createAccessor = <TTable extends AnyStoreTable>(
+  state: TableState<TTable>,
+  binding?: SignalBinding
+): BindableTable<TTable> => {
+  const accessor: StoreAccessor<TTable> = {
+    get: createGetAccessor(state.index),
+    list: createListAccessor(state.index),
+    remove: createRemove(state, binding),
+    upsert: createUpsert(state, binding),
+  };
+  return Object.defineProperty(accessor, bindSignals, {
+    value: (nextBinding: SignalBinding | undefined) =>
+      nextBinding === binding
+        ? accessor
+        : Object.freeze(createAccessor(state, nextBinding)),
+  }) as BindableTable<TTable>;
 };
 
 const buildAndRegisterTable = <TTable extends AnyStoreTable>(
@@ -473,29 +613,9 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
   const index = new Map<string, EntityOf<TTable>>();
   const cfg = deriveTableConfig(options);
 
-  const upsert = async (input: UpsertOf<TTable>): Promise<EntityOf<TTable>> => {
-    await mutex.acquire();
-    try {
-      return await executeUpsert(input, index, path, cfg);
-    } finally {
-      mutex.release();
-    }
-  };
+  const state: TableState<TTable> = { cfg, index, mutex, path };
 
-  const remove = async (
-    id: StoreIdentifierOf<TTable>
-  ): Promise<{ readonly deleted: boolean }> => {
-    await mutex.acquire();
-    try {
-      return await executeRemove(String(id), index, path);
-    } finally {
-      mutex.release();
-    }
-  };
-
-  const instance: LoadableTable<TTable> = {
-    get: createGetAccessor(index),
-    list: createListAccessor(index),
+  const instance: LoadableTable<TTable> = Object.assign(createAccessor(state), {
     // Skip disk load when the index already has data. This prevents a
     // second `connectJsonFile` call from overwriting in-flight writes
     // (the mutex only guards individual operations, not the full load
@@ -506,9 +626,7 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
       }
       await loadFromDisk(path, cfg.identityField, index);
     },
-    remove,
-    upsert,
-  };
+  });
   tableRegistry.set(path, {
     accessor: instance,
     reuseConfig: deriveTableReuseConfig(options),
@@ -640,6 +758,35 @@ export const connectJsonFile = async <TStore extends AnyStoreDefinition>(
   return Object.freeze(connection) as JsonFileConnection<TStore['tables']>;
 };
 
+const bindConnectionSignals = <TStore extends AnyStoreDefinition>(
+  definition: TStore,
+  connection: JsonFileConnection<TStore['tables']>,
+  { fire, logger }: Pick<TrailContext, 'fire' | 'logger'>
+): JsonFileConnection<TStore['tables']> => {
+  const bound = { ...connection };
+  let changed = false;
+  for (const tableName of definition.tableNames) {
+    const table = definition.tables[tableName];
+    const accessor = connection[tableName] as
+      | Partial<BindableTable<AnyStoreTable>>
+      | undefined;
+    if (table !== undefined && accessor?.[bindSignals] !== undefined) {
+      const next = accessor[bindSignals](
+        fire === undefined ? undefined : { fire, logger, table }
+      );
+      if (next === accessor) {
+        continue;
+      }
+      changed = true;
+      Object.defineProperty(bound, tableName, {
+        enumerable: true,
+        value: next,
+      });
+    }
+  }
+  return changed ? Object.freeze(bound) : connection;
+};
+
 /**
  * Create a JSON-file-backed store resource.
  *
@@ -653,7 +800,7 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
   const scope = options.id ?? defaultResourceId;
   const store = bindStoreDefinition(definition, scope) as TStore;
 
-  return resource(scope, {
+  const value = resource(scope, {
     create: async () => {
       try {
         return Result.ok(await connectJsonFile(store, options));
@@ -696,5 +843,11 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
       return connection;
     },
     signals: store.signals,
+  });
+  return Object.freeze({
+    ...value,
+    from(ctx: TrailContext) {
+      return bindConnectionSignals(store, value.from(ctx), ctx);
+    },
   });
 };
