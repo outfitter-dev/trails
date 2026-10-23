@@ -61,6 +61,7 @@ export type OperatorProjectContext =
 
 export interface OperatorProjectContextInput {
   readonly app?: string | undefined;
+  readonly configPath?: string | undefined;
   readonly module?: string | undefined;
   readonly rootDir?: string | undefined;
 }
@@ -411,6 +412,26 @@ const resolveStandaloneRoot = (
   }
 };
 
+/** Match Warden's project-relative config base in warden.ts:527-533. */
+const resolveConfigStartDir = async (
+  input: OperatorProjectContextInput,
+  startDir: string,
+  boundaryDir: string,
+  explicitRoot: boolean
+): Promise<string> => {
+  if (
+    input.configPath === undefined ||
+    isAbsolute(input.configPath) ||
+    explicitRoot
+  ) {
+    return startDir;
+  }
+  const discovered = await readTrailsProjectIdentity({ boundaryDir, startDir });
+  return discovered.workspace === undefined
+    ? resolveStandaloneRoot(startDir, boundaryDir, false, input.module).rootDir
+    : discovered.rootDir;
+};
+
 export const resolveOperatorProjectContext = async (
   input: OperatorProjectContextInput,
   runtime: OperatorProjectContextRuntime
@@ -432,7 +453,13 @@ export const resolveOperatorProjectContext = async (
     const startDir = explicitRoot ? boundaryDir : cwd;
     const identity = await readTrailsProjectIdentity({
       boundaryDir,
-      startDir,
+      configPath: input.configPath,
+      startDir: await resolveConfigStartDir(
+        input,
+        startDir,
+        boundaryDir,
+        explicitRoot
+      ),
     });
     if (identity.workspace !== undefined) {
       return Result.ok(
