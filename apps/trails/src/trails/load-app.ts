@@ -33,7 +33,7 @@ import {
   createLoadAppMirrorRootPath,
   ensureLoadAppMirrorDirectory,
   LOAD_APP_MIRROR_ENTRY_PREFIX,
-  LOAD_APP_MIRROR_PARENT_DIRNAME,
+  loadAppMirrorFailure,
   removeLoadAppMirrorRootQuietly,
   resolveLoadAppMirrorFilePath,
   writeLoadAppMirrorFile,
@@ -691,7 +691,7 @@ const MIRROR_SKIP_DIRECTORIES = new Set([
  * artifacts.
  */
 /**
- * Age threshold (ms) above which a mirror entry in `.trails-tmp/` is
+ * Age threshold (ms) above which an abandoned mirror entry is
  * considered stale and safe to remove opportunistically.
  *
  * @remarks
@@ -709,6 +709,24 @@ const isStaleMirrorEntry = (entryPath: string, now: number): boolean => {
     RETAINED_MIRROR_ROOTS.has(entryPath)
   ) {
     return false;
+  }
+  const ownerPid = Number(
+    entryPath.split(LOAD_APP_MIRROR_ENTRY_PREFIX).at(-1)?.split('-')[0]
+  );
+  if (!Number.isSafeInteger(ownerPid) || ownerPid <= 0) {
+    return false;
+  }
+  try {
+    process.kill(ownerPid, 0);
+    return false;
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !('code' in error) ||
+      error.code !== 'ESRCH'
+    ) {
+      return false;
+    }
   }
   const entryStat = safeStat(entryPath);
   if (entryStat === undefined) {
@@ -748,9 +766,9 @@ const cleanupStaleMirrorRoots = (mirrorParent: string): void => {
 };
 
 const freshMirrorRootPath = (cwd: string): string => {
-  const mirrorParent = join(cwd, LOAD_APP_MIRROR_PARENT_DIRNAME);
-  cleanupStaleMirrorRoots(mirrorParent);
-  return createLoadAppMirrorRootPath(cwd);
+  const mirrorRoot = createLoadAppMirrorRootPath(cwd);
+  cleanupStaleMirrorRoots(dirname(mirrorRoot));
+  return mirrorRoot;
 };
 
 interface MirrorWalkContext {
@@ -758,7 +776,8 @@ interface MirrorWalkContext {
   readonly mirrorRoot: string;
   readonly copied: Set<string>;
   readonly visitedDirectories: Set<string>;
-  readonly linkedPackageNames: Set<string>;
+  readonly linkedPackagePaths: Set<string>;
+  readonly workspacePackageRoots: Map<string, string>;
 }
 
 type DirectoryEntryKind = 'directory' | 'file' | 'skip';
@@ -824,13 +843,11 @@ const packageLinkSegments = (packageName: string): readonly string[] =>
 const createPackageMirrorLink = (
   packageName: string,
   targetRoot: string,
-  context: MirrorWalkContext
+  context: MirrorWalkContext,
+  sourceDirectory: string
 ): void => {
-  if (context.linkedPackageNames.has(packageName)) {
-    return;
-  }
   const mirrorWorkspaceRoot = resolveLoadAppMirrorFilePath(
-    context.cwd,
+    sourceDirectory,
     context.mirrorRoot
   );
   if (mirrorWorkspaceRoot.isErr()) {
@@ -841,6 +858,9 @@ const createPackageMirrorLink = (
     'node_modules',
     ...packageLinkSegments(packageName)
   );
+  if (context.linkedPackagePaths.has(linkPath)) {
+    return;
+  }
 
   const ensured = ensureLoadAppMirrorDirectory(
     dirname(linkPath),
@@ -858,16 +878,17 @@ const createPackageMirrorLink = (
       !('code' in error) ||
       error.code !== 'EEXIST'
     ) {
-      throw error;
+      throw loadAppMirrorFailure('write', error);
     }
   }
-  context.linkedPackageNames.add(packageName);
+  context.linkedPackagePaths.add(linkPath);
 };
 
 const createWorkspacePackageMirrorLink = (
   packageName: string,
   packageRoot: string,
-  context: MirrorWalkContext
+  context: MirrorWalkContext,
+  sourceDirectory: string
 ): void => {
   const mirrorPackageRoot = resolveLoadAppMirrorFilePath(
     packageRoot,
@@ -876,7 +897,67 @@ const createWorkspacePackageMirrorLink = (
   if (mirrorPackageRoot.isErr()) {
     throw mirrorPackageRoot.error;
   }
-  createPackageMirrorLink(packageName, mirrorPackageRoot.value, context);
+  context.workspacePackageRoots.set(
+    realpathSync(packageRoot),
+    mirrorPackageRoot.value
+  );
+  createPackageMirrorLink(
+    packageName,
+    mirrorPackageRoot.value,
+    context,
+    sourceDirectory
+  );
+};
+
+const linkInstalledPackage = (
+  packageName: string,
+  sourceDirectory: string,
+  context: MirrorWalkContext
+): void => {
+  const packagePath = join(sourceDirectory, 'node_modules', packageName);
+  if (!safeStat(packagePath)?.isDirectory()) {
+    return;
+  }
+  const packageRoot = realpathSync(packagePath);
+  createPackageMirrorLink(
+    packageName,
+    context.workspacePackageRoots.get(packageRoot) ?? packageRoot,
+    context,
+    sourceDirectory
+  );
+};
+
+// Computed imports cannot be scanned. Recreate their native ancestor lookup
+// without copying installs or following dependency links during mirror writes.
+const linkInstalledDependencies = (context: MirrorWalkContext): void => {
+  const visited = new Set<string>();
+  for (const sourcePath of context.copied) {
+    let directory = dirname(sourcePath);
+    while (!visited.has(directory)) {
+      visited.add(directory);
+      for (const name of readDirectoryEntries(
+        join(directory, 'node_modules')
+      )) {
+        if (name.startsWith('.')) {
+          continue;
+        }
+        if (name.startsWith('@')) {
+          for (const member of readDirectoryEntries(
+            join(directory, 'node_modules', name)
+          )) {
+            linkInstalledPackage(`${name}/${member}`, directory, context);
+          }
+        } else {
+          linkInstalledPackage(name, directory, context);
+        }
+      }
+      const parent = dirname(directory);
+      if (parent === directory) {
+        break;
+      }
+      directory = parent;
+    }
+  }
 };
 
 const mirrorImportedModule = async (
@@ -910,7 +991,8 @@ const scanAndVisitLocalImports = async (
       createPackageMirrorLink(
         imported.packageName,
         imported.packageRoot,
-        context
+        context,
+        dirname(modulePath)
       );
       continue;
     }
@@ -918,7 +1000,8 @@ const scanAndVisitLocalImports = async (
       createWorkspacePackageMirrorLink(
         imported.packageName,
         imported.packageRoot,
-        context
+        context,
+        dirname(modulePath)
       );
     }
     await visit(imported.modulePath);
@@ -934,9 +1017,10 @@ const mirrorFreshImportGraph = async (
   const context: MirrorWalkContext = {
     copied: new Set<string>(),
     cwd,
-    linkedPackageNames: new Set<string>(),
+    linkedPackagePaths: new Set<string>(),
     mirrorRoot,
     visitedDirectories: new Set<string>(),
+    workspacePackageRoots: new Map<string, string>(),
   };
 
   const visit = async (modulePath: string): Promise<void> => {
@@ -949,6 +1033,7 @@ const mirrorFreshImportGraph = async (
   };
 
   await visit(entryPath);
+  linkInstalledDependencies(context);
   const freshPath = resolveLoadAppMirrorFilePath(entryPath, mirrorRoot);
   if (freshPath.isErr()) {
     throw freshPath.error;
