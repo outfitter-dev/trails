@@ -1,5 +1,11 @@
 # trails
 
+## 0.2.5
+
+### Patch Changes
+
+- [`d6fd8f9`](https://github.com/outfitter-dev/trails/commit/d6fd8f96e3e97a863dc39244bce7d606637806b3): Align example table columns and truncate input previews by terminal display cells, preserving Unicode graphemes and ANSI styles without changing ordinary ASCII output.
+
 ## 0.2.4
 
 ### Patch Changes
