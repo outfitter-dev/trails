@@ -1,5 +1,11 @@
 # @ontrails/config
 
+## 0.2.5
+
+### Patch Changes
+
+- [`50c747d`](https://github.com/outfitter-dev/trails/commit/50c747d9b50e20bff505e39dd011b1b1d921a1c6): Allow finite numeric literal computed deployment keys when reading static workspace identity, without evaluating deployment expressions or relaxing workspace identity rules.
+
 ## 0.2.4
 
 ### Patch Changes

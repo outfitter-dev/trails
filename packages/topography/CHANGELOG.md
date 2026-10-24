@@ -1,5 +1,13 @@
 # @ontrails/topography
 
+## 0.2.5
+
+### Patch Changes
+
+- [`adbc768`](https://github.com/outfitter-dev/trails/commit/adbc768341dd788c393915a47828626eef2fb3d0): Report Wayfinder lock hash, summary, and missing topo artifact contradictions even
+  without a readable Topography store. Consistent locks without a store still report
+  missing artifacts; unreadable graph and manifest schemas keep regeneration status.
+
 ## 0.2.4
 
 No changes in this release.
