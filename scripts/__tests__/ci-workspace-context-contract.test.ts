@@ -8,6 +8,111 @@ const stableCutoverPath = new URL(
   import.meta.url
 );
 
+interface Workflow {
+  concurrency: { group: string; 'cancel-in-progress': string };
+  jobs: Record<
+    string,
+    {
+      if?: string;
+      name: string;
+      needs?: string[];
+      steps: {
+        env?: Record<string, string>;
+        if?: string;
+        name?: string;
+        run?: string;
+      }[];
+    }
+  >;
+  on: Record<string, { branches?: string[]; types?: string[] } | null>;
+}
+
+const ciWorkflow = Bun.YAML.parse(
+  await readFile(workflowPath, 'utf8')
+) as Workflow;
+const ciGate = ciWorkflow.jobs['ci-gate'];
+const gate = ciGate.steps.find(
+  (step) => step.name === 'Require all jobs to pass'
+);
+if (!(gate?.run && ciGate.needs)) {
+  throw new Error('CI must declare its required checks and executable gate');
+}
+const gateScript = gate.run;
+const requiredJobs = ciGate.needs;
+const prOnlyJobs = new Set(['changeset', 'release-pack']);
+
+test('merge groups run the normal CI checks on main with ref-isolated cancellation', () => {
+  expect(ciWorkflow.on.merge_group).toEqual({
+    branches: ['main'],
+    types: ['checks_requested'],
+  });
+  expect(ciWorkflow.concurrency.group).toMatch(/^ci-\$\{\{ github.ref \}\}$/);
+  expect(ciWorkflow.concurrency['cancel-in-progress']).toMatch(
+    /^\$\{\{ github.ref != 'refs\/heads\/main' \}\}$/
+  );
+  expect(ciGate.if).toBe('always()');
+  expect(ciGate.needs?.toSorted()).toEqual(
+    Object.keys(ciWorkflow.jobs)
+      .filter((name) => name !== 'ci-gate')
+      .toSorted()
+  );
+  expect(gate.env?.JOB_RESULTS).toMatch(/^\$\{\{ toJSON\(needs\) \}\}$/);
+  expect(gate.if).toBeUndefined();
+  for (const name of requiredJobs) {
+    expect(ciWorkflow.jobs[name].if).toBe(
+      prOnlyJobs.has(name) ? "github.event_name == 'pull_request'" : undefined
+    );
+  }
+  expect(ciWorkflow.jobs.governance.steps).toContainEqual({
+    name: 'CI workflow contract',
+    run: 'bun test scripts/__tests__/ci-workspace-context-contract.test.ts',
+  });
+});
+
+for (const event of [
+  'pull_request',
+  'merge_group',
+  'push',
+  'workflow_dispatch',
+]) {
+  const results = Object.fromEntries(
+    requiredJobs.map((job) => [
+      job,
+      {
+        result:
+          event !== 'pull_request' && prOnlyJobs.has(job)
+            ? 'skipped'
+            : 'success',
+      },
+    ])
+  );
+  const runGate = (jobs: typeof results) =>
+    Bun.spawnSync(['bash', '-eu', '-o', 'pipefail', '-c', gateScript], {
+      env: {
+        ...process.env,
+        GITHUB_EVENT_NAME: event,
+        JOB_RESULTS: JSON.stringify(jobs),
+      },
+      stderr: 'pipe',
+      stdout: 'pipe',
+    }).exitCode;
+
+  test(`CI accepts the expected ${event} job results`, () => {
+    expect(runGate(results)).toBe(0);
+  });
+
+  for (const job of requiredJobs) {
+    for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
+      if (result === results[job].result) {
+        continue;
+      }
+      test(`CI rejects ${event} ${job}=${result}`, () => {
+        expect(runGate({ ...results, [job]: { result } })).not.toBe(0);
+      });
+    }
+  }
+}
+
 test('version preparation records framework-only Skillset changes before rendering', async () => {
   const { scripts } = await Bun.file(
     new URL('../../package.json', import.meta.url)
