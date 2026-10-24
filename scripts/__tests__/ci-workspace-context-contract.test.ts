@@ -113,7 +113,7 @@ for (const event of [
   }
 }
 
-test('version preparation records framework-only Skillset changes before rendering', async () => {
+test('version preparation records or refreshes framework-only Skillset changes before rendering', async () => {
   const { scripts } = await Bun.file(
     new URL('../../package.json', import.meta.url)
   ).json();
@@ -125,14 +125,20 @@ test('version preparation records framework-only Skillset changes before renderi
   expect(sync).toBeGreaterThan(-1);
   expect(record).toBeGreaterThan(sync);
   expect(render).toBeGreaterThan(record);
-  for (const scope of ['plugin.trails.skill:trails', 'plugin:trails']) {
-    expect(scripts['plugin:metadata:record']).toContain(
-      `skillset change add --scope ${scope} --bump none --reason`
-    );
-  }
-  expect(scripts['plugin:metadata:record']).toContain(
-    'Framework target metadata only; plugin behavior is unchanged.'
+  expect(scripts['plugin:metadata:record']).toBe(
+    'bun scripts/record-plugin-metadata.ts'
   );
+});
+
+test('release validates Skillset evidence before dispatching version PR CI', async () => {
+  const workflow = await Bun.file(
+    new URL('../../.github/workflows/release.yml', import.meta.url)
+  ).text();
+  const validation = workflow.slice(
+    workflow.indexOf('- name: Validate version PR'),
+    workflow.indexOf('- name: Dispatch version PR CI')
+  );
+  expect(validation).toContain('bun run skillset:check');
 });
 
 test('CI Warden uses the operator workspace context', async () => {
