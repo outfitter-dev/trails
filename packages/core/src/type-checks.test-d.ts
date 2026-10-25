@@ -347,6 +347,111 @@ const combinedReadonlyArray = Result.combine(readonlyResults);
 export type CombinedReadonlyArray = Assert<
   IsExact<typeof combinedReadonlyArray, Result<number[], 'missing'>>
 >;
+declare const readonlyArrayUnion:
+  | readonly Result<number, 'left'>[]
+  | readonly Result<number, 'right'>[];
+const combinedReadonlyArrayUnion = Result.combine(readonlyArrayUnion);
+export type CombinedReadonlyArrayUnion = Assert<
+  IsExact<typeof combinedReadonlyArrayUnion, Result<number[], 'left' | 'right'>>
+>;
+const readonlyArrayUnionValues: number[] = combinedReadonlyArrayUnion.unwrap();
+readonlyArrayUnionValues.push(3);
+
+declare const mutableArrayUnion:
+  | Result<number, 'left'>[]
+  | Result<number, 'right'>[];
+const combinedMutableArrayUnion = Result.combine(mutableArrayUnion);
+export type CombinedMutableArrayUnion = Assert<
+  IsExact<typeof combinedMutableArrayUnion, Result<number[], 'left' | 'right'>>
+>;
+declare const mixedArrayUnion:
+  | Result<number, 'left'>[]
+  | readonly Result<number, 'right'>[];
+const combinedMixedArrayUnion = Result.combine(mixedArrayUnion);
+export type CombinedMixedArrayUnion = Assert<
+  IsExact<typeof combinedMixedArrayUnion, Result<number[], 'left' | 'right'>>
+>;
+const mixedArrayUnionValues: number[] = combinedMixedArrayUnion.unwrap();
+mixedArrayUnionValues.push(3);
+
+declare const neverArrayUnion:
+  | readonly Result<never, 'left'>[]
+  | readonly Result<never, 'right'>[];
+const combinedNeverArrayUnion = Result.combine(neverArrayUnion);
+export type CombinedNeverArrayUnion = Assert<
+  IsExact<typeof combinedNeverArrayUnion, Result<never[], 'left' | 'right'>>
+>;
+const neverArrayUnionValues: never[] = combinedNeverArrayUnion.unwrap();
+export type CombinedNeverArrayUnionValues = Assert<
+  IsExact<typeof neverArrayUnionValues, never[]>
+>;
+
+declare const readonlyUnionErrorArray: readonly Result<
+  number,
+  'left' | 'right'
+>[];
+const combinedUnionErrorArray = Result.combine(readonlyUnionErrorArray);
+export type CombinedUnionErrorArray = Assert<
+  IsExact<typeof combinedUnionErrorArray, Result<number[], 'left' | 'right'>>
+>;
+const combinedExplicitArrayUnion = Result.combine<number, 'left' | 'right'>(
+  readonlyArrayUnion
+);
+export type CombinedExplicitArrayUnion = Assert<
+  IsExact<typeof combinedExplicitArrayUnion, Result<number[], 'left' | 'right'>>
+>;
+export const combineGenericArray = <T, E>(
+  results: readonly Result<T, E>[]
+): Result<T[], E> => Result.combine(results);
+export const combineLegacyOverload: <T, E>(
+  results: readonly Result<T, E>[]
+) => Result<T[], E> = Result.combine;
+
+declare const tupleUnion:
+  | readonly [Result<number, 'left'>, Result<string, 'right'>]
+  | readonly [Result<string, 'left'>, Result<number, 'right'>];
+const combinedTupleUnion = Result.combine(tupleUnion);
+export type CombinedTupleUnion = Assert<
+  IsExact<
+    typeof combinedTupleUnion,
+    Result<
+      readonly [number, string] | readonly [string, number],
+      'left' | 'right'
+    >
+  >
+>;
+declare const trailingTuple: readonly [
+  ...Result<number, 'invalid'>[],
+  Result<string, 'missing'>,
+];
+const combinedTrailingTuple = Result.combine(trailingTuple);
+export type CombinedTrailingTuple = Assert<
+  IsExact<
+    typeof combinedTrailingTuple,
+    Result<readonly [...number[], string], 'missing' | 'invalid'>
+  >
+>;
+declare const mutableVariadicTuple: [
+  Result<string, 'missing'>,
+  ...Result<number, 'invalid'>[],
+];
+const combinedMutableVariadicTuple = Result.combine(mutableVariadicTuple);
+export type CombinedMutableVariadicTuple = Assert<
+  IsExact<
+    typeof combinedMutableVariadicTuple,
+    Result<[string, ...number[]], 'missing' | 'invalid'>
+  >
+>;
+declare const emptyMutableTuple: [];
+const combinedEmptyMutableTuple = Result.combine(emptyMutableTuple);
+export type CombinedEmptyMutableTuple = Assert<
+  IsExact<typeof combinedEmptyMutableTuple, Result<[], never>>
+>;
+declare const emptyReadonlyArray: readonly Result<never, never>[];
+const combinedEmptyReadonlyArray = Result.combine(emptyReadonlyArray);
+export type CombinedEmptyReadonlyArray = Assert<
+  IsExact<typeof combinedEmptyReadonlyArray, Result<never[], never>>
+>;
 const combinedExplicitArray = Result.combine<number, 'missing'>(
   ordinaryResults
 );

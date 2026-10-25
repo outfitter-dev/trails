@@ -115,10 +115,14 @@ export type Result<T, E = Error> = Ok<T, E> | Err<E>;
 type ResultValue<R> = R extends Ok<infer T, unknown> ? T : never;
 type ResultError<R> =
   R extends Ok<unknown, infer E> ? E : R extends Err<infer E> ? E : never;
-type CombinedValues<T extends readonly Result<unknown, unknown>[]> =
-  T[number][] extends T
-    ? ResultValue<T[number]>[]
-    : { [K in keyof T]: ResultValue<T[K]> };
+type CombinedValues<
+  T extends readonly Result<unknown, unknown>[],
+  Value = ResultValue<T[number]>,
+> = T extends readonly Result<unknown, unknown>[]
+  ? T[number][] extends T
+    ? Value[]
+    : { [K in keyof T]: ResultValue<T[K]> }
+  : never;
 
 /**
  * Collect all success values, or return the first error in input order.

@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1294-make-resultcombine-preserve-heterogeneous-tuples",
-          "sha": "7c2acaf4300c9acac9440eca0637587462f08f50",
+          "sha": "500f90d48ba9d11d42f8961bdf08c80106c0830d",
           "sourceKind": "current"
         }
       },
@@ -412,14 +412,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1294-make-resultcombine-preserve-heterogeneous-tuples",
-          "sha": "7c2acaf4300c9acac9440eca0637587462f08f50",
+          "sha": "500f90d48ba9d11d42f8961bdf08c80106c0830d",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:4544fd1113589960dc6e7337fee1d616b0b51f616edf3528d9aec33a500b6bce",
+  "provenanceHash": "sha256:82b55d8a2c61090ec601b8a21b79e5319f71634cce2ad9d0df99573d69b75ae5",
   "renderResults": [
     {
       "destination": "changelog",
