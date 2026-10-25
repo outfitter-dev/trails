@@ -38,8 +38,23 @@ const isExamplesRunCtx = (ctx: ActionResultContext): boolean =>
 
 const INPUT_PREVIEW_LIMIT = 60;
 
-const truncate = (value: string, limit: number): string =>
-  value.length <= limit ? value : `${value.slice(0, limit - 1)}…`;
+const truncate = (value: string, limit: number): string => {
+  if (limit <= 0) {
+    return '';
+  }
+  if (Bun.stringWidth(value) <= limit) {
+    return value;
+  }
+
+  let end = limit;
+  let preview = Bun.sliceAnsi(value, 0, end, { ellipsis: '…' });
+  // A wide grapheme at the boundary can round the slice past its cell budget.
+  while (Bun.stringWidth(preview) > limit && end > 0) {
+    end -= 1;
+    preview = Bun.sliceAnsi(value, 0, end, { ellipsis: '…' });
+  }
+  return preview;
+};
 
 const formatInputPreview = (input: unknown): string => {
   if (input === undefined) {
@@ -78,16 +93,15 @@ const buildRows = (
   }));
 
 const padRight = (value: string, width: number): string =>
-  value.length >= width ? value : value + ' '.repeat(width - value.length);
+  value + ' '.repeat(Math.max(0, width - Bun.stringWidth(value)));
 
 const formatTable = (rows: readonly ExampleRow[]): string => {
   const headers = { input: 'INPUT', name: 'NAME', outcome: 'OUTCOME' };
   const allRows: readonly ExampleRow[] = [headers, ...rows];
 
   const widths = {
-    input: Math.max(...allRows.map((row) => row.input.length)),
-    name: Math.max(...allRows.map((row) => row.name.length)),
-    outcome: Math.max(...allRows.map((row) => row.outcome.length)),
+    input: Math.max(...allRows.map((row) => Bun.stringWidth(row.input))),
+    name: Math.max(...allRows.map((row) => Bun.stringWidth(row.name))),
   };
 
   const formatRow = (row: ExampleRow): string =>

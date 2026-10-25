@@ -292,14 +292,12 @@ const sourceFingerprintReason = (
   };
 };
 
-const staleReasons = (
+const lockManifestStaleReasons = (
   topoGraph: TopoGraph,
-  lockManifest: LockManifest,
-  topoStore: WayfinderTopoStoreLoad
+  lockManifest: LockManifest
 ): readonly WayfinderStaleReason[] => {
   const reasons: WayfinderStaleReason[] = [];
   const actualHash = deriveTopoGraphHash(topoGraph);
-  const contractHash = deriveTopoGraphHash(stripTopoGraphForces(topoGraph));
   const topoArtifact = lockManifest.artifacts.find(
     (artifact) => artifact.role === 'topo' && artifact.path === 'topo.lock'
   );
@@ -311,18 +309,6 @@ const staleReasons = (
       actual: actualHash,
       expected: topoArtifact.sha256,
       reason: 'lock-manifest-hash-mismatch',
-    });
-  }
-
-  const storeExport = topoStore.export;
-  if (storeExport === null) {
-    reasons.push({ reason: 'topo-store-export-missing' });
-  } else if (storeExport.topoGraphHash !== contractHash) {
-    reasons.push({
-      actual: storeExport.topoGraphHash,
-      expected: contractHash,
-      reason: 'topo-store-hash-mismatch',
-      snapshotId: storeExport.snapshot.id,
     });
   }
 
@@ -338,6 +324,38 @@ const staleReasons = (
   return reasons;
 };
 
+const topoStoreStaleReasons = (
+  topoGraph: TopoGraph,
+  topoStore: WayfinderTopoStoreLoad
+): readonly WayfinderStaleReason[] => {
+  const storeExport = topoStore.export;
+  if (storeExport === null) {
+    return [{ reason: 'topo-store-export-missing' }];
+  }
+  const contractHash = deriveTopoGraphHash(stripTopoGraphForces(topoGraph));
+  return storeExport.topoGraphHash === contractHash
+    ? []
+    : [
+        {
+          actual: storeExport.topoGraphHash,
+          expected: contractHash,
+          reason: 'topo-store-hash-mismatch',
+          snapshotId: storeExport.snapshot.id,
+        },
+      ];
+};
+
+/**
+ * Load saved Wayfinder artifacts without creating local state.
+ *
+ * Readable lock contradictions take precedence over a missing or incompatible
+ * store. Unreadable graph/manifest schemas retain their regeneration status;
+ * consistent locks without a store remain missing, not fresh.
+ *
+ * @example
+ * const loaded = await loadWayfinderArtifacts({ rootDir: '.' });
+ * console.log(loaded.artifactStatus.status);
+ */
 export const loadWayfinderArtifacts = async (
   options?: WayfinderArtifactLoaderOptions
 ): Promise<WayfinderArtifactLoad> => {
@@ -374,6 +392,25 @@ export const loadWayfinderArtifacts = async (
     });
   }
 
+  const topoGraph = topoGraphRead.value;
+  const lockManifest = lockManifestRead.value;
+  const lockReasons =
+    topoGraph === null || lockManifest === null
+      ? []
+      : lockManifestStaleReasons(topoGraph, lockManifest);
+
+  if (
+    lockReasons.length > 0 &&
+    (topoStoreRead.kind !== 'ok' || topoStoreRead.value === null)
+  ) {
+    return artifactLoad({
+      artifactStatus: { reasons: lockReasons, status: 'stale' },
+      lockManifest,
+      topoGraph,
+      topoStore: null,
+    });
+  }
+
   if (topoStoreRead.kind === 'schema-version-drift') {
     return artifactLoad({
       artifactStatus: {
@@ -387,8 +424,6 @@ export const loadWayfinderArtifacts = async (
     });
   }
 
-  const topoGraph = topoGraphRead.value;
-  const lockManifest = lockManifestRead.value;
   const topoStore = topoStoreRead.value;
   if (topoGraph === null || lockManifest === null || topoStore === null) {
     const missing: WayfinderArtifactKind[] = [];
@@ -411,7 +446,13 @@ export const loadWayfinderArtifacts = async (
 
   const fingerprintReason = sourceFingerprintReason(topoStore, options);
   const reasons = [
-    ...staleReasons(topoGraph, lockManifest, topoStore),
+    ...lockReasons.filter(
+      ({ reason }) => reason !== 'lock-manifest-summary-mismatch'
+    ),
+    ...topoStoreStaleReasons(topoGraph, topoStore),
+    ...lockReasons.filter(
+      ({ reason }) => reason === 'lock-manifest-summary-mismatch'
+    ),
     ...(fingerprintReason === undefined ? [] : [fingerprintReason]),
   ];
   return artifactLoad({

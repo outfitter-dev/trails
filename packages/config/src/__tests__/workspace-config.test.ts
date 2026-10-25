@@ -267,7 +267,11 @@ export default defineConfig({
   });
 
   test('rejects deployment expressions that could override literal workspace identity', async () => {
-    for (const suffix of ['...deployment', '[deploymentKey]: readValue()']) {
+    for (const suffix of [
+      '...deployment',
+      '[deploymentKey]: readValue()',
+      "['workspace']: readValue()",
+    ]) {
       await withTempDir(async (rootDir) => {
         await writeFile(
           rootDir,
@@ -303,6 +307,93 @@ export default defineConfig({
       });
 
       expect(result.apps[0]?.id).toBe('demo');
+    });
+  });
+
+  test.each(['1', '0x10', '1e3'])(
+    'allows finite numeric computed deployment key [%s] after workspace without execution',
+    async (key) => {
+      await withTempDir(async (rootDir) => {
+        await mkdir(join(rootDir, 'apps/demo'), { recursive: true });
+        await writeFile(
+          rootDir,
+          'trails.config.ts',
+          `export default {
+  workspace: { apps: { demo: { root: 'apps/demo' } } },
+  [${key}]: readDeployment(),
+};\n`
+        );
+
+        const result = await readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: rootDir,
+        });
+
+        expect(result.apps[0]).toMatchObject({
+          id: 'demo',
+          root: 'apps/demo',
+        });
+      });
+    }
+  );
+
+  test.each(['1', '0x10', '1e3'])(
+    'allows finite numeric computed deployment key [%s] without workspace identity or execution',
+    async (key) => {
+      await withTempDir(async (rootDir) => {
+        await writeFile(
+          rootDir,
+          'trails.config.ts',
+          `export default { [${key}]: readDeployment() };\n`
+        );
+
+        const result = await readTrailsProjectIdentity({
+          boundaryDir: rootDir,
+          startDir: rootDir,
+        });
+
+        expect(result.apps).toEqual([]);
+        expect(result.workspace).toBeUndefined();
+      });
+    }
+  );
+
+  test.each(['1e309', 'NaN', 'Infinity', '1n', '-1'])(
+    'rejects computed deployment key [%s] that is not a finite numeric literal',
+    async (key) => {
+      for (const [prefix, diagnostic] of [
+        ['', 'cannot be proven absent'],
+        ['workspace: { apps: {} },', 'could override workspace'],
+      ]) {
+        await withTempDir(async (rootDir) => {
+          await writeFile(
+            rootDir,
+            'trails.config.ts',
+            `export default { ${prefix} [${key}]: readDeployment() };\n`
+          );
+
+          await expect(
+            readTrailsProjectIdentity({
+              boundaryDir: rootDir,
+              startDir: rootDir,
+            })
+          ).rejects.toThrow(diagnostic);
+        });
+      }
+    }
+  );
+
+  test('keeps numeric computed app identity keys disallowed', async () => {
+    await withTempDir(async (rootDir) => {
+      await writeFile(
+        rootDir,
+        'trails.config.ts',
+        "export default { workspace: { apps: { [1]: { root: 'apps/demo' } } } };\n"
+      );
+
+      await expect(
+        readTrailsProjectIdentity({ boundaryDir: rootDir, startDir: rootDir })
+      ).rejects.toThrow('workspace.apps must not use computed keys');
     });
   });
 
