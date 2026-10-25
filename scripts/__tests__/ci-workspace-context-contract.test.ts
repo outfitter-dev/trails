@@ -30,7 +30,14 @@ interface Workflow {
 const ciWorkflow = Bun.YAML.parse(
   await readFile(workflowPath, 'utf8')
 ) as Workflow;
-const ciGate = ciWorkflow.jobs['ci-gate'];
+const jobFor = (name: string) => {
+  const job = ciWorkflow.jobs[name];
+  if (!job) {
+    throw new Error(`CI must declare the ${name} job`);
+  }
+  return job;
+};
+const ciGate = jobFor('ci-gate');
 const gate = ciGate.steps.find(
   (step) => step.name === 'Require all jobs to pass'
 );
@@ -42,7 +49,7 @@ const requiredJobs = ciGate.needs;
 const prOnlyJobs = new Set(['changeset', 'release-pack']);
 
 test('merge groups run the normal CI checks on main with ref-isolated cancellation', () => {
-  expect(ciWorkflow.on.merge_group).toEqual({
+  expect(ciWorkflow.on['merge_group']).toEqual({
     branches: ['main'],
     types: ['checks_requested'],
   });
@@ -56,14 +63,14 @@ test('merge groups run the normal CI checks on main with ref-isolated cancellati
       .filter((name) => name !== 'ci-gate')
       .toSorted()
   );
-  expect(gate.env?.JOB_RESULTS).toMatch(/^\$\{\{ toJSON\(needs\) \}\}$/);
+  expect(gate.env?.['JOB_RESULTS']).toMatch(/^\$\{\{ toJSON\(needs\) \}\}$/);
   expect(gate.if).toBeUndefined();
   for (const name of requiredJobs) {
-    expect(ciWorkflow.jobs[name].if).toBe(
+    expect(jobFor(name).if).toBe(
       prOnlyJobs.has(name) ? "github.event_name == 'pull_request'" : undefined
     );
   }
-  expect(ciWorkflow.jobs.governance.steps).toContainEqual({
+  expect(jobFor('governance').steps).toContainEqual({
     name: 'CI workflow contract',
     run: 'bun test scripts/__tests__/ci-workspace-context-contract.test.ts',
   });
@@ -101,9 +108,9 @@ for (const event of [
     expect(runGate(results)).toBe(0);
   });
 
-  for (const job of requiredJobs) {
+  for (const [job, expected] of Object.entries(results)) {
     for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
-      if (result === results[job].result) {
+      if (result === expected.result) {
         continue;
       }
       test(`CI rejects ${event} ${job}=${result}`, () => {
@@ -130,7 +137,7 @@ test('version preparation records or refreshes framework-only Skillset changes b
   );
 });
 
-test('release validates Skillset evidence before dispatching version PR CI', async () => {
+test('release runs every generated-version preflight before dispatching CI', async () => {
   const workflow = await Bun.file(
     new URL('../../.github/workflows/release.yml', import.meta.url)
   ).text();
@@ -138,7 +145,17 @@ test('release validates Skillset evidence before dispatching version PR CI', asy
     workflow.indexOf('- name: Validate version PR'),
     workflow.indexOf('- name: Dispatch version PR CI')
   );
-  expect(validation).toContain('bun run skillset:check');
+  let previous = -1;
+  for (const command of [
+    'bun run changeset:check',
+    'bun run release-pack:check -- --lockfile-only',
+    'bun run skillset:check',
+    'bun run publish:check',
+  ]) {
+    const position = validation.indexOf(command);
+    expect(position).toBeGreaterThan(previous);
+    previous = position;
+  }
 });
 
 test('CI Warden uses the operator workspace context', async () => {
