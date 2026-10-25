@@ -219,6 +219,38 @@ describe('plugin metadata evidence', () => {
     });
   }
 
+  test('preserves nonblank IDs without assuming generated filename formats', async () => {
+    const { calls, run } = recorder([
+      {
+        ...entry('legacy release / old:id', PLUGIN_SCOPE),
+        bump: undefined,
+        reason: '',
+        scopes: [],
+        status: 'history',
+      },
+      { ...entry('legacy-ignored-id', PLUGIN_SCOPE), ignored: true },
+      entry('legacy-skill-id', SKILL_SCOPE),
+      entry('legacy-plugin-id', PLUGIN_SCOPE),
+    ]);
+    await recordPluginMetadata(run);
+    expect(calls).toEqual([
+      ['change', 'list', '--root', '.', '--json'],
+      refresh('legacy-skill-id'),
+      refresh('legacy-plugin-id'),
+    ]);
+  });
+
+  for (const id of [' ', '\t\n', ' \t\n ', '\u00A0']) {
+    test(`rejects blank ID ${JSON.stringify(id)} after a valid entry before any mutation`, async () => {
+      const { calls, run } = recorder([
+        entry('valid', SKILL_SCOPE),
+        entry(id, PLUGIN_SCOPE),
+      ]);
+      await expect(recordPluginMetadata(run)).rejects.toThrow();
+      expect(calls).toEqual([['change', 'list', '--root', '.', '--json']]);
+    });
+  }
+
   test('fails closed on an invalid list response before mutating evidence', async () => {
     const calls: string[][] = [];
     await expect(
@@ -248,6 +280,9 @@ describe('plugin metadata evidence', () => {
     'schema',
     'unknown-bump',
     'unknown-status',
+    'blank-id-spaces',
+    'blank-id-lines',
+    'blank-id-unicode',
     'list',
     'add',
     'refresh',
@@ -267,6 +302,16 @@ describe('plugin metadata evidence', () => {
               : { status: 'not-a-status' }),
           });
         }
+        if (failure.startsWith('blank-id-')) {
+          let id = '\u00A0';
+          if (failure === 'blank-id-spaces') {
+            id = '   ';
+          }
+          if (failure === 'blank-id-lines') {
+            id = ' \t\n ';
+          }
+          entries.push(entry('valid', SKILL_SCOPE), entry(id, PLUGIN_SCOPE));
+        }
         const list =
           failure === 'json'
             ? 'not JSON'
@@ -284,7 +329,7 @@ appendFileSync(${JSON.stringify(callsPath)}, JSON.stringify(args) + '\\n');
 if (args[1] === 'list') {
   if (${JSON.stringify(failure)} === 'list') process.exit(17);
   process.stdout.write(${JSON.stringify(list)});
-} else if (${JSON.stringify(failure.startsWith('unknown-'))}) {
+} else if (${JSON.stringify(failure.startsWith('unknown-') || failure.startsWith('blank-id-'))}) {
   process.exit(0);
 } else {
   console.error('injected CLI mutation failure');

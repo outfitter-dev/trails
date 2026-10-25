@@ -9,7 +9,7 @@ const changeListSchema = z.object({
     entries: z.array(
       z.object({
         bump: z.enum(['major', 'minor', 'none', 'patch']).optional(),
-        id: z.string().min(1),
+        id: z.string().refine((id) => id.trim().length > 0),
         ignored: z.boolean(),
         reason: z.string(),
         scopes: z.array(z.string()),
