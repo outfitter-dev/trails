@@ -6,6 +6,7 @@ import {
   identifierName,
   parseWithDiagnostics,
   propertyKeyName,
+  staticPropertyKeyName,
 } from '@ontrails/source';
 import type { AstNode } from '@ontrails/source';
 import { isAlias, isMap, isScalar, parseDocument } from 'yaml';
@@ -102,10 +103,16 @@ const directPropertyKey = (property: AstNode): string | null => {
   return propertyKeyName(property);
 };
 
-const computedPropertyKey = (property: AstNode): string | null =>
-  property.type === 'Property' && property['computed'] === true
-    ? extractStringOrTemplateLiteral(property['key'] as AstNode | undefined)
-    : null;
+const computedPropertyKey = (property: AstNode): string | null => {
+  if (property.type !== 'Property' || property['computed'] !== true) {
+    return null;
+  }
+  const key = property['key'] as AstNode | undefined;
+  if (key?.type === 'Literal' || key?.type === 'NumericLiteral') {
+    return staticPropertyKeyName(key);
+  }
+  return extractStringOrTemplateLiteral(key);
+};
 
 /** Locate the sole explicit workspace property without constraining deployment. */
 const findWorkspaceNode = (
