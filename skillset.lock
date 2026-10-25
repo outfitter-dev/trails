@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1321-thread-configpath-through-the-shared-operator-project",
-          "sha": "1c2c02882b9a3e25826733aab46bf3eebb1f27c8",
+          "sha": "45397238d9fa1fcdd87655868c8128731753fea0",
           "sourceKind": "current"
         }
       },
@@ -412,14 +412,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1321-thread-configpath-through-the-shared-operator-project",
-          "sha": "1c2c02882b9a3e25826733aab46bf3eebb1f27c8",
+          "sha": "45397238d9fa1fcdd87655868c8128731753fea0",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:768671b09eacbb2f9705c71c6e91bb2a935c028c64d4cf2d549cc77d46d3b2cf",
+  "provenanceHash": "sha256:5e7397d3725d3eb0e1da390c49b462d9ca853308b6dc5cee6c4cda5d86d42e28",
   "renderResults": [
     {
       "destination": "changelog",

@@ -12,7 +12,12 @@ import type {
 } from './project-context.js';
 
 const moduleSourceSchema = z.enum(['config', 'convention', 'module']);
-const selectionProvenanceSchema = z.enum(['app', 'cwd', 'root-dir']);
+const selectionProvenanceSchema = z.enum([
+  'app',
+  'config-path',
+  'cwd',
+  'root-dir',
+]);
 
 const projectAppBaseSchema = z.object({
   appRoot: z.string(),
@@ -92,7 +97,7 @@ export const operatorProjectContextOutputSchema = z
       ...projectContextBase,
       apps: z.array(configuredProjectAppSchema),
       selectedExtent: z.literal('workspace'),
-      selectionProvenance: z.enum(['cwd', 'root-dir']),
+      selectionProvenance: z.enum(['config-path', 'cwd', 'root-dir']),
     }),
   ])
   .superRefine((value, ctx) => {
@@ -176,7 +181,10 @@ export const operatorProjectContextOutput = (
       ...base,
       apps: context.apps.map(configuredProjectApp),
       selectedExtent: 'workspace',
-      selectionProvenance: context.selectionProvenance as 'cwd' | 'root-dir',
+      selectionProvenance: context.selectionProvenance as
+        | 'config-path'
+        | 'cwd'
+        | 'root-dir',
     };
   }
   if (context.selectedExtent === 'standalone-app') {

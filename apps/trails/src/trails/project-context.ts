@@ -26,7 +26,11 @@ import { deriveSafePath, Result, ValidationError } from '@ontrails/core';
 import { deriveWorkspaceView } from '@ontrails/topography';
 
 export type OperatorModuleSource = 'config' | 'convention' | 'module';
-export type OperatorSelectionProvenance = 'app' | 'cwd' | 'root-dir';
+export type OperatorSelectionProvenance =
+  | 'app'
+  | 'config-path'
+  | 'cwd'
+  | 'root-dir';
 
 export interface OperatorProjectApp {
   readonly configured: boolean;
@@ -279,7 +283,13 @@ const configuredSelection = (
   if (selectedByCwd) {
     selectionProvenance = 'cwd';
   }
-  if (canonicalPath(selectionPoint) === canonicalPath(identity.rootDir)) {
+  const canonicalSelectionPoint = canonicalPath(selectionPoint);
+  const canonicalProjectRoot = canonicalPath(identity.rootDir);
+  const selectedByConfig =
+    input.configPath !== undefined &&
+    canonicalSelectionPoint !== canonicalProjectRoot &&
+    isInside(canonicalSelectionPoint, canonicalProjectRoot);
+  if (selectedByConfig || canonicalSelectionPoint === canonicalProjectRoot) {
     if (input.module !== undefined) {
       throw projectContextError(
         '--module cannot select one app from a workspace extent. Add --app <id> before refining its module.',
@@ -297,7 +307,9 @@ const configuredSelection = (
       identity,
       projectRoot: identity.rootDir,
       selectedExtent: 'workspace',
-      selectionProvenance,
+      selectionProvenance: selectedByConfig
+        ? 'config-path'
+        : selectionProvenance,
     };
   }
 

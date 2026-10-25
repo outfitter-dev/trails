@@ -784,6 +784,110 @@ describe('trails warden', () => {
     }
   );
 
+  test.each([
+    [false, false, false],
+    [false, false, true],
+    [false, true, false],
+    [false, true, true],
+    [true, false, false],
+    [true, false, true],
+    [true, true, false],
+    [true, true, true],
+  ])(
+    'preserves a parent explicit config selection and resolved path (root=%s, absolute=%s, app=%s)',
+    async (explicitRoot, absolute, selectApp) => {
+      const parent = makeTempDir();
+      const dir = join(parent, 'custom');
+      try {
+        mkdirSync(dir);
+        writeConfiguredWorkspaceFixture(dir);
+        const configPath = join(dir, 'trails.config.ts');
+        writeFileSync(
+          configPath,
+          `export default ${readFileSync(join(dir, 'trails.config.json'), 'utf8')}`
+        );
+        rmSync(join(dir, 'trails.config.json'));
+        const lockPaths: string[] = [];
+        for (const appId of ['alpha', 'beta']) {
+          lockPaths.push(
+            await writeAppRootLock(
+              join(dir, 'apps', appId),
+              appId,
+              deriveTopoGraph(topo(appId, []))
+            )
+          );
+        }
+        const lockBytes = lockPaths.map((lockPath) => readFileSync(lockPath));
+        const input = {
+          app: selectApp ? 'alpha' : undefined,
+          configPath: absolute ? configPath : 'custom/trails.config.ts',
+          depth: 'all' as const,
+          format: 'json' as const,
+          rootDir: explicitRoot ? parent : undefined,
+        };
+        const result = await wardenTrail.implementation(input, {
+          cwd: parent,
+          env: {},
+        } as never);
+        if (result.isErr()) {
+          throw result.error;
+        }
+        expect(result.value.passed).toBe(true);
+        const project = {
+          configuredAppIds: ['alpha', 'beta'],
+          projectRoot: dir,
+          selectedExtent: selectApp ? 'configured-app' : 'workspace',
+          selectionProvenance: selectApp ? 'app' : 'config-path',
+          ...(selectApp ? { app: { appId: 'alpha', configured: true } } : {}),
+        };
+        expect(result.value.project).toMatchObject(project);
+        expect(JSON.parse(result.value.formatted).project).toMatchObject(
+          project
+        );
+        if (!selectApp) {
+          expect(result.value.workspaceEvidence).toMatchObject({
+            apps: [
+              { appId: 'alpha', binding: 'matched' },
+              { appId: 'beta', binding: 'matched' },
+            ],
+            completeness: 'complete',
+          });
+        }
+        expect(lockPaths.map((lockPath) => readFileSync(lockPath))).toEqual(
+          lockBytes
+        );
+
+        const cli = Bun.spawnSync(
+          [
+            'bun',
+            trailsBinPath,
+            'warden',
+            '--config-path',
+            input.configPath,
+            '--depth',
+            'all',
+            '--format',
+            'json',
+            ...(explicitRoot ? ['--root-dir', parent] : []),
+            ...(selectApp ? ['--app', 'alpha'] : []),
+          ],
+          { cwd: parent, env: process.env, stderr: 'pipe', stdout: 'pipe' }
+        );
+        expect(Buffer.from(cli.stderr).toString()).toBe('');
+        expect(cli.exitCode).toBe(0);
+        expect(JSON.parse(Buffer.from(cli.stdout).toString())).toMatchObject({
+          passed: true,
+          project,
+        });
+        expect(lockPaths.map((lockPath) => readFileSync(lockPath))).toEqual(
+          lockBytes
+        );
+      } finally {
+        rmSync(parent, { force: true, recursive: true });
+      }
+    }
+  );
+
   test('preserves custom-config workspace metadata and explicit app selection', async () => {
     const dir = makeTempDir();
     try {
