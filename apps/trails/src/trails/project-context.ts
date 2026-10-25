@@ -256,6 +256,29 @@ const configuredSelection = (
   explicitRoot: boolean
 ): OperatorProjectContext => {
   const configuredAppIds = identity.apps.map((app) => app.id);
+  const canonicalBoundary = canonicalPath(boundaryDir);
+  const canonicalCwd = canonicalPath(cwd);
+  const selectedByCwd =
+    canonicalCwd !== canonicalBoundary &&
+    isInside(canonicalBoundary, canonicalCwd);
+  const selectionPoint = selectedByCwd ? cwd : boundaryDir;
+  const canonicalSelectionPoint = canonicalPath(selectionPoint);
+  const canonicalProjectRoot = canonicalPath(identity.rootDir);
+  const selectedByConfig =
+    input.configPath !== undefined &&
+    canonicalSelectionPoint !== canonicalProjectRoot &&
+    isInside(canonicalSelectionPoint, canonicalProjectRoot);
+  if (
+    !explicitRoot &&
+    !selectedByConfig &&
+    !isInside(canonicalProjectRoot, canonicalSelectionPoint)
+  ) {
+    throw projectContextError(
+      `Selected workspace ${identity.rootDir} is outside the current project selection ${selectionPoint}. Use --root-dir to explicitly select its discovery boundary.`,
+      'outside-project',
+      { configuredAppIds, cwd: selectionPoint, projectRoot: identity.rootDir }
+    );
+  }
   if (input.app !== undefined) {
     const selected = identity.apps.find((app) => app.id === input.app);
     if (selected === undefined) {
@@ -271,24 +294,12 @@ const configuredSelection = (
     };
   }
 
-  const canonicalBoundary = canonicalPath(boundaryDir);
-  const canonicalCwd = canonicalPath(cwd);
-  const selectedByCwd =
-    canonicalCwd !== canonicalBoundary &&
-    isInside(canonicalBoundary, canonicalCwd);
-  const selectionPoint = selectedByCwd ? cwd : boundaryDir;
   let selectionProvenance: OperatorSelectionProvenance = explicitRoot
     ? 'root-dir'
     : 'cwd';
   if (selectedByCwd) {
     selectionProvenance = 'cwd';
   }
-  const canonicalSelectionPoint = canonicalPath(selectionPoint);
-  const canonicalProjectRoot = canonicalPath(identity.rootDir);
-  const selectedByConfig =
-    input.configPath !== undefined &&
-    canonicalSelectionPoint !== canonicalProjectRoot &&
-    isInside(canonicalSelectionPoint, canonicalProjectRoot);
   if (selectedByConfig || canonicalSelectionPoint === canonicalProjectRoot) {
     if (input.module !== undefined) {
       throw projectContextError(

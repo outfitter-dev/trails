@@ -888,6 +888,132 @@ describe('trails warden', () => {
     }
   );
 
+  test.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    'rejects sibling app selection but preserves explicit-root overrides (standalone=%s, absolute=%s)',
+    async (standalone, absolute) => {
+      const parent = makeTempDir();
+      const dir = join(parent, 'custom');
+      const cwd = join(parent, 'other');
+      try {
+        expect(Bun.spawnSync(['git', 'init', '--quiet', parent]).exitCode).toBe(
+          0
+        );
+        mkdirSync(dir);
+        mkdirSync(cwd);
+        writeConfiguredWorkspaceFixture(dir);
+        const configPath = join(dir, 'trails.config.ts');
+        writeFileSync(
+          configPath,
+          `export default ${readFileSync(join(dir, 'trails.config.json'), 'utf8')}`
+        );
+        rmSync(join(dir, 'trails.config.json'));
+        const lockPaths: string[] = [];
+        for (const appId of ['alpha', 'beta']) {
+          lockPaths.push(
+            await writeAppRootLock(
+              join(dir, 'apps', appId),
+              appId,
+              deriveTopoGraph(topo(appId, []))
+            )
+          );
+        }
+        if (standalone) {
+          mkdirSync(join(cwd, 'src'));
+          writeFileSync(
+            join(cwd, 'src', 'app.ts'),
+            `import { Result, topo, trail } from ${JSON.stringify(coreModuleUrl)};
+export const app = topo('gamma', [trail('gamma.read', {
+  input: undefined, intent: 'read', implementation: () => Result.ok(),
+})]);\n`
+          );
+          lockPaths.push(
+            await writeAppRootLock(
+              cwd,
+              'gamma',
+              deriveTopoGraph(
+                topo('gamma', [
+                  trail('gamma.read', {
+                    implementation: () => Result.ok(),
+                    input: undefined,
+                    intent: 'read',
+                  }),
+                ])
+              )
+            )
+          );
+        }
+        const lockBytes = lockPaths.map((path) => readFileSync(path));
+        for (const rootDir of [undefined, dir, parent]) {
+          let relativeConfigPath = '../custom/trails.config.ts';
+          if (rootDir === dir) {
+            relativeConfigPath = 'trails.config.ts';
+          } else if (rootDir === parent) {
+            relativeConfigPath = 'custom/trails.config.ts';
+          }
+          for (const app of rootDir === undefined
+            ? [undefined, 'alpha']
+            : ['alpha']) {
+            const input = {
+              app,
+              configPath: absolute ? configPath : relativeConfigPath,
+              depth: 'all' as const,
+              format: 'json' as const,
+              rootDir,
+            };
+            const result = await wardenTrail.implementation(input, {
+              cwd,
+              env: {},
+            } as never);
+            expect(lockPaths.map((path) => readFileSync(path))).toEqual(
+              lockBytes
+            );
+            const cli = runRawCli(
+              trailsBinPath,
+              [
+                'warden',
+                '--depth',
+                'all',
+                '--format',
+                'json',
+                '--config-path',
+                input.configPath,
+                ...(rootDir === undefined ? [] : ['--root-dir', rootDir]),
+                ...(app === undefined ? [] : ['--app', app]),
+              ],
+              cwd
+            );
+            if (rootDir === undefined) {
+              expect(result.isErr()).toBe(true);
+              expect(result.error).toMatchObject({
+                context: { reason: 'outside-project' },
+              });
+              expect(cli.exitCode).toBe(1);
+              expect(`${cli.stdout}${cli.stderr}`).toContain(dir);
+            } else {
+              expect(result.value).toMatchObject({
+                passed: true,
+                project: { app: { appId: 'alpha' }, projectRoot: dir },
+              });
+              expect(cli.exitCode).toBe(0);
+              expect(JSON.parse(cli.stdout)).toMatchObject({ passed: true });
+            }
+            expect(lockPaths.map((path) => readFileSync(path))).toEqual(
+              lockBytes
+            );
+          }
+        }
+      } finally {
+        rmSync(parent, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs * 4
+  );
+
   test('preserves custom-config workspace metadata and explicit app selection', async () => {
     const dir = makeTempDir();
     try {

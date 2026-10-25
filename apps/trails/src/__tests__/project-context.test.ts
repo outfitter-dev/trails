@@ -222,15 +222,84 @@ describe('resolveOperatorProjectContext', () => {
     }
   );
 
-  test('does not use an explicit config to select a sibling workspace from unrelated CWD', async () => {
-    rmSync(join(root, 'trails.config.ts'));
-    writeWorkspaceConfigAt(join(root, 'custom'), { alpha: 'apps/alpha' });
-    const result = await resolveOperatorProjectContext(
-      { configPath: join(root, 'custom', 'trails.config.ts') },
-      { cwd: join(root, 'shared') }
-    );
-    expect(result.error?.context).toMatchObject({ reason: 'outside-project' });
-  });
+  test.each([
+    [false, false, undefined],
+    [false, false, 'alpha'],
+    [false, true, undefined],
+    [false, true, 'alpha'],
+    [true, false, undefined],
+    [true, false, 'alpha'],
+    [true, true, undefined],
+    [true, true, 'alpha'],
+  ])(
+    'rejects explicit sibling selection before app selection (standalone=%s, absolute=%s, app=%s)',
+    async (standalone, absolute, app) => {
+      rmSync(join(root, 'trails.config.ts'));
+      const workspaceRoot = join(root, 'custom');
+      writeWorkspaceConfigAt(workspaceRoot, { alpha: 'apps/alpha' });
+      const cwd = join(root, standalone ? 'other' : 'shared');
+      if (standalone) {
+        mkdirSync(join(cwd, 'src'), { recursive: true });
+        writeFileSync(join(cwd, 'src', 'app.ts'), 'export const app = {};\n');
+      }
+      const result = await resolveOperatorProjectContext(
+        {
+          app,
+          configPath: absolute
+            ? join(workspaceRoot, 'trails.config.ts')
+            : '../custom/trails.config.ts',
+        },
+        { cwd }
+      );
+      expect(result.error?.context).toMatchObject({
+        reason: 'outside-project',
+      });
+    }
+  );
+
+  test.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    'preserves explicit-root app overrides from a sibling (parentRoot=%s, absolute=%s)',
+    async (parentRoot, absolute) => {
+      rmSync(join(root, 'trails.config.ts'));
+      const workspaceRoot = join(root, 'custom');
+      writeWorkspaceConfigAt(workspaceRoot, {
+        alpha: 'apps/alpha',
+        beta: 'apps/beta',
+      });
+      const relativeConfigPath = parentRoot
+        ? 'custom/trails.config.ts'
+        : 'trails.config.ts';
+      const input = {
+        app: 'beta',
+        configPath: absolute
+          ? join(workspaceRoot, 'trails.config.ts')
+          : relativeConfigPath,
+        rootDir: parentRoot ? root : workspaceRoot,
+      };
+      const context = await resolveOperatorProjectContext(input, {
+        cwd: join(root, 'shared'),
+      });
+      expect(context.value).toMatchObject({
+        app: { id: 'beta' },
+        projectRoot: workspaceRoot,
+        selectionProvenance: 'app',
+      });
+      const nested = await resolveOperatorProjectContext(
+        { ...input, configPath: 'trails.config.ts', rootDir: undefined },
+        { cwd: join(workspaceRoot, 'apps', 'alpha', 'src') }
+      );
+      expect(nested.value).toMatchObject({
+        app: { id: 'beta' },
+        projectRoot: workspaceRoot,
+        selectionProvenance: 'app',
+      });
+    }
+  );
 
   test.each(['custom.config.ts', 'absolute'])(
     'selects workspace identity from an explicit %s config path',
