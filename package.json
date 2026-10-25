@@ -32,7 +32,7 @@
     "wayfinder:dogfood": "bun apps/trails/bin/trails.ts release smoke --check wayfinder-dogfood",
     "lock:roundtrip": "bun apps/trails/bin/trails.ts release smoke --check lock-roundtrip",
     "plugin:metadata:sync": "bun scripts/sync-plugin-metadata.ts",
-    "plugin:metadata:record": "skillset change add --scope plugin.trails.skill:trails --bump none --reason 'Framework target metadata only; plugin behavior is unchanged.' && skillset change add --scope plugin:trails --bump none --reason 'Framework target metadata only; plugin behavior is unchanged.'",
+    "plugin:metadata:record": "bun scripts/record-plugin-metadata.ts",
     "plugin:metadata:check": "bun scripts/sync-plugin-metadata.ts --check",
     "plugin:installed-skill:check": "bun scripts/check-installed-trails-skill.ts",
     "warden:agents:sync": "bun scripts/sync-agents-warden-guide.ts",

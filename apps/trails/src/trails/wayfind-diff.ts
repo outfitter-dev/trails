@@ -227,13 +227,12 @@ const summaryMatchesGraph = (
 /**
  * Report how a saved lock contradicts the evidence its own envelope records.
  *
- * Wayfinder's loader raises the same contradictions as
- * `lock-manifest-hash-mismatch` and `lock-manifest-summary-mismatch` stale
- * reasons, but only once a Topography store is readable beside the lock. Diff
- * baselines are routinely artifact-only directories (`--against-dir`), so the
- * envelope is checked directly here instead. Reasons that only mean the lock
- * lags its source stay diffable; a lock whose recorded hash or summary cannot
- * describe its own graph does not.
+ * With readable lock artifacts, Wayfinder's loader reports
+ * `lock-manifest-hash-mismatch` and `lock-manifest-summary-mismatch` without a
+ * readable Topography store. Store export and source-fingerprint comparisons
+ * still require that store. Diff baselines are routinely artifact-only
+ * directories (`--against-dir`); this guard rejects contradictory hash or
+ * summary evidence while leaving source-lag-only drift diffable.
  */
 const lockIntegrityReason = (
   lockManifest: LockManifest | null,
