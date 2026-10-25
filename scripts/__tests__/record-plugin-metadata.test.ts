@@ -161,12 +161,63 @@ describe('plugin metadata evidence', () => {
       { ...entry('behavior', SKILL_SCOPE), reason: 'Plugin behavior changed.' },
       { ...entry('patch', SKILL_SCOPE), bump: 'patch' },
       { ...entry('ignored', SKILL_SCOPE), ignored: true },
-      { ...entry('applied', PLUGIN_SCOPE), status: 'applied' },
+      { ...entry('applied', PLUGIN_SCOPE), status: 'history' },
       { ...entry('multi', SKILL_SCOPE), scopes: [SKILL_SCOPE, PLUGIN_SCOPE] },
     ]);
     await recordPluginMetadata(run);
     expect(calls.slice(1)).toEqual([add(SKILL_SCOPE), add(PLUGIN_SCOPE)]);
   });
+
+  test('accepts supported CLI bump/status domains while preserving excluded records', async () => {
+    const entries = [];
+    for (const bump of ['major', 'minor', 'none', 'patch']) {
+      for (const status of ['pending', 'history']) {
+        for (const ignored of [false, true]) {
+          entries.push({
+            ...entry(`${bump}-${status}-${ignored}`, PLUGIN_SCOPE),
+            bump,
+            ignored,
+            status,
+          });
+        }
+      }
+    }
+    entries.push(entry('skill', SKILL_SCOPE));
+    const { calls, run } = recorder(entries);
+    await recordPluginMetadata(run);
+    expect(calls).toEqual([
+      ['change', 'list', '--root', '.', '--json'],
+      refresh('skill'),
+      refresh('none-pending-false'),
+    ]);
+  });
+
+  test('preserves entries with omitted bumps emitted by pending/history views', async () => {
+    const withoutBump = { ...entry('pending', PLUGIN_SCOPE), bump: undefined };
+    const { calls, run } = recorder([
+      withoutBump,
+      { ...withoutBump, id: 'history', status: 'history' },
+      { ...withoutBump, id: 'ignored', ignored: true },
+      entry('skill', SKILL_SCOPE),
+    ]);
+    await recordPluginMetadata(run);
+    expect(calls).toEqual([
+      ['change', 'list', '--root', '.', '--json'],
+      refresh('skill'),
+      add(PLUGIN_SCOPE),
+    ]);
+  });
+
+  for (const invalid of [{ bump: 'not-a-bump' }, { status: 'not-a-status' }]) {
+    test(`fails closed on unsupported ${Object.keys(invalid)[0]} before any mutation`, async () => {
+      const { calls, run } = recorder([
+        entry('valid', SKILL_SCOPE),
+        { ...entry('invalid', PLUGIN_SCOPE), ...invalid },
+      ]);
+      await expect(recordPluginMetadata(run)).rejects.toThrow();
+      expect(calls).toEqual([['change', 'list', '--root', '.', '--json']]);
+    });
+  }
 
   test('fails closed on an invalid list response before mutating evidence', async () => {
     const calls: string[][] = [];
@@ -192,7 +243,15 @@ describe('plugin metadata evidence', () => {
     expect(calls).toHaveLength(1);
   });
 
-  for (const failure of ['json', 'schema', 'list', 'add', 'refresh'] as const) {
+  for (const failure of [
+    'json',
+    'schema',
+    'unknown-bump',
+    'unknown-status',
+    'list',
+    'add',
+    'refresh',
+  ] as const) {
     test(`CLI entry point stops after ${failure} failure`, async () => {
       const root = await mkdtemp(join(tmpdir(), 'trails-metadata-failure-'));
       try {
@@ -200,6 +259,14 @@ describe('plugin metadata evidence', () => {
         const cliPath = join(root, 'skillset');
         const entries =
           failure === 'refresh' ? [entry('prior', SKILL_SCOPE)] : [];
+        if (failure === 'unknown-bump' || failure === 'unknown-status') {
+          entries.push(entry('valid', SKILL_SCOPE), {
+            ...entry('invalid', PLUGIN_SCOPE),
+            ...(failure === 'unknown-bump'
+              ? { bump: 'not-a-bump' }
+              : { status: 'not-a-status' }),
+          });
+        }
         const list =
           failure === 'json'
             ? 'not JSON'
@@ -217,6 +284,8 @@ appendFileSync(${JSON.stringify(callsPath)}, JSON.stringify(args) + '\\n');
 if (args[1] === 'list') {
   if (${JSON.stringify(failure)} === 'list') process.exit(17);
   process.stdout.write(${JSON.stringify(list)});
+} else if (${JSON.stringify(failure.startsWith('unknown-'))}) {
+  process.exit(0);
 } else {
   console.error('injected CLI mutation failure');
   process.exit(17);
