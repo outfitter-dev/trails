@@ -151,6 +151,34 @@ WorkspaceRootManifest, WorkspacePackage
 
 Core owns the shared glob machinery used by surface selectors, Wayfinder ID filters, Warden scope, and Regrade scan scope. Trail-id globs use dotted separators (`entity.*`, `entity.**`, `entity.????`); path-scope globs use path separators (`.agents/notes/**`, `src/**/*.ts`). `PathScope` is the stable scan/governance shape: `{ include?: string[], exclude?: string[], extensions?: string[] }`.
 
+### `Result.combine(results)`
+
+Combines already-produced Results when every value is required. A heterogeneous tuple preserves each success position and unions its error types. Readonly tuples produce readonly value tuples; mutable tuples produce mutable value tuples. Ordinary arrays, including readonly arrays, produce mutable value arrays. An empty tuple produces `Ok([])` with an empty value tuple and no possible error (`never`).
+
+```typescript
+import { Result } from '@ontrails/core';
+
+const profile: Result<{ id: string }, 'profile-missing'> = Result.ok({ id: 'ada' });
+const orders: Result<number[], 'orders-unavailable'> = Result.ok([1, 2]);
+const combined = Result.combine([profile, orders] as const);
+// Result<readonly [{ id: string }, number[]], 'profile-missing' | 'orders-unavailable'>
+```
+
+`ctx.compose()` owns trail execution, batch concurrency, and settlement. Await its typed batch result, then pass it to `Result.combine()` for explicit all-required aggregation:
+
+```typescript
+// Inside an implementation with these trail objects declared in `composes`,
+// after checking that ctx.compose is available:
+const results = await ctx.compose([
+  [loadProfile, { userId }],
+  [loadOrders, { userId }],
+] as const);
+const combined = Result.combine(results);
+// Result<readonly [Profile, Order[]], Error>
+```
+
+Combination is synchronous: it returns the first error payload in **input order**, not completion order. It does not execute branches, await promises, or short-circuit composition. Every compose branch has settled before the awaited batch is combined. For best-effort or partial-success handling, inspect the individual Results instead.
+
 ## `@ontrails/core/trails`
 
 ```typescript
