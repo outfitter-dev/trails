@@ -95,6 +95,7 @@ const definition = store({
 
 export const db = jsonFile(definition, {
   dir: './data',
+  id: 'db.main',
 });
 ```
 
@@ -135,13 +136,36 @@ const updatedHandle = definition.tables.gists.signals.updated;
 const removedHandle = definition.tables.gists.signals.removed;
 ```
 
-These pre-bind handles preserve payload shape, but the canonical signal id materializes only when an adapter binds the store to a resource. The bound form is always `resource:table.change`:
+These pre-bind handles preserve payload shape, but the canonical signal id materializes only when an adapter binds the store to a resource. The bound form is always `resource:table.change`. With the Drizzle binding above, use its adapter-specific `db.store` handle:
 
 ```typescript
 const created = db.store.tables.gists.signals.created;
 
 created.id;
 // "db.main:gists.created"
+```
+
+The JSON-file binding above exposes bound signals through the resource's optional `signals` array, not a `db.store` property or typed per-table handles. Look up the scoped id and handle an absent result:
+
+```typescript
+const created = db.signals?.find(
+  (signal) => signal.id === 'db.main:gists.created'
+);
+
+if (created !== undefined) {
+  created.id;
+  // "db.main:gists.created"
+}
+```
+
+For typed `on:` declarations, use the definition's pre-bind handle. Topo assembly resolves it to the scoped signal when the definition is bound once in that topo:
+
+```typescript
+const onCreated = trail('gist.created', {
+  input: gistSchema,
+  on: [definition.tables.gists.signals.created],
+  implementation: (input) => Result.ok(input),
+});
 ```
 
 ## Adapter Support Subpath
@@ -155,6 +179,10 @@ import { bindStoreDefinition } from '@ontrails/store/adapter-support';
 The subpath owns `bindStoreDefinition`, `createStoreTableSignals`, `composeStoreSignalId`, `isValidResourceId`, and `StoreSignalChange`. The root package stays focused on backend-agnostic store contracts.
 
 Writable bindings fire those canonical scoped signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
+
+For JSON-file resources, `upsert()` emits `created` for a new entity and `updated` when the persisted entity changes. `remove()` emits `removed` with the deleted entity. Failed writes, unchanged upserts, and missing removals emit nothing. Version increments count as changes.
+
+Emission is awaited after persistence and outside the table's write lock, so consumers can write to the same table. A thrown emission error is logged on a best-effort basis; neither emission nor diagnostic failures mask the successful write. Raw `connectJsonFile()` connections and contexts without `ctx.fire` remain silent.
 
 See [Store Signal Identity Migration](../../docs/store-signal-identity-migration.md) when updating existing `on:` clauses, surface-map fixtures, or custom resource wrappers from bare ids to scoped ids.
 
