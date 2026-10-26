@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1305-raise-and-synchronize-the-bun-minimum-to-140",
-          "sha": "ab333bfc60ff2dbe9af2fc5acd664ffd832e447a",
+          "sha": "2ec476f79628ca685520e530b9be24546eb06a14",
           "sourceKind": "current"
         }
       },
@@ -412,14 +412,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1305-raise-and-synchronize-the-bun-minimum-to-140",
-          "sha": "ab333bfc60ff2dbe9af2fc5acd664ffd832e447a",
+          "sha": "2ec476f79628ca685520e530b9be24546eb06a14",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:4dc4d8238f822a709846a62c8684e8b942a28c89962f38a4972a810926fa995b",
+  "provenanceHash": "sha256:ed81788ea2bd8a2185a485f4291cb1a86c42a9d1fffb18680627d19253774322",
   "renderResults": [
     {
       "destination": "changelog",

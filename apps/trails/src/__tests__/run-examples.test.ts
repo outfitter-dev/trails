@@ -140,6 +140,31 @@ const buildListing = (
   trailId: 'run',
 });
 
+const renderExamples = async (
+  examples: readonly StructuredTrailExample[]
+): Promise<string> => {
+  const ctx = buildCtx(stubRunTrail, {}, Result.ok(buildListing(examples)));
+  const io = await withCapturedIO(() => {
+    expect(tryExamplesRunOutput(ctx)).toBe(true);
+  });
+  return io.stdout.join('');
+};
+
+const renderPreview = async (input?: unknown): Promise<string> => {
+  const table = await renderExamples([
+    { ...successExample, input, name: 'Row' },
+  ]);
+  const row = table.split('\n')[1] ?? '';
+  return row.slice(6, -4).trimEnd();
+};
+
+const stringFallback = (value: string): unknown => ({
+  toJSON: () => {
+    throw new Error('Not JSON serializable');
+  },
+  toString: () => value,
+});
+
 describe('tryExamplesRunOutput', () => {
   let originalTrailsJson: string | undefined;
   let originalTrailsJsonl: string | undefined;
@@ -320,6 +345,183 @@ describe('tryExamplesRunOutput', () => {
     expect(out).toContain('…');
     // The full 200-char trailId must not appear in full.
     expect(out).not.toContain('x'.repeat(200));
+  });
+
+  describe('terminal-cell formatting', () => {
+    test('preserves the ordinary ASCII table bytes', async () => {
+      expect(await renderExamples([successExample, errorExample])).toBe(
+        'NAME                     INPUT      OUTCOME\n' +
+          'Run trail by ID          {"id":""}  ok\n' +
+          'Reject unknown trail ID  {"id":""}  error: NotFoundError\n'
+      );
+      expect(await renderPreview({ id: 'x'.repeat(200) })).toBe(
+        `{"id":"${'x'.repeat(52)}…`
+      );
+    });
+
+    test.each([0, 59, 60, 61])(
+      'preserves ASCII preview bytes at length %i',
+      async (length) => {
+        const input = 'x'.repeat(length);
+        expect(await renderPreview(stringFallback(input))).toBe(
+          length <= 60 ? input : `${'x'.repeat(59)}…`
+        );
+      }
+    );
+
+    test.each([
+      ['emoji', '😀'],
+      ['ZWJ emoji', '👩‍👩‍👧‍👦'],
+      ['combining marks', 'e\u0301'],
+      ['CJK', '漢字'],
+      ['zero-width characters', 'a\u200Bb\u200Dc'],
+      ['ANSI color', '\u001B[31mred\u001B[0m'],
+    ])('aligns %s names and inputs by display cells', async (_, value) => {
+      const table = await renderExamples([
+        { ...successExample, input: value, name: value },
+        { ...successExample, input: 'x', name: 'ordinary' },
+      ]);
+      const lines = table.trimEnd().split('\n');
+      const nameWidth = Math.max(8, Bun.stringWidth(value));
+      const inputWidth = Math.max(5, Bun.stringWidth(JSON.stringify(value)));
+      const inputOffsets = lines
+        .slice(1)
+        .map((line) => Bun.stringWidth(line.slice(0, line.indexOf('"'))));
+      const outcomeOffsets = lines.map((line, index) =>
+        Bun.stringWidth(
+          line.slice(0, line.lastIndexOf(index === 0 ? 'OUTCOME' : 'ok'))
+        )
+      );
+      expect(inputOffsets).toEqual([nameWidth + 2, nameWidth + 2]);
+      expect(outcomeOffsets).toEqual(
+        Array.from({ length: 3 }, () => nameWidth + inputWidth + 4)
+      );
+      expect(table).toContain(value);
+    });
+
+    test.each(['😀', '👩‍👩‍👧‍👦', 'e\u0301', '漢'])(
+      'truncates repeated %s only at intact display boundaries',
+      async (value) => {
+        const preview = await renderPreview(value.repeat(100));
+        const graphemes = [
+          ...new Intl.Segmenter().segment(preview.slice(1, -1)),
+        ].map(({ segment }) => segment);
+        expect(preview.startsWith('"')).toBe(true);
+        expect(preview.endsWith('…')).toBe(true);
+        expect(Bun.stringWidth(preview)).toBeLessThanOrEqual(60);
+        expect(preview.isWellFormed()).toBe(true);
+        expect(graphemes.length).toBeGreaterThan(0);
+        expect(graphemes.every((grapheme) => grapheme === value)).toBe(true);
+      }
+    );
+
+    test('keeps combining previews that already fit without an ellipsis', async () => {
+      const input = 'e\u0301'.repeat(40);
+      expect(await renderPreview(input)).toBe(JSON.stringify(input));
+    });
+
+    test('keeps empty, zero-width and ANSI-only previews intact', async () => {
+      for (const input of ['', '\u200B'.repeat(100), '\u001B[31m\u001B[0m']) {
+        expect(await renderPreview(stringFallback(input))).toBe(input);
+      }
+      expect(await renderPreview()).toBe('');
+    });
+
+    test.each(['漢', '👩‍👩‍👧‍👦'])(
+      'reserves the ellipsis cell at wide %s boundaries',
+      async (value) => {
+        const preview = await renderPreview(stringFallback(value.repeat(100)));
+        expect(preview).toBe(`${value.repeat(29)}…`);
+        expect(Bun.stringWidth(preview)).toBe(59);
+        expect(preview.isWellFormed()).toBe(true);
+      }
+    );
+
+    test('preserves styles and closes ANSI sequences before the next column', async () => {
+      const preview = await renderPreview(
+        stringFallback(`\u001B[1m\u001B[31m${'漢'.repeat(100)}\u001B[0m`)
+      );
+      expect(Bun.stripANSI(preview)).toBe(`${'漢'.repeat(29)}…`);
+      expect(preview).toStartWith('\u001B[1m\u001B[31m');
+      expect(preview).toEndWith('…\u001B[39m\u001B[22m');
+      expect(Bun.stripANSI(preview)).not.toContain('\u001B');
+      expect(Bun.stringWidth(preview)).toBe(59);
+    });
+
+    test('does not cut an ANSI escape or an emoji surrogate pair', async () => {
+      const emojiPreview = await renderPreview(`${'x'.repeat(57)}😀tail`);
+      expect(emojiPreview.isWellFormed()).toBe(true);
+      const preview = await renderPreview(
+        stringFallback(`\u001B[31m${'x'.repeat(200)}\u001B[0m`)
+      );
+      expect(Bun.stripANSI(preview)).toBe(`${'x'.repeat(59)}…`);
+      expect(preview).toEndWith('\u001B[39m');
+    });
+
+    test('keeps a complete color escape where code-unit truncation would split it', async () => {
+      const preview = await renderPreview(
+        stringFallback(
+          `${'x'.repeat(57)}\u001B[38;2;120;80;10m${'😀'.repeat(20)}\u001B[0m`
+        )
+      );
+      expect(Bun.stripANSI(preview)).toBe(`${'x'.repeat(57)}😀…`);
+      expect(Bun.stripANSI(preview)).not.toContain('\u001B');
+      expect(preview).toContain('\u001B[38;2;120;80;10m');
+      expect(preview).toEndWith('\u001B[39m');
+      expect(Bun.stringWidth(preview)).toBe(60);
+    });
+
+    test.each(['json', 'jsonl'])(
+      'retains full Unicode/ANSI authored values in %s output',
+      async (mode) => {
+        const example = {
+          ...successExample,
+          input: 'e\u0301'.repeat(100),
+          name: '\u001B[31m漢字👩‍👩‍👧‍👦\u001B[0m',
+        };
+        const ctx = buildCtx(
+          stubRunTrail,
+          { [mode]: true },
+          Result.ok(buildListing([example]))
+        );
+        const io = await withCapturedIO(() =>
+          expect(tryExamplesRunOutput(ctx)).toBe(true)
+        );
+        expect(JSON.parse(io.stdout.join(''))).toMatchObject({
+          examples: [example],
+        });
+      }
+    );
+
+    test.each([0, 1, 4, 20, 80])(
+      'keeps stable output at terminal width %i',
+      async (columns) => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          process.stdout,
+          'columns'
+        );
+        Object.defineProperty(process.stdout, 'columns', {
+          configurable: true,
+          value: columns,
+        });
+        try {
+          expect(await renderExamples([successExample, errorExample])).toBe(
+            'NAME                     INPUT      OUTCOME\n' +
+              'Run trail by ID          {"id":""}  ok\n' +
+              'Reject unknown trail ID  {"id":""}  error: NotFoundError\n'
+          );
+          expect(
+            Bun.stringWidth(await renderPreview('漢'.repeat(100)))
+          ).toBeLessThanOrEqual(60);
+        } finally {
+          if (descriptor === undefined) {
+            Reflect.deleteProperty(process.stdout, 'columns');
+          } else {
+            Object.defineProperty(process.stdout, 'columns', descriptor);
+          }
+        }
+      }
+    );
   });
 });
 
