@@ -118,6 +118,91 @@ describe('JSON-file context-bound signals', () => {
     ]);
   });
 
+  test.each(['', 'normal', '0', ' ', '__proto__'])(
+    'preserves lookup-driven sparse replacement and version behavior for %j',
+    async (id) => {
+      for (const versioned of [false, true]) {
+        const path = join(dir, String(versioned));
+        await mkdir(path);
+        const schema = noteSchema.extend({ detail: z.string().optional() });
+        const stored = store({
+          notes: { identity: 'id', schema, versioned },
+        });
+        const db = jsonFile(stored, { dir: path, id: 'preservation' });
+        const raw = await connectJsonFile(stored, { dir: path });
+        const { events, fire } = recorder();
+        const bound = db.from(
+          createTrailContext({ extensions: { [db.id]: raw }, fire })
+        );
+        const first = await bound.notes.upsert({
+          detail: 'Original',
+          id,
+          title: 'First',
+        });
+        const updated = {
+          ...(id ? { detail: 'Original' } : {}),
+          id,
+          title: 'Second',
+          ...(versioned ? { version: id ? 2 : 1 } : {}),
+        };
+        expect(await bound.notes.upsert({ id, title: 'Second' })).toEqual(
+          updated
+        );
+        expect(await raw.notes.get(id)).toEqual(updated);
+        expect(await Bun.file(join(path, 'notes.json')).json()).toEqual([
+          updated,
+        ]);
+        expect(events).toEqual([
+          { id: 'preservation:notes.created', payload: first },
+          { id: 'preservation:notes.updated', payload: updated },
+        ]);
+        const repeated = await bound.notes.upsert({ id, title: 'Second' });
+        expect(repeated).toEqual({
+          ...updated,
+          ...(versioned ? { version: id ? 3 : 1 } : {}),
+        });
+        expect(events).toHaveLength(versioned && id ? 3 : 2);
+      }
+    }
+  );
+
+  test.each(['', 'normal', '0', ' ', '__proto__'])(
+    'preserves explicit version selection and conflict silence for %j',
+    async (id) => {
+      const stored = store({
+        notes: { identity: 'id', schema: noteSchema, versioned: true },
+      });
+      const db = jsonFile(stored, { dir, id: 'conflicts' });
+      const raw = await connectJsonFile(stored, { dir });
+      const { events, fire } = recorder();
+      const bound = db.from(
+        createTrailContext({ extensions: { [db.id]: raw }, fire })
+      );
+      const first = await bound.notes.upsert({ id, title: 'First' });
+      const matching = await bound.notes.upsert(first);
+      expect(matching).toEqual({ ...first, version: id ? 2 : 1 });
+      events.length = 0;
+      const stale = { id, title: 'Stale input', version: 0 };
+      if (id) {
+        await expect(bound.notes.upsert(stale)).rejects.toBeInstanceOf(
+          ConflictError
+        );
+        expect(events).toEqual([]);
+        expect(await raw.notes.get(id)).toEqual(matching);
+      } else {
+        const replaced = { ...stale, version: 1 };
+        expect(await bound.notes.upsert(stale)).toEqual(replaced);
+        expect(await raw.notes.get(id)).toEqual(replaced);
+        expect(events).toEqual([
+          { id: 'conflicts:notes.updated', payload: replaced },
+        ]);
+      }
+      expect(await Bun.file(join(dir, 'notes.json')).json()).toEqual(
+        await raw.notes.list()
+      );
+    }
+  );
+
   test('does not emit or change the index when an upsert or remove fails to persist', async () => {
     const { bound, events } = await provision();
     const original = { id: 'one', title: 'First' };

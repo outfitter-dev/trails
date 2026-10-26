@@ -240,8 +240,8 @@ const resolveExisting = <TTable extends AnyStoreTable>(
   identityField: string,
   index: Map<string, EntityOf<TTable>>
 ): EntityOf<TTable> | undefined => {
-  const id = raw[identityField];
-  return id === undefined ? undefined : index.get(String(id));
+  const id = String(raw[identityField] ?? '');
+  return id ? index.get(id) : undefined;
 };
 
 const mergeAndBuild = <TTable extends AnyStoreTable>(
