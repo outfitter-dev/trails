@@ -48,6 +48,15 @@ bun trails warden --pre-push
 
 In a configured workspace, the integrated operator derives topo targets from static `workspace.apps`. Use `trails warden --app <id>` to narrow topo-aware rules to one app; project-wide source and project facts remain in scope. The operator rejects `--apps` in that workspace because it would introduce a second app catalog.
 
+From a parent directory, an explicit config can select a descendant workspace within the discovery boundary:
+
+```bash
+trails warden --config-path custom/trails.config.ts --depth all --format json
+trails warden --config-path custom/trails.config.ts --app alpha --depth all --format json
+```
+
+The first command reports workspace extent, the config's workspace root and configured apps, and `config-path` selection provenance. The second reports the configured app and `app` provenance. Relative and absolute explicit paths identify the same config file. `--root-dir` still fixes the discovery boundary; in-workspace CWD selection, omitted-config discovery, and containment checks are unchanged. An explicit config does not enable sibling or cross-collection selection.
+
 The project-static `workspace-lock-ownership` rule checks the same collection boundary without deriving identity from files it finds. A nested `trails.lock` outside configured app roots is a warning with its root-relative path, source-collection provenance, and declare-or-remove coaching. An unowned lock at the workspace root is a forbidden aggregate and reports as an error. Scope exclusions and typed nested repository, worktree, and submodule boundaries remain outside this census.
 
 These CI examples target the direct Warden bin from the normal `0.2.1` release:

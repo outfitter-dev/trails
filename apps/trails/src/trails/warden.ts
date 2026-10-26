@@ -525,6 +525,10 @@ export const wardenTrail = trail('warden', {
       args: buildWardenCommandArgs({
         ...input,
         apps: apps.value.apps === undefined ? undefined : [...apps.value.apps],
+        configPath:
+          input.configPath === undefined
+            ? undefined
+            : context.identity.configPath,
         rootDir: context.projectRoot,
       }),
       cwd: context.projectRoot,

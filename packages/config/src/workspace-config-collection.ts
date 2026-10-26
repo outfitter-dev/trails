@@ -16,13 +16,26 @@ import {
 } from './trails-conventions.js';
 import { canonicalBoundaryPath, isWithinBoundary } from './path-boundary.js';
 
-const ignoredCollectionDirectories = new Set([
+/**
+ * Default pruned directory names for workspace config and lock discovery.
+ * Ancestors of, or directories equal to, configured app roots remain traversable;
+ * ignored descendants do not. Git collection boundaries remain source-owned.
+ *
+ * @example
+ * ```ts
+ * const ignored = new Set<string>(workspaceIgnoredDirectoryNames);
+ * ignored.has('.cache'); // true
+ * ```
+ */
+export const workspaceIgnoredDirectoryNames = Object.freeze([
   '.cache',
   '.turbo',
   'coverage',
   'dist',
   'node_modules',
 ]);
+
+const ignoredCollectionDirectories = new Set(workspaceIgnoredDirectoryNames);
 
 const configCandidateNames = new Set<string>(trailsConfigFileCandidates);
 
@@ -321,9 +334,6 @@ export const collectConfigPathsWithinBoundary = (
       const isIncludedRootAncestor = includedRoots.some((rootDir) =>
         isWithinBoundary(absoluteEntryPath, rootDir)
       );
-      const isWithinIncludedRoot = includedRoots.some((rootDir) =>
-        isWithinBoundary(rootDir, absoluteEntryPath)
-      );
       if (configCandidateNames.has(entry.name)) {
         return entry.kind === 'file' || entry.kind === 'other'
           ? { action: 'collect' }
@@ -332,7 +342,7 @@ export const collectConfigPathsWithinBoundary = (
       if (
         entry.kind === 'directory' &&
         ignoredCollectionDirectories.has(entry.name) &&
-        !(isIncludedRootAncestor || isWithinIncludedRoot)
+        !isIncludedRootAncestor
       ) {
         return { action: 'skip', reason: 'ignored-directory' };
       }

@@ -26,7 +26,11 @@ import { deriveSafePath, Result, ValidationError } from '@ontrails/core';
 import { deriveWorkspaceView } from '@ontrails/topography';
 
 export type OperatorModuleSource = 'config' | 'convention' | 'module';
-export type OperatorSelectionProvenance = 'app' | 'cwd' | 'root-dir';
+export type OperatorSelectionProvenance =
+  | 'app'
+  | 'config-path'
+  | 'cwd'
+  | 'root-dir';
 
 export interface OperatorProjectApp {
   readonly configured: boolean;
@@ -61,6 +65,7 @@ export type OperatorProjectContext =
 
 export interface OperatorProjectContextInput {
   readonly app?: string | undefined;
+  readonly configPath?: string | undefined;
   readonly module?: string | undefined;
   readonly rootDir?: string | undefined;
 }
@@ -251,6 +256,29 @@ const configuredSelection = (
   explicitRoot: boolean
 ): OperatorProjectContext => {
   const configuredAppIds = identity.apps.map((app) => app.id);
+  const canonicalBoundary = canonicalPath(boundaryDir);
+  const canonicalCwd = canonicalPath(cwd);
+  const selectedByCwd =
+    canonicalCwd !== canonicalBoundary &&
+    isInside(canonicalBoundary, canonicalCwd);
+  const selectionPoint = selectedByCwd ? cwd : boundaryDir;
+  const canonicalSelectionPoint = canonicalPath(selectionPoint);
+  const canonicalProjectRoot = canonicalPath(identity.rootDir);
+  const selectedByConfig =
+    input.configPath !== undefined &&
+    canonicalSelectionPoint !== canonicalProjectRoot &&
+    isInside(canonicalSelectionPoint, canonicalProjectRoot);
+  if (
+    !explicitRoot &&
+    !selectedByConfig &&
+    !isInside(canonicalProjectRoot, canonicalSelectionPoint)
+  ) {
+    throw projectContextError(
+      `Selected workspace ${identity.rootDir} is outside the current project selection ${selectionPoint}. Use --root-dir to explicitly select its discovery boundary.`,
+      'outside-project',
+      { configuredAppIds, cwd: selectionPoint, projectRoot: identity.rootDir }
+    );
+  }
   if (input.app !== undefined) {
     const selected = identity.apps.find((app) => app.id === input.app);
     if (selected === undefined) {
@@ -266,19 +294,13 @@ const configuredSelection = (
     };
   }
 
-  const canonicalBoundary = canonicalPath(boundaryDir);
-  const canonicalCwd = canonicalPath(cwd);
-  const selectedByCwd =
-    canonicalCwd !== canonicalBoundary &&
-    isInside(canonicalBoundary, canonicalCwd);
-  const selectionPoint = selectedByCwd ? cwd : boundaryDir;
   let selectionProvenance: OperatorSelectionProvenance = explicitRoot
     ? 'root-dir'
     : 'cwd';
   if (selectedByCwd) {
     selectionProvenance = 'cwd';
   }
-  if (canonicalPath(selectionPoint) === canonicalPath(identity.rootDir)) {
+  if (selectedByConfig || canonicalSelectionPoint === canonicalProjectRoot) {
     if (input.module !== undefined) {
       throw projectContextError(
         '--module cannot select one app from a workspace extent. Add --app <id> before refining its module.',
@@ -296,7 +318,9 @@ const configuredSelection = (
       identity,
       projectRoot: identity.rootDir,
       selectedExtent: 'workspace',
-      selectionProvenance,
+      selectionProvenance: selectedByConfig
+        ? 'config-path'
+        : selectionProvenance,
     };
   }
 
@@ -411,6 +435,26 @@ const resolveStandaloneRoot = (
   }
 };
 
+/** Match Warden's project-relative config base in warden.ts:527-533. */
+const resolveConfigStartDir = async (
+  input: OperatorProjectContextInput,
+  startDir: string,
+  boundaryDir: string,
+  explicitRoot: boolean
+): Promise<string> => {
+  if (
+    input.configPath === undefined ||
+    isAbsolute(input.configPath) ||
+    explicitRoot
+  ) {
+    return startDir;
+  }
+  const discovered = await readTrailsProjectIdentity({ boundaryDir, startDir });
+  return discovered.workspace === undefined
+    ? resolveStandaloneRoot(startDir, boundaryDir, false, input.module).rootDir
+    : discovered.rootDir;
+};
+
 export const resolveOperatorProjectContext = async (
   input: OperatorProjectContextInput,
   runtime: OperatorProjectContextRuntime
@@ -432,7 +476,13 @@ export const resolveOperatorProjectContext = async (
     const startDir = explicitRoot ? boundaryDir : cwd;
     const identity = await readTrailsProjectIdentity({
       boundaryDir,
-      startDir,
+      configPath: input.configPath,
+      startDir: await resolveConfigStartDir(
+        input,
+        startDir,
+        boundaryDir,
+        explicitRoot
+      ),
     });
     if (identity.workspace !== undefined) {
       return Result.ok(
