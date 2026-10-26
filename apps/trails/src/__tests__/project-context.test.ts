@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -16,6 +17,10 @@ import {
   resolveOperatorAppModuleContext,
   resolveOperatorProjectContext,
 } from '../trails/project-context.js';
+import {
+  operatorProjectContextOutput,
+  operatorProjectContextOutputSchema,
+} from '../trails/project-context-output.js';
 
 const expectOk = <T>(
   result: Awaited<ReturnType<typeof resolveOperatorProjectContext>>
@@ -143,6 +148,272 @@ afterEach(() => {
 });
 
 describe('resolveOperatorProjectContext', () => {
+  test.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    'selects an explicit descendant workspace from its parent (root=%s, absolute=%s)',
+    async (explicitRoot, absolute) => {
+      rmSync(join(root, 'trails.config.ts'));
+      const workspaceRoot = join(root, 'custom');
+      writeWorkspaceConfigAt(workspaceRoot, {
+        alpha: 'apps/alpha',
+        beta: 'apps/beta',
+      });
+      const configPath = absolute
+        ? join(workspaceRoot, 'trails.config.ts')
+        : 'custom/trails.config.ts';
+      const input = { configPath, rootDir: explicitRoot ? root : undefined };
+      const workspace = await resolveOperatorProjectContext(input, {
+        cwd: root,
+      });
+      expect(workspace.isOk()).toBe(true);
+      if (workspace.isErr()) {
+        throw workspace.error;
+      }
+      expect(workspace.value).toMatchObject({
+        boundaryDir: root,
+        identity: {
+          configPath: join(workspaceRoot, 'trails.config.ts'),
+          rootDir: workspaceRoot,
+        },
+        projectRoot: workspaceRoot,
+        selectedExtent: 'workspace',
+        selectionProvenance: 'config-path',
+      });
+      const output = operatorProjectContextOutput(workspace.value);
+      expect(operatorProjectContextOutputSchema.safeParse(output).success).toBe(
+        true
+      );
+      expect(output).toMatchObject({
+        configuredAppIds: ['alpha', 'beta'],
+        selectionProvenance: 'config-path',
+      });
+      expect(
+        compileNeedsAppError(workspace.value as never).context
+      ).toMatchObject({ reason: 'compile-needs-app' });
+
+      const app = await resolveOperatorProjectContext(
+        { ...input, app: 'beta', module: 'custom/topo.ts' },
+        { cwd: root }
+      );
+      expect(app.value).toMatchObject({
+        app: { configured: true, id: 'beta', modulePath: 'custom/topo.ts' },
+        projectRoot: workspaceRoot,
+        selectionProvenance: 'app',
+      });
+      const unknown = await resolveOperatorProjectContext(
+        { ...input, app: 'ghost' },
+        { cwd: root }
+      );
+      expect(unknown.error?.context).toMatchObject({
+        configuredAppIds: ['alpha', 'beta'],
+        reason: 'unknown-app',
+      });
+      const module = await resolveOperatorProjectContext(
+        { ...input, module: 'apps/alpha/src/app.ts' },
+        { cwd: root }
+      );
+      expect(module.error?.context).toMatchObject({
+        reason: 'invalid-binding',
+      });
+    }
+  );
+
+  test.each([
+    [false, false, undefined],
+    [false, false, 'alpha'],
+    [false, true, undefined],
+    [false, true, 'alpha'],
+    [true, false, undefined],
+    [true, false, 'alpha'],
+    [true, true, undefined],
+    [true, true, 'alpha'],
+  ])(
+    'rejects explicit sibling selection before app selection (standalone=%s, absolute=%s, app=%s)',
+    async (standalone, absolute, app) => {
+      rmSync(join(root, 'trails.config.ts'));
+      const workspaceRoot = join(root, 'custom');
+      writeWorkspaceConfigAt(workspaceRoot, { alpha: 'apps/alpha' });
+      const cwd = join(root, standalone ? 'other' : 'shared');
+      if (standalone) {
+        mkdirSync(join(cwd, 'src'), { recursive: true });
+        writeFileSync(join(cwd, 'src', 'app.ts'), 'export const app = {};\n');
+      }
+      const result = await resolveOperatorProjectContext(
+        {
+          app,
+          configPath: absolute
+            ? join(workspaceRoot, 'trails.config.ts')
+            : '../custom/trails.config.ts',
+        },
+        { cwd }
+      );
+      expect(result.error?.context).toMatchObject({
+        reason: 'outside-project',
+      });
+    }
+  );
+
+  test.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    'preserves explicit-root app overrides from a sibling (parentRoot=%s, absolute=%s)',
+    async (parentRoot, absolute) => {
+      rmSync(join(root, 'trails.config.ts'));
+      const workspaceRoot = join(root, 'custom');
+      writeWorkspaceConfigAt(workspaceRoot, {
+        alpha: 'apps/alpha',
+        beta: 'apps/beta',
+      });
+      const relativeConfigPath = parentRoot
+        ? 'custom/trails.config.ts'
+        : 'trails.config.ts';
+      const input = {
+        app: 'beta',
+        configPath: absolute
+          ? join(workspaceRoot, 'trails.config.ts')
+          : relativeConfigPath,
+        rootDir: parentRoot ? root : workspaceRoot,
+      };
+      const context = await resolveOperatorProjectContext(input, {
+        cwd: join(root, 'shared'),
+      });
+      expect(context.value).toMatchObject({
+        app: { id: 'beta' },
+        projectRoot: workspaceRoot,
+        selectionProvenance: 'app',
+      });
+      const nested = await resolveOperatorProjectContext(
+        { ...input, configPath: 'trails.config.ts', rootDir: undefined },
+        { cwd: join(workspaceRoot, 'apps', 'alpha', 'src') }
+      );
+      expect(nested.value).toMatchObject({
+        app: { id: 'beta' },
+        projectRoot: workspaceRoot,
+        selectionProvenance: 'app',
+      });
+    }
+  );
+
+  test.each(['custom.config.ts', 'absolute'])(
+    'selects workspace identity from an explicit %s config path',
+    async (pathKind) => {
+      const configPath = join(root, 'custom.config.ts');
+      renameSync(join(root, 'trails.config.ts'), configPath);
+      const input = {
+        configPath: pathKind === 'absolute' ? configPath : 'custom.config.ts',
+      };
+
+      const workspace = await resolveOperatorProjectContext(input, {
+        cwd: root,
+      });
+      expect(workspace.isOk()).toBe(true);
+      expect(workspace.value).toMatchObject({
+        identity: { apps: [{ id: 'alpha' }, { id: 'beta' }], configPath },
+        projectRoot: root,
+        selectedExtent: 'workspace',
+        selectionProvenance: 'cwd',
+      });
+
+      const app = await resolveOperatorProjectContext(
+        { ...input, app: 'beta' },
+        { cwd: root }
+      );
+      expect(app.isOk()).toBe(true);
+      expect(app.value).toMatchObject({
+        app: { id: 'beta', modulePath: 'custom/topo.ts' },
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'app',
+      });
+
+      const withoutSelection = await resolveOperatorProjectContext(
+        {},
+        { cwd: root }
+      );
+      expect(withoutSelection.isOk()).toBe(true);
+      expect(withoutSelection.value).toMatchObject({
+        identity: { apps: [] },
+        selectedExtent: 'standalone-app',
+      });
+    }
+  );
+
+  test.each(['relative', 'absolute'] as const)(
+    'bases a %s config path at the owning workspace from nested CWD',
+    async (pathKind) => {
+      const configPath = join(root, 'trails.config.ts');
+      const input = {
+        configPath: pathKind === 'absolute' ? configPath : 'trails.config.ts',
+      };
+      const runtime = { cwd: join(root, 'apps', 'alpha', 'src') };
+      const context = await resolveOperatorProjectContext(input, runtime);
+      if (context.isErr()) {
+        throw context.error;
+      }
+      expect(context.value).toMatchObject({
+        app: { id: 'alpha' },
+        identity: { configPath },
+        projectRoot: root,
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'cwd',
+      });
+      const explicitApp = await resolveOperatorProjectContext(
+        { ...input, app: 'beta' },
+        runtime
+      );
+      expect(explicitApp.isOk()).toBe(true);
+      expect(explicitApp.value).toMatchObject({
+        app: { id: 'beta', modulePath: 'custom/topo.ts' },
+        projectRoot: root,
+        selectedExtent: 'configured-app',
+        selectionProvenance: 'app',
+      });
+    }
+  );
+
+  test.each(['relative', 'absolute', 'symlink'] as const)(
+    'rejects a %s explicit config outside a nested Git collection',
+    async (pathKind) => {
+      const nestedRoot = join(root, 'apps', 'alpha');
+      initGit(nestedRoot);
+      const outerConfig = join(root, 'trails.config.ts');
+      const configPath = {
+        absolute: outerConfig,
+        relative: '../../trails.config.ts',
+        symlink: 'selected.config.ts',
+      }[pathKind];
+      if (pathKind === 'symlink') {
+        symlinkSync(outerConfig, join(nestedRoot, configPath));
+      }
+      const result = await resolveOperatorProjectContext(
+        { configPath },
+        { cwd: nestedRoot }
+      );
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toContain('outside discovery boundary');
+    }
+  );
+
+  test('keeps explicit config selection subject to overlapping workspace validation', async () => {
+    writeWorkspaceConfigAt(join(root, 'apps', 'alpha'), {
+      inner: 'apps/inner',
+    });
+    const result = await resolveOperatorProjectContext(
+      { configPath: 'trails.config.ts' },
+      { cwd: join(root, 'apps', 'alpha') }
+    );
+    expect(result.isErr()).toBe(true);
+    expect(result.error?.message).toContain(
+      'Nested Trails workspaces are not supported'
+    );
+  });
+
   test('selects an explicit configured app from the workspace root', async () => {
     const context = expectOk<{
       readonly app: {
@@ -347,6 +618,28 @@ describe('resolveOperatorProjectContext', () => {
       });
     });
   });
+
+  test.each(['trails.config.ts', 'selected.config.ts'] as const)(
+    'bases %s at the standalone source owner from nested CWD',
+    async (configPath) => {
+      rmSync(join(root, 'trails.config.ts'));
+      writeFileSync(join(root, configPath), 'export default {};\n');
+      mkdirSync(join(root, 'src', 'trails'), { recursive: true });
+      writeFileSync(join(root, 'src', 'app.ts'), 'export default {};\n');
+
+      const context = await resolveOperatorProjectContext(
+        { configPath },
+        { cwd: join(root, 'src', 'trails') }
+      );
+      expect(context.isOk()).toBe(true);
+      expect(context.value).toMatchObject({
+        app: { configured: false, modulePath: 'src/app.ts', rootDir: root },
+        identity: { configPath: join(root, configPath) },
+        projectRoot: root,
+        selectedExtent: 'standalone-app',
+      });
+    }
+  );
 
   test('keeps a nested app root ahead of an ancestor non-workspace config', async () => {
     writeFileSync(
