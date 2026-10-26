@@ -112,18 +112,54 @@ class Err<E> {
 
 export type Result<T, E = Error> = Ok<T, E> | Err<E>;
 
+type ResultValue<R> = R extends Ok<infer T, unknown> ? T : never;
+type ResultError<R> =
+  R extends Ok<unknown, infer E> ? E : R extends Err<infer E> ? E : never;
+type CombinedValues<
+  T extends readonly Result<unknown, unknown>[],
+  Value = ResultValue<T[number]>,
+> = T extends readonly Result<unknown, unknown>[]
+  ? T[number][] extends T
+    ? Value[]
+    : { [K in keyof T]: ResultValue<T[K]> }
+  : never;
+
+/**
+ * Collect all success values, or return the first error in input order.
+ *
+ * Tuple positions and readonly/mutable tuple modifiers are preserved; ordinary
+ * arrays produce mutable value arrays. Error types are unioned across inputs.
+ * This synchronous aggregation does not execute trails or await promises.
+ * Await batch `ctx.compose()` first: it owns execution and settles every branch
+ * before combination, even when a branch fails.
+ *
+ * @example
+ * ```ts
+ * const results = await ctx.compose([[loadProfile, { userId }], [loadOrders, { userId }]] as const);
+ * const combined = Result.combine(results);
+ * // Result<readonly [Profile, Order[]], Error>
+ * ```
+ */
+function combine<T extends readonly Result<unknown, unknown>[]>(
+  results: T
+): Result<CombinedValues<T>, ResultError<T[number]>>;
+function combine<T, E>(results: readonly Result<T, E>[]): Result<T[], E>;
+function combine(
+  results: readonly Result<unknown, unknown>[]
+): Result<unknown[], unknown> {
+  const values: unknown[] = [];
+  for (const result of results) {
+    if (result.isErr()) {
+      return new Err(result.error);
+    }
+    values.push(result.value);
+  }
+  return new Ok(values);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export const Result = {
-  combine<T, E>(results: readonly Result<T, E>[]): Result<T[], E> {
-    const values: T[] = [];
-    for (const result of results) {
-      if (result.isErr()) {
-        return new Err(result.error);
-      }
-      values.push(result.value);
-    }
-    return new Ok(values);
-  },
+  combine,
 
   err<E>(error: E): Err<E> {
     return new Err(error);
