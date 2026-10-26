@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1380-warden-falsely-marks-freshly-compiled-locks-stale-after",
-          "sha": "ab333bfc60ff2dbe9af2fc5acd664ffd832e447a",
+          "sha": "e38ec322cf8498004d03410469829bfa39122a08",
           "sourceKind": "current"
         }
       },
@@ -412,14 +412,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1380-warden-falsely-marks-freshly-compiled-locks-stale-after",
-          "sha": "ab333bfc60ff2dbe9af2fc5acd664ffd832e447a",
+          "sha": "e38ec322cf8498004d03410469829bfa39122a08",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:60c9c67a8aab471b6d4e28ea4356b09a79f9eac27bc0f47045b37e27b45d965d",
+  "provenanceHash": "sha256:0c185d76ca86e3d720e85e64f7d6a66be76c2a71780a0058f6c08a494b0444fb",
   "renderResults": [
     {
       "destination": "changelog",
