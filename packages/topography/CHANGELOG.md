@@ -1,5 +1,19 @@
 # @ontrails/topography
 
+## 0.2.5
+
+### Patch Changes
+
+- [`adbc768`](https://github.com/outfitter-dev/trails/commit/adbc768341dd788c393915a47828626eef2fb3d0): Report Wayfinder lock hash, summary, and missing topo artifact contradictions even
+  without a readable Topography store. Consistent locks without a store still report
+  missing artifacts; unreadable graph and manifest schemas keep regeneration status.
+- [`7f1d3dc`](https://github.com/outfitter-dev/trails/commit/7f1d3dc2030236f4f17dbf0295b0efe330114f8c): Keep workspace Wayfinder child queries, includes, relations, and overlays on one captured lock generation. Retry the query if a lock changes during snapshot capture.
+- [`003c754`](https://github.com/outfitter-dev/trails/commit/003c754890c407f563c2ae9005b58b81b5c61544): Share the workspace discovery ignored-directory profile, including `.cache`,
+  between static Config discovery and the workspace lock census. Prune ignored
+  descendants of configured apps while preserving traversal to explicitly configured
+  roots beneath ignored ancestors. Cached config markers and locks no longer imply
+  additional workspace or app ownership during outer discovery.
+
 ## 0.2.4
 
 No changes in this release.

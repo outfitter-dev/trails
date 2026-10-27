@@ -1,5 +1,11 @@
 # @ontrails/warden
 
+## 0.2.5
+
+### Patch Changes
+
+- [`447b14a`](https://github.com/outfitter-dev/trails/commit/447b14aeea3aee031ac84cfae8ba69475475158a): Compare committed and current topo contracts without historical force audit metadata, while verifying the committed artifact hash before drift comparison.
+
 ## 0.2.4
 
 No changes in this release.
