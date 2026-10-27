@@ -877,6 +877,85 @@ const withTempProject = async (
 };
 
 describe('trails create', () => {
+  describe.each(['standalone', 'workspace'] as const)(
+    '%s Node types scaffold reruns',
+    (layout) => {
+      const workspace = layout === 'workspace';
+
+      test('upgrades the prior generated Node types pin on rerun', async () => {
+        await withTempProject(async (dir) => {
+          expectOk(await runCreate(dir, { verify: false, workspace }));
+          const appDir = workspace ? join(dir, 'apps', basename(dir)) : dir;
+          const manifest = readJson(appDir, 'package.json');
+          const devDependencies = manifest['devDependencies'] as Record<
+            string,
+            string
+          >;
+          devDependencies['@types/node'] = '^25.5.0';
+          devDependencies['custom-dev'] = '1.0.0';
+          writeFileSync(
+            join(appDir, 'package.json'),
+            `${JSON.stringify(manifest, null, 2)}\n`
+          );
+          const priorManifest = readText(appDir, 'package.json');
+          const appSource = readText(appDir, 'src/app.ts');
+
+          expectOk(
+            await runCreate(dir, { dryRun: true, verify: false, workspace })
+          );
+          expect(readText(appDir, 'package.json')).toBe(priorManifest);
+
+          expectOk(await runCreate(dir, { verify: false, workspace }));
+          const upgraded = readJson(appDir, 'package.json')[
+            'devDependencies'
+          ] as Record<string, string>;
+          expect(upgraded['@types/node']).toBe(
+            scaffoldDependencyVersions.nodeTypes
+          );
+          expect(upgraded['custom-dev']).toBe('1.0.0');
+          expect(readText(appDir, 'src/app.ts')).toBe(appSource);
+
+          const currentManifest = readText(appDir, 'package.json');
+          expectOk(await runCreate(dir, { verify: false, workspace }));
+          expect(readText(appDir, 'package.json')).toBe(currentManifest);
+        });
+      });
+
+      test.each(['^25.5.1', '~25.5.0', '25.5.0', '^26.0.0'])(
+        'rejects customized Node types %s without writing',
+        async (pin) => {
+          await withTempProject(async (dir) => {
+            expectOk(await runCreate(dir, { verify: false, workspace }));
+            const appDir = workspace ? join(dir, 'apps', basename(dir)) : dir;
+            const manifest = readJson(appDir, 'package.json');
+            (manifest['devDependencies'] as Record<string, string>)[
+              '@types/node'
+            ] = pin;
+            writeFileSync(
+              join(appDir, 'package.json'),
+              `${JSON.stringify(manifest, null, 2)}\n`
+            );
+            const appManifest = readText(appDir, 'package.json');
+            const rootManifest = readText(dir, 'package.json');
+            rmSync(join(appDir, 'tsconfig.json'));
+
+            const error = expectErr(
+              await runCreate(dir, { verify: false, workspace })
+            );
+
+            expect(error).toBeInstanceOf(ValidationError);
+            expect(error.message).toContain(
+              'Cannot reconcile the existing app package.json'
+            );
+            expect(readText(appDir, 'package.json')).toBe(appManifest);
+            expect(readText(dir, 'package.json')).toBe(rootManifest);
+            expectPaths(appDir, ['tsconfig.json'], false);
+          });
+        }
+      );
+    }
+  );
+
   describe('create mode', () => {
     test('generates project structure with defaults', async () => {
       await withTempProject(async (dir) => {

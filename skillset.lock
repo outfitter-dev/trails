@@ -299,7 +299,7 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "sha": "a87e06d462fcab6952f72e33acaa0941fde8c20c",
+          "sha": "23316714ecc8b8ddd1a77f928b61358201aa537d",
           "sourceKind": "current"
         }
       },
@@ -410,14 +410,14 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "sha": "a87e06d462fcab6952f72e33acaa0941fde8c20c",
+          "sha": "23316714ecc8b8ddd1a77f928b61358201aa537d",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:7fdef8a2f0ec54fb15f7887d25a3447bb8f448774ff7b96d6ea0f152e46220a1",
+  "provenanceHash": "sha256:7bd150fe764a62f2728222ef05e1748d3ad192727d64ce9fb468983ee8dc03ca",
   "renderResults": [
     {
       "destination": "changelog",

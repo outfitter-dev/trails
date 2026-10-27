@@ -77,7 +77,7 @@
     "@ontrails/warden": "workspace:*",
     "@skillset/cli": "0.27.0",
     "@types/bun": "^1.4.3",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.9.9",
     "knip": "^6.12.2",
     "lefthook": "^2.1.1",
     "markdownlint-cli2": "^0.22.0",
