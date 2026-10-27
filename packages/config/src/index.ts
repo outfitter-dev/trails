@@ -36,6 +36,7 @@ export {
   type TrailsWorkspaceAppConfig,
   type TrailsWorkspaceConfig,
 } from './workspace-config.js';
+export { workspaceIgnoredDirectoryNames } from './workspace-config-collection.js';
 export {
   loadTrailsConfigFileValue,
   loadTrailsConfigValue,

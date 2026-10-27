@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1302-keep-fresh-app-load-mirrors-outside-read-only-target",
-          "sha": "71b2d479340565bf43fa919e947e6395cd293f77",
+          "sha": "214388411baf82b123929301b730f7172798d1db",
           "sourceKind": "current"
         }
       },
@@ -412,14 +412,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1302-keep-fresh-app-load-mirrors-outside-read-only-target",
-          "sha": "71b2d479340565bf43fa919e947e6395cd293f77",
+          "sha": "214388411baf82b123929301b730f7172798d1db",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:41069ee0f1630e2a43066219b2b8ecdc5b36c29d63c871c17e646e5dae3fc44a",
+  "provenanceHash": "sha256:3ab9442e6edf3bfa97d81f5cd9552db269794f13cb0be014669461b8ba8ec093",
   "renderResults": [
     {
       "destination": "changelog",

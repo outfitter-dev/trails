@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 
 import { ValidationError } from '@ontrails/core';
 
+import { workspaceIgnoredDirectoryNames } from '../index.js';
 import { loadTrailsConfigFileValue } from '../trails-config-file.js';
 import { readTrailsProjectIdentity } from '../workspace-config.js';
 
@@ -1930,7 +1931,13 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
     });
   });
 
-  for (const ignoredDirectory of ['node_modules', 'dist'] as const) {
+  for (const ignoredDirectory of [
+    '.cache',
+    '.turbo',
+    'coverage',
+    'dist',
+    'node_modules',
+  ] as const) {
     test(`finds a configured nested workspace below ${ignoredDirectory} from both invocation roots`, async () => {
       await withTempDir(async (rootDir) => {
         const appRoot = join(rootDir, ignoredDirectory, 'demo');
@@ -1977,8 +1984,14 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
     });
   }
 
-  for (const ignoredDirectory of ['node_modules', 'dist'] as const) {
-    test(`finds a nested workspace inside configured app ${ignoredDirectory} from both invocation roots`, async () => {
+  for (const ignoredDirectory of [
+    '.cache',
+    '.turbo',
+    'coverage',
+    'dist',
+    'node_modules',
+  ] as const) {
+    test(`prunes a nested workspace inside configured app ${ignoredDirectory} from outer discovery`, async () => {
       await withTempDir(async (rootDir) => {
         const appRoot = join(rootDir, 'apps/demo');
         const nestedRoot = join(appRoot, ignoredDirectory, 'nested');
@@ -1996,27 +2009,58 @@ export default defineConfig({ workspace: { apps: { demo: { root: 'apps/demo' } }
         );
 
         for (const startDir of [rootDir, appRoot]) {
-          try {
-            await readTrailsProjectIdentity({
-              boundaryDir: rootDir,
-              startDir,
-            });
-            throw new Error(
-              `Expected nested workspace conflict from ${startDir}`
-            );
-          } catch (error) {
-            expect(error).toBeInstanceOf(ValidationError);
-            expect((error as ValidationError).message).toContain(
-              'Nested Trails workspaces are not supported'
-            );
-            expect((error as ValidationError).context['configPaths']).toEqual(
-              expect.arrayContaining([childConfig, parentConfig])
-            );
-          }
+          const result = await readTrailsProjectIdentity({
+            boundaryDir: rootDir,
+            startDir,
+          });
+          expect(result.configPath).toBe(parentConfig);
+          expect(result.apps.map((app) => app.id)).toEqual(['demo']);
         }
+
+        const bounded = await readTrailsProjectIdentity({
+          boundaryDir: nestedRoot,
+          configPath: childConfig,
+          startDir: nestedRoot,
+        });
+        expect(bounded.configPath).toBe(childConfig);
+        expect(bounded.apps.map((app) => app.id)).toEqual(['nested']);
       });
     });
   }
+
+  test('keeps the shared workspace discovery profile immutable', () => {
+    expect(workspaceIgnoredDirectoryNames).toEqual([
+      '.cache',
+      '.turbo',
+      'coverage',
+      'dist',
+      'node_modules',
+    ]);
+    expect(Object.isFrozen(workspaceIgnoredDirectoryNames)).toBe(true);
+  });
+
+  test('prunes cached workspace markers inside a workspace-root app', async () => {
+    await withTempDir(async (rootDir) => {
+      const configPath = await writeFile(
+        rootDir,
+        'trails.config.json',
+        JSON.stringify({ workspace: { apps: { demo: { root: '.' } } } })
+      );
+      await writeFile(
+        rootDir,
+        '.cache/nested/trails.config.json',
+        JSON.stringify({ workspace: { apps: { cached: { root: '.' } } } })
+      );
+
+      const identity = await readTrailsProjectIdentity({
+        boundaryDir: rootDir,
+        startDir: rootDir,
+      });
+
+      expect(identity.configPath).toBe(configPath);
+      expect(identity.apps.map((app) => app.id)).toEqual(['demo']);
+    });
+  });
 
   test('keeps a configured app below ignored ancestry when it has no nested workspace', async () => {
     await withTempDir(async (rootDir) => {

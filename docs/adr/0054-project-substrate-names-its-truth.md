@@ -4,7 +4,7 @@ slug: project-substrate-names-its-truth
 title: Project Substrate Names Its Truth
 status: accepted
 created: 2026-06-22
-updated: 2026-08-20
+updated: 2026-10-25
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [10, 11, 14, 15, 17, 41, 42, 46]
 ---
@@ -152,6 +152,13 @@ Selection precedence is:
 2. `--app` selects one configured app inside that boundary.
 3. Otherwise, CWD inside an app root selects that app; CWD at a configured
    workspace root selects the workspace; a standalone project selects its app.
+   When an explicit `--config-path` selects a descendant workspace from its
+   parent selection directory, it selects that workspace with `config-path`
+   provenance. `--app` still selects a configured app with `app` provenance.
+   Config owns path resolution and containment; Warden forwards that resolved
+   explicit path rather than resolving the authored path again under the
+   selected workspace. In-workspace CWD selection and omitted-config discovery
+   remain unchanged. This does not permit sibling or cross-collection selection.
 4. `--module` is an app-local or custom-layout escape hatch. It may refine
    the selected app entry, but it never changes the lock root, bypasses
    configured binding, or downgrades a workspace-wide assertion.
