@@ -14,7 +14,7 @@
 - [`0ebbb37`](https://github.com/outfitter-dev/trails/commit/0ebbb37280fa090a3dad53d0f738e3080204f777): Preserve Warden's explicit config path when resolving workspace identity and app selection. From a parent directory, an explicit descendant workspace config selects that workspace or the requested app within the discovery boundary. Workspace results report `config-path` selection provenance when the config selects the descendant workspace. Relative and absolute explicit paths reach Warden as the same resolved config file; existing in-workspace CWD selection and omitted-config discovery are unchanged.
 - [`7f1d3dc`](https://github.com/outfitter-dev/trails/commit/7f1d3dc2030236f4f17dbf0295b0efe330114f8c): Keep workspace Wayfinder child queries, includes, relations, and overlays on one captured lock generation. Retry the query if a lock changes during snapshot capture.
 - [`b84a0f8`](https://github.com/outfitter-dev/trails/commit/b84a0f898336046f09fc86dadc440eaeebd9ad64): Refresh the generated Node type scaffold pin to the compatible Node 25 declaration line.
-  
+
   Reconcile the prior generated `@types/node` range (`^25.5.0`) to the current scaffold pin when rerunning `trails create` for standalone and workspace apps. Customized ranges still fail closed.
 
 ## 0.2.4
