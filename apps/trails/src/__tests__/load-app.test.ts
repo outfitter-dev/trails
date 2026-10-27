@@ -5,15 +5,18 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  renameSync,
   symlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { PermissionError, ValidationError } from '@ontrails/core';
+
+import { createLoadAppMirrorRootPath } from '../load-app-mirror.js';
 
 import {
   loadApp,
@@ -274,39 +277,39 @@ const assertLoadAppPreservesBinarySiblings = async (
 };
 
 /**
- * Seed a stale mirror dir under `.trails-tmp/` with an mtime well past the
+ * Seed an abandoned mirror dir with an mtime well past the
  * 10-minute freshness threshold, simulating a directory abandoned by a
  * signal-killed process.
  */
 const seedStaleMirrorDir = (cwd: string): string => {
   mkdirSync(resolve(cwd, 'src'), { recursive: true });
   writeLoadAppFixture(cwd, 'stale-cleanup');
-  const mirrorParent = resolve(cwd, '.trails-tmp');
-  const staleDir = resolve(mirrorParent, 'load-app-fresh-stale-fixture');
-  mkdirSync(staleDir, { recursive: true });
+  const allocated = createLoadAppMirrorRootPath(cwd);
+  const staleDir = resolve(
+    dirname(allocated),
+    `load-app-fresh-2147483647-${basename(allocated).split('-').at(-1)}`
+  );
+  renameSync(allocated, staleDir);
   writeFileSync(resolve(staleDir, 'marker'), 'stale');
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   utimesSync(staleDir, oneHourAgo, oneHourAgo);
   return staleDir;
 };
 
-const assertStaleDirCleaned = (cwd: string, staleDir: string): void => {
+const assertStaleDirCleaned = (staleDir: string): void => {
   expect(existsSync(staleDir)).toBe(false);
-  const mirrorParent = resolve(cwd, '.trails-tmp');
-  const remaining = readdirSync(mirrorParent).filter((entry) =>
-    entry.startsWith('load-app-fresh-')
-  );
-  expect(remaining.length).toBeGreaterThan(0);
 };
 
-const countFreshMirrorRoots = (cwd: string): number => {
-  const mirrorParent = resolve(cwd, '.trails-tmp');
+const countFreshMirrorRoots = (): number => {
+  const allocated = createLoadAppMirrorRootPath(process.cwd());
+  const mirrorParent = dirname(allocated);
+  rmSync(allocated, { recursive: true });
   if (!existsSync(mirrorParent)) {
     return 0;
   }
 
   return readdirSync(mirrorParent).filter((entry) =>
-    entry.startsWith('load-app-fresh-')
+    entry.startsWith(`load-app-fresh-${process.pid}-`)
   ).length;
 };
 
@@ -657,7 +660,7 @@ export const app = {
     try {
       const staleDir = seedStaleMirrorDir(cwd);
       await loadApp('./src/app.ts', cwd, { fresh: true });
-      assertStaleDirCleaned(cwd, staleDir);
+      assertStaleDirCleaned(staleDir);
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }
@@ -777,6 +780,7 @@ export const app = {
     try {
       mkdirSync(resolve(cwd, 'src'), { recursive: true });
 
+      const before = countFreshMirrorRoots();
       for (let index = 0; index < 6; index += 1) {
         writeLoadAppFixture(cwd, `retained-${String(index)}`);
         await loadApp('./src/app.ts', cwd, { fresh: true });
@@ -785,7 +789,8 @@ export const app = {
       // All fresh mirrors stay on disk for the lifetime of the process so a
       // previously returned Topo can still resolve deferred relative
       // `import()` calls. Cleanup happens on process exit, not by LRU age.
-      expect(countFreshMirrorRoots(cwd)).toBe(6);
+      expect(countFreshMirrorRoots()).toBe(before + 6);
+      expect(existsSync(resolve(cwd, '.trails-tmp'))).toBe(false);
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }

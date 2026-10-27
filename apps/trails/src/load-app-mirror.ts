@@ -1,4 +1,11 @@
-import { mkdirSync, rmSync } from 'node:fs';
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import {
   basename,
   dirname,
@@ -20,12 +27,51 @@ import {
 // Result types readable without colliding with the value import.
 import type { Result as TrailsResult } from '@ontrails/core';
 
-export const LOAD_APP_MIRROR_PARENT_DIRNAME = '.trails-tmp';
+export const LOAD_APP_MIRROR_PARENT_DIRNAME = `trails-load-app-${process.getuid?.() ?? 'user'}`;
 
 export const LOAD_APP_MIRROR_ENTRY_PREFIX = 'load-app-fresh-';
 
-const asError = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(String(error));
+const MIRROR_OWNERS = new Set<string>();
+
+const filesystemCode = (error: unknown): string =>
+  error instanceof Error && 'code' in error && typeof error.code === 'string'
+    ? error.code
+    : 'UNKNOWN';
+
+export const loadAppMirrorFailure = (
+  operation: 'allocate' | 'write',
+  error: unknown
+): PermissionError | ValidationError => {
+  const code = filesystemCode(error);
+  const ErrorClass =
+    error instanceof PermissionError ||
+    ['EACCES', 'EPERM', 'EROFS'].includes(code)
+      ? PermissionError
+      : ValidationError;
+  return new ErrorClass(
+    `Cannot ${operation} fresh app-load scratch data in the OS temporary owner. Check temporary-directory permissions and free space, or set TMPDIR to a writable location outside the target worktree.`,
+    { context: { boundary: 'load-app-scratch', code, operation } }
+  );
+};
+
+const unsafeMirrorPath = (): PermissionError =>
+  new PermissionError('Refusing an unsafe load-app scratch path.', {
+    context: { boundary: 'load-app-scratch' },
+  });
+
+const validateMirrorOwner = (owner: string): void => {
+  const stat = lstatSync(owner);
+  // oxlint-disable-next-line no-bitwise -- filesystem permission mask
+  const exposedPermissions = stat.mode & 0o077;
+  if (
+    !stat.isDirectory() ||
+    realpathSync(owner) !== owner ||
+    (process.getuid !== undefined &&
+      (stat.uid !== process.getuid() || exposedPermissions !== 0))
+  ) {
+    throw unsafeMirrorPath();
+  }
+};
 
 const validateMirrorRoot = (
   mirrorRoot: string
@@ -33,15 +79,21 @@ const validateMirrorRoot = (
   const resolved = resolve(mirrorRoot);
   const mirrorParent = dirname(resolved);
 
-  return basename(mirrorParent) === LOAD_APP_MIRROR_PARENT_DIRNAME &&
-    basename(resolved).startsWith(LOAD_APP_MIRROR_ENTRY_PREFIX)
-    ? Result.ok(resolved)
-    : Result.err(
-        new PermissionError(
-          `Refusing to write or remove non-load-app mirror path "${mirrorRoot}"`,
-          { context: { mirrorRoot: resolved } }
-        )
-      );
+  if (
+    !MIRROR_OWNERS.has(mirrorParent) ||
+    !/^load-app-fresh-\d+-[\dA-Za-z]+$/.test(basename(resolved))
+  ) {
+    return Result.err(unsafeMirrorPath());
+  }
+  try {
+    validateMirrorOwner(mirrorParent);
+    const stat = lstatSync(resolved, { throwIfNoEntry: false });
+    return stat === undefined || (stat.isDirectory() && !stat.isSymbolicLink())
+      ? Result.ok(resolved)
+      : Result.err(unsafeMirrorPath());
+  } catch {
+    return Result.err(unsafeMirrorPath());
+  }
 };
 
 const isPathInside = (root: string, target: string): boolean => {
@@ -49,6 +101,16 @@ const isPathInside = (root: string, target: string): boolean => {
   return (
     candidate === '' || (!candidate.startsWith('..') && !isAbsolute(candidate))
   );
+};
+
+const assertNoMirrorSymlinks = (target: string, root: string): void => {
+  let current = target;
+  while (current !== root) {
+    if (lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+      throw unsafeMirrorPath();
+    }
+    current = dirname(current);
+  }
 };
 
 const resolveAbsoluteSourcePath = (
@@ -74,26 +136,18 @@ export const ensureLoadAppMirrorDirectory = (
 
   const target = resolve(directoryPath);
   if (!isPathInside(root.value, target)) {
-    return Result.err(
-      new PermissionError(
-        `Refusing to create load-app mirror directory outside "${root.value}"`,
-        { context: { directoryPath: target, mirrorRoot: root.value } }
-      )
-    );
+    return Result.err(unsafeMirrorPath());
   }
 
   try {
+    assertNoMirrorSymlinks(target, root.value);
     mkdirSync(target, { recursive: true });
     return Result.ok();
   } catch (error) {
     return Result.err(
-      new InternalError(
-        `Failed to create load-app mirror directory "${target}"`,
-        {
-          cause: asError(error),
-          context: { directoryPath: target, mirrorRoot: root.value },
-        }
-      )
+      error instanceof PermissionError
+        ? error
+        : loadAppMirrorFailure('write', error)
     );
   }
 };
@@ -141,17 +195,27 @@ export const writeLoadAppMirrorFile = async (
     return mirrorPath;
   }
 
+  let bytes: Uint8Array;
   try {
+    bytes = await Bun.file(sourcePath).bytes();
+  } catch (error) {
+    return Result.err(
+      new ValidationError('Failed to read app-load source file.', {
+        context: { boundary: 'load-app-source', code: filesystemCode(error) },
+      })
+    );
+  }
+
+  try {
+    assertNoMirrorSymlinks(mirrorPath.value, resolve(mirrorRoot));
     mkdirSync(dirname(mirrorPath.value), { recursive: true });
-    const bytes = await Bun.file(sourcePath).bytes();
     await Bun.write(mirrorPath.value, bytes);
     return Result.ok(mirrorPath.value);
   } catch (error) {
     return Result.err(
-      new InternalError(`Failed to mirror load-app file "${sourcePath}"`, {
-        cause: asError(error),
-        context: { mirrorPath: mirrorPath.value, mirrorRoot, sourcePath },
-      })
+      error instanceof PermissionError
+        ? error
+        : loadAppMirrorFailure('write', error)
     );
   }
 };
@@ -169,9 +233,8 @@ export const removeLoadAppMirrorRoot = (
     return Result.ok();
   } catch (error) {
     return Result.err(
-      new InternalError(`Failed to remove load-app mirror "${mirrorRoot}"`, {
-        cause: asError(error),
-        context: { mirrorRoot: root.value },
+      new InternalError('Failed to remove load-app scratch data.', {
+        context: { boundary: 'load-app-scratch', code: filesystemCode(error) },
       })
     );
   }
@@ -192,11 +255,25 @@ export const removeLoadAppMirrorRootQuietly = (mirrorRoot: string): void => {
   }
 };
 
-export const createLoadAppMirrorRootPath = (cwd: string): string =>
-  join(
-    resolve(cwd),
-    LOAD_APP_MIRROR_PARENT_DIRNAME,
-    `${LOAD_APP_MIRROR_ENTRY_PREFIX}${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}`
-  );
+export const createLoadAppMirrorRootPath = (
+  cwd: string,
+  temporaryDirectory: string = tmpdir()
+): string => {
+  try {
+    const owner = join(
+      realpathSync(temporaryDirectory),
+      LOAD_APP_MIRROR_PARENT_DIRNAME
+    );
+    if (isPathInside(realpathSync(cwd), owner)) {
+      throw unsafeMirrorPath();
+    }
+    mkdirSync(owner, { mode: 0o700, recursive: true });
+    validateMirrorOwner(owner);
+    MIRROR_OWNERS.add(owner);
+    return mkdtempSync(
+      join(owner, `${LOAD_APP_MIRROR_ENTRY_PREFIX}${process.pid}-`)
+    );
+  } catch (error) {
+    throw loadAppMirrorFailure('allocate', error);
+  }
+};

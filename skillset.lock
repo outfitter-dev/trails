@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "trl-1329-thread-one-lock-generation-through-workspace-wayfind-child",
-          "sha": "7b0cc477ee505369051e2fdf6962765e044f16dc",
+          "ref": "trl-1302-keep-fresh-app-load-mirrors-outside-read-only-target",
+          "sha": "214388411baf82b123929301b730f7172798d1db",
           "sourceKind": "current"
         }
       },
@@ -411,15 +411,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "trl-1329-thread-one-lock-generation-through-workspace-wayfind-child",
-          "sha": "7b0cc477ee505369051e2fdf6962765e044f16dc",
+          "ref": "trl-1302-keep-fresh-app-load-mirrors-outside-read-only-target",
+          "sha": "214388411baf82b123929301b730f7172798d1db",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:0a219900add8574540c5b5da8f2c99232661e3092779bc733650e56df7ae033f",
+  "provenanceHash": "sha256:3ab9442e6edf3bfa97d81f5cd9552db269794f13cb0be014669461b8ba8ec093",
   "renderResults": [
     {
       "destination": "changelog",
