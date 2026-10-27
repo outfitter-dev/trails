@@ -1,5 +1,11 @@
 # @ontrails/store
 
+## 0.2.5
+
+### Patch Changes
+
+- [`3aeec25`](https://github.com/outfitter-dev/trails/commit/3aeec2536b4cca43890e358dd4d3bff8705216de): Emit scoped store-derived created, updated, and removed signals for successful JSON-file mutations through `db.from(ctx)`. Classify changes under the existing table lock, await emission after persistence, and keep failed writes and raw connections silent. Emission and diagnostic failures do not mask persisted writes.
+
 ## 0.2.4
 
 No changes in this release.

@@ -1,5 +1,22 @@
 # trails
 
+## 0.2.5
+
+### Patch Changes
+
+- [`45b11d1`](https://github.com/outfitter-dev/trails/commit/45b11d11be0af3b687fda5a281df99e513f36841): Keep fresh app-load mirrors in a private OS temporary owner outside the target worktree, so live Wayfinder and other read-oriented consumers work with read-only targets. Preserve import and lease lifetimes, guard scratch cleanup, and report actionable scratch allocation and write errors in ordinary JSON output.
+- [`fc00f05`](https://github.com/outfitter-dev/trails/commit/fc00f0583aa53a77625ef71390761c29b7605b1f): Generate new projects with Bun 1.4 type declarations instead of the 1.3 line.
+  The package consumer engine floor is Bun 1.4.0; repository development uses the
+  existing Bun 1.4.2 pin. Bootstrap repairs older runtimes to that pin rather than
+  accepting them directly. Strict checkout mode still requires the exact pin,
+  and local compatible mode accepts only the pinned or newer 1.4 patch.
+- [`d6fd8f9`](https://github.com/outfitter-dev/trails/commit/d6fd8f96e3e97a863dc39244bce7d606637806b3): Align example table columns and truncate input previews by terminal display cells, preserving Unicode graphemes and ANSI styles without changing ordinary ASCII output.
+- [`0ebbb37`](https://github.com/outfitter-dev/trails/commit/0ebbb37280fa090a3dad53d0f738e3080204f777): Preserve Warden's explicit config path when resolving workspace identity and app selection. From a parent directory, an explicit descendant workspace config selects that workspace or the requested app within the discovery boundary. Workspace results report `config-path` selection provenance when the config selects the descendant workspace. Relative and absolute explicit paths reach Warden as the same resolved config file; existing in-workspace CWD selection and omitted-config discovery are unchanged.
+- [`7f1d3dc`](https://github.com/outfitter-dev/trails/commit/7f1d3dc2030236f4f17dbf0295b0efe330114f8c): Keep workspace Wayfinder child queries, includes, relations, and overlays on one captured lock generation. Retry the query if a lock changes during snapshot capture.
+- [`b84a0f8`](https://github.com/outfitter-dev/trails/commit/b84a0f898336046f09fc86dadc440eaeebd9ad64): Refresh the generated Node type scaffold pin to the compatible Node 25 declaration line.
+
+  Reconcile the prior generated `@types/node` range (`^25.5.0`) to the current scaffold pin when rerunning `trails create` for standalone and workspace apps. Customized ranges still fail closed.
+
 ## 0.2.4
 
 ### Patch Changes

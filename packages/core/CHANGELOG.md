@@ -1,5 +1,14 @@
 # @ontrails/core
 
+## 0.2.5
+
+### Patch Changes
+
+- [`25f4952`](https://github.com/outfitter-dev/trails/commit/25f49529b761a0927f35e5943646202f11aa6d10): Preserve both object refinements when validating composed inputs across supported Zod versions, including omitted optional composition-only fields.
+
+  Compatibility: the exported `buildComposeValidationSchema` now returns a validation wrapper for object inputs rather than a `ZodObject`. Its runtime identity changes, and `.shape` and object-schema methods are no longer available on the result. Inspect the unchanged authored `trail.input` and `trail.composeInput` schemas instead.
+- [`4ac05bf`](https://github.com/outfitter-dev/trails/commit/4ac05bfd991e358250d277c2eee0c9967605f877): Preserve heterogeneous tuple success positions, readonly/mutable tuple modifiers, and error unions in `Result.combine()`. Typed `ctx.compose()` batches can now be combined directly without casts. Synchronous first-error-by-input-order behavior and homogeneous array support are unchanged (TRL-1294).
+
 ## 0.2.4
 
 No changes in this release.

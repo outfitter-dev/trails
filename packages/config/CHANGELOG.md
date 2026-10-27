@@ -1,5 +1,17 @@
 # @ontrails/config
 
+## 0.2.5
+
+### Patch Changes
+
+- [`50c747d`](https://github.com/outfitter-dev/trails/commit/50c747d9b50e20bff505e39dd011b1b1d921a1c6): Allow finite numeric literal computed deployment keys when reading static workspace identity, without evaluating deployment expressions or relaxing workspace identity rules.
+- [`003c754`](https://github.com/outfitter-dev/trails/commit/003c754890c407f563c2ae9005b58b81b5c61544): Share the workspace discovery ignored-directory profile, including `.cache`,
+  between static Config discovery and the workspace lock census. Prune ignored
+  descendants of configured apps while preserving traversal to explicitly configured
+  roots beneath ignored ancestors. Cached config markers and locks no longer imply
+  additional workspace or app ownership during outer discovery.
+- [`2331671`](https://github.com/outfitter-dev/trails/commit/23316714ecc8b8ddd1a77f928b61358201aa537d): Update the `yaml` parser used for static workspace identity analysis to the compatible 2.9 release line. Configuration-value parsing continues to use `Bun.YAML.parse`.
+
 ## 0.2.4
 
 ### Patch Changes
