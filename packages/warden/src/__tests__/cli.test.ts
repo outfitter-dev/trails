@@ -16,7 +16,9 @@ import {
   deriveTopoGraphHash,
   LOCK_MANIFEST_SCHEMA_VERSION,
   writeLockManifest,
+  writeTopoGraph,
 } from '@ontrails/topography';
+import type { TopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 
 import {
@@ -166,16 +168,23 @@ const writeProjectAwareRule = (rootDir: string): string => {
   return rulePath;
 };
 
-const writeManifest = (rootDir: string, hash: string): Promise<string> =>
-  writeLockManifest(
+const writeManifest = async (
+  rootDir: string,
+  graph: TopoGraph
+): Promise<string> => {
+  await writeTopoGraph(graph, { dir: deriveTrailsDir({ rootDir }) });
+  return writeLockManifest(
     {
-      artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+      artifacts: [
+        { path: 'topo.lock', role: 'topo', sha256: deriveTopoGraphHash(graph) },
+      ],
       scope: { app: 'fixture.primary' },
       summary: { entities: 0, resources: 0, signals: 0, trails: 1 },
       version: LOCK_MANIFEST_SCHEMA_VERSION,
     },
     { dir: deriveTrailsDir({ rootDir }) }
   );
+};
 
 const buildFixtureTopo = (name = 'fixture') => {
   const echo = trail('fixture.echo', {
@@ -990,7 +999,7 @@ export const updated = signal('entity.updated', {
       });
       const admin = topo('fixture.admin', { adminTrail });
       const primaryHash = deriveTopoGraphHash(deriveTopoGraph(primary));
-      await writeManifest(dir, primaryHash);
+      await writeManifest(dir, deriveTopoGraph(primary));
 
       const report = await runWarden({
         depth: 'all',
@@ -1029,14 +1038,8 @@ export const updated = signal('entity.updated', {
       mkdirSync(adminRoot, { recursive: true });
       const primary = buildFixtureTopo('fixture.primary');
       const admin = buildFixtureTopo('fixture.admin');
-      await writeManifest(
-        primaryRoot,
-        deriveTopoGraphHash(deriveTopoGraph(primary))
-      );
-      await writeManifest(
-        adminRoot,
-        deriveTopoGraphHash(deriveTopoGraph(admin))
-      );
+      await writeManifest(primaryRoot, deriveTopoGraph(primary));
+      await writeManifest(adminRoot, deriveTopoGraph(admin));
       const targets = [
         { name: 'primary', rootDir: primaryRoot, topo: primary },
         { name: 'admin', rootDir: adminRoot, topo: admin },
@@ -1113,10 +1116,7 @@ export const updated = signal('entity.updated', {
       mkdirSync(primaryRoot, { recursive: true });
       mkdirSync(adminRoot, { recursive: true });
       const primary = buildFixtureTopo('fixture.primary');
-      await writeManifest(
-        primaryRoot,
-        deriveTopoGraphHash(deriveTopoGraph(primary))
-      );
+      await writeManifest(primaryRoot, deriveTopoGraph(primary));
 
       const report = await runWarden({
         depth: 'all',

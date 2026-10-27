@@ -7,6 +7,7 @@
  */
 
 import { existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
 import {
@@ -20,16 +21,12 @@ import {
   deriveTopoGraph,
   deriveTopoGraphHash,
   isTopoArtifactRegenerationError,
-  LOCK_MANIFEST_SCHEMA_VERSION,
   readLockManifest,
   readTopoGraph,
   readTrailsLock,
+  stripTopoGraphForces,
 } from '@ontrails/topography';
-import type {
-  DeriveTopoGraphOptions,
-  LockManifest,
-  TopoGraphOverlays,
-} from '@ontrails/topography';
+import type { DeriveTopoGraphOptions, TopoGraph } from '@ontrails/topography';
 
 /**
  * Derive options `checkDrift` accepts so the fresh comparison graph carries
@@ -52,7 +49,7 @@ export interface DriftResult {
   readonly blockedReason?: string | undefined;
   /** Whether the committed lock is out of date */
   readonly stale: boolean;
-  /** Hash from the committed trails.lock file, or null if not found */
+  /** Contract hash of the verified committed graph, or null if unavailable */
   readonly committedHash: string | null;
   /** Hash computed from the current trail topology */
   readonly currentHash: string;
@@ -69,6 +66,11 @@ interface BlockedLockRead {
   readonly kind: 'blocked-lock-read';
 }
 
+interface CommittedLock {
+  readonly contractHash: string;
+  readonly graph: TopoGraph;
+}
+
 const blockedDrift = (reason: string): DriftResult => ({
   blockedReason: reason,
   committedHash: null,
@@ -81,29 +83,54 @@ const blockedLockRead = (reason: string): BlockedLockRead => ({
   kind: 'blocked-lock-read',
 });
 
-const readCommittedLockManifest = async (
+const verifyCommittedGraph = (
+  graph: TopoGraph | null,
+  artifactHash: string
+): BlockedLockRead | CommittedLock => {
+  if (graph === null) {
+    return blockedLockRead(
+      'trails.lock references a missing topo.lock artifact. Regenerate with `trails compile`.'
+    );
+  }
+  if (deriveTopoGraphHash(graph) !== artifactHash) {
+    return blockedLockRead(
+      'trails.lock topo.lock artifact hash does not match the committed graph. Regenerate with `trails compile`.'
+    );
+  }
+  return {
+    contractHash: deriveTopoGraphHash(stripTopoGraphForces(graph)),
+    graph,
+  };
+};
+
+const readCommittedLock = async (
   rootDir: string
-): Promise<BlockedLockRead | LockManifest | null> => {
+): Promise<BlockedLockRead | CommittedLock | null> => {
   try {
     if (!(existsSync(rootDir) && statSync(rootDir).isDirectory())) {
       return null;
     }
     const rootLock = await readTrailsLock({ dir: rootDir });
     if (rootLock !== null) {
-      return {
-        artifacts: [
-          {
-            path: 'topo.lock',
-            role: 'topo',
-            sha256: rootLock.topoGraphHash,
-          },
-        ],
-        scope: rootLock.scope,
-        summary: rootLock.summary,
-        version: LOCK_MANIFEST_SCHEMA_VERSION,
-      };
+      return verifyCommittedGraph(rootLock.topoGraph, rootLock.topoGraphHash);
     }
-    return await readLockManifest({ dir: deriveTrailsDir({ rootDir }) });
+    const dir = deriveTrailsDir({ rootDir });
+    const manifest = await readLockManifest({ dir });
+    if (manifest === null) {
+      return null;
+    }
+    const artifact = manifest.artifacts.find(
+      (entry) => entry.role === 'topo' && entry.path === 'topo.lock'
+    );
+    if (artifact === undefined) {
+      return blockedLockRead(
+        'trails.lock does not contain a topo.lock artifact. Regenerate with `trails compile`.'
+      );
+    }
+    const graph = existsSync(join(dir, 'topo.lock'))
+      ? await readTopoGraph({ dir })
+      : null;
+    return verifyCommittedGraph(graph, artifact.sha256);
   } catch (error) {
     if (isTopoArtifactRegenerationError(error)) {
       return blockedLockRead(error.message);
@@ -113,39 +140,21 @@ const readCommittedLockManifest = async (
 };
 
 const isBlockedLockRead = (
-  result: BlockedLockRead | LockManifest | null
+  result: BlockedLockRead | CommittedLock | null
 ): result is BlockedLockRead =>
   result !== null && 'kind' in result && result.kind === 'blocked-lock-read';
-
-/**
- * Read the committed lock's embedded graph overlays, tolerating both the v4
- * root `trails.lock` envelope and the legacy `.trails/` artifact layout.
- */
-const readCommittedGraphOverlays = async (
-  rootDir: string
-): Promise<TopoGraphOverlays | undefined> => {
-  const committedGraph =
-    (await readTopoGraph({ dir: rootDir })) ??
-    (await readTopoGraph({ dir: deriveTrailsDir({ rootDir }) }));
-  return committedGraph?.overlays;
-};
 
 /**
  * Name the overlay namespaces whose committed facts drifted from the freshly
  * derived facts. Compares canonical JSON per namespace across the union of
  * committed and current namespaces; returns a sorted list.
  */
-const collectDriftedOverlayNamespaces = async (
-  rootDir: string,
+const collectDriftedOverlayNamespaces = (
+  graph: TopoGraph | null,
   topo: Topo,
   options: CheckDriftOptions
-): Promise<readonly string[]> => {
-  let committed: TopoGraphOverlays | undefined;
-  try {
-    committed = await readCommittedGraphOverlays(rootDir);
-  } catch {
-    return [];
-  }
+): readonly string[] => {
+  const committed = graph?.overlays;
   const current = collectTopoGraphOverlays(topo, options.overlays);
   const namespaces = new Set([
     ...Object.keys(committed ?? {}),
@@ -202,19 +211,12 @@ export const checkDrift = async (
   options?: CheckDriftOptions | undefined
 ): Promise<DriftResult> => {
   try {
-    const lockManifest = await readCommittedLockManifest(rootDir);
-    if (isBlockedLockRead(lockManifest)) {
-      return lockManifest.drift;
+    const committed = await readCommittedLock(rootDir);
+    if (isBlockedLockRead(committed)) {
+      return committed.drift;
     }
-    const topoArtifact =
-      lockManifest?.artifacts.find(
-        (artifact) => artifact.role === 'topo' && artifact.path === 'topo.lock'
-      ) ?? null;
-    if (lockManifest !== null && topoArtifact === null) {
-      return blockedDrift(
-        'trails.lock does not contain a topo.lock artifact. Regenerate with `trails compile`.'
-      );
-    }
+    const graph = committed?.graph ?? null;
+    const committedHash = committed?.contractHash ?? null;
     const readStoredHash = (): string | undefined => {
       try {
         return createTopoStore({ rootDir }).exports.get()?.topoGraphHash;
@@ -230,16 +232,16 @@ export const checkDrift = async (
         ? (readStoredHash() ?? 'unknown')
         : deriveTopoGraphHash(deriveTopoGraph(topo, options));
     const stale =
-      topoArtifact !== null &&
+      committedHash !== null &&
       currentHash !== 'unknown' &&
-      topoArtifact.sha256 !== currentHash;
+      committedHash !== currentHash;
     const driftedOverlayNamespaces =
       stale && topo !== undefined && options !== undefined
-        ? await collectDriftedOverlayNamespaces(rootDir, topo, options)
+        ? collectDriftedOverlayNamespaces(graph, topo, options)
         : undefined;
 
     return {
-      committedHash: topoArtifact?.sha256 ?? null,
+      committedHash,
       currentHash,
       ...(driftedOverlayNamespaces === undefined ||
       driftedOverlayNamespaces.length === 0

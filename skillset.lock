@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "trl-1302-keep-fresh-app-load-mirrors-outside-read-only-target",
-          "sha": "214388411baf82b123929301b730f7172798d1db",
+          "ref": "trl-1380-warden-falsely-marks-freshly-compiled-locks-stale-after",
+          "sha": "e0f11aad0f9f2f08c24b60966d3d7f9d6c02e40c",
           "sourceKind": "current"
         }
       },
@@ -411,15 +411,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "trl-1302-keep-fresh-app-load-mirrors-outside-read-only-target",
-          "sha": "214388411baf82b123929301b730f7172798d1db",
+          "ref": "trl-1380-warden-falsely-marks-freshly-compiled-locks-stale-after",
+          "sha": "e0f11aad0f9f2f08c24b60966d3d7f9d6c02e40c",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:3ab9442e6edf3bfa97d81f5cd9552db269794f13cb0be014669461b8ba8ec093",
+  "provenanceHash": "sha256:de8847e4a4c1e071dfb01ade2ef1bb5175ca3c55ba71e3c0354cb87bc4a7f73e",
   "renderResults": [
     {
       "destination": "changelog",
