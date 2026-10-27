@@ -115,7 +115,7 @@ jobs:
         run: bun scripts/adr.ts check
 
       - name: CI workflow contract
-        run: bun test scripts/__tests__/ci-workspace-context-contract.test.ts
+        run: bun test scripts/__tests__/ci-workspace-context-contract.test.ts scripts/__tests__/release-publish-target.test.ts
 
       - name: Skillset output check
         run: bun run skillset:check

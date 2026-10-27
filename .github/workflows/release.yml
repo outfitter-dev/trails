@@ -25,6 +25,7 @@ jobs:
       pull-requests: write
     outputs:
       has_changesets: ${{ steps.changesets.outputs.hasChangesets }}
+      release_sha: ${{ steps.release-target.outputs.sha }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -39,6 +40,17 @@ jobs:
           version: bun run version:packages
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Resolve prepared release commit
+        id: release-target
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          version="$(bun -e 'process.stdout.write((await Bun.file("apps/trails/package.json").json()).version)')"
+          version_target="$(git log -n 1 --format=%H -S "\"version\": \"$version\"" -- apps/trails/package.json)"
+          if [ -z "$version_target" ]; then
+            echo "Could not resolve prepared release commit for $version" >&2
+            exit 1
+          fi
+          echo "sha=$version_target" >> "$GITHUB_OUTPUT"
       - name: Label version PR
         if: steps.changesets.outputs.hasChangesets == 'true'
         env:
@@ -82,6 +94,7 @@ jobs:
       decision: ${{ steps.policy.outputs.decision }}
       publish: ${{ steps.policy.outputs.publish }}
       release: ${{ steps.policy.outputs.release }}
+      release_sha: ${{ steps.policy.outputs.release_sha }}
       should_publish: ${{ steps.policy.outputs.should_publish }}
       tag: ${{ steps.policy.outputs.tag }}
       version: ${{ steps.policy.outputs.version }}
@@ -89,6 +102,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          ref: ${{ needs.version.outputs.release_sha }}
       - uses: ./.github/actions/setup
       - name: Resolve publish policy
         id: policy
@@ -96,7 +110,10 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           TRAILS_RELEASE_POLICY_CI_ATTEMPTS: '30'
           TRAILS_RELEASE_POLICY_CI_WAIT_MS: '10000'
-        run: bun run publish:policy
+        run: |
+          release_sha="$(git rev-parse HEAD)"
+          GITHUB_SHA="$release_sha" bun run publish:policy
+          echo "release_sha=$release_sha" >> "$GITHUB_OUTPUT"
 
   publish-auto:
     name: Publish to npm automatically
@@ -111,6 +128,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          ref: ${{ needs.publish-policy.outputs.release_sha }}
       - uses: ./.github/actions/setup
       - name: Set up npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -123,7 +141,7 @@ jobs:
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: bun run publish:packages -- --trusted-publishing
+        run: GITHUB_SHA="$(git rev-parse HEAD)" bun run publish:packages -- --trusted-publishing
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 
@@ -140,6 +158,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          ref: ${{ needs.publish-policy.outputs.release_sha }}
       - uses: ./.github/actions/setup
       - name: Set up npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -152,7 +171,7 @@ jobs:
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: bun run publish:packages -- --trusted-publishing
+        run: GITHUB_SHA="$(git rev-parse HEAD)" bun run publish:packages -- --trusted-publishing
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 

@@ -171,6 +171,8 @@ The policy log separates three facts:
 
 `publish:manual` never publishes from the push event that merges the generated release PR. After the generated PR is merged and the Release workflow policy resolves to `manual`, an operator must dispatch the Release workflow from `main` with `publish=true`. Protected npm environment approval may add another gate, but the workflow does not rely on environment protection as the only manual-publish guard.
 
+Publication selects the commit that introduced the current package version, even when later repository-only commits have advanced `main`. Policy evaluation and npm packaging check out that same prepared commit, so policy reads the generated version PR's labels and packaging uses its reviewed source. The policy and npm subprocesses receive the checked-out source SHA, keeping npm provenance aligned with the packaged commit. The workflow still runs on `main` for branch and trusted-publisher authorization; selecting the prepared commit does not bypass publish intent, registry checks, or environment approval.
+
 ## Warden And Wayfinder
 
 `trails release check` owns branch-local release-rule evaluation. It reads the GitHub or local changed-file list, release config, Changesets intent, and first source-static public trail contract facts. Warden should not duplicate PR file-list logic or own stack and GitHub comparison state.

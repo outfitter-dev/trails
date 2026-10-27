@@ -72,7 +72,7 @@ test('merge groups run the normal CI checks on main with ref-isolated cancellati
   }
   expect(jobFor('governance').steps).toContainEqual({
     name: 'CI workflow contract',
-    run: 'bun test scripts/__tests__/ci-workspace-context-contract.test.ts',
+    run: 'bun test scripts/__tests__/ci-workspace-context-contract.test.ts scripts/__tests__/release-publish-target.test.ts',
   });
 });
 
