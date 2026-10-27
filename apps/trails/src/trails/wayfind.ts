@@ -1,7 +1,18 @@
-import { NotFoundError, Result, ValidationError, trail } from '@ontrails/core';
+import { join, resolve } from 'node:path';
+
+import {
+  DerivationError,
+  NotFoundError,
+  Result,
+  ValidationError,
+  trail,
+} from '@ontrails/core';
 import type { Result as TrailResult, TrailContext } from '@ontrails/core';
 import {
   deriveWorkspaceView,
+  deriveTopoGraphHash,
+  loadWayfinderArtifacts,
+  wayfinderDriftFromArtifactStatus,
   wayfinderIncludeSchema,
   wayfinderResolverSchema,
   wayfinderSourceModeSchema,
@@ -9,8 +20,10 @@ import {
 } from '@ontrails/topography';
 import type {
   WayfinderInclude,
+  WayfinderGraphSnapshot,
   WayfinderResolver,
   WayfinderView,
+  WorkspaceViewApp,
 } from '@ontrails/topography';
 import { z } from 'zod';
 
@@ -234,6 +247,7 @@ const wayfindOutputSchema = z.object({
 
 type WayfindOutput = z.output<typeof wayfindOutputSchema>;
 type WayfindInput = z.output<typeof wayfindInputSchema> & {
+  readonly graphSnapshot?: WayfinderGraphSnapshot | undefined;
   readonly configuredApp?:
     | {
         readonly id: string;
@@ -247,10 +261,15 @@ type TrailContextWithCompose = TrailContext & {
   readonly compose: NonNullable<TrailContext['compose']>;
 };
 
-const sourceInput = (
-  input: WayfindInput
-): { readonly rootDir?: string | undefined } =>
+const rootInput = (input: WayfindInput) =>
   input.rootDir === undefined ? {} : { rootDir: input.rootDir };
+
+const sourceInput = (input: WayfindInput) => ({
+  ...rootInput(input),
+  ...(input.graphSnapshot === undefined
+    ? {}
+    : { graphSnapshot: input.graphSnapshot }),
+});
 
 const liveSourceError = (message: string): ValidationError =>
   new ValidationError(message);
@@ -357,7 +376,7 @@ const composeInclude = (
           ? {}
           : { filters: { packageName: input.adapter } }),
         limit: input.limit,
-        ...sourceInput(input),
+        ...rootInput(input),
       });
     }
     case 'errors': {
@@ -585,7 +604,7 @@ const viewSelectorTarget = (
         file: target,
         review: false,
         source: false,
-        ...sourceInput(input),
+        ...rootInput(input),
         surfaces: false,
       }),
       view: 'outline' as const,
@@ -680,7 +699,7 @@ const adapterSurfaceTargets = async (
   const facts = await ctx.compose('wayfind.adapters', {
     filters: { packageName: input.adapter },
     limit: input.limit,
-    ...sourceInput(input),
+    ...rootInput(input),
   });
   if (facts.isErr()) {
     return facts;
@@ -901,6 +920,7 @@ const workspaceAppsForWayfind = async (
         configuredCompleteness: 'complete' as const,
         source: 'live' as const,
       },
+      graphs: undefined,
       workspaceViewHash: undefined,
     };
   }
@@ -910,8 +930,103 @@ const workspaceAppsForWayfind = async (
     apps: context.apps.filter((app) => availableIds.has(app.id as string)),
     collisions: view.content.collisions,
     evidence: view.evidence,
+    graphs: view.content.apps,
     workspaceViewHash: view.workspaceViewHash,
   };
+};
+
+const captureWorkspaceGraphSnapshots = async (
+  graphs: readonly WorkspaceViewApp[] | undefined,
+  projectRoot: string
+): Promise<Result<ReadonlyMap<string, WayfinderGraphSnapshot>, Error>> => {
+  const snapshots = new Map<string, WayfinderGraphSnapshot>();
+  for (const app of graphs ?? []) {
+    const rootDir = resolve(projectRoot, app.root);
+    let loaded;
+    try {
+      loaded = await loadWayfinderArtifacts({ rootDir });
+    } catch (error) {
+      return Result.err(
+        new DerivationError(
+          'Unable to capture workspace Wayfinder artifacts.',
+          {
+            cause: error instanceof Error ? error : new Error(String(error)),
+            context: { appId: app.id },
+          }
+        )
+      );
+    }
+    if (
+      loaded.topoGraph === null ||
+      deriveTopoGraphHash(loaded.topoGraph) !== app.topoGraphHash
+    ) {
+      return Result.err(
+        new ValidationError(
+          'Workspace Wayfinder lock changed while capturing its graph snapshot. Retry the query.',
+          {
+            context: {
+              appId: app.id,
+              reason: 'workspace-lock-generation-changed',
+            },
+          }
+        )
+      );
+    }
+    snapshots.set(app.id, {
+      drift: wayfinderDriftFromArtifactStatus(loaded.artifactStatus),
+      graph: {
+        ...app.topoGraph,
+        ...(loaded.topoGraph.generatedAt === undefined
+          ? {}
+          : { generatedAt: loaded.topoGraph.generatedAt }),
+      },
+      source: {
+        kind: 'topoGraph',
+        path: join(rootDir, 'trails.lock'),
+        schemaVersion: app.topoGraph.topoGraphSchemaVersion,
+      },
+    });
+  }
+  return Result.ok(snapshots);
+};
+
+const workspaceLookupError = (
+  input: WayfindInput,
+  selected: Awaited<ReturnType<typeof workspaceAppsForWayfind>>,
+  notFound: NotFoundError | undefined
+): ValidationError | NotFoundError => {
+  const lookupContext =
+    input.target === undefined
+      ? { overlay: input.overlay }
+      : { target: input.target };
+  const lookupLabel =
+    input.target === undefined
+      ? `overlay namespace "${input.overlay}"`
+      : `target "${input.target}"`;
+  if (selected.evidence.configuredCompleteness === 'partial') {
+    return new ValidationError(
+      `Wayfinder cannot determine whether ${lookupLabel} exists because configured app evidence is incomplete.`,
+      {
+        context: {
+          evidence: selected.evidence,
+          reason: 'workspace-incomplete',
+          ...lookupContext,
+        },
+      }
+    );
+  }
+  return (
+    notFound ??
+    new NotFoundError(
+      `Wayfinder ${lookupLabel} was not found in any available configured app artifact.`,
+      {
+        context: {
+          configuredAppIds: selected.evidence.configuredAppIds,
+          ...lookupContext,
+        },
+      }
+    )
+  );
 };
 
 const executeWorkspaceWayfind = async (
@@ -920,13 +1035,23 @@ const executeWorkspaceWayfind = async (
   ctx: TrailContextWithCompose
 ): Promise<Result<WayfindOutput, Error>> => {
   const selected = await workspaceAppsForWayfind(context, input.source);
+  const snapshots = await captureWorkspaceGraphSnapshots(
+    selected.graphs,
+    context.projectRoot
+  );
+  if (snapshots.isErr()) {
+    return snapshots;
+  }
   const lookup = input.target !== undefined || input.overlay !== undefined;
   const apps: { appId: string; appRoot: string; result: unknown }[] = [];
   let notFound: NotFoundError | undefined;
   let resolvedView: WayfinderView | undefined;
   for (const app of selected.apps) {
     const result = await dispatchWayfind(
-      appWayfindInput(input, app, context.projectRoot),
+      {
+        ...appWayfindInput(input, app, context.projectRoot),
+        graphSnapshot: snapshots.value.get(app.id as string),
+      },
       ctx
     );
     if (result.isErr()) {
@@ -959,40 +1084,7 @@ const executeWorkspaceWayfind = async (
     });
   }
   if (apps.length === 0 && lookup) {
-    const lookupContext =
-      input.target === undefined
-        ? { overlay: input.overlay }
-        : { target: input.target };
-    const lookupLabel =
-      input.target === undefined
-        ? `overlay namespace "${input.overlay}"`
-        : `target "${input.target}"`;
-    if (selected.evidence.configuredCompleteness === 'partial') {
-      return Result.err(
-        new ValidationError(
-          `Wayfinder cannot determine whether ${lookupLabel} exists because configured app evidence is incomplete.`,
-          {
-            context: {
-              evidence: selected.evidence,
-              reason: 'workspace-incomplete',
-              ...lookupContext,
-            },
-          }
-        )
-      );
-    }
-    return Result.err(
-      notFound ??
-        new NotFoundError(
-          `Wayfinder ${lookupLabel} was not found in any available configured app artifact.`,
-          {
-            context: {
-              configuredAppIds: selected.evidence.configuredAppIds,
-              ...lookupContext,
-            },
-          }
-        )
-    );
+    return Result.err(workspaceLookupError(input, selected, notFound));
   }
   return Result.ok({
     project: operatorProjectContextOutput(context),
