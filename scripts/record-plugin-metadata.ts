@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { syncPluginMetadata } from './sync-plugin-metadata.js';
+
 const METADATA_REASON =
   'Framework target metadata only; plugin behavior is unchanged.';
 const METADATA_SCOPES = ['plugin.trails.skill:trails', 'plugin:trails'];
@@ -78,6 +80,42 @@ export const recordPluginMetadata = async (
   }
 };
 
+/** Carry valid pending evidence across the versioner's metadata-only write. */
+export const syncAndRecordPluginMetadata = async (
+  run: RunSkillset = runSkillset,
+  sync: typeof syncPluginMetadata = syncPluginMetadata
+): Promise<void> => {
+  const result = changeListSchema.parse(
+    JSON.parse(await run(['change', 'list', '--root', '.', '--json']))
+  );
+  z.object({ ok: z.literal(true) }).parse(
+    JSON.parse(await run(['change', 'check', '--root', '.', '--json']))
+  );
+
+  const { changedPaths } = await sync();
+  if (changedPaths.length > 0) {
+    for (const entry of result.data.entries) {
+      if (
+        entry.status === 'pending' &&
+        !entry.ignored &&
+        entry.scopes.some((scope) => METADATA_SCOPES.includes(scope))
+      ) {
+        await run([
+          'change',
+          'refresh',
+          `@${entry.id}`,
+          '--yes',
+          '--root',
+          '.',
+        ]);
+      }
+    }
+  }
+  await recordPluginMetadata(run);
+};
+
 if (import.meta.main) {
-  await recordPluginMetadata();
+  await (process.argv.includes('--sync')
+    ? syncAndRecordPluginMetadata()
+    : recordPluginMetadata());
 }

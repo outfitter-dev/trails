@@ -103,7 +103,7 @@ const parseArgs = (
   return { check, rootDir };
 };
 
-const readJson = async <T extends JsonObject>(
+const readJson = async <T extends object>(
   rootDir: string,
   path: string
 ): Promise<T> => {
