@@ -123,7 +123,7 @@ test('publication refuses an uncommitted version with no prepared release commit
   });
 });
 
-test('policy and npm jobs use the prepared commit while keeping main publication guards', () => {
+test('policy selects the prepared release while npm retains the workflow source and main guards', () => {
   const policy = workflow.jobs['publish-policy'];
   expect(policy?.steps[0]?.with?.ref).toMatch(
     /^\$\{\{ needs\.version\.outputs\.release_sha \}\}$/
@@ -134,9 +134,7 @@ test('policy and npm jobs use the prepared commit while keeping main publication
   for (const id of ['publish', 'publish-auto']) {
     const job = workflow.jobs[id];
     expect(job?.if).toContain("github.ref == 'refs/heads/main'");
-    expect(job?.steps[0]?.with?.ref).toMatch(
-      /^\$\{\{ needs\.publish-policy\.outputs\.release_sha \}\}$/
-    );
+    expect(job?.steps[0]?.with?.ref).toMatch(/^\$\{\{ github\.sha \}\}$/);
   }
   expect(workflow.jobs['publish']?.if).toContain(
     "github.event_name == 'workflow_dispatch' && inputs.publish == true"
@@ -144,7 +142,7 @@ test('policy and npm jobs use the prepared commit while keeping main publication
 });
 
 test.each(['publish-policy', 'publish', 'publish-auto'])(
-  '%s binds the operation to the checked-out release SHA',
+  '%s preserves the correct policy or OIDC source SHA',
   async (jobId) => {
     await fixture(async (root, output) => {
       await writeVersion(root, '0.2.5');
@@ -171,7 +169,8 @@ test.each(['publish-policy', 'publish', 'publish-auto'])(
         {
           ...gitEnv,
           GITHUB_OUTPUT: output,
-          GITHUB_SHA: 'later-dispatch-commit',
+          GITHUB_SHA:
+            jobId === 'publish-policy' ? 'later-dispatch-commit' : release,
           PATH: `${bin}:${gitEnv.PATH ?? ''}`,
         }
       );
@@ -182,6 +181,60 @@ test.each(['publish-policy', 'publish', 'publish-auto'])(
           `release_sha=${release}`
         );
       }
+    });
+  }
+);
+
+const packageGuard = (jobId: string): string => {
+  const guard = workflow.jobs[jobId]?.steps.find(
+    (step) => step.name === 'Verify prepared package sources'
+  );
+  expect(guard?.run).toBeDefined();
+  return guard?.run ?? '';
+};
+
+test.each(['publish', 'publish-auto'])(
+  '%s permits workflow changes but rejects package or lock drift before npm',
+  async (jobId) => {
+    await fixture(async (root, output) => {
+      await writeVersion(root, '0.2.5');
+      const release = commit(root);
+      await writeFile(join(root, 'README.md'), 'Repository-only fix\n');
+      const workflowCommit = commit(root);
+      const env = { ...gitEnv, GITHUB_OUTPUT: output, RELEASE_SHA: release };
+      const invoke = () =>
+        run(
+          root,
+          ['bash', '-eu', '-o', 'pipefail', '-c', packageGuard(jobId)],
+          env
+        );
+      expect(invoke().exitCode).toBe(0);
+      for (const path of [
+        'apps/trails/package.json',
+        'adapters/new.ts',
+        'packages/new.ts',
+        'bun.lock',
+      ]) {
+        expect(
+          run(root, ['git', 'reset', '--hard', workflowCommit]).exitCode
+        ).toBe(0);
+        await mkdir(join(root, 'adapters'), { recursive: true });
+        await mkdir(join(root, 'packages'), { recursive: true });
+        await writeFile(join(root, path), 'Changed release input\n');
+        commit(root);
+        expect(invoke().exitCode).not.toBe(0);
+      }
+      const steps = workflow.jobs[jobId]?.steps ?? [];
+      expect(
+        steps.findIndex(
+          (step) => step.name === 'Verify prepared package sources'
+        )
+      ).toBeLessThan(
+        steps.findIndex((step) => step.name === 'Publish packages')
+      );
+      expect(steps.find((step) => step.name === 'Publish packages')?.run).toBe(
+        'bun run publish:packages -- --trusted-publishing'
+      );
     });
   }
 );
