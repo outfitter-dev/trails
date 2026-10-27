@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5
+
+### Patch Changes
+
+- [`6b0232a`](https://github.com/outfitter-dev/trails/commit/6b0232a8a29156317c83daf05af205afc22a13cf): Refresh compatible Drizzle, Hono, LogTape, and Pino dependency ranges without changing adapter contracts.
+
 ## 0.2.4
 
 No changes in this release.
