@@ -381,6 +381,7 @@ describe('consumer 0.x transition', () => {
     const applyRoot = fixtureRoot({
       dependencies: { '@ontrails/core': '1.0.0' },
       name: 'apply',
+      // Historical consumer pin: package migration must leave runtime choices alone.
       packageManager: 'bun@1.3.10',
       scripts: { check: 'bun test' },
     });

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -25,7 +31,7 @@ const expectedWorkspaces = Array.isArray(packageJson.workspaces)
 const makeRepoRoot = (): string => {
   const root = mkdtempSync(join(tmpdir(), 'bootstrap-root-'));
   writeFileSync(join(root, 'package.json'), '{"workspaces":[]}\n');
-  writeFileSync(join(root, '.bun-version'), '1.3.10\n');
+  writeFileSync(join(root, '.bun-version'), '1.4.2\n');
   return root;
 };
 
@@ -105,6 +111,100 @@ describe('bootstrap dispatcher', () => {
   });
 });
 
+describe('bootstrap shell runtime', () => {
+  test.each([
+    ['1.3.99', 'repo', true],
+    ['1.4.0', 'repo', true],
+    ['1.4.1', 'repo', true],
+    ['1.4.2', 'repo', false],
+    ['1.4.3', 'repo', false],
+    ['1.4.0', 'doctor', false],
+  ] as const)(
+    'Bun %s entering %s repairs=%s before dispatch',
+    (actual, command, repairs) => {
+      const root = makeRepoRoot();
+      const installDir = join(root, 'bun');
+      mkdirSync(join(root, 'scripts'));
+      mkdirSync(join(installDir, 'bin'), { recursive: true });
+      copyFileSync(
+        join(repoRoot, 'scripts/bootstrap.sh'),
+        join(root, 'scripts/bootstrap.sh')
+      );
+      writeFileSync(join(installDir, 'version'), actual);
+      writeFileSync(
+        join(installDir, 'bin/bun'),
+        '#!/bin/sh\n' +
+          'version=$(cat "$BUN_INSTALL/version")\n' +
+          'if [ "$1" = "--version" ]; then echo "$version"; else echo "dispatch:$version:$2"; fi\n',
+        { mode: 0o755 }
+      );
+      writeFileSync(
+        join(installDir, 'bin/curl'),
+        '#!/bin/sh\n' +
+          "cat <<'INSTALL'\n" +
+          'printf "%s\\n" "$1" | cut -c 6- > "$BUN_INSTALL/version"\n' +
+          'INSTALL\n',
+        { mode: 0o755 }
+      );
+      try {
+        for (const policy of ['compatible', 'strict'] as const) {
+          const check = Bun.spawnSync({
+            cmd: [
+              process.execPath,
+              '--eval',
+              `import { checkBunVersion } from ${JSON.stringify(join(repoRoot, 'scripts/bootstrap/bun.ts'))}; console.log(JSON.stringify(checkBunVersion(process.cwd(), ${JSON.stringify(policy)})));`,
+            ],
+            cwd: root,
+            env: {
+              BUN_INSTALL: installDir,
+              PATH: `${installDir}/bin:/usr/bin:/bin`,
+            },
+            stderr: 'pipe',
+            stdout: 'pipe',
+          });
+          const allowed =
+            actual === '1.4.2' ||
+            (policy === 'compatible' && actual === '1.4.3');
+
+          expect(check.exitCode).toBe(0);
+          expect(JSON.parse(check.stdout.toString())).toEqual({
+            actual,
+            ok: allowed,
+            pinned: '1.4.2',
+            policy,
+            ...(allowed
+              ? {}
+              : {
+                  reason:
+                    policy === 'strict'
+                      ? `Expected Bun 1.4.2, found ${actual}`
+                      : `Expected Bun 1.4.2 or newer compatible patch, found ${actual}`,
+                }),
+          });
+        }
+
+        const proc = Bun.spawnSync({
+          cmd: ['bash', './scripts/bootstrap.sh', command],
+          cwd: root,
+          env: { BUN_INSTALL: installDir, HOME: root, PATH: '/usr/bin:/bin' },
+          stderr: 'pipe',
+          stdout: 'pipe',
+        });
+
+        expect(proc.exitCode).toBe(0);
+        expect(proc.stdout.toString().trim()).toBe(
+          `dispatch:${repairs ? '1.4.2' : actual}:${command}`
+        );
+        expect(proc.stderr.toString().includes('Installing Bun 1.4.2')).toBe(
+          repairs
+        );
+      } finally {
+        rmSync(root, { force: true, recursive: true });
+      }
+    }
+  );
+});
+
 describe('bootstrap repo policy', () => {
   test('workspace globs stay aligned with root package.json', async () => {
     await expect(listWorkspaceGlobs(repoRoot)).resolves.toEqual(
@@ -112,13 +212,25 @@ describe('bootstrap repo policy', () => {
     );
   });
 
-  test('Bun policy accepts newer local patch versions but not remote strict mismatches', () => {
-    expect(isBunVersionAllowed('1.3.12', '1.3.10', 'compatible')).toBe(true);
-    expect(isBunVersionAllowed('1.3.10-canary.1', '1.3.10', 'compatible')).toBe(
-      true
-    );
-    expect(isBunVersionAllowed('1.3.12', '1.3.10', 'strict')).toBe(false);
-  });
+  test.each([
+    ['1.3.10', false, false],
+    ['1.3.99', false, false],
+    ['1.4.0', false, false],
+    ['1.4.1', false, false],
+    ['1.4.2', true, true],
+    ['1.4.2-canary.1', true, false],
+    ['1.4.3', true, false],
+    ['1.5.0', false, false],
+    ['2.0.0', false, false],
+  ] as const)(
+    'Bun %s follows compatible=%s and strict=%s against the 1.4.2 checkout pin',
+    (actual, compatible, strict) => {
+      expect(isBunVersionAllowed(actual, '1.4.2', 'compatible')).toBe(
+        compatible
+      );
+      expect(isBunVersionAllowed(actual, '1.4.2', 'strict')).toBe(strict);
+    }
+  );
 
   test('stale Bun is repaired before policy enforcement fails', async () => {
     const config = loadBootstrapConfig();
@@ -143,17 +255,17 @@ describe('bootstrap repo policy', () => {
             checks += 1;
             return checks === 1
               ? {
-                  actual: '1.3.9',
+                  actual: '1.4.0',
                   ok: false,
-                  pinned: '1.3.10',
+                  pinned: '1.4.2',
                   policy,
                   reason:
-                    'Expected Bun 1.3.10 or newer compatible patch, found 1.3.9',
+                    'Expected Bun 1.4.2 or newer compatible patch, found 1.4.0',
                 }
               : {
-                  actual: '1.3.10',
+                  actual: '1.4.2',
                   ok: true,
-                  pinned: '1.3.10',
+                  pinned: '1.4.2',
                   policy,
                 };
           },
