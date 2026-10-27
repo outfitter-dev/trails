@@ -4,7 +4,10 @@ import {
   NotFoundError,
 } from '@ontrails/core';
 import type { PathScope } from '@ontrails/core';
-import { trailsLockFileName } from '@ontrails/config';
+import {
+  trailsLockFileName,
+  workspaceIgnoredDirectoryNames,
+} from '@ontrails/config';
 import type {
   ReadTrailsProjectIdentityResult,
   ResolvedTrailsWorkspaceApp,
@@ -17,13 +20,7 @@ import type {
 } from './workspace-view-types.js';
 import { deriveConfiguredAppAliases } from './workspace-configured-aliases.js';
 
-const DEFAULT_IGNORED_DIRECTORIES = new Set([
-  '.git',
-  '.turbo',
-  'coverage',
-  'dist',
-  'node_modules',
-]);
+const DEFAULT_IGNORED_DIRECTORIES = new Set(workspaceIgnoredDirectoryNames);
 
 export interface WorkspaceLockCensus {
   readonly collectionSkips: readonly WorkspaceViewCollectionSkip[];
@@ -111,9 +108,8 @@ export const collectWorkspaceLockCensus = (
   // configured root stays observable here too. The exemption reaches only
   // ancestors of a configured root, or the root itself. Ignored-named
   // directories below a configured root stay pruned, so an app's own
-  // dependency tree never enters the census as unowned lock evidence. Config's
-  // own collection still carries the wider two-arm profile; narrowing it there
-  // is a separate follow-up. Workspace-root apps never need the exemption;
+  // dependency tree never enters the census as unowned lock evidence.
+  // Workspace-root apps never need the exemption;
   // their lock is already outside every ignored directory.
   const configuredRootPaths = [
     ...identity.apps.map((app) => app.root),

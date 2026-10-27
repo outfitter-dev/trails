@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, join } from 'node:path';
+import { dirname, isAbsolute, join, relative } from 'node:path';
 
 import { PermissionError, ValidationError } from '@ontrails/core';
 
@@ -28,11 +28,12 @@ const tempRoot = (): string =>
   );
 
 describe('load-app mirror helpers', () => {
-  test('creates absolute mirror roots under the load-app mirror parent', () => {
-    const mirrorRoot = createLoadAppMirrorRootPath('relative-project');
+  test('creates absolute mirror roots outside the target worktree by default', () => {
+    const mirrorRoot = createLoadAppMirrorRootPath(process.cwd());
 
     expect(isAbsolute(mirrorRoot)).toBe(true);
-    expect(mirrorRoot).toContain('.trails-tmp/load-app-fresh-');
+    expect(relative(process.cwd(), mirrorRoot).startsWith('..')).toBe(true);
+    removeLoadAppMirrorRootQuietly(mirrorRoot);
   });
 
   test('writes source bytes under the load-app mirror root', async () => {
@@ -40,7 +41,7 @@ describe('load-app mirror helpers', () => {
 
     try {
       const sourcePath = join(root, 'src', 'app.ts');
-      const mirrorRoot = createLoadAppMirrorRootPath(root);
+      const mirrorRoot = createLoadAppMirrorRootPath(process.cwd());
       mkdirSync(dirname(sourcePath), { recursive: true });
       writeFileSync(sourcePath, 'export const app = true;\n');
 
@@ -58,6 +59,7 @@ describe('load-app mirror helpers', () => {
       expect(readFileSync(written.value, 'utf8')).toBe(
         'export const app = true;\n'
       );
+      expect(removeLoadAppMirrorRoot(mirrorRoot).isOk()).toBe(true);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }
@@ -88,8 +90,7 @@ describe('load-app mirror helpers', () => {
   });
 
   test('rejects relative source paths before deriving a mirror target', () => {
-    const root = tempRoot();
-    const mirrorRoot = createLoadAppMirrorRootPath(root);
+    const mirrorRoot = createLoadAppMirrorRootPath(process.cwd());
 
     const resolved = resolveLoadAppMirrorFilePath('src/app.ts', mirrorRoot);
 
@@ -97,13 +98,14 @@ describe('load-app mirror helpers', () => {
     if (resolved.isErr()) {
       expect(resolved.error).toBeInstanceOf(ValidationError);
     }
+    removeLoadAppMirrorRootQuietly(mirrorRoot);
   });
 
   test('removes only load-app mirror roots', () => {
     const root = tempRoot();
 
     try {
-      const mirrorRoot = createLoadAppMirrorRootPath(root);
+      const mirrorRoot = createLoadAppMirrorRootPath(process.cwd());
       const protectedDir = join(root, 'project');
       mkdirSync(mirrorRoot, { recursive: true });
       mkdirSync(protectedDir, { recursive: true });

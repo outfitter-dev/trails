@@ -1280,6 +1280,69 @@ describe('executeTrail', () => {
         });
       });
 
+      test('settles every compose branch before combine selects the first input error', async () => {
+        const completions: string[] = [];
+        const gate = Promise.withResolvers<undefined>();
+        const firstError = new ValidationError('first input');
+        const first = trail('combine.first', {
+          implementation: async () => {
+            await gate.promise;
+            completions.push('first');
+            return Result.err(firstError);
+          },
+          input: z.object({}),
+          output: z.number(),
+          visibility: 'internal',
+        });
+        const second = trail('combine.second', {
+          implementation: () => {
+            completions.push('second');
+            return Result.err(new NotFoundError('second input'));
+          },
+          input: z.object({}),
+          output: z.string(),
+          visibility: 'internal',
+        });
+        const succeeding = trail('combine.success', {
+          implementation: () => {
+            completions.push('success');
+            gate.resolve();
+            return Result.ok(true);
+          },
+          input: z.object({}),
+          output: z.boolean(),
+          visibility: 'internal',
+        });
+        const entry = trail('combine.entry', {
+          composes: [first, second, succeeding],
+          implementation: async (_input, ctx) => {
+            const composed = await requireCompose(ctx)([
+              [first, {}],
+              [second, {}],
+              [succeeding, {}],
+            ] as const);
+            expect(completions).toEqual(['second', 'success', 'first']);
+            const combined = Result.combine(composed);
+            return Result.ok(
+              combined.match({
+                err: (error) => error === firstError,
+                ok: () => false,
+              })
+            );
+          },
+          input: z.object({}),
+          output: z.boolean(),
+        });
+        const app = topo('combine-settled-topo', {
+          entry,
+          first,
+          second,
+          succeeding,
+        });
+        const result = await executeTrail(entry, {}, { topo: app });
+        expect(result.unwrap()).toBe(true);
+      });
+
       test('returns an empty array for empty batch ctx.compose() calls', async () => {
         const entry = trail('entity.batch.empty', {
           implementation: async (_input, ctx) => {
