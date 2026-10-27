@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { configureSync, getLogger, resetSync } from '@logtape/logtape';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import {
+  configureSync,
+  getJsonLinesFormatter,
+  getLogger,
+  resetSync,
+  withConfig,
+} from '@logtape/logtape';
 import type { LogRecord as LogtapeRecord } from '@logtape/logtape';
 
 import type { LogRecord } from '@ontrails/observability';
@@ -18,6 +25,7 @@ const createRecord = (overrides: Partial<LogRecord> = {}): LogRecord => ({
 const configureRecordingSink = (): LogtapeRecord[] => {
   const records: LogtapeRecord[] = [];
   configureSync({
+    contextLocalStorage: new AsyncLocalStorage<Record<string, unknown>>(),
     loggers: [
       { category: 'app', lowestLevel: 'trace', sinks: ['record'] },
       { category: 'logtape', lowestLevel: 'fatal', sinks: [] },
@@ -96,5 +104,42 @@ describe('@ontrails/logtape', () => {
     sink.write(createRecord({ level: 'silent' }));
 
     expect(records).toEqual([]);
+  });
+
+  test('respects scoped configuration and disposes bigint JSON output', async () => {
+    const globalRecords = configureRecordingSink();
+    const lines: string[] = [];
+    const formatter = getJsonLinesFormatter();
+    let disposed = false;
+    const scopedSink = Object.assign(
+      (record: LogtapeRecord) => lines.push(formatter(record)),
+      {
+        [Symbol.dispose]: () => {
+          disposed = true;
+        },
+      }
+    );
+    const sink = createLogtapeSink();
+
+    await withConfig(
+      {
+        loggers: [{ category: 'app', lowestLevel: 'trace', sinks: ['json'] }],
+        sinks: { json: scopedSink },
+      },
+      () => {
+        sink.write(
+          createRecord({ metadata: { count: 9_007_199_254_740_993n } })
+        );
+      }
+    );
+
+    expect(globalRecords).toEqual([]);
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0] ?? '{}').properties.count).toBe(
+      '9007199254740993'
+    );
+    expect(disposed).toBe(true);
+    sink.write(createRecord());
+    expect(globalRecords).toHaveLength(1);
   });
 });

@@ -124,6 +124,76 @@ describe('@ontrails/pino', () => {
     expect(lines).toEqual([]);
   });
 
+  test('preserves JSON keys, escaping, serializers and configured redaction', () => {
+    const { destination, lines } = createRecordingDestination();
+    const sink = createPinoSink({
+      logger: pino(
+        {
+          base: undefined,
+          redact: ['authorization'],
+          serializers: { count: (value: number) => `count:${value}` },
+        },
+        destination
+      ),
+    });
+    const metadata: Record<string, unknown> = JSON.parse(
+      '{"__proto__":"ordinary-key","constructor":"ordinary-constructor"}'
+    );
+    sink.write(
+      createRecord({
+        message: 'quoted "message"\nnext line',
+        metadata: { ...metadata, authorization: 'secret', count: 3 },
+      })
+    );
+    const record = JSON.parse(lines[0] ?? '{}');
+    expect(record).toMatchObject({
+      authorization: '[Redacted]',
+      constructor: 'ordinary-constructor',
+      count: 'count:3',
+      msg: 'quoted "message"\nnext line',
+    });
+    expect(Object.hasOwn(record, '__proto__')).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(record, '__proto__')?.value).toBe(
+      'ordinary-key'
+    );
+    expect(lines[0]).not.toContain('secret');
+  });
+
+  test('loads worker-thread targets and preserves multi-target formatter rejection', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'trails-pino-transport-'));
+    temporaryDirectories.push(directory);
+    const targets = ['first', 'second'].map((name) => ({
+      options: { destination: join(directory, `${name}.ndjson`) },
+      target: 'pino/file',
+    }));
+    expect(() =>
+      pino({
+        formatters: { level: (label) => ({ level: label }) },
+        transport: { targets },
+      })
+    ).toThrow('do not allow custom level formatters');
+
+    const transport = pino.transport({ targets });
+    try {
+      await once(transport, 'ready');
+      const sink = createPinoSink({
+        logger: pino({ base: undefined }, transport),
+      });
+      sink.write(createRecord());
+      await sink.flush();
+    } finally {
+      const closed = once(transport, 'close');
+      transport.end();
+      await closed;
+    }
+    for (const name of ['first', 'second']) {
+      const record = JSON.parse(
+        await Bun.file(join(directory, `${name}.ndjson`)).text()
+      );
+      expect(record.msg).toBe('request received');
+    }
+  });
+
   test.each([
     ['null', null],
     ['undefined', undefined],

@@ -63,6 +63,7 @@ const run = async (
 };
 
 describe('Warden-as-library dogfood', () => {
+  // Typechecking the full Warden graph can exceed 30s on a busy CI runner.
   test('generated Warden package typechecks, packs, and runs through library subpaths', async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'trails-warden-library-'));
     try {
@@ -153,5 +154,5 @@ describe('Warden-as-library dogfood', () => {
     } finally {
       await rm(tempRoot, { force: true, recursive: true });
     }
-  });
+  }, 60_000);
 });
