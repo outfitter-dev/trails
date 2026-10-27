@@ -120,17 +120,16 @@ for (const event of [
   }
 }
 
-test('version preparation records or refreshes framework-only Skillset changes before rendering', async () => {
+test('version preparation validates evidence before syncing metadata and rendering', async () => {
   const { scripts } = await Bun.file(
     new URL('../../package.json', import.meta.url)
   ).json();
   const steps = scripts['version:packages'].split(' && ');
-  const sync = steps.indexOf('bun run plugin:metadata:sync');
-  const record = steps.indexOf('bun run plugin:metadata:record');
+  const record = steps.indexOf('bun run plugin:metadata:record -- --sync');
   const render = steps.indexOf('bun run skillset:sync');
 
-  expect(sync).toBeGreaterThan(-1);
-  expect(record).toBeGreaterThan(sync);
+  expect(record).toBeGreaterThan(-1);
+  expect(steps).not.toContain('bun run plugin:metadata:sync');
   expect(render).toBeGreaterThan(record);
   expect(scripts['plugin:metadata:record']).toBe(
     'bun scripts/record-plugin-metadata.ts'

@@ -4,7 +4,10 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { recordPluginMetadata } from '../record-plugin-metadata.js';
+import {
+  recordPluginMetadata,
+  syncAndRecordPluginMetadata,
+} from '../record-plugin-metadata.js';
 
 const REASON = 'Framework target metadata only; plugin behavior is unchanged.';
 const SKILL_SCOPE = 'plugin.trails.skill:trails';
@@ -54,7 +57,10 @@ const changeFiles = async (root: string) => {
   return files;
 };
 
-const withWorkspace = async (exercise: (root: string) => Promise<void>) => {
+const withWorkspace = async (
+  exercise: (root: string) => Promise<void>,
+  preserveChanges = false
+) => {
   const root = await mkdtemp(join(tmpdir(), 'trails-metadata-evidence-'));
   try {
     const clone = await runCommand(root, [
@@ -73,7 +79,12 @@ const withWorkspace = async (exercise: (root: string) => Promise<void>) => {
       'HEAD',
     ]);
     expect(baseline, baseline.stderr).toMatchObject({ exitCode: 0 });
-    await rm(join(root, '.skillset/changes'), { force: true, recursive: true });
+    if (!preserveChanges) {
+      await rm(join(root, '.skillset/changes'), {
+        force: true,
+        recursive: true,
+      });
+    }
     await exercise(root);
   } finally {
     await rm(root, { force: true, recursive: true });
@@ -87,6 +98,98 @@ const entry = (id: string, scope: string) => ({
   reason: REASON,
   scopes: [scope],
   status: 'pending',
+});
+
+describe('guarded plugin metadata sync', () => {
+  test('checks evidence before syncing and carries affected pending bumps forward', async () => {
+    const calls: string[][] = [];
+    const entries = [
+      {
+        ...entry('skill-patch', SKILL_SCOPE),
+        bump: 'patch',
+        reason: 'Behavior change',
+      },
+      {
+        ...entry('plugin-minor', PLUGIN_SCOPE),
+        bump: 'minor',
+        scopes: [PLUGIN_SCOPE, 'skill:other'],
+      },
+      entry('unrelated', 'skill:other'),
+      { ...entry('ignored', PLUGIN_SCOPE), ignored: true },
+      { ...entry('history', SKILL_SCOPE), status: 'history' },
+    ];
+    const run = async (args: readonly string[]) => {
+      calls.push([...args]);
+      return args[1] === 'list'
+        ? JSON.stringify({ data: { entries }, ok: true })
+        : '{"ok":true}';
+    };
+    await syncAndRecordPluginMetadata(run, async () => {
+      expect(calls.map((args) => args[1])).toEqual(['list', 'check']);
+      return { changedPaths: ['metadata'], diagnostics: [] };
+    });
+    expect(calls.filter((args) => args[1] === 'refresh')).toEqual([
+      ['change', 'refresh', '@skill-patch', '--yes', '--root', '.'],
+      ['change', 'refresh', '@plugin-minor', '--yes', '--root', '.'],
+    ]);
+    expect(calls.filter((args) => args[1] === 'add')).toHaveLength(2);
+  });
+
+  test('does not refresh behavioral evidence when metadata did not change', async () => {
+    const calls: string[][] = [];
+    const run = async (args: readonly string[]) => {
+      calls.push([...args]);
+      return args[1] === 'list'
+        ? JSON.stringify({
+            data: {
+              entries: [{ ...entry('patch', SKILL_SCOPE), bump: 'patch' }],
+            },
+            ok: true,
+          })
+        : '{"ok":true}';
+    };
+    await syncAndRecordPluginMetadata(run, async () => ({
+      changedPaths: [],
+      diagnostics: [],
+    }));
+    expect(calls.some((args) => args[1] === 'refresh')).toBe(false);
+  });
+
+  test.each(['{"ok":false}', '{}', 'invalid json'])(
+    'rejects invalid preflight %s before any write',
+    async (check) => {
+      const calls: string[][] = [];
+      let synced = false;
+      const run = async (args: readonly string[]) => {
+        calls.push([...args]);
+        return args[1] === 'list' ? '{"data":{"entries":[]},"ok":true}' : check;
+      };
+      await expect(
+        syncAndRecordPluginMetadata(run, async () => {
+          synced = true;
+          return { changedPaths: ['metadata'], diagnostics: [] };
+        })
+      ).rejects.toThrow();
+      expect(synced).toBe(false);
+      expect(calls.map((args) => args[1])).toEqual(['list', 'check']);
+    }
+  );
+
+  test('stops without refreshing if metadata sync fails', async () => {
+    const calls: string[][] = [];
+    const run = async (args: readonly string[]) => {
+      calls.push([...args]);
+      return args[1] === 'list'
+        ? '{"data":{"entries":[]},"ok":true}'
+        : '{"ok":true}';
+    };
+    await expect(
+      syncAndRecordPluginMetadata(run, () =>
+        Promise.reject(new Error('sync failed'))
+      )
+    ).rejects.toThrow('sync failed');
+    expect(calls.map((args) => args[1])).toEqual(['list', 'check']);
+  });
 });
 
 const recorder = (entries: unknown[]) => {
@@ -454,5 +557,101 @@ if (args[1] === 'list') {
       expect(second, second.stderr).toMatchObject({ exitCode: 0 });
       expect(await changeFiles(root)).toEqual(after);
     });
+  }, 30_000);
+
+  test('version preparation preserves valid patch evidence across a metadata-only sync', async () => {
+    await withWorkspace(async (root) => {
+      const seed = await spawnRecorder(root);
+      expect(seed, seed.stderr).toMatchObject({ exitCode: 0 });
+      for (const scope of [SKILL_SCOPE, PLUGIN_SCOPE]) {
+        const added = await runCommand(root, [
+          'skillset',
+          'change',
+          'add',
+          '--scope',
+          scope,
+          '--bump',
+          'patch',
+          '--reason',
+          'Keep verified stable framework install pins current without changing plugin behavior.',
+          '--root',
+          '.',
+        ]);
+        expect(added, added.stderr).toMatchObject({ exitCode: 0 });
+      }
+      const check = () =>
+        runCommand(root, [
+          'skillset',
+          'change',
+          'check',
+          '--root',
+          '.',
+          '--json',
+        ]);
+      const baseline = await check();
+      expect(
+        baseline.exitCode,
+        JSON.stringify(JSON.parse(baseline.stdout).diagnostics)
+      ).toBe(0);
+      const packagePath = join(root, 'packages/core/package.json');
+      const pkg = JSON.parse(await readFile(packagePath, 'utf8'));
+      const [major, minor, patch] = pkg.version.split('.').map(Number);
+      const nextVersion = `${major}.${minor}.${patch + 1}`;
+      pkg.version = nextVersion;
+      await writeFile(packagePath, JSON.stringify(pkg));
+      const before = await changeFiles(root);
+      const prepare = () =>
+        runCommand(root, [process.execPath, recorderPath, '--sync']);
+      const first = await prepare();
+      expect(first, first.stderr).toMatchObject({ exitCode: 0 });
+      const checked = await check();
+      expect(checked, checked.stdout).toMatchObject({ exitCode: 0 });
+      expect(
+        await readFile(
+          join(root, '.skillset/plugins/trails/skills/trails/SKILL.md'),
+          'utf8'
+        )
+      ).toContain(`  trails: ${nextVersion}`);
+      const after = await changeFiles(root);
+      expect(Object.keys(after).toSorted()).toEqual(
+        Object.keys(before).toSorted()
+      );
+      for (const [path, content] of Object.entries(before)) {
+        if (path !== 'ledger.jsonl') {
+          expect(after[path]).toBe(content);
+        }
+      }
+      expect(
+        after['ledger.jsonl']?.startsWith(before['ledger.jsonl'] ?? '')
+      ).toBe(true);
+      const second = await prepare();
+      expect(second, second.stderr).toMatchObject({ exitCode: 0 });
+      expect(await changeFiles(root)).toEqual(after);
+    }, true);
+  }, 30_000);
+
+  test('version preparation refuses pre-existing stale evidence without modifying source or ledger', async () => {
+    await withWorkspace(async (root) => {
+      const skillPath = join(
+        root,
+        '.skillset/plugins/trails/skills/trails/SKILL.md'
+      );
+      const staleSource = `${await readFile(skillPath, 'utf8')}\nUnrecorded behavior change.\n`;
+      await writeFile(skillPath, staleSource);
+      const packagePath = join(root, 'packages/core/package.json');
+      const pkg = JSON.parse(await readFile(packagePath, 'utf8'));
+      pkg.version = '99.0.0';
+      await writeFile(packagePath, JSON.stringify(pkg));
+      const before = await changeFiles(root);
+      const result = await runCommand(root, [
+        process.execPath,
+        recorderPath,
+        '--sync',
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('change-evidence-stale');
+      expect(await readFile(skillPath, 'utf8')).toBe(staleSource);
+      expect(await changeFiles(root)).toEqual(before);
+    }, true);
   }, 30_000);
 });
