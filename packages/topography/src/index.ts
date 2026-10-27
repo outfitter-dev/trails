@@ -245,6 +245,17 @@ export {
   wayfindVersionsTrail,
   wayfinderTopo,
 } from './wayfind/queries.js';
+/**
+ * Validate a captured graph for composition-only Wayfinder reads.
+ *
+ * @example
+ * ```ts
+ * const snapshot = wayfinderGraphSnapshotSchema.parse(captured);
+ * await ctx.compose(wayfindOverviewTrail, { graphSnapshot: snapshot });
+ * ```
+ */
+export { wayfinderGraphSnapshotSchema } from './wayfind/queries.js';
+export type { WayfinderGraphSnapshot } from './wayfind/queries.js';
 export {
   wayfinderDriftFromArtifactStatus,
   wayfinderDriftFromFreshness,
