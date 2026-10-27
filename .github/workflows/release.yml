@@ -128,8 +128,18 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
-          ref: ${{ needs.publish-policy.outputs.release_sha }}
+          ref: ${{ github.sha }}
       - uses: ./.github/actions/setup
+      - name: Verify prepared release source
+        env:
+          PREPARED_RELEASE_SHA: ${{ needs.publish-policy.outputs.release_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$PREPARED_RELEASE_SHA" HEAD
+          git diff --exit-code "$PREPARED_RELEASE_SHA" HEAD -- apps adapters packages examples bun.lock .changeset/pre.json
+          git show "$PREPARED_RELEASE_SHA:package.json" | jq -S 'del(.scripts)' > "$RUNNER_TEMP/prepared-package.json"
+          jq -S 'del(.scripts)' package.json > "$RUNNER_TEMP/workflow-package.json"
+          diff -u "$RUNNER_TEMP/prepared-package.json" "$RUNNER_TEMP/workflow-package.json"
       - name: Set up npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -141,7 +151,7 @@ jobs:
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: GITHUB_SHA="$(git rev-parse HEAD)" bun run publish:packages -- --trusted-publishing
+        run: bun run publish:packages -- --trusted-publishing
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 
@@ -158,8 +168,18 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
-          ref: ${{ needs.publish-policy.outputs.release_sha }}
+          ref: ${{ github.sha }}
       - uses: ./.github/actions/setup
+      - name: Verify prepared release source
+        env:
+          PREPARED_RELEASE_SHA: ${{ needs.publish-policy.outputs.release_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$PREPARED_RELEASE_SHA" HEAD
+          git diff --exit-code "$PREPARED_RELEASE_SHA" HEAD -- apps adapters packages examples bun.lock .changeset/pre.json
+          git show "$PREPARED_RELEASE_SHA:package.json" | jq -S 'del(.scripts)' > "$RUNNER_TEMP/prepared-package.json"
+          jq -S 'del(.scripts)' package.json > "$RUNNER_TEMP/workflow-package.json"
+          diff -u "$RUNNER_TEMP/prepared-package.json" "$RUNNER_TEMP/workflow-package.json"
       - name: Set up npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -171,7 +191,7 @@ jobs:
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: GITHUB_SHA="$(git rev-parse HEAD)" bun run publish:packages -- --trusted-publishing
+        run: bun run publish:packages -- --trusted-publishing
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
 

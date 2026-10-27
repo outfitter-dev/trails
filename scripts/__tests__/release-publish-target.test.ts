@@ -7,6 +7,7 @@ interface ReleaseJob {
   if?: string;
   outputs?: Record<string, string>;
   steps: {
+    env?: Record<string, string>;
     name?: string;
     run?: string;
     uses?: string;
@@ -33,6 +34,7 @@ const fixture = async (
   const root = join(temp, 'repo');
   try {
     await mkdir(join(root, 'apps/trails'), { recursive: true });
+    await writeFile(join(root, 'package.json'), '{"private":true}\n');
     expect(run(root, ['git', 'init', '--quiet']).exitCode).toBe(0);
     await exercise(root, join(temp, 'outputs'));
   } finally {
@@ -123,7 +125,7 @@ test('publication refuses an uncommitted version with no prepared release commit
   });
 });
 
-test('policy and npm jobs use the prepared commit while keeping main publication guards', () => {
+test('policy uses the prepared commit and npm uses the workflow commit with main publication guards', () => {
   const policy = workflow.jobs['publish-policy'];
   expect(policy?.steps[0]?.with?.ref).toMatch(
     /^\$\{\{ needs\.version\.outputs\.release_sha \}\}$/
@@ -134,16 +136,14 @@ test('policy and npm jobs use the prepared commit while keeping main publication
   for (const id of ['publish', 'publish-auto']) {
     const job = workflow.jobs[id];
     expect(job?.if).toContain("github.ref == 'refs/heads/main'");
-    expect(job?.steps[0]?.with?.ref).toMatch(
-      /^\$\{\{ needs\.publish-policy\.outputs\.release_sha \}\}$/
-    );
+    expect(job?.steps[0]?.with?.ref).toMatch(/^\$\{\{ github\.sha \}\}$/);
   }
   expect(workflow.jobs['publish']?.if).toContain(
     "github.event_name == 'workflow_dispatch' && inputs.publish == true"
   );
 });
 
-test.each(['publish-policy', 'publish', 'publish-auto'])(
+test.each(['publish-policy'])(
   '%s binds the operation to the checked-out release SHA',
   async (jobId) => {
     await fixture(async (root, output) => {
@@ -185,3 +185,126 @@ test.each(['publish-policy', 'publish', 'publish-auto'])(
     });
   }
 );
+
+test.each(['publish', 'publish-auto'])(
+  '%s preserves the workflow SHA for npm provenance',
+  async (jobId) => {
+    await fixture(async (root) => {
+      const script = workflow.jobs[jobId]?.steps.find(
+        (step) => step.name === 'Publish packages'
+      )?.run;
+      expect(script).toBe('bun run publish:packages -- --trusted-publishing');
+      await writeVersion(root, '0.2.5');
+      commit(root);
+      await writeFile(join(root, 'README.md'), 'Repository-only change\n');
+      const sha = commit(root);
+      const bin = join(root, 'bin');
+      await mkdir(bin);
+      await writeFile(
+        join(bin, 'bun'),
+        '#!/bin/sh\nprintf "PROVENANCE_SHA=%s\\n" "$GITHUB_SHA"\n',
+        { mode: 0o755 }
+      );
+      const result = run(
+        root,
+        ['bash', '-eu', '-o', 'pipefail', '-c', script ?? ''],
+        {
+          ...gitEnv,
+          GITHUB_SHA: sha,
+          PATH: `${bin}:${gitEnv.PATH ?? ''}`,
+        }
+      );
+      expect(result.exitCode, result.stderr.toString()).toBe(0);
+      expect(result.stdout.toString()).toBe(`PROVENANCE_SHA=${sha}\n`);
+    });
+  }
+);
+
+for (const jobId of ['publish', 'publish-auto']) {
+  test.each([
+    'repository-only',
+    'workspace',
+    'lockfile',
+    'catalog',
+    'release-channel',
+    'wrong-sha',
+    'non-ancestor',
+  ])(`${jobId} verifies prepared source identity: %s`, async (change) => {
+    const job = workflow.jobs[jobId];
+    const step = job?.steps.find(
+      (candidate) => candidate.name === 'Verify prepared release source'
+    );
+    expect(step?.env?.['PREPARED_RELEASE_SHA']).toMatch(
+      /^\$\{\{ needs\.publish-policy\.outputs\.release_sha \}\}$/
+    );
+    expect(step?.run).toBeDefined();
+    expect(
+      job?.steps.findIndex(
+        (candidate) => candidate.name === 'Verify prepared release source'
+      )
+    ).toBeLessThan(
+      job?.steps.findIndex(
+        (candidate) => candidate.name === 'Validate package before publish'
+      ) ?? -1
+    );
+    await fixture(async (root) => {
+      await writeVersion(root, '0.2.5');
+      let prepared = commit(root);
+      if (change === 'workspace') {
+        await writeFile(
+          join(root, 'apps/trails/source.ts'),
+          'changed package content\n'
+        );
+      } else if (change === 'lockfile') {
+        await writeFile(
+          join(root, 'bun.lock'),
+          'changed dependency resolution\n'
+        );
+      } else if (change === 'catalog') {
+        await writeFile(
+          join(root, 'package.json'),
+          '{"private":true,"catalog":{"zod":"*"}}\n'
+        );
+      } else if (change === 'release-channel') {
+        await mkdir(join(root, '.changeset'));
+        await writeFile(
+          join(root, '.changeset/pre.json'),
+          '{"mode":"pre","tag":"next"}\n'
+        );
+      } else {
+        await writeFile(join(root, 'README.md'), 'Repository-only change\n');
+        await writeFile(
+          join(root, 'package.json'),
+          '{"private":true,"scripts":{"check":"true"}}\n'
+        );
+      }
+      const sha = commit(root);
+      if (change === 'non-ancestor') {
+        expect(
+          run(root, ['git', 'checkout', '--quiet', '--detach', prepared])
+            .exitCode
+        ).toBe(0);
+        await writeFile(join(root, 'OTHER.md'), 'Divergent release\n');
+        prepared = commit(root);
+        expect(
+          run(root, ['git', 'checkout', '--quiet', '--detach', sha]).exitCode
+        ).toBe(0);
+      }
+      const result = run(
+        root,
+        ['bash', '-eu', '-o', 'pipefail', '-c', step?.run ?? ''],
+        {
+          ...gitEnv,
+          GITHUB_SHA: change === 'wrong-sha' ? prepared : sha,
+          PREPARED_RELEASE_SHA: prepared,
+          RUNNER_TEMP: root,
+        }
+      );
+      if (change === 'repository-only') {
+        expect(result.exitCode, result.stderr.toString()).toBe(0);
+      } else {
+        expect(result.exitCode).not.toBe(0);
+      }
+    });
+  });
+}
