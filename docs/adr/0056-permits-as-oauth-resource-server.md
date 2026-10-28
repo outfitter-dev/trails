@@ -109,7 +109,7 @@ Only the current actor affects access control: the outermost `act`, or the clien
 
 An intent-aware policy may require step-up when a non-human actor reaches a destructive trail. The plain denial remains the existing `permission` category: `PermitError`, HTTP 403, `context.code: 'step_up_required'`, and `context.requiredScopes`. [TRL-1454] owns this plain step-up rule and outcome. It adds no surface-specific error category.
 
-The MCP elicitation decision under [TRL-1483] owns the consent outcome, and [TRL-1488] owns its MCP rendering, including the intended URL-mode consent path and its input-required outcome. That consent exchange does not replace the plain permission denial. Replay authorization and paused state retain their separate governing issues; this ADR does not prescribe a new retry mechanism.
+The generic surface-agnostic elicitation decision under [TRL-1483] owns the input-required outcome. [TRL-1488] owns rendering the already-defined step-up outcome on MCP, including the intended URL-mode consent path. That consent exchange does not replace the plain permission denial. Replay authorization and paused state retain their separate governing issues; this ADR does not prescribe a new retry mechanism.
 
 ### Long-lived connections preserve identity while refreshing authority
 
