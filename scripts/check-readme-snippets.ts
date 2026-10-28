@@ -140,6 +140,8 @@ export const clearConfigState: any;
 export const clearTraceSink: any;
 export const combine: any;
 export const configure: any;
+export function queueProducer<Body = unknown>(...args: any[]): any;
+export const queue: any;
 export const connectDrizzle: any;
 export const connectReadOnlyDrizzle: any;
 export const configResource: any;
@@ -147,6 +149,7 @@ export const countPinnedSnapshots: any;
 export const countPrunableSnapshots: any;
 export const countTopoSnapshots: any;
 export const createApp: any;
+export function createQueueMock<Body = unknown>(...args: any[]): any;
 export const createBoundedMemorySink: any;
 export const createCliHarness: any;
 export const createConsoleSink: any;
@@ -271,6 +274,7 @@ export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/warden/README.md',
   'packages/topography/README.md',
   'packages/store/README.md',
+  'packages/queue/README.md',
   'adapters/commander/README.md',
   'adapters/hono/README.md',
   'adapters/vite/README.md',
@@ -339,6 +343,10 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   {
     prelude: COMMON_README_PRELUDE,
     readmePath: 'packages/store/README.md',
+  },
+  {
+    prelude: COMMON_README_PRELUDE,
+    readmePath: 'packages/queue/README.md',
   },
   {
     localFiles: {

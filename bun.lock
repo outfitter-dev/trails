@@ -366,6 +366,19 @@
         "zod": "catalog:",
       },
     },
+    "packages/queue": {
+      "name": "@ontrails/queue",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/regrade": {
       "name": "@ontrails/regrade",
       "version": "0.2.5",
@@ -652,6 +665,8 @@
     "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
 
     "@ontrails/pino": ["@ontrails/pino@workspace:adapters/pino"],
+
+    "@ontrails/queue": ["@ontrails/queue@workspace:packages/queue"],
 
     "@ontrails/regrade": ["@ontrails/regrade@workspace:packages/regrade"],
 
