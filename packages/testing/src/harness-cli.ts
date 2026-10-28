@@ -5,7 +5,7 @@
  * and captures stdout/stderr.
  */
 
-import { deriveCliCommands, deriveOutputMode, output } from '@ontrails/cli';
+import { defaultOnResult, deriveCliCommands } from '@ontrails/cli';
 import type { CliCommand, DeriveCliCommandsOptions } from '@ontrails/cli';
 import type { Topo, TrailContext } from '@ontrails/core';
 import { renderPublicSurfaceError } from '@ontrails/core';
@@ -138,21 +138,13 @@ const tryParseJson = (text: string): unknown => {
   }
 };
 
-/** Format result value into stdout and build the CLI result. */
-const formatSuccessResult = (
-  value: unknown,
-  flags: Record<string, unknown>,
-  streams: CapturedStreams,
-  topoName: string
-): CliHarnessResult => {
-  output(value, deriveOutputMode(flags, topoName).mode);
-  return {
-    exitCode: 0,
-    json: tryParseJson(streams.getStdout().trim()),
-    stderr: streams.getStderr(),
-    stdout: streams.getStdout(),
-  };
-};
+/** Build the CLI result from output captured by the shared renderer. */
+const buildSuccessResult = (streams: CapturedStreams): CliHarnessResult => ({
+  exitCode: 0,
+  json: tryParseJson(streams.getStdout().trim()),
+  stderr: streams.getStderr(),
+  stdout: streams.getStdout(),
+});
 
 // ---------------------------------------------------------------------------
 // Execute command
@@ -183,11 +175,13 @@ const executeCommand = async (
   command: CliCommand,
   flags: Record<string, unknown>,
   streams: CapturedStreams,
-  topoName: string,
+  userSuppliedFlagKeys: ReadonlySet<string>,
   ctxOverrides?: Partial<TrailContext>
 ): Promise<CliHarnessResult> => {
   const ctx = mergeTestContext(ctxOverrides);
-  const result = await command.execute({}, flags, ctx);
+  const result = await command.execute({}, flags, ctx, {
+    userSuppliedFlagKeys,
+  });
   if (result.isErr()) {
     streams.restore();
     const rendering = renderPublicSurfaceError('cli', result.error);
@@ -203,7 +197,7 @@ const executeCommand = async (
     };
   }
 
-  const formatted = formatSuccessResult(result.value, flags, streams, topoName);
+  const formatted = buildSuccessResult(streams);
   streams.restore();
   return formatted;
 };
@@ -212,7 +206,6 @@ const executeCommand = async (
 const runCommand = async (
   commands: CliCommand[],
   commandString: string,
-  topoName: string,
   ctxOverrides?: Partial<TrailContext>
 ): Promise<CliHarnessResult> => {
   const parts = parseCommandString(commandString);
@@ -229,12 +222,15 @@ const runCommand = async (
   const streams = captureStreams();
 
   try {
-    const flags = parseCliHarnessFlags(command, flagTokens);
+    const { flags, userSuppliedFlagKeys } = parseCliHarnessFlags(
+      command,
+      flagTokens
+    );
     return await executeCommand(
       command,
       flags,
       streams,
-      topoName,
+      userSuppliedFlagKeys,
       ctxOverrides
     );
   } catch (error: unknown) {
@@ -263,14 +259,16 @@ const runCommand = async (
  */
 export const createCliHarness = (options: CliHarnessOptions): CliHarness => {
   const { ctx, graph, ...deriveOptions } = options;
-  const commandsResult = deriveCliCommands(graph, deriveOptions);
+  const commandsResult = deriveCliCommands(graph, {
+    ...deriveOptions,
+    onResult: defaultOnResult,
+  });
   if (commandsResult.isErr()) {
     throw commandsResult.error;
   }
   const commands = commandsResult.value;
 
   return {
-    run: (commandString: string) =>
-      runCommand(commands, commandString, graph.name, ctx),
+    run: (commandString: string) => runCommand(commands, commandString, ctx),
   };
 };

@@ -6,6 +6,9 @@ import { ValidationError } from '@ontrails/core';
 // Flag parsing
 // ---------------------------------------------------------------------------
 
+const toFlagKey = (name: string): string =>
+  name.replaceAll(/-([a-zA-Z0-9])/g, (_, char: string) => char.toUpperCase());
+
 /** Match Commander's declared numeric and choice validation. */
 const parseFlagValue = (flag: CliFlag, value: string): string | number => {
   const parsed =
@@ -97,6 +100,17 @@ const consumeFlagValues = (
   return { index, values };
 };
 
+/** Commander replaces a variadic default on first use; repeatable parsers append. */
+const appendArrayFlagValues = (
+  flag: CliFlag,
+  previous: unknown,
+  values: readonly (string | number)[],
+  previouslySupplied: boolean
+): readonly (string | number)[] => {
+  const initial = flag.variadic && !previouslySupplied ? undefined : previous;
+  return [...(Array.isArray(initial) ? initial : []), ...values];
+};
+
 /**
  * Parse only flags registered on the derived command, including preset flags.
  * Registration mirrors adapters/commander/src/to-commander.ts:buildOptions;
@@ -105,11 +119,20 @@ const consumeFlagValues = (
 export const parseCliHarnessFlags = (
   command: CliCommand,
   argv: string[]
-): Record<string, unknown> => {
+): {
+  flags: Record<string, unknown>;
+  userSuppliedFlagKeys: ReadonlySet<string>;
+} => {
   const tokens = normalizeCliArgv([command], [...command.path, ...argv]).slice(
     command.path.length
   );
-  const flags: Record<string, unknown> = {};
+  const flags: Record<string, unknown> = Object.fromEntries(
+    command.flags
+      .filter((flag) => flag.default !== undefined)
+      .map((flag) => [toFlagKey(flag.name), flag.default])
+  );
+  const suppliedOptionKeys = new Set<string>();
+  const userSuppliedFlagKeys = new Set<string>();
   for (let i = 0; i < tokens.length; i += 1) {
     const original = tokens[i];
     if (original === '--') {
@@ -130,10 +153,10 @@ export const parseCliHarnessFlags = (
     const alias = flag.valueAliases?.find(
       (value) => option === `--${value.name}`
     );
-    const key = (alias?.name ?? flag.name).replaceAll(
-      /-([a-zA-Z0-9])/g,
-      (_, char: string) => char.toUpperCase()
-    );
+    const key = toFlagKey(alias?.name ?? flag.name);
+    const previouslySupplied = userSuppliedFlagKeys.has(toFlagKey(flag.name));
+    suppliedOptionKeys.add(key);
+    userSuppliedFlagKeys.add(toFlagKey(flag.name));
     if (flag.type === 'boolean' || alias !== undefined) {
       if (inline.length > 0) {
         throw new ValidationError(`Option '${option}' does not take a value`);
@@ -158,8 +181,11 @@ export const parseCliHarnessFlags = (
     const { values, index } = consumeFlagValues(flag, value, tokens, i);
     i = index;
     flags[key] = flag.type.endsWith('[]')
-      ? [...(Array.isArray(flags[key]) ? flags[key] : []), ...values]
+      ? appendArrayFlagValues(flag, flags[key], values, previouslySupplied)
       : values[0];
   }
-  return applyCliFlagValueAliases(command.flags, flags);
+  return {
+    flags: applyCliFlagValueAliases(command.flags, flags, suppliedOptionKeys),
+    userSuppliedFlagKeys,
+  };
 };

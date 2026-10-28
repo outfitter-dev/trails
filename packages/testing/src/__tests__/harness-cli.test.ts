@@ -149,3 +149,50 @@ describe('CLI flag registration fidelity', () => {
     }
   }
 });
+
+describe('reviewed CLI output and default fidelity', () => {
+  for (const args of [
+    ['items', 'list', '--all', '--jsonl'],
+    ['items', 'list', '--all'],
+    ['items', 'list', '--all', '--output', 'json'],
+    ['system', 'status'],
+    ['system', 'status', '--json'],
+    ['system', 'status', '--output', 'json'],
+    ['system', 'status', '--input-json', '{"name":"input","tags":["input"]}'],
+    ['system', 'status', '--input-json', '{"name":"input"}', '--name', 'ready'],
+    ['system', 'status', '--input-json', '{"name":"input"}', '--json'],
+    ['system', 'status', '--json', '--output', 'json'],
+    ['defaults', 'show'],
+    ['defaults', 'show', '--tags', 'x', 'y'],
+    ['defaults', 'show', '--tags', 'x', '--tags', 'y'],
+    ['defaults', 'show', '--input-json', '{"tags":["input"]}'],
+  ]) {
+    test(args.join(' '), async () => {
+      const { app, options } = await import('./fixtures/cli-review-app.js');
+      const harness = createCliHarness({ graph: app, ...options });
+      const actual = await harness.run(args.join(' '));
+      const cli = Bun.spawnSync({
+        cmd: [
+          process.execPath,
+          `${import.meta.dir}/fixtures/cli-review.ts`,
+          ...args,
+        ],
+        stderr: 'pipe',
+        stdout: 'pipe',
+      });
+      expect(actual.exitCode).toBe(cli.exitCode);
+      expect(actual.stdout).toBe(cli.stdout.toString());
+      if (cli.exitCode === 0 && args[0] === 'items' && !args.includes('json')) {
+        expect(actual.stdout).toBe('"a"\n"b"\n"c"\n');
+      }
+      if (
+        cli.exitCode === 0 &&
+        args[0] === 'system' &&
+        args.includes('--input-json')
+      ) {
+        const expectedName = args.includes('--name') ? 'ready' : 'input';
+        expect(JSON.parse(actual.stdout).name).toBe(expectedName);
+      }
+    });
+  }
+});
