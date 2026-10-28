@@ -52,7 +52,9 @@ Within one fix loop, reuse the same reviewer so findings can be rechecked consis
 - **P0:** unsafe or impossible to proceed, including security, data loss, destructive behavior, or a broken required release path.
 - **P1:** correctness or contract regression, including broken behavior, public API, migration, or governing doctrine.
 - **P2:** important quality or readiness defect that should be fixed before handoff, including misleading guidance, generated drift, missing release intent, or unresolved review evidence.
-- **P3:** optional polish with no correctness, doctrine, documentation, or release impact.
+- **P3:** optional polish with no material correctness, doctrine, documentation, or release impact, including nonblocking prose or comment nits.
+
+If the coordinator accepts deferring a P3, record an owned follow-up and verify its closure. Do not defer misleading contract or operational guidance as polish. If creating a tracker issue is not authorized, record the owner and follow-up in the permitted review report or goal packet.
 
 Lead with findings in severity order. Each finding should include the contract violated, exact evidence, impact, and smallest credible fix. Lower confidence rather than filling an evidence gap with plausible prose.
 

@@ -53,7 +53,9 @@ For meaningful work:
 6. Run an independent review loop against concrete acceptance criteria.
 7. Settle documentation, governance, release intent, tracker truth, and learning when they are part of done.
 
-The builder reviews its own work before handoff, but self-review does not substitute for an independent gate. For substantive agent-produced work, have the coordinating agent commission a fresh-context review when repository policy or the execution contract requires it and the harness supports it. Review against written acceptance criteria, using the owning issue when one exists. Quote evidence with file and line, accept "unable to verify," and treat invented citations as a hard failure. Read evidence artifacts rather than trusting evidence-shaped output. The coordinating agent sets the review topology and gate; Matt retains final merge authority.
+The builder reviews its own work before handoff, but self-review does not substitute for an independent gate. For substantive agent-produced work, have the coordinating agent commission a fresh-context review when repository policy or the execution contract requires it and the harness supports it. Review against written acceptance criteria, using the owning issue when one exists. Quote evidence with file and line, accept "unable to verify," and treat invented citations as a hard failure. Read evidence artifacts rather than trusting evidence-shaped output. The coordinating agent sets the review topology and gate.
+
+Matt grants merge authority and may delegate it for a named target set. The coordinator may execute that set when its agreed gates pass. Ask again only when the scope, authority, or a consequential decision changes; readiness alone does not require renewed authorization. Preserve any fixed-head restriction, hold, release exclusion, or other condition on the grant.
 
 Invoke `trails-goal-loop` for non-trivial work that needs a durable completion contract. Invoke `trails-local-review` for substantive implementation, migration, generated-artifact, documentation, or stack work. Load their current instructions at the point of need; do not imitate old packet or review formats.
 
