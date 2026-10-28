@@ -37,6 +37,12 @@ Rules cover several families:
 
 When adding or auditing rules, follow [Warden Rules](../../docs/contributing/warden-rules.md): name the invariant, import owner-held framework data, choose the narrowest Warden tier, and collapse families only when the data model, traversal, and diagnostic shape are shared.
 
+## Duplicate public contracts
+
+`duplicate-public-contract` compares normalized contract facts, including authored `meta`. When two trails represent distinct domain facts, declare those facts on the trail: for example, `meta: { correspondenceFact: 'read' }` for observing a message and `meta: { correspondenceFact: 'ack' }` for its explicit acknowledgment. Neither read nor ACK establishes task acceptance or completion. Use meaningful domain values rather than arbitrary tokens to suppress a warning.
+
+Absent or identical metadata still permits duplicate coaching; different object-key order does not create a semantic distinction. Use one contract with aliases/input mappings when the authored contract is truly the same. Regenerate saved artifacts through `trails compile` after adding metadata so Warden sees the facts through normal graph derivation and readback.
+
 ## Project-local rules
 
 Projects can carry local Warden rules in `.trails/rules.ts` or direct `.trails/rules/*.ts` files. `runWarden()` and `trails warden` load those files by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.

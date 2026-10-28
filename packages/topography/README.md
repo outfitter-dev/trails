@@ -92,6 +92,12 @@ for (const unowned of view.evidence.unownedLocks) {
 
 `deriveTopoGraph()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
 
+## Authored trail metadata
+
+Authored `trail(..., { meta: ... })` facts survive normal TopoGraph derivation and lock serialization. Object keys are canonicalized recursively using Topography's existing deterministic fact serializer. Metadata remains authored evidence; Topography does not infer semantic differences from implementation bodies or descriptions.
+
+Apps with existing artifacts should run `trails compile` from the owning app root, then `trails validate` and `trails warden`, to project previously authored trail metadata into their saved graph. Use the normal compile path so existing force-audit history is carried forward; do not patch lock JSON by hand. Newly visible authored facts can refine duplicate-contract coaching without changing runtime trail behavior.
+
 ## File outputs
 
 The normal exported artifact is:

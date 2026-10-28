@@ -4456,6 +4456,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "category": "infrastructure"
+        },
         "output": {
           "properties": {
             "count": {
@@ -4578,6 +4581,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "category": "infrastructure"
+        },
         "output": {
           "properties": {
             "active": {
@@ -6167,6 +6173,6 @@
     },
     "topoGraphSchemaVersion": 4
   },
-  "topoGraphHash": "90fabc77aa868a6fcd5124d6478bf4236503ad535877a227755650add7fd3370",
+  "topoGraphHash": "aec99ac12d1bea33536f94747010295c01785d4d68877648eb352cfd5a5dc28e",
   "version": 5
 }

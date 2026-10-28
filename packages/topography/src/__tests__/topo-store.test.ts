@@ -699,7 +699,11 @@ describe('topo store derivation', () => {
           typeof entry === 'object' &&
           entry !== null &&
           (entry as { id?: unknown }).id === 'entity.add'
-      ) as { examples?: unknown } | undefined;
+      ) as { examples?: unknown; meta?: unknown } | undefined;
+      expect(trailEntry?.meta).toEqual({
+        owner: 'core',
+        tags: ['write', 'entity'],
+      });
       expect(trailEntry?.examples).toEqual([
         {
           expected: { id: 'ada', ok: true },

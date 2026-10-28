@@ -867,6 +867,9 @@ const addExtendedMetadata = (
   raw: Record<string, unknown>,
   trail: AnyTrail
 ): void => {
+  if (trail.meta !== undefined) {
+    entry['meta'] = canonicalize(trail.meta);
+  }
   if (raw['deprecated'] === true) {
     entry['deprecated'] = true;
   }
