@@ -148,6 +148,9 @@ const createMcpServer = (
         : { authorization: `Bearer ${authorizationToken}` }),
       progressToken,
       sendProgress,
+      ...(requestExtra.sessionId === undefined
+        ? {}
+        : { sessionId: requestExtra.sessionId }),
     };
 
     const result = await tool.handler(args, extra);

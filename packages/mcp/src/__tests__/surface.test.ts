@@ -231,4 +231,56 @@ describe('surface', () => {
     });
     expect(server).toBeDefined();
   });
+
+  test('preserves legacy session input until the dedicated permit API removal', async () => {
+    let seenSession: string | undefined;
+    let seenBearer: string | undefined;
+    const identity = trail('identity', {
+      implementation: (_input, ctx) =>
+        Result.ok({ id: ctx.permit?.id ?? 'anonymous' }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ id: z.string() }),
+      permit: { scopes: ['identity:read'] },
+    });
+    const server = createServer(topo('compat', { identity }), {
+      resolvePermit: ({ bearerToken, sessionId }) => {
+        seenBearer = bearerToken;
+        seenSession = sessionId;
+        return Result.ok({
+          id: sessionId ?? 'missing-session',
+          scopes: ['identity:read'],
+        });
+      },
+    });
+    const client = new Client({ name: 'compat-client', version: '1.0.0' });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    serverTransport.sessionId = 'legacy-connection';
+    const send = clientTransport.send.bind(clientTransport);
+    clientTransport.send = (message, options) =>
+      send(message, {
+        ...options,
+        authInfo: {
+          clientId: 'fixture-client',
+          scopes: [],
+          token: 'fixture-token',
+        },
+      });
+    try {
+      await Promise.all([
+        client.connect(clientTransport),
+        server.connect(serverTransport),
+      ]);
+      const result = await client.callTool({
+        arguments: {},
+        name: 'compat_identity',
+      });
+      expect(seenBearer).toBe('fixture-token');
+      expect(seenSession).toBe('legacy-connection');
+      expect(result.structuredContent).toEqual({ id: 'legacy-connection' });
+    } finally {
+      await Promise.allSettled([client.close(), server.close()]);
+    }
+  });
 });
