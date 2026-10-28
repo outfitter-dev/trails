@@ -18,7 +18,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0009](0009-first-class-resources.md) | First-Class Resources | Accepted |
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Partially-superseded |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
-| [0012](0012-connector-agnostic-permits.md) | Adapter-Agnostic Permits | Accepted |
+| [0012](0012-connector-agnostic-permits.md) | Adapter-Agnostic Permits | Accepted (amended 2026-10-28) |
 | [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Partially-superseded |
 | [0014](0014-core-database-primitive.md) | Core Database Primitive | Accepted |
 | [0015](0015-topo-store.md) | Topo Store | Accepted |
@@ -62,3 +62,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0053](0053-regrade-moves-governed-contract-change.md) | Regrade Moves Governed Contract Change | Accepted |
 | [0054](0054-project-substrate-names-its-truth.md) | Project Substrate Names Its Truth | Accepted |
 | [0055](0055-mcp-stateless-core-on-sdk-v2.md) | MCP Targets the Stateless Core on SDK v2 | Accepted |
+| [0056](0056-permits-as-oauth-resource-server.md) | Permits Make Trails an OAuth Resource Server | Accepted |
