@@ -13,7 +13,7 @@ export interface JwtAdapterOptions {
   readonly clockSkewSeconds?: number;
   /** HMAC secret for HS256 verification. */
   readonly secret?: string;
-  /** Whether accepted tokens must include exp (default: true). */
+  /** Require exp in secret mode (default: true); issuer mode always requires it. */
   readonly requireExpiration?: boolean;
   /** Explicit trusted JWKS endpoint; otherwise discovered from issuer metadata. */
   readonly jwksUrl?: string;
@@ -222,7 +222,7 @@ const validateClaims = (
   if (
     payload.exp !== undefined &&
     payload.exp !== null &&
-    payload.exp < now - skew
+    payload.exp <= now - skew
   ) {
     return { code: 'expired_token', message: 'Token has expired' };
   }

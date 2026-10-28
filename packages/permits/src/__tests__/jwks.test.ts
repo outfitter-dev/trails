@@ -12,6 +12,7 @@ import { resolvePermitFromBearerToken } from '../boundary.js';
 import { createJwtAdapter } from '../adapters/jwt.js';
 import { authResource, authResourceConfigSchema } from '../auth-resource.js';
 import { jwksFixture } from './helpers/jwks.js';
+import { TEST_SECRET, signJwt } from './helpers/jwt.js';
 
 const input = (bearerToken: string) => ({
   bearerToken,
@@ -352,5 +353,47 @@ describe('issuer JWT verification', () => {
       input(await f.key.sign({ exp: undefined }))
     );
     expect(outcome28.isErr()).toBe(true);
+  });
+  for (const mode of ['issuer', 'secret'] as const) {
+    for (const skew of [0, 60]) {
+      test(`${mode} rejects exact expiration boundary with skew ${skew}`, async () => {
+        setSystemTime(new Date('2026-10-28T12:00:00Z'));
+        const f = await setup('EdDSA');
+        const adapter = createJwtAdapter({
+          ...f.options,
+          ...(mode === 'secret' ? { secret: TEST_SECRET } : {}),
+          clockSkewSeconds: skew,
+        });
+        const claims = {
+          aud: f.audience,
+          exp: Math.floor(Date.now() / 1000) - skew,
+          iss: f.issuer,
+          sub: 'user',
+        };
+        const token =
+          mode === 'secret' ? await signJwt(claims) : await f.key.sign(claims);
+        const result = await adapter.authenticate(input(token));
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.code).toBe('expired_token');
+        }
+      });
+    }
+  }
+
+  test('cold unknown kid loads keys only once and honors the cooldown', async () => {
+    const f = await setup('EdDSA');
+    const unknown = await f.makeKey('unknown');
+    const token = await unknown.sign();
+    const first = await f.adapter.authenticate(input(token));
+    const second = await f.adapter.authenticate(input(token));
+    expect(first.isErr()).toBe(true);
+    expect(second.isErr()).toBe(true);
+    expect(f.requests).toHaveLength(2);
+    setSystemTime(Date.now() + 31_000);
+    f.state.keys = [unknown.jwk];
+    const rotated = await f.adapter.authenticate(input(token));
+    expect(rotated.isOk()).toBe(true);
+    expect(f.requests).toHaveLength(3);
   });
 });

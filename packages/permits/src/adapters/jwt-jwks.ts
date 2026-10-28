@@ -226,11 +226,15 @@ export const verifyIssuerSignature = async (
 ): Promise<boolean> => {
   secureUrl(issuer, true);
   const source = keySource(issuer, jwksUrl);
-  const snapshot =
+  const cached =
     source.snapshot && source.snapshot.expiresAt > Date.now()
       ? source.snapshot
-      : await refresh(source, issuer, jwksUrl);
+      : undefined;
+  const snapshot = cached ?? (await refresh(source, issuer, jwksUrl));
   let key = selectKey(snapshot, algorithm, kid);
+  if (!key && !cached) {
+    source.refreshedAt = Date.now();
+  }
   if (!key && source.pending) {
     key = selectKey(await source.pending, algorithm, kid);
   }
