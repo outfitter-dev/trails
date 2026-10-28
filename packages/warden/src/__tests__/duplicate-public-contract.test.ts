@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   entity,
@@ -8,7 +11,13 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topography';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphHash,
+  readTopoGraph,
+  writeTrailsLock,
+} from '@ontrails/topography';
+import { runWarden } from '../cli.js';
 import { z } from 'zod';
 
 import { duplicatePublicContract } from '../rules/duplicate-public-contract.js';
@@ -38,7 +47,7 @@ describe('duplicate-public-contract', () => {
         filePath: '<topo>',
         line: 1,
         message:
-          'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, entities, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
+          'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, entities, composes, signals, detours, and authored meta. Keep one contract with aliases/input mappings, compose a distinct wrapper, or declare real semantic facts in meta (for example, correspondenceFact: "read" versus "ack") when these public contracts are distinct.',
         rule: 'duplicate-public-contract',
         severity: 'warn',
       },
@@ -244,4 +253,108 @@ describe('duplicate-public-contract', () => {
 
     expect(diagnostics).toHaveLength(1);
   });
+});
+
+describe('authored semantic metadata through normal graph derivation', () => {
+  for (const [shape, firstMeta, secondMeta, expected] of [
+    ['absent', undefined, undefined, 1],
+    [
+      'identical',
+      { correspondenceFact: 'read' },
+      { correspondenceFact: 'read' },
+      1,
+    ],
+    [
+      'distinct',
+      { correspondenceFact: 'read' },
+      { correspondenceFact: 'ack' },
+      0,
+    ],
+    [
+      'reordered',
+      { correspondenceFact: 'read', detail: { a: 1, b: 2 } },
+      Object.fromEntries([
+        [
+          'detail',
+          Object.fromEntries([
+            ['b', 2],
+            ['a', 1],
+          ]),
+        ],
+        ['correspondenceFact', 'read'],
+      ]),
+      1,
+    ],
+  ] as const) {
+    test(`${shape} metadata preserves the correct duplicate coaching`, () => {
+      const make = (
+        id: string,
+        meta: Readonly<Record<string, unknown>> | undefined
+      ) =>
+        trail(id, {
+          implementation: () => Result.ok({ ok: true }),
+          input,
+          output,
+          ...(meta === undefined ? {} : { meta }),
+        });
+      const read = make('message.read', firstMeta);
+      const ack = make('message.ack', secondMeta);
+      const app = topo('semantic-contract', { ack, read });
+      expect(
+        duplicatePublicContract.checkTopo(app, { graph: deriveTopoGraph(app) })
+      ).toHaveLength(expected);
+    });
+  }
+});
+
+test('actual Warden dispatch preserves semantic meta after generated root-lock readback', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'trails-semantic-meta-'));
+  try {
+    for (const distinct of [false, true]) {
+      const make = (id: string, fact: string) =>
+        trail(id, {
+          implementation: () => Result.ok({ ok: true }),
+          input,
+          meta: { correspondenceFact: fact },
+          output,
+        });
+      const read = make('message.read', 'read');
+      const ack = make('message.ack', distinct ? 'ack' : 'read');
+      const app = topo('semantic-contract', { ack, read });
+      const graph = deriveTopoGraph(app);
+      await writeTrailsLock(
+        {
+          scope: { app: app.name },
+          summary: { entities: 0, resources: 0, signals: 0, trails: 2 },
+          topoGraph: graph,
+          topoGraphHash: deriveTopoGraphHash(graph),
+          version: 5,
+        },
+        { dir: root }
+      );
+      const loaded = await readTopoGraph({ dir: root });
+      if (!loaded) {
+        throw new Error('Expected generated graph');
+      }
+      const report = await runWarden({
+        noLockMutation: true,
+        projectRules: false,
+        rootDir: root,
+        tier: 'topo-aware',
+        topos: [{ graph: loaded, topo: app }],
+      });
+      expect(
+        report.diagnostics.filter(
+          (diagnostic) => diagnostic.rule === 'duplicate-public-contract'
+        )
+      ).toHaveLength(distinct ? 0 : 1);
+      expect(
+        report.diagnostics.filter(
+          (diagnostic) => diagnostic.severity === 'error'
+        )
+      ).toEqual([]);
+    }
+  } finally {
+    await rm(root, { force: true, recursive: true });
+  }
 });

@@ -2,6 +2,9 @@ import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Result, topo, trail } from '@ontrails/core';
+import { deriveTopoGraph } from '../derive.js';
+import { carryForwardTopoGraphForces } from '../forces.js';
 
 import {
   writeTopoGraph,
@@ -18,7 +21,12 @@ import {
   LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
 } from '../types.js';
-import type { LockManifest, TopoGraph, TrailsLock } from '../types.js';
+import type {
+  LockManifest,
+  TopoGraph,
+  TrailsLock,
+  TopoGraphForceEntry,
+} from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -500,4 +508,44 @@ describe('readWorkspaceTrailIndex', () => {
     });
     expect(result).toBeNull();
   });
+});
+
+test('generated trail metadata survives root-lock readback and force-history carry-forward', async () => {
+  const record = trail('message.ack', {
+    implementation: () => Result.ok(null),
+    meta: { correspondenceFact: 'ack', detail: { a: 1, z: 2 } },
+  });
+  const graph = deriveTopoGraph(topo('semantic-meta', { record }));
+  const force: TopoGraphForceEntry = {
+    acceptedAt: '2026-10-28T00:00:00Z',
+    change: 'modified',
+    detail: 'prior accepted contract change',
+    id: 'message.ack',
+    kind: 'trail',
+    reason: 'historical acceptance',
+    severity: 'breaking',
+    source: 'trails compile --force',
+  };
+  const previous: TopoGraph = {
+    ...graph,
+    entries: graph.entries.map((entry) => ({ ...entry, forces: [force] })),
+  };
+  const regenerated = carryForwardTopoGraphForces(previous, graph);
+  const lock = makeTrailsLock(regenerated);
+  const path = await writeTrailsLock(lock, { dir: tempDir });
+  const originalBytes = await readFile(path, 'utf8');
+  const loaded = await readTrailsLock({ dir: tempDir });
+  const loadedGraph = await readTopoGraph({ dir: tempDir });
+  expect(loadedGraph?.entries[0]?.meta).toEqual({
+    correspondenceFact: 'ack',
+    detail: { a: 1, z: 2 },
+  });
+  expect(loadedGraph?.entries[0]?.forces).toEqual([force]);
+  expect(loaded?.topoGraphHash).toBe(deriveTopoGraphHash(regenerated));
+  expect(loaded).not.toBeNull();
+  if (!loaded) {
+    throw new Error('Expected generated root lock');
+  }
+  await writeTrailsLock(loaded, { dir: tempDir });
+  expect(await readFile(path, 'utf8')).toBe(originalBytes);
 });
