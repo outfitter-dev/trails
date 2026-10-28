@@ -12,7 +12,6 @@ import type {
   TextContent,
 } from '@modelcontextprotocol/server';
 import {
-  AuthError,
   InternalError,
   Result,
   ValidationError,
@@ -54,6 +53,7 @@ import type {
 
 import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
+import { resolveMcpPermit } from './permit-resolution.js';
 import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
 
@@ -828,49 +828,6 @@ const withMcpSurface = (
     layers,
     progressCb === undefined ? {} : { progress: progressCb }
   );
-
-const parseBearerAuthorization = (
-  authorization: string | undefined
-): Result<string | undefined, Error> => {
-  if (authorization === undefined || authorization.length === 0) {
-    return Result.ok();
-  }
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
-  const token = match?.[1]?.trim();
-  if (token === undefined || token.length === 0) {
-    return Result.err(
-      new AuthError('Malformed MCP authorization; expected Bearer token', {
-        context: { code: 'invalid_authorization_header' },
-      })
-    );
-  }
-  return Result.ok(token);
-};
-
-const resolveMcpPermit = async (
-  options: DeriveMcpToolsOptions,
-  extra: McpExtra
-): Promise<Result<BasePermit | undefined, Error>> => {
-  if (extra.permit !== undefined) {
-    return Result.ok(extra.permit);
-  }
-  const token = parseBearerAuthorization(extra.authorization);
-  if (token.isErr()) {
-    return token;
-  }
-  if (options.resolvePermit === undefined) {
-    return Result.ok();
-  }
-  const resolved = await options.resolvePermit({
-    _meta: extra._meta,
-    authorization: extra.authorization,
-    bearerToken: token.value,
-  });
-  if (resolved.isErr()) {
-    return resolved;
-  }
-  return Result.ok(resolved.value ?? undefined);
-};
 
 const createHandler =
   (
