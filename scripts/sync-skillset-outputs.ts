@@ -13,8 +13,7 @@ export const syncSkillsetOutputs = async (
   const committed = await readCommittedSkillsetLock('HEAD', cwd);
   for (const command of [
     ['bun', 'run', 'warden:skills:sync'],
-    ['skillset', 'build', '--yes', '--root', '.'],
-    ['skillset', 'marketplace', 'update', 'trails', '--yes', '--root', '.'],
+    ['bun', 'run', 'skillset:generate'],
   ]) {
     const child = Bun.spawn(command, {
       cwd,
