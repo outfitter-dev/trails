@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "trl-1222-adrts-promotedemote-moves-adr-files-without-rewriting-their",
-          "sha": "1e82af6e0e9e9351565075cbffaee03e913fcdad",
+          "ref": "trl-984-make-adr-tooling-archive-aware-for-the-v1-reset",
+          "sha": "bac3702357f8b2372b5e24706ac9cf89489ebe0d",
           "sourceKind": "current"
         }
       },
@@ -322,9 +322,11 @@
           "plugin-dev/skills/trails-adrs/LICENSE.txt",
           "plugin-dev/skills/trails-adrs/SKILL.md",
           "plugin-dev/skills/trails-adrs/assets/adr-management.md",
+          "plugin-dev/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/adr.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/active-paths.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/discovery.ts",
@@ -381,9 +383,11 @@
             "plugin-dev/skills/trails-adrs/LICENSE.txt",
             "plugin-dev/skills/trails-adrs/SKILL.md",
             "plugin-dev/skills/trails-adrs/assets/adr-management.md",
+            "plugin-dev/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/adr.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/active-paths.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/discovery.ts",
@@ -419,15 +423,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "trl-1222-adrts-promotedemote-moves-adr-files-without-rewriting-their",
-          "sha": "1e82af6e0e9e9351565075cbffaee03e913fcdad",
+          "ref": "trl-984-make-adr-tooling-archive-aware-for-the-v1-reset",
+          "sha": "bac3702357f8b2372b5e24706ac9cf89489ebe0d",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:13f958a9209a370b39c44e5c87fd89edfb922b2f040fb003015a5f87468094b7",
+  "provenanceHash": "sha256:d017ca0d5a4c0488239e1c5891923c41e1d7fa6cab59e25933924cdcecdee189",
   "renderResults": [
     {
       "destination": "changelog",

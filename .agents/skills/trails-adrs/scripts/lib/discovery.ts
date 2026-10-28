@@ -3,6 +3,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { ADR_DIR, DRAFTS_DIR } from './paths.ts';
+import { isActiveAdrPath, requireActivePath } from './active-paths.ts';
 import { parseFrontmatter, extractTitle } from './frontmatter.ts';
 import type { AdrFile } from './frontmatter.ts';
 
@@ -24,7 +25,7 @@ export const listNumberedAdrs = (): AdrFile[] => {
     return [];
   }
   return readdirSync(ADR_DIR)
-    .filter((f) => /^\d+-.*\.md$/.test(f) && f !== 'README.md')
+    .filter((f) => isActiveAdrPath(join(ADR_DIR, f)))
     .toSorted()
     .map((f) => readAdr(join(ADR_DIR, f)));
 };
@@ -34,7 +35,7 @@ export const listDrafts = (): AdrFile[] => {
     return [];
   }
   return readdirSync(DRAFTS_DIR)
-    .filter((f) => f.endsWith('.md') && f !== 'README.md')
+    .filter((f) => isActiveAdrPath(join(DRAFTS_DIR, f)))
     .toSorted()
     .map((f) => readAdr(join(DRAFTS_DIR, f)));
 };
@@ -68,7 +69,8 @@ export const todayCompact = (): string => today().replaceAll('-', '');
 export const resolveAdr = (ref: string): AdrFile | null => {
   // Direct path
   if (ref.endsWith('.md') && existsSync(ref)) {
-    return readAdr(resolve(ref));
+    requireActivePath(ref);
+    return isActiveAdrPath(ref) ? readAdr(resolve(ref)) : null;
   }
 
   // Check drafts by slug
