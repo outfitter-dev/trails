@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 
+import { outputModePreset } from '@ontrails/cli';
 import { deriveCliPath, filterSurfaceTrails } from '@ontrails/core';
 import type {
   ResourceOverrideMap,
@@ -96,7 +97,8 @@ const cliCommandForExample = (
   const inputJson = escapeWhitespaceForCliToken(
     JSON.stringify(example.input ?? {})
   );
-  return `${path} --input-json ${inputJson} --output json`;
+  const inputArgs = inputJson === '{}' ? '' : ` --input-json ${inputJson}`;
+  return `${path}${inputArgs} --output json`;
 };
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
@@ -244,6 +246,7 @@ const runCliExample = async (
     graph: app,
     ...cliOptions,
     ctx: mergeSurfaceContext(ctx, cliOptions?.ctx),
+    presets: [outputModePreset(), ...(cliOptions?.presets ?? [])],
     resources,
   });
   return normalizeCliResult(

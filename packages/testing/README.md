@@ -100,12 +100,13 @@ Surface harnesses live on explicit subpaths so renders that only import contract
   require all three shipped surface peers
 
 ```typescript
+import { outputModePreset } from '@ontrails/cli';
 import { createCliHarness } from '@ontrails/testing/cli';
 import { createHttpHarness } from '@ontrails/testing/http';
 import { createMcpHarness } from '@ontrails/testing/mcp';
 
 // CLI
-const cli = createCliHarness({ graph });
+const cli = createCliHarness({ graph, presets: [outputModePreset()] });
 const result = await cli.run('entity show --name Alpha --output json');
 expect(result.exitCode).toBe(0);
 
@@ -145,6 +146,10 @@ testSurfaceParity(graph, {
   ],
 });
 ```
+
+The CLI harness accepts the same `presets` as the real CLI and rejects flags that are absent from its derived command. Configure `outputModePreset()` on both when using `--output` or `--json`; otherwise omit those flags. Object results remain available through `result.json` with default output.
+
+The parity helper explicitly installs `outputModePreset()` on its internal CLI harness to compare JSON payloads, including scalar strings. This configuration does not add flags to your application's CLI. It omits structured input flags when an example has empty input.
 
 The helper compares normalized success payloads and normalized TrailsError category/code pairs. CLI command names, MCP tool names, HTTP method/path values, transport envelopes, activation consumers, internal trails, and planned WebSocket work stay outside the equality check. Use `createResources` when examples need deterministic fixtures for each surface invocation, and use exclusions for intentional semantic differences that should not be silently skipped.
 

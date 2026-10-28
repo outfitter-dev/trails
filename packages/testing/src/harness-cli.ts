@@ -5,17 +5,18 @@
  * and captures stdout/stderr.
  */
 
-import { deriveCliCommands } from '@ontrails/cli';
+import { deriveCliCommands, deriveOutputMode, output } from '@ontrails/cli';
 import type { CliCommand, DeriveCliCommandsOptions } from '@ontrails/cli';
 import type { Topo, TrailContext } from '@ontrails/core';
 import { renderPublicSurfaceError } from '@ontrails/core';
 
 import { mergeTestContext } from './context.js';
+import { parseCliHarnessFlags } from './harness-cli-argv.js';
 
 /** Options for creating a CLI harness. */
 export interface CliHarnessOptions extends Omit<
   DeriveCliCommandsOptions,
-  'onResult' | 'presets' | 'resolveInput'
+  'onResult' | 'resolveInput'
 > {
   readonly ctx?: Partial<TrailContext> | undefined;
   readonly graph: Topo;
@@ -37,7 +38,7 @@ export interface CliHarnessResult {
       }
     | undefined;
   readonly exitCode: number;
-  /** Parsed JSON output if --output json was used. */
+  /** Parsed JSON when stdout contains a single JSON value. */
   readonly json?: unknown | undefined;
   readonly stderr: string;
   readonly stdout: string;
@@ -86,55 +87,6 @@ const resolveCommand = (
 };
 
 // ---------------------------------------------------------------------------
-// Flag parsing
-// ---------------------------------------------------------------------------
-
-/** Parse a value flag (--key value) and return new index. */
-const parseValueFlag = (
-  key: string,
-  next: string,
-  flags: Record<string, unknown>
-): void => {
-  const num = Number(next);
-  flags[key] = Number.isNaN(num) ? next : num;
-};
-
-/** Parse a single flag token and advance the index. */
-const parseSingleFlag = (
-  tokens: string[],
-  i: number,
-  flags: Record<string, unknown>
-): number => {
-  const token = tokens[i];
-  if (token === undefined || !token.startsWith('--')) {
-    return i + 1;
-  }
-
-  const key = token.slice(2);
-  const next = tokens[i + 1];
-
-  if (next !== undefined && !next.startsWith('-')) {
-    parseValueFlag(key, next, flags);
-    return i + 2;
-  }
-
-  flags[key] = true;
-  return i + 1;
-};
-
-/** Parse flag tokens into a record. */
-const parseFlagTokens = (tokens: string[]): Record<string, unknown> => {
-  const flags: Record<string, unknown> = {};
-  let i = 0;
-
-  while (i < tokens.length) {
-    i = parseSingleFlag(tokens, i, flags);
-  }
-
-  return flags;
-};
-
-// ---------------------------------------------------------------------------
 // Stream capture
 // ---------------------------------------------------------------------------
 
@@ -142,7 +94,6 @@ interface CapturedStreams {
   readonly getStderr: () => string;
   readonly getStdout: () => string;
   readonly restore: () => void;
-  readonly writeStdout: (text: string) => void;
 }
 
 /** Create interceptors for stdout/stderr capture. */
@@ -171,9 +122,6 @@ const captureStreams = (): CapturedStreams => {
       process.stdout.write = origStdoutWrite;
       process.stderr.write = origStderrWrite;
     },
-    writeStdout: (text: string) => {
-      stdout += text;
-    },
   };
 };
 
@@ -194,28 +142,10 @@ const tryParseJson = (text: string): unknown => {
 const formatSuccessResult = (
   value: unknown,
   flags: Record<string, unknown>,
-  streams: CapturedStreams
+  streams: CapturedStreams,
+  topoName: string
 ): CliHarnessResult => {
-  const outputMode =
-    flags['output'] ?? (flags['json'] === true ? 'json' : 'text');
-
-  if (outputMode === 'json') {
-    const jsonStr = `${JSON.stringify(value, null, 2)}\n`;
-    streams.writeStdout(jsonStr);
-    return {
-      exitCode: 0,
-      json: tryParseJson(jsonStr),
-      stderr: streams.getStderr(),
-      stdout: streams.getStdout(),
-    };
-  }
-
-  const formatted =
-    typeof value === 'string'
-      ? `${value}\n`
-      : `${JSON.stringify(value, null, 2)}\n`;
-  streams.writeStdout(formatted);
-
+  output(value, deriveOutputMode(flags, topoName).mode);
   return {
     exitCode: 0,
     json: tryParseJson(streams.getStdout().trim()),
@@ -253,13 +183,13 @@ const executeCommand = async (
   command: CliCommand,
   flags: Record<string, unknown>,
   streams: CapturedStreams,
+  topoName: string,
   ctxOverrides?: Partial<TrailContext>
 ): Promise<CliHarnessResult> => {
   const ctx = mergeTestContext(ctxOverrides);
   const result = await command.execute({}, flags, ctx);
-  streams.restore();
-
   if (result.isErr()) {
+    streams.restore();
     const rendering = renderPublicSurfaceError('cli', result.error);
     return {
       error: {
@@ -273,13 +203,16 @@ const executeCommand = async (
     };
   }
 
-  return formatSuccessResult(result.value, flags, streams);
+  const formatted = formatSuccessResult(result.value, flags, streams, topoName);
+  streams.restore();
+  return formatted;
 };
 
 /** Run the full command pipeline: resolve, parse, execute. */
 const runCommand = async (
   commands: CliCommand[],
   commandString: string,
+  topoName: string,
   ctxOverrides?: Partial<TrailContext>
 ): Promise<CliHarnessResult> => {
   const parts = parseCommandString(commandString);
@@ -293,11 +226,17 @@ const runCommand = async (
   }
 
   const { command, flagTokens } = resolved;
-  const flags = parseFlagTokens(flagTokens);
   const streams = captureStreams();
 
   try {
-    return await executeCommand(command, flags, streams, ctxOverrides);
+    const flags = parseCliHarnessFlags(command, flagTokens);
+    return await executeCommand(
+      command,
+      flags,
+      streams,
+      topoName,
+      ctxOverrides
+    );
   } catch (error: unknown) {
     return buildErrorResult(error, streams);
   }
@@ -314,9 +253,10 @@ const runCommand = async (
  * that parses command strings and executes them in-process.
  *
  * ```ts
+ * import { outputModePreset } from '@ontrails/cli';
  * import { createCliHarness } from '@ontrails/testing/cli';
  *
- * const harness = createCliHarness({ graph });
+ * const harness = createCliHarness({ graph, presets: [outputModePreset()] });
  * const result = await harness.run("entity show --name Alpha --output json");
  * expect(result.exitCode).toBe(0);
  * ```
@@ -330,6 +270,7 @@ export const createCliHarness = (options: CliHarnessOptions): CliHarness => {
   const commands = commandsResult.value;
 
   return {
-    run: (commandString: string) => runCommand(commands, commandString, ctx),
+    run: (commandString: string) =>
+      runCommand(commands, commandString, graph.name, ctx),
   };
 };

@@ -36,6 +36,27 @@ describe('runSurfaceParityExample', () => {
     });
   });
 
+  test('registers JSON output for scalar results without adding input flags to empty contracts', async () => {
+    const read = trail('text.read', {
+      examples: [{ expected: '123', input: {}, name: 'Numeric string' }],
+      implementation: () => Result.ok('123'),
+      input: z.object({}),
+      intent: 'read',
+      output: z.string(),
+    });
+    const graph = topo('parity-app', { read });
+    const comparison = await runSurfaceParityExample(graph, read, {
+      expected: '123',
+      input: {},
+      name: 'Numeric string',
+    });
+    expect(comparison).toEqual({
+      cli: { ok: true, value: '123' },
+      http: { ok: true, value: '123' },
+      mcp: { ok: true, value: '123' },
+    });
+  });
+
   test('merges per-surface context options instead of clobbering them', async () => {
     const requestId = 'surface-request-123';
     const show = trail('context.show', {
