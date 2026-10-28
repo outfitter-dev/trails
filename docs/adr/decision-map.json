@@ -145,6 +145,11 @@
           "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
         },
         {
+          "context": "- [ADR-0000](0000-core-premise.md#decision) — one trail contract across peer surfaces.",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
+        },
+        {
           "context": "- docs/adr/0000-core-premise.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -570,6 +575,11 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "`@ontrails/mcp` owns a Web-standard `Request` to `Response` handler built on SDK v2's `createMcpHandler`. It has no Node-only imports and no dependency on the `agents` package. Bun and Hono mount it u",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
+        },
+        {
           "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin adapter packages",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -667,6 +677,11 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)",
           "from": "0048",
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
+          "context": "Tool execution still uses the shared pipeline from [ADR-0006](0006-shared-execution-pipeline.md#decision). Trail implementations receive surface-agnostic context and return `Result`. Core owns taxonom",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
           "context": "- docs/adr/0006-shared-execution-pipeline.md",
@@ -1939,6 +1954,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "Tool execution still uses the shared pipeline from [ADR-0006](0006-shared-execution-pipeline.md#decision). Trail implementations receive surface-agnostic context and return `Result`. Core owns taxonom",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
+        },
+        {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -2347,6 +2367,11 @@
           "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
           "from": "0050",
           "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        },
+        {
+          "context": "Package migration and protocol migration are distinct. SDK v2 still permits legacy-only entry points. Trails must move its entry points to the SDK's `serveStdio` and `createMcpHandler` APIs to serve t",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
           "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` rendering ladder",
@@ -2852,6 +2877,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "`@ontrails/mcp` moves to the official `@modelcontextprotocol/server` 2.x SDK. The package change ships as a documented 0.x minor break under [ADR-0047](0047-stable-release-line-discipline.md#stable-us",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
+        },
+        {
           "context": "- docs/adr/0047-stable-release-line-discipline.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -2976,6 +3006,11 @@
           "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
         },
         {
+          "context": "The later MCP tasks design note shares this handle grammar. It does not introduce hidden session affinity into trail context. Surface accommodations continue to preserve selected trail identity under ",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
+        },
+        {
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -3052,6 +3087,11 @@
           "context": "> **Status update (2026-07-07):** Amended by [ADR-0052: Overlays Are the Lock's One Extension Mechanism](0052-overlays-one-extension-mechanism.md). The accommodation doctrine here stands — converge wi",
           "from": "0050",
           "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        },
+        {
+          "context": "These are Trails' derivation rules for the protocol's caching fields.[^changes] [TRL-1463] owns their implementation. [TRL-1424] is the lock-v6 design input; new persisted cache facts use the overlay ",
+          "from": "0055",
+          "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
           "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
@@ -3140,6 +3180,19 @@
       "superseded_by": null,
       "title": "Project Substrate Names Its Truth",
       "updated": "2026-10-25"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["0", "5", "6", "26", "35", "47", "50", "52"],
+      "inbound": [],
+      "number": "0055",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md",
+      "slug": "mcp-stateless-core-on-sdk-v2",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "MCP Targets the Stateless Core on SDK v2",
+      "updated": "2026-10-28"
     }
   ],
   "version": 1
