@@ -156,10 +156,11 @@ export type McpSurfaceTrailheadMap = Readonly<
   Record<string, McpSurfaceTrailheadDefinition>
 >;
 
+/** Untrusted request credential candidates; the configured resolver owns verification. */
 export interface ResolveMcpPermitInput {
+  readonly _meta?: Readonly<Record<string, unknown>> | undefined;
   readonly authorization?: string | undefined;
   readonly bearerToken?: string | undefined;
-  readonly sessionId?: string | undefined;
 }
 
 export type ResolveMcpPermit = (
@@ -187,6 +188,8 @@ export interface McpToolDefinition {
 }
 
 export interface McpExtra {
+  /** Application metadata from this request, never proof of identity by itself. */
+  readonly _meta?: Readonly<Record<string, unknown>> | undefined;
   readonly authorization?: string | undefined;
   readonly progressToken?: string | number | undefined;
   readonly sendProgress?:
@@ -194,7 +197,6 @@ export interface McpExtra {
     | undefined;
   readonly abortSignal?: AbortSignal | undefined;
   readonly permit?: BasePermit | undefined;
-  readonly sessionId?: string | undefined;
 }
 
 export interface McpToolResult {
@@ -856,16 +858,13 @@ const resolveMcpPermit = async (
   if (token.isErr()) {
     return token;
   }
-  if (token.value === undefined) {
-    return Result.ok();
-  }
   if (options.resolvePermit === undefined) {
     return Result.ok();
   }
   const resolved = await options.resolvePermit({
+    _meta: extra._meta,
     authorization: extra.authorization,
     bearerToken: token.value,
-    sessionId: extra.sessionId,
   });
   if (resolved.isErr()) {
     return resolved;

@@ -1160,7 +1160,7 @@ describe('deriveMcpTools', () => {
       });
     });
 
-    test('session permit from MCP extra lands in ctx.permit', async () => {
+    test('host-provided permit from MCP extra lands in ctx.permit', async () => {
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.read', {
         implementation: (_input, ctx) => {
@@ -1185,7 +1185,7 @@ describe('deriveMcpTools', () => {
     });
 
     test('MCP Bearer credentials resolve through the configured permit resolver', async () => {
-      let seenSession: string | undefined;
+      let seenMetadata: Readonly<Record<string, unknown>> | undefined;
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.token', {
         implementation: (_input, ctx) => {
@@ -1198,8 +1198,8 @@ describe('deriveMcpTools', () => {
       });
       const tool = requireOnlyTool(
         buildTools(topo('myapp', { protectedTrail }), {
-          resolvePermit: ({ bearerToken, sessionId }) => {
-            seenSession = sessionId;
+          resolvePermit: ({ _meta, bearerToken }) => {
+            seenMetadata = _meta;
             return Result.ok(
               bearerToken === 'good'
                 ? { id: 'user-1', scopes: ['thing:read'] }
@@ -1211,11 +1211,11 @@ describe('deriveMcpTools', () => {
 
       const result = await tool.handler(
         {},
-        { authorization: 'Bearer good', sessionId: 'session-1' }
+        { _meta: { credential: 'fixture' }, authorization: 'Bearer good' }
       );
 
       expect(result.isError ?? false).toBe(false);
-      expect(seenSession).toBe('session-1');
+      expect(seenMetadata).toEqual({ credential: 'fixture' });
       expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
     });
 
@@ -1256,7 +1256,7 @@ describe('deriveMcpTools', () => {
       expect(textContent(result.content[0])).toContain('No permit provided');
     });
 
-    test('per-call MCP permit override wins over session authorization', async () => {
+    test('host-provided MCP permit overrides request authorization', async () => {
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.override', {
         implementation: (_input, ctx) => {
@@ -1270,14 +1270,14 @@ describe('deriveMcpTools', () => {
       const tool = requireOnlyTool(
         buildTools(topo('myapp', { protectedTrail }), {
           resolvePermit: () =>
-            Result.ok({ id: 'session-user', scopes: ['thing:read'] }),
+            Result.ok({ id: 'resolver-user', scopes: ['thing:read'] }),
         })
       );
 
       const result = await tool.handler(
         {},
         {
-          authorization: 'Bearer session-token',
+          authorization: 'Bearer request-token',
           permit: { id: 'override-user', scopes: ['thing:read'] },
         }
       );

@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { describe, expect, test } from 'bun:test';
 
 import { Result, trail, topo } from '@ontrails/core';
@@ -7,7 +8,7 @@ import { z } from 'zod';
 
 import { createServer, surface } from '../surface.js';
 import { deriveMcpTools } from '../build.js';
-import type { McpToolDefinition } from '../build.js';
+import type { McpToolDefinition, ResolveMcpPermitInput } from '../build.js';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -232,55 +233,80 @@ describe('surface', () => {
     expect(server).toBeDefined();
   });
 
-  test('preserves legacy session input until the dedicated permit API removal', async () => {
-    let seenSession: string | undefined;
-    let seenBearer: string | undefined;
-    const identity = trail('identity', {
-      implementation: (_input, ctx) =>
-        Result.ok({ id: ctx.permit?.id ?? 'anonymous' }),
-      input: z.object({}),
-      intent: 'read',
-      output: z.object({ id: z.string() }),
-      permit: { scopes: ['identity:read'] },
-    });
-    const server = createServer(topo('compat', { identity }), {
-      resolvePermit: ({ bearerToken, sessionId }) => {
-        seenBearer = bearerToken;
-        seenSession = sessionId;
-        return Result.ok({
-          id: sessionId ?? 'missing-session',
-          scopes: ['identity:read'],
+  for (const mode of ['legacy', { pin: '2026-07-28' }] as const) {
+    test(`does not forward session context to permits in ${typeof mode === 'object' ? 'modern' : 'legacy'} era`, async () => {
+      let observedInput: ResolveMcpPermitInput | undefined;
+      const identity = trail('identity', {
+        implementation: (_input, ctx) =>
+          Result.ok({ id: ctx.permit?.id ?? 'anonymous' }),
+        input: z.object({}),
+        intent: 'read',
+        output: z.object({ id: z.string() }),
+        permit: { scopes: ['identity:read'] },
+      });
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+      serverTransport.sessionId = 'legacy-connection';
+      const send = clientTransport.send.bind(clientTransport);
+      clientTransport.send = (message, options) =>
+        send(message, {
+          ...options,
+          authInfo: {
+            clientId: 'fixture-client',
+            scopes: [],
+            token: 'fixture-token',
+          },
         });
-      },
+      const factory = () =>
+        createServer(topo('compat', { identity }), {
+          resolvePermit: (input) => {
+            observedInput = input;
+            return Result.ok({
+              id:
+                input.bearerToken ??
+                (input._meta?.['requestCredential'] === 'fixture'
+                  ? 'metadata-user'
+                  : 'missing-token'),
+              scopes: ['identity:read'],
+            });
+          },
+        });
+      // Stdio is outside HTTP auth; its credential fixture uses request metadata.
+      // The legacy custom host also supplies the former SDK session context.
+      const modern = typeof mode === 'object';
+      const server = modern ? undefined : factory();
+      const serving = modern
+        ? serveStdio(factory, { transport: serverTransport })
+        : undefined;
+      const client = new Client(
+        { name: 'compat-client', version: '1.0.0' },
+        { versionNegotiation: { mode } }
+      );
+      try {
+        await Promise.all([
+          client.connect(clientTransport),
+          server?.connect(serverTransport),
+        ]);
+        const result = await client.callTool({
+          _meta: { requestCredential: 'fixture' },
+          arguments: {},
+          name: 'compat_identity',
+        });
+        expect(observedInput).toMatchObject({
+          _meta: { requestCredential: 'fixture' },
+          bearerToken: modern ? undefined : 'fixture-token',
+        });
+        expect(Object.hasOwn(observedInput ?? {}, 'sessionId')).toBe(false);
+        expect(result.structuredContent).toEqual({
+          id: modern ? 'metadata-user' : 'fixture-token',
+        });
+      } finally {
+        await Promise.allSettled([
+          client.close(),
+          server?.close(),
+          serving?.close(),
+        ]);
+      }
     });
-    const client = new Client({ name: 'compat-client', version: '1.0.0' });
-    const [clientTransport, serverTransport] =
-      InMemoryTransport.createLinkedPair();
-    serverTransport.sessionId = 'legacy-connection';
-    const send = clientTransport.send.bind(clientTransport);
-    clientTransport.send = (message, options) =>
-      send(message, {
-        ...options,
-        authInfo: {
-          clientId: 'fixture-client',
-          scopes: [],
-          token: 'fixture-token',
-        },
-      });
-    try {
-      await Promise.all([
-        client.connect(clientTransport),
-        server.connect(serverTransport),
-      ]);
-      const result = await client.callTool({
-        arguments: {},
-        name: 'compat_identity',
-      });
-      expect(seenBearer).toBe('fixture-token');
-      expect(seenSession).toBe('legacy-connection');
-      expect(result.structuredContent).toEqual({ id: 'legacy-connection' });
-    } finally {
-      await Promise.allSettled([client.close(), server.close()]);
-    }
-  });
+  }
 });

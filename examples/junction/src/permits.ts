@@ -36,15 +36,12 @@ export const resolveHttpPermit: ResolveHttpPermit = ({
     surface: 'http',
   });
 
-export const resolveMcpPermit: ResolveMcpPermit = ({
-  bearerToken,
-  sessionId,
-}) =>
+export const resolveMcpPermit: ResolveMcpPermit = ({ bearerToken }) =>
   resolvePermitFromBearerToken({
     bearerToken: bearerToken ?? '',
     configValues: authConfigValues(),
     graph,
-    requestId: sessionId ?? 'mcp-session',
+    requestId: crypto.randomUUID(),
     surface: 'mcp',
   });
 
