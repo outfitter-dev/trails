@@ -396,4 +396,16 @@ describe('issuer JWT verification', () => {
     expect(rotated.isOk()).toBe(true);
     expect(f.requests).toHaveLength(3);
   });
+  test('fetches metadata and keys with native timeout and redirect rejection', async () => {
+    const f = await setup('EdDSA');
+    const result = await f.adapter.authenticate(input(await f.key.sign()));
+    expect(result.isOk()).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        redirect: 'error',
+        signal: expect.any(AbortSignal),
+      })
+    );
+  });
 });

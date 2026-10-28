@@ -95,7 +95,7 @@ const adapter = createJwtAdapter({
 
 `@ontrails/permits/jwt` is the canonical built-in JWT adapter subpath. The root package intentionally keeps convenience re-exports for interactive discovery, but generated code, docs, and adapter-specific examples should import JWT names from the subpath.
 
-The same options work in `authResource` configuration with `adapter: 'jwt'`. Existing apps using `secret` need no migration. `requireExpiration: false` remains available for secret-backed tokens; issuer mode always requires expiration. The default clock tolerance for `exp` and `nbf` remains 60 seconds in both modes. This addition keeps the existing `Permit` fields and does not provide sign-in, token minting, or DPoP verification.
+The same options work in `authResource` configuration with `adapter: 'jwt'`. Existing apps using `secret` need no migration. `requireExpiration: false` remains available for secret-backed tokens; issuer mode always requires expiration. The default clock tolerance for `exp` and `nbf` remains 60 seconds in both modes. Tokens are expired when `exp` equals the current time minus the tolerance; this corrects the previous HS256 boundary accepting equality. This addition keeps the existing `Permit` fields and does not provide sign-in, token minting, or DPoP verification.
 
 ### Custom adapters
 
