@@ -213,6 +213,7 @@ export const readTrailsLock: any;
 export const registerConfigState: any;
 export const registerTraceSink: any;
 export const registerTraceStore: any;
+export const renderJsonRpcError: any;
 export const Result: any;
 export const run: any;
 export const runConformance: any;
