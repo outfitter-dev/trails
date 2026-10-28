@@ -5,7 +5,8 @@ title: Trails-Native Infrastructure Pattern
 status: partially-superseded
 superseded_by: ['54']
 created: 2026-03-30
-updated: 2026-08-22
+updated: 2026-10-28
+amended: 2026-10-28
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -120,10 +121,10 @@ The workspace gives infrastructure a known home. Config reads local per-develope
 Each infrastructure package ships a zero-dependency built-in and optional adapters as subpath exports:
 
 - **Config:** TypeScript config + env resolution built-in. No adapters needed in v1 — the built-in covers the common case.
-- **Permits:** JWT/JWKS verification built-in. Adapters: `/openauth`, `/better-auth`, `/clerk` for provider-specific integration.
+- **Permits:** JWT/JWKS verification stays built-in at `@ontrails/permits/jwt`. Provider adapters follow [ADR-0057](0057-auth-adapter-packaging.md#the-selected-targets-have-concrete-homes): selected extracted packages and the existing Cloudflare Access collection subpath replace this ADR's earlier provider-subpath sketch.
 - **Tracing:** `bun:sqlite` dev store built-in — records spans locally for development inspection. Adapter: `/otel` for OpenTelemetry export.
 
-Adapters carry optional peer dependencies. Installing `@ontrails/permits` doesn't pull in Clerk's SDK. Installing `@ontrails/permits/clerk` does.
+Provider auth SDK dependencies belong only to the concrete SDK-backed capability in the owning adapter. Its optional peer is loaded when that capability is requested; installing permits or using the base JWT path does not require Clerk's SDK. ADR-0057 owns absent-peer import/type isolation and the explicit failure for a requested SDK capability without its peer.
 
 The built-in for each package is functional enough for development and simple production cases. Adapters are for teams that need specific providers. The v1 observability package graph follows this posture through `@ontrails/observe` for sink contracts and `@ontrails/observe/logtape` for LogTape forwarding.
 
@@ -188,6 +189,10 @@ Each ADR can refine the shared pattern based on what the previous package learne
 
 ### Amendment log
 
+- 2026-10-28: [ADR-0057](0057-auth-adapter-packaging.md#decision) replaces the
+  provider-auth subpath sketch with explicit Better Auth, Clerk and Cloudflare
+  Access homes. Shared verification stays in permits; SDK dependencies are
+  capability-owned and do not enter the built-in verifier.
 - 2026-05-09: Public-surface cleanup updated current-facing infrastructure
   vocabulary from connector/logging precedent to adapter/resource precedent and
   the `@ontrails/observe` package graph.

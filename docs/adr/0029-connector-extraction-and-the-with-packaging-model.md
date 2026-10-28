@@ -4,7 +4,8 @@ slug: connector-extraction-and-the-with-packaging-model
 title: Adapter Extraction and Composition Around Core Contracts
 status: accepted
 created: 2026-04-09
-updated: 2026-06-09
+updated: 2026-10-28
+amended: 2026-10-28
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [5, 9, 16, 22, 23]
 ---
@@ -243,6 +244,12 @@ The return type is identical. The topo registration is identical. The trail's `r
 
 ### Amendment log
 
+- 2026-10-28: [ADR-0057](0057-auth-adapter-packaging.md#decision) applies the
+  ownership test to provider auth: selected Better Auth and Clerk packages live
+  under `adapters/`, Access remains a Cloudflare collection subpath, and ordinary
+  JWKS presets do not automatically become packages. Auth adapters follow the
+  repository's current lockstep release policy; extraction alone does not grant
+  an independent publication cadence.
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — title updated to drop `with-*` prefix convention, naming rules revised for extracted connectors, migration table and composition layer table aligned with surface API grammar.
 - 2026-05-08: Connector-to-adapter taxonomy cutover — `adapter` becomes the canonical public package category, `integration` is retained only as colloquial prose, and the historical `connectors/` workspace root is superseded by `adapters/`. Later v1 vocabulary work moved grouped surface entries to `trailhead`.
 - 2026-05-16: Web Fetch kernel amendment — runtime materializers with no third-party dependency may stay as subpaths on the owning projection package, covering `@ontrails/http/fetch` and `@ontrails/http/bun` while preserving `@ontrails/hono` as the extracted Hono adapter.

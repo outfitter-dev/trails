@@ -4,7 +4,8 @@ slug: package-ownership-follows-natural-altitude
 title: Package Ownership Follows Natural Altitude
 status: accepted
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-10-28
+amended: 2026-10-28
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [1, 9, 41]
 ---
@@ -56,7 +57,15 @@ This ADR is accepted with the tracing migration as proof that the doctrine works
 
 ## References
 
+- [ADR-0057: Provider Auth Adapters Own Their Package Boundaries](0057-auth-adapter-packaging.md#shared-verification-remains-owned-by-permits) — provider packages configure shared auth owners rather than duplicating verification or permission kernels.
 - [Package Ownership Map](../contributing/package-ownership.md)
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md)
 - [ADR-0009: First-Class Resources](0009-first-class-resources.md)
 - [ADR-0041: Unified Observability](0041-unified-observability.md)
+
+## Amendment log
+
+- 2026-10-28: ADR-0057 applies natural altitude to provider auth. Shared JWT,
+  opaque verification and effective-permission owners stay in permits; selected
+  provider packages and collection subpaths own their integration boundaries.
+  No new shared kernel or package primitive is introduced.
