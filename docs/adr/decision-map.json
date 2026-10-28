@@ -1135,7 +1135,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Adapter-Agnostic Permits",
-      "updated": "2026-05-19"
+      "updated": "2026-10-28"
     },
     {
       "created": "2026-03-30",
@@ -3219,7 +3219,18 @@
     {
       "created": "2026-10-28",
       "depends_on": ["0", "5", "6", "26", "35", "47", "50", "52"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "HTTP reads a bearer token from the `Authorization` header. MCP HTTP credentials must be resolved per request under [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-r",
+          "from": "0012",
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        },
+        {
+          "context": "Application state uses explicit handles. A trail that creates state returns a handle in its output schema; subsequent trails accept that handle in their input schemas and check the caller's permit aga",
+          "from": "mcp",
+          "fromPath": "docs/surfaces/mcp.md"
+        }
+      ],
       "number": "0055",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md",
