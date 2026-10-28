@@ -140,12 +140,12 @@
       ],
       "kind": "standalone-skill",
       "name": "be-lewis",
-      "outputHash": "sha256:20565827bf39423c49ae7fdb5464c3d52ebc2e7b9d10b2b7100951aababb961f",
+      "outputHash": "sha256:0049e33873aeea1d4d351447395082834188038c0a1248d0e9ede6f510b7550b",
       "outputPath": "be-lewis/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
-      "sourceHash": "sha256:404efd6295447e5d3b68a65d2f14d00e16f87dd31c8d79b4b50f2d7c19647f54",
+      "sourceHash": "sha256:eb59ae7f522b53ebf08d01791e14669161e3247c5550d222c438d102f1ebd38f",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "version": "0.1.0"
     },
@@ -169,7 +169,7 @@
       "owner": {
         "target": "codex"
       },
-      "sourceHash": "sha256:404efd6295447e5d3b68a65d2f14d00e16f87dd31c8d79b4b50f2d7c19647f54",
+      "sourceHash": "sha256:eb59ae7f522b53ebf08d01791e14669161e3247c5550d222c438d102f1ebd38f",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "version": "0.1.0"
     },
@@ -855,7 +855,7 @@
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:95cf0e4b0dffeb18dbec53066f91bebaac0f54f964597c8ab1496a2841d7735d",
+  "provenanceHash": "sha256:71ae6b9b14f8a8ab1c8cbf00a66aaf433fe411899dbbdbf6be60b31203b589fc",
   "renderResults": [
     {
       "destination": "skill",
