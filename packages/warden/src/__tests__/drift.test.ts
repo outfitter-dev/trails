@@ -383,7 +383,7 @@ describe('checkDrift', () => {
       const result = await checkDrift(dir, makeTopo());
       expect(result.stale).toBe(true);
       expect(result.blockedReason).toContain(
-        'regenerate with `trails compile`'
+        'Restore a verified copy from Git'
       );
       expect(result.currentHash).toBe('blocked');
       expect(result.committedHash).toBeNull();

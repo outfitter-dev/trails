@@ -1536,12 +1536,12 @@ describe('trails compile', () => {
     }
   });
 
-  test('replaces unsupported committed lock schemas during compile', async () => {
+  test('preserves unsupported committed lock schemas and rejects compile', async () => {
     const dir = repoTempDir();
 
     try {
       writeSurveyAppFixture(dir);
-      const initial = expectOk(
+      expectOk(
         await compileTrail.implementation(standaloneModuleInput(dir), {
           cwd: dir,
         } as never)
@@ -1551,21 +1551,22 @@ describe('trails compile', () => {
         string,
         unknown
       >;
-      writeFileSync(
-        lockPath,
-        `${JSON.stringify({ ...staleLock, version: 4 }, null, 2)}\n`
-      );
+      const damagedLock = `${JSON.stringify({ ...staleLock, version: 4 }, null, 2)}\n`;
+      writeFileSync(lockPath, damagedLock);
 
-      const refreshed = expectOk(
-        await compileTrail.implementation(standaloneModuleInput(dir), {
-          cwd: dir,
-        } as never)
+      const rejected = await compileTrail.implementation(
+        standaloneModuleInput(dir),
+        { cwd: dir } as never
       );
-      expect(refreshed.hash).toBe(initial.hash);
-      expect(JSON.parse(readFileSync(lockPath, 'utf8'))).toMatchObject({
-        topoGraphHash: refreshed.hash,
-        version: 5,
-      });
+      expect(rejected.isErr()).toBe(true);
+      expect(rejected.error).toBeInstanceOf(ValidationError);
+      expect(rejected.error.message).toContain(
+        'Unsupported trails.lock format'
+      );
+      expect(rejected.error.message).toContain(
+        'Restore a verified copy from Git'
+      );
+      expect(readFileSync(lockPath, 'utf8')).toBe(damagedLock);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

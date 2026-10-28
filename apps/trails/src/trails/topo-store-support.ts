@@ -15,6 +15,7 @@ import {
   openWriteTrailsDb,
   Result,
   TimeoutError,
+  ValidationError,
 } from '@ontrails/core';
 import type {
   LockManifest,
@@ -152,12 +153,19 @@ export const deriveCurrentTopoExport = (
 const readPreviousCommittedTopo = async (
   rootDir: string
 ): Promise<TopoGraph | null> => {
+  // An existing unreadable lock may contain audit history that source cannot
+  // reconstruct. Let preflight fail before the persistent store is opened.
   try {
     const rootTopo = await readTopoGraph({ dir: rootDir });
-    return rootTopo ?? readTopoGraph({ dir: deriveTrailsDir({ rootDir }) });
+    return (
+      rootTopo ?? (await readTopoGraph({ dir: deriveTrailsDir({ rootDir }) }))
+    );
   } catch (error) {
     if (isTopoArtifactRegenerationError(error)) {
-      return null;
+      throw new ValidationError(error.message, {
+        cause: error,
+        context: { rootDir },
+      });
     }
     throw error;
   }
