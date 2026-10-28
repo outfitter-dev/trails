@@ -138,7 +138,7 @@ const withGitlessFixture = async (
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'trails-project-context-'));
+  root = realpathSync(mkdtempSync(join(tmpdir(), 'trails-project-context-')));
   initGit(root);
   writeWorkspace(root);
 });
