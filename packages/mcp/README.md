@@ -141,8 +141,10 @@ await surface(graph, { exclude: ['internal.debug'] });
 
 ## Installation
 
-These installation examples target Trails `0.2.1` on the normal npm release line.
+The source targets the SDK v2 migration release, with `@modelcontextprotocol/server` 2.x (minimum 2.4.0) as its peer. Source support does not establish publication; use the Trails release containing this migration and its matching peer requirements.
 
 ```bash
-bun add --exact @ontrails/mcp@0.2.1
+bun add @ontrails/mcp '@modelcontextprotocol/server@^2.4.0'
 ```
+
+See [SDK v2 Migration](../../docs/surfaces/mcp.md#sdk-v2-migration) for the stdio factory API and embedded binary content changes.

@@ -2,14 +2,7 @@
  * Surface helpers for exposing a topo over MCP.
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  McpError,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError, Server } from '@modelcontextprotocol/server';
 import { NotFoundError, renderJsonRpcError } from '@ontrails/core';
 import type {
   BaseSurfaceOptions,
@@ -105,82 +98,69 @@ const createMcpServer = (
 
   // Register tools/list handler
   // oxlint-disable-next-line require-await -- MCP SDK requires async handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  server.setRequestHandler('tools/list', async () => ({
     tools: tools.map((t) => ({
       _meta: t._meta,
       annotations: t.annotations,
       description: t.description,
-      inputSchema: t.inputSchema,
+      inputSchema: { ...t.inputSchema, type: 'object' as const },
       name: t.name,
-      outputSchema: t.outputSchema,
+      outputSchema:
+        t.outputSchema === undefined
+          ? undefined
+          : { ...t.outputSchema, type: 'object' as const },
     })),
   }));
 
   // Register tools/call handler
-  server.setRequestHandler(
-    CallToolRequestSchema,
-    async (request, requestExtra) => {
-      const tool = toolMap.get(request.params.name);
-      if (tool === undefined) {
-        return {
-          content: [
-            {
-              text: `Unknown tool: ${request.params.name}`,
-              type: 'text' as const,
-            },
-          ],
-          isError: true,
-        } as Record<string, unknown>;
-      }
-
-      const args = (request.params.arguments ?? {}) as Record<string, unknown>;
-      const progressToken = request.params._meta?.progressToken;
-      const { authInfo } = requestExtra as {
-        readonly authInfo?:
-          | {
-              readonly accessToken?: string | undefined;
-              readonly sessionId?: string | undefined;
-              readonly token?: string | undefined;
-            }
-          | undefined;
+  server.setRequestHandler('tools/call', async (request, requestExtra) => {
+    const tool = toolMap.get(request.params.name);
+    if (tool === undefined) {
+      return {
+        content: [
+          {
+            text: `Unknown tool: ${request.params.name}`,
+            type: 'text' as const,
+          },
+        ],
+        isError: true,
       };
-      const authorizationToken = authInfo?.accessToken ?? authInfo?.token;
-
-      const sendProgress =
-        progressToken === undefined
-          ? undefined
-          : async (current: number, total: number) => {
-              await server.notification({
-                method: 'notifications/progress',
-                params: {
-                  progress: current,
-                  progressToken,
-                  total,
-                },
-              });
-            };
-
-      const extra = {
-        abortSignal: requestExtra.signal,
-        ...(authorizationToken === undefined
-          ? {}
-          : { authorization: `Bearer ${authorizationToken}` }),
-        progressToken,
-        sendProgress,
-        ...(authInfo?.sessionId === undefined
-          ? {}
-          : { sessionId: authInfo.sessionId }),
-      };
-
-      const result = await tool.handler(args, extra);
-      // Spread to satisfy MCP SDK's index-signature requirement
-      return { ...result } as Record<string, unknown>;
     }
-  );
+
+    const args = (request.params.arguments ?? {}) as Record<string, unknown>;
+    const progressToken = requestExtra.mcpReq._meta?.progressToken;
+    const authorizationToken = requestExtra.http?.authInfo?.token;
+
+    const sendProgress =
+      progressToken === undefined
+        ? undefined
+        : async (current: number, total: number) => {
+            await requestExtra.mcpReq.notify({
+              method: 'notifications/progress',
+              params: { progress: current, progressToken, total },
+            });
+          };
+
+    const extra = {
+      abortSignal: requestExtra.mcpReq.signal,
+      ...(authorizationToken === undefined
+        ? {}
+        : { authorization: `Bearer ${authorizationToken}` }),
+      progressToken,
+      sendProgress,
+    };
+
+    const result = await tool.handler(args, extra);
+    // Copy the readonly content list into the SDK result shape.
+    return server.projectCallToolResult(
+      { ...result, content: [...result.content] },
+      tool.outputSchema
+    );
+  });
 
   if (mcpResources !== undefined) {
     // oxlint-disable-next-line require-await -- MCP SDK requires async handler
-    server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    server.setRequestHandler('resources/list', async () => ({
       resources: mcpResources.list.map((resource) => ({
         description: resource.description,
         mimeType: resource.mimeType,
@@ -189,7 +169,7 @@ const createMcpServer = (
       })),
     }));
 
-    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    server.setRequestHandler('resources/read', async (request) => {
       const content = mcpResources.read(request.params.uri);
       if (content === undefined) {
         const error = renderJsonRpcError(
@@ -197,7 +177,7 @@ const createMcpServer = (
           new NotFoundError(`Resource ${request.params.uri} not found`),
           'resources/read'
         );
-        throw new McpError(error.code, error.message, error.data);
+        throw new ProtocolError(error.code, error.message, error.data);
       }
       return {
         contents: [content],
@@ -212,25 +192,10 @@ const createMcpServer = (
 // createServer
 // ---------------------------------------------------------------------------
 
-/**
- * Build MCP tools from a topo and create an MCP server.
- *
- * @remarks This is a host materialization boundary. Derivation failures are
- * thrown for server bootstrap code after `deriveMcpTools` has already
- * represented the framework error as a Result.
- *
- * @example
- * ```ts
- * import { connectStdio, createServer } from '@ontrails/mcp';
- *
- * const server = createServer(graph, { name: 'demo' });
- * await connectStdio(server);
- * ```
- */
-export const createServer = (
+const createServerFactory = (
   graph: Topo,
   options: CreateServerOptions = {}
-): Server => {
+): (() => Server) => {
   const toolsResult = deriveMcpTools(graph, {
     configValues: options.configValues,
     createContext: options.createContext,
@@ -254,16 +219,33 @@ export const createServer = (
       ? undefined
       : buildMcpResources(graph, toolsResult.value, options.mcpResources);
 
-  return createMcpServer(
-    toolsResult.value,
-    {
-      description: options.description ?? graph.description,
-      name: options.name ?? graph.name,
-      version: options.version ?? graph.version ?? '0.1.0',
-    },
-    mcpResources
-  );
+  return () =>
+    createMcpServer(
+      toolsResult.value,
+      {
+        description: options.description ?? graph.description,
+        name: options.name ?? graph.name,
+        version: options.version ?? graph.version ?? '0.1.0',
+      },
+      mcpResources
+    );
 };
+
+/**
+ * Build a server for custom MCP hosts. Use surface() for protocol-aware stdio.
+ *
+ * Derivation failures throw at this host bootstrap boundary after
+ * deriveMcpTools has represented the framework failure as a Result.
+ *
+ * @example
+ * ```ts
+ * const server = createServer(graph, { name: 'demo' });
+ * ```
+ */
+export const createServer = (
+  graph: Topo,
+  options: CreateServerOptions = {}
+): Server => createServerFactory(graph, options)();
 
 // ---------------------------------------------------------------------------
 // surface
@@ -273,7 +255,7 @@ export const createServer = (
  * Build MCP tools from a topo, create a server, and connect via stdio.
  *
  * @remarks Opens the MCP server on stdio. For custom transports, use
- * `createServer(graph)` with `connectStdio` or your own adapter.
+ * `createServer(graph)` with your own adapter.
  *
  * @example
  * ```ts
@@ -286,12 +268,6 @@ export const surface = async (
   graph: Topo,
   options: CreateServerOptions = {}
 ): Promise<SurfaceMcpResult> => {
-  const server = createServer(graph, options);
-  await connectStdio(server);
-
-  return {
-    close: async () => {
-      await server.close();
-    },
-  };
+  const factory = createServerFactory(graph, options);
+  return connectStdio(factory);
 };

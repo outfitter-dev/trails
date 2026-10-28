@@ -274,13 +274,34 @@ Dense MCP surfaces can use trailheads to group related trails into fewer agent-f
 await surface(graph, {
   name: 'myapp',
   version: '1.0.0',
-  transport: 'stdio', // Only stdio for now; SSE/streamable HTTP planned
   layers: [myAuthLayer, myRateLimitLayer],
   createContext: () => createTrailContext({ logger: myLogger }),
 });
 ```
 
 `surface(graph)` already derives the MCP server name and version from the topo identity. Pass `name` or `version` only when a specific surface instance needs to override them.
+
+## SDK v2 Migration
+
+The source targets `@modelcontextprotocol/server` 2.x (minimum 2.4.0). The migration ships as a Trails 0.x minor break; source support does not establish that the release has been published. Install the Trails release containing this migration together with its SDK peer. Existing published releases retain their declared peer requirements.
+
+`surface(graph)` keeps its one-line stdio API. It uses the SDK's `serveStdio` entry so a connection can select modern `2026-07-28` or legacy protocol behavior. A package upgrade with a manually connected stdio transport does not establish modern support. For custom stdio setup, pass a factory instead of an existing instance:
+
+```typescript
+import { connectStdio, createServer } from '@ontrails/mcp';
+
+const connection = await connectStdio(() => createServer(graph));
+// Later, when the host shuts down:
+await connection.close();
+```
+
+The SDK may construct a discovery probe before pinning the connection instance, so the factory must create a fresh server. `connectStdio` now returns the connection's close handle. The former `transport: 'stdio'` documentation described an option that never existed; remove that property from copied configurations.
+
+Non-image `BlobRef` results now contain SDK-valid embedded binary resources: `{ type: 'resource', resource: { uri, mimeType, blob } }`, where `blob` is base64. The old flat resource entry was invalid. This change reads and buffers non-image streams as well as image streams; it does not advertise a `blob://` resource reader. Custom content consumers must read the nested `resource` object. Trail output descriptors in `structuredContent` keep their existing shape.
+
+This migration covers stdio and the SDK dependency. The fetch-shaped handler, session-permit removal, modern scalar and array output envelopes, and temporary adopter migration skill remain separate implementations. It does not advertise subscriptions or additional-input exchanges.
+
+SDK 2.4.0's client can lose its `onprogress` callback when one pipe read contains a progress notification and its tool result: notification dispatch is deferred while the result removes the callback. The server's stdio tests validate progress payloads and ordering on the wire. This migration does not patch the client SDK.
 
 ## AbortSignal Propagation
 

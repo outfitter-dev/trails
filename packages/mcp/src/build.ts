@@ -6,6 +6,11 @@
  * Results to MCP responses.
  */
 
+import type {
+  EmbeddedResource,
+  ImageContent,
+  TextContent,
+} from '@modelcontextprotocol/server';
 import {
   AuthError,
   InternalError,
@@ -203,13 +208,8 @@ export type McpToolErrorMeta = Omit<SurfaceErrorRendering, 'surface'> & {
   readonly surface: 'mcp';
 };
 
-export interface McpContent {
-  readonly data?: string | undefined;
-  readonly mimeType?: string | undefined;
-  readonly text?: string | undefined;
-  readonly type: 'text' | 'image' | 'resource';
-  readonly uri?: string | undefined;
-}
+/** MCP content emitted from trail results, validated by the SDK wire boundary. */
+export type McpContent = TextContent | ImageContent | EmbeddedResource;
 
 // ---------------------------------------------------------------------------
 // Internal helpers (defined before use)
@@ -274,20 +274,20 @@ const blobToContent = async (
   blob: BlobRef,
   resolveData: BlobDataResolver = resolveBlobData
 ): Promise<McpContent> => {
+  const bytes = await resolveData(blob);
+  const data = uint8ArrayToBase64(bytes);
   if (!blob.mimeType.startsWith('image/')) {
     return {
-      mimeType: blob.mimeType,
+      resource: {
+        blob: data,
+        mimeType: blob.mimeType,
+        uri: `blob://${blob.name}`,
+      },
       type: 'resource',
-      uri: `blob://${blob.name}`,
     };
   }
 
-  const bytes = await resolveData(blob);
-  return {
-    data: uint8ArrayToBase64(bytes),
-    mimeType: blob.mimeType,
-    type: 'image',
-  };
+  return { data, mimeType: blob.mimeType, type: 'image' };
 };
 
 type BlobContentResolver = (blob: BlobRef) => Promise<McpContent>;
@@ -946,7 +946,7 @@ const buildDescription = (
 ): string | undefined => trail.description;
 
 // MCP requires `outputSchema` to have literal `type: "object"` at the root
-// (see `@modelcontextprotocol/sdk` Tool schema — `outputSchema: z.object({
+// (see `@modelcontextprotocol/server` Tool schema — `outputSchema: z.object({
 // type: z.literal('object'), ... })`). Object-shaped unions like
 // `z.discriminatedUnion(...)` emit as `{ anyOf: [...] }` from
 // `zodToJsonSchema` with no top-level `type`, so we publish them under the

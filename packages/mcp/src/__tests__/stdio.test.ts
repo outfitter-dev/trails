@@ -1,7 +1,112 @@
-import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
-import { expect, test } from 'bun:test';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+import { specTypeSchemas } from '@modelcontextprotocol/server';
+import { describe, expect, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
 
+const fixture = fileURLToPath(
+  new URL('fixtures/stdio-app.ts', import.meta.url)
+);
+
+describe('stdio protocol serving', () => {
+  for (const mode of ['legacy', { pin: '2026-07-28' }] as const) {
+    const modern = typeof mode === 'object';
+    test(`serves tools, resources, blobs and progress in ${modern ? 'modern' : 'legacy'} era`, async () => {
+      const client = new Client(
+        { name: 'trails-test', version: '1.0.0' },
+        {
+          versionNegotiation: { mode },
+        }
+      );
+      const transport = new StdioClientTransport({
+        args: [fixture],
+        command: process.execPath,
+      });
+      try {
+        await client.connect(transport);
+        expect(client.getNegotiatedProtocolVersion()).toBe(
+          modern ? '2026-07-28' : '2025-11-25'
+        );
+        const tools = await client.listTools();
+        expect(tools.tools.map((tool) => tool.name)).toContain(
+          'stdio_fixture_greet'
+        );
+        // SDK 2.4.0 defers notification dispatch but removes its onprogress
+        // listener as soon as a response arrives. Coalesced pipe reads can lose
+        // that callback; assert the server's actual wire ordering and payload.
+        const wireProgress: unknown[] = [];
+        const wireOrder: string[] = [];
+        const receive = transport.onmessage;
+        // oxlint-disable-next-line unicorn/prefer-add-event-listener -- SDK Transport exposes onmessage rather than EventTarget; preserve its receiver.
+        transport.onmessage = (message) => {
+          if (
+            'method' in message &&
+            message.method === 'notifications/progress'
+          ) {
+            wireProgress.push(message.params);
+            wireOrder.push('progress');
+          } else if ('result' in message) {
+            wireOrder.push('result');
+          }
+          receive?.(message);
+        };
+        const result = await client.callTool(
+          { arguments: { name: 'Ada' }, name: 'stdio_fixture_greet' },
+          { onprogress: () => {} }
+        );
+        expect(result.structuredContent).toEqual({ greeting: 'Hello, Ada!' });
+        expect(wireProgress).toContainEqual(
+          expect.objectContaining({ progress: 1, total: 1 })
+        );
+        for (const notification of wireProgress) {
+          expect(
+            specTypeSchemas.ProgressNotificationParams['~standard'].validate(
+              notification
+            ).issues
+          ).toBeUndefined();
+        }
+        expect(wireOrder.lastIndexOf('progress')).toBeLessThan(
+          wireOrder.indexOf('result')
+        );
+        const file = await client.callTool({
+          arguments: {},
+          name: 'stdio_fixture_file',
+        });
+        expect(file.content).toContainEqual({
+          resource: {
+            blob: 'AQID',
+            mimeType: 'application/pdf',
+            uri: 'blob://report.pdf',
+          },
+          type: 'resource',
+        });
+        const resources = await client.listResources();
+        for (const uri of [
+          'trails://surface-map',
+          'trails://examples/greet',
+          'trails://trail/greet',
+        ]) {
+          expect(resources.resources.map((resource) => resource.uri)).toContain(
+            uri
+          );
+          const resource = await client.readResource({ uri });
+          expect(resource.contents[0]?.uri).toBe(uri);
+        }
+        await expect(
+          client.readResource({ uri: 'trails://missing' })
+        ).rejects.toMatchObject({ code: -32_602 });
+      } finally {
+        await client.close();
+        await transport.close();
+      }
+    }, 15_000);
+  }
+});
+
+// Bun 1.4.4 qualification (TRL-1433): warnings emitted during startup and
+// invocation must reach stderr and never interleave with protocol stdout.
+// SDK v2 no longer exports a LATEST_PROTOCOL_VERSION constant, so the modern
+// era is pinned literally here, matching the negotiation test above.
 test('stdio keeps startup and invocation warnings off protocol stdout', async () => {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
@@ -53,7 +158,7 @@ test('stdio keeps startup and invocation warnings off protocol stdout', async ()
       params: {
         capabilities: {},
         clientInfo: { name: 'stdio-test', version: '1.0.0' },
-        protocolVersion: LATEST_PROTOCOL_VERSION,
+        protocolVersion: '2026-07-28',
       },
     });
     expect(await receive()).toMatchObject({
