@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "devin/1793210413-campaign-guidance",
-          "sha": "4e118f02bb922f4e3b2a4a17a1bf90f645b37595",
+          "ref": "trl-1222-adrts-promotedemote-moves-adr-files-without-rewriting-their",
+          "sha": "4973f97442db7bc950e059d438c04c5bc433abac",
           "sourceKind": "current"
         }
       },
@@ -323,6 +323,7 @@
           "plugin-dev/skills/trails-adrs/SKILL.md",
           "plugin-dev/skills/trails-adrs/assets/adr-management.md",
           "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+          "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/adr.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
@@ -330,8 +331,10 @@
           "plugin-dev/skills/trails-adrs/scripts/lib/frontmatter.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/git.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/index.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/markdown-links.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/paths.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/references.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/relative-links.ts",
           "plugin-dev/skills/trails-derive-from-source/LICENSE.txt",
           "plugin-dev/skills/trails-derive-from-source/SKILL.md",
           "plugin-dev/skills/trails-discriminate-union/LICENSE.txt",
@@ -378,6 +381,7 @@
             "plugin-dev/skills/trails-adrs/SKILL.md",
             "plugin-dev/skills/trails-adrs/assets/adr-management.md",
             "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+            "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/adr.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
@@ -385,8 +389,10 @@
             "plugin-dev/skills/trails-adrs/scripts/lib/frontmatter.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/git.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/index.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/markdown-links.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/paths.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/references.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/relative-links.ts",
             "plugin-dev/skills/trails-derive-from-source/LICENSE.txt",
             "plugin-dev/skills/trails-derive-from-source/SKILL.md",
             "plugin-dev/skills/trails-discriminate-union/LICENSE.txt",
@@ -411,15 +417,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "devin/1793210413-campaign-guidance",
-          "sha": "4e118f02bb922f4e3b2a4a17a1bf90f645b37595",
+          "ref": "trl-1222-adrts-promotedemote-moves-adr-files-without-rewriting-their",
+          "sha": "4973f97442db7bc950e059d438c04c5bc433abac",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:79d6b614f6db32c3171c3e4bb624b5ee60be4e0a9deec1bab6fed1ace576f52d",
+  "provenanceHash": "sha256:509e4f147cd6b0e02c62bcba6f3b6c83da718c78789c76832c34feae5c6de427",
   "renderResults": [
     {
       "destination": "changelog",

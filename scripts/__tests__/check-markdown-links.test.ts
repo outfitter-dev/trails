@@ -19,6 +19,15 @@ describe('discoverMarkdownFiles', () => {
 });
 
 describe('extractMarkdownLinks', () => {
+  test('preserves source order for multiple links on one line', () => {
+    expect(
+      extractMarkdownLinks('[First](first.md) [Second](second.md)')
+    ).toEqual([
+      { line: 1, target: 'first.md', text: 'First' },
+      { line: 1, target: 'second.md', text: 'Second' },
+    ]);
+  });
+
   test('skips fenced code blocks while collecting markdown links', () => {
     const links = extractMarkdownLinks(`See [Guide](guide.md).
 

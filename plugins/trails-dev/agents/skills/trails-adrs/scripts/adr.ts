@@ -45,6 +45,10 @@ import { gitMove } from './lib/git.ts';
 import { rebuildIndex } from './lib/index.ts';
 import { ADR_DIR, DRAFTS_DIR, INDEX_PATH } from './lib/paths.ts';
 import {
+  missingRelativeLinks,
+  rebaseRelativeLinks,
+} from './lib/relative-links.ts';
+import {
   fixCrossReferences,
   rewriteDraftLinks,
   rewriteFrontmatterSlugRefs,
@@ -171,7 +175,10 @@ const cmdPromote = (args: Args): void => {
     updated: today(),
   };
 
-  const updatedBody = adr.body.replace(/^#\s+ADR:\s*/m, `# ADR-${padded}: `);
+  const updatedBody = rebaseRelativeLinks(adr.body, adr.path, newPath).replace(
+    /^#\s+ADR:\s*/m,
+    `# ADR-${padded}: `
+  );
   const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
   writeFileSync(adr.path, content, 'utf8');
 
@@ -245,7 +252,10 @@ const cmdDemote = (args: Args): void => {
     updated: today(),
   };
 
-  const updatedBody = adr.body.replace(/^#\s+ADR-\d+:\s*/m, '# ADR: ');
+  const updatedBody = rebaseRelativeLinks(adr.body, adr.path, newPath).replace(
+    /^#\s+ADR-\d+:\s*/m,
+    '# ADR: '
+  );
   const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
   writeFileSync(adr.path, content, 'utf8');
 
@@ -282,6 +292,17 @@ const cmdCheck = (args: Args): void => {
     isDraft: boolean
   ) => {
     const fm = adr.frontmatter;
+
+    for (const link of missingRelativeLinks(
+      readFileSync(adr.path, 'utf8'),
+      adr.path
+    )) {
+      report(
+        'error',
+        adr.filename,
+        `relative link target does not exist at line ${link.line}: ${link.target}`
+      );
+    }
 
     if (!fm.status) {
       report('error', adr.filename, 'missing status in frontmatter');
@@ -429,34 +450,9 @@ const cmdCheck = (args: Args): void => {
     }
   };
 
-  // Sibling ADR references inside docs/adr/*.md must be bare filenames.
-  // A `../NNNN-*.md` link escapes docs/adr/ and then re-enters its parent,
-  // which 404s on the website and is strictly wrong. Draft references
-  // (`drafts/*.md`) and tenets references (`../tenets.md`) stay permitted.
-  const checkAdrSiblingLinks = (adr: { filename: string; body: string }) => {
-    const siblingLink = /\]\(\.\.\/(\d{4}-[a-z0-9-]+\.md(?:#[^)]*)?)\)/g;
-    for (const match of adr.body.matchAll(siblingLink)) {
-      report(
-        'error',
-        adr.filename,
-        `sibling ADR reference must be a bare filename, not "../${match[1]}"`
-      );
-    }
-
-    const tenetsLink = /\]\(\.\.\/\.\.\/tenets\.md((?:#[^)]*)?)\)/g;
-    for (const match of adr.body.matchAll(tenetsLink)) {
-      report(
-        'error',
-        adr.filename,
-        `tenets reference must be "../tenets.md${match[1] ?? ''}", not "../../tenets.md${match[1] ?? ''}"`
-      );
-    }
-  };
-
   console.log('Checking numbered ADRs...');
   for (const adr of listNumberedAdrs()) {
     checkAdr(adr, false);
-    checkAdrSiblingLinks(adr);
   }
 
   console.log('Checking drafts...');
