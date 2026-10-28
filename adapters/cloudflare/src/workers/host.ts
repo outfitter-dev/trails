@@ -21,6 +21,10 @@ const isCanonicalPathname = (path: string): boolean =>
  */
 export const workersHostConfigSchema = z
   .strictObject({
+    assets: z
+      .strictObject({ binding: z.string().min(1) })
+      .readonly()
+      .optional(),
     mcp: z
       .strictObject({
         path: z.string().refine(isCanonicalPathname, {

@@ -14,6 +14,7 @@
 
 import {
   renderErrorDiagnostics,
+  ValidationError,
   renderPublicSurfaceError,
 } from '@ontrails/core';
 import type {
@@ -30,7 +31,9 @@ import { buildEnvResourceOverrides } from '../env.js';
 import type { WorkersEnv } from '../env.js';
 import { createQueueHandler } from '../queues/index.js';
 import type { CloudflareQueueBatch } from '../queues/index.js';
+import { workersHostConfigSchema } from './host.js';
 import type { WorkersHostConfig } from './host.js';
+import { createAssetsFallback } from './assets.js';
 import { createWorkersMcpHost } from './mcp.js';
 import type { WorkersMcpFactory } from './mcp.js';
 
@@ -242,7 +245,14 @@ export const createWorkersHandler = (
 ): CloudflareWorker => {
   let materialized: MaterializedHandler | undefined;
   let materializedQueue: MaterializedQueueHandler | undefined;
-  const mcp = createWorkersMcpHost(graph, options, (env) =>
+  const parsedHost = workersHostConfigSchema.safeParse(options.host ?? {});
+  if (!parsedHost.success) {
+    throw new ValidationError('Invalid Worker host configuration', {
+      cause: parsedHost.error,
+    });
+  }
+  const host = parsedHost.data;
+  const mcp = createWorkersMcpHost(graph, { ...options, host }, (env) =>
     resolveResourceOverrides(graph, env ?? {}, options, 'mcp')
   );
 
@@ -261,6 +271,7 @@ export const createWorkersHandler = (
       intent: options.intent,
       layers: options.layers,
       maxJsonBodyBytes: options.maxJsonBodyBytes,
+      onUnmatched: createAssetsFallback(host.assets, env),
       resolvePermit: options.resolvePermit,
       resources: resolveResourceOverrides(graph, env ?? {}, options, 'fetch'),
       validate: options.validate,

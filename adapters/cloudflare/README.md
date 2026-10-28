@@ -68,7 +68,24 @@ The factory receives the same shared config/context hooks and selection options 
 
 `workersHostConfigSchema` is the pure data validator shared with future adapter fact derivation. The config contains no SDK object, runtime function or native env. It is an ordinary importable value, not a new compiler-recognized export name. Existing `trailsOverlays` remains the only overlay registration. [TRL-1452](https://linear.app/outfitter/issue/TRL-1452) owns actual saved MCP-path facts and the namespace migration; [TRL-1469](https://linear.app/outfitter/issue/TRL-1469) owns later config rendering. The current constant `cloudflareOverlay` still records bindings only.
 
-The real SDK-v2 fetch handler, both protocol eras, authentication/challenges and client reachability remain [TRL-1340](https://linear.app/outfitter/issue/TRL-1340). This slot proves host plumbing with a test double; it does not claim that transport or static-assets routing is implemented. Apps without MCP configuration keep their existing HTTP/queue behavior.
+The real SDK-v2 fetch handler, both protocol eras, authentication/challenges and client reachability remain [TRL-1340](https://linear.app/outfitter/issue/TRL-1340). This slot proves host plumbing with a test double; it does not claim that transport is implemented. Apps without MCP configuration keep their existing HTTP/queue behavior.
+
+### Static assets
+
+Configure the assets binding on the same pure host value:
+
+```ts
+export const workerHost = {
+  assets: { binding: 'ASSETS' },
+  mcp: { path: '/mcp' },
+} satisfies WorkersHostConfig;
+```
+
+Pass `host: workerHost` to `createWorkersHandler` and provide the separate `mcp` factory when `host.mcp` is present. Assets alone need no MCP factory. The assets binding name must be nonempty and must match the native binding on env. The host calls `env.ASSETS.fetch(request)` only after HTTP dispatch finds no matching method/path route, including parameterized webhooks. Matched trail responses and errors, including authored 404s, remain terminal. The exact MCP path runs before HTTP and assets. The original request and native binding receiver are preserved; a new env identity uses its own binding. Missing or malformed assets bindings produce an explicit validation response on a dispatch miss. Without `host.assets`, unmatched requests keep the standard HTTP 404.
+
+Configure the Cloudflare front router to run the Worker first for every path that must reach Trails. Otherwise assets can intercept the request before this dispatcher runs. The local native-binding test uses Miniflare Worker-first routing and includes static files colliding with HTTP and MCP paths. It exercises a structural MCP test double, not a real protocol client.
+
+A separate pinned `cf build` qualification confirmed Build Output placement at `.cloudflare/output/v0/workers/default/worker.config.json`, with `env.ASSETS.type: 'assets'` and camelCase `assets.runWorkerFirst` / `assets.notFoundHandling`. The output directory was `default` even with an authored Worker name. Wrangler configuration uses its own spelling; do not copy `run_worker_first` into Build Output. This runtime option does not yet derive saved assets facts or render that configuration: those gates remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452) and [TRL-1469](https://linear.app/outfitter/issue/TRL-1469). Existing apps opt in explicitly; no lock migration or deployment occurs here.
 
 ### The env bridge
 

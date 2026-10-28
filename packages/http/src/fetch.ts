@@ -21,7 +21,12 @@ export interface CreateRouteHandlerOptions {
 }
 
 export interface CreateFetchHandlerOptions
-  extends DeriveHttpRoutesOptions, CreateRouteHandlerOptions {}
+  extends DeriveHttpRoutesOptions, CreateRouteHandlerOptions {
+  /** Called only when no HTTP method/path route matches, including webhooks. */
+  readonly onUnmatched?:
+    | ((request: Request) => Response | Promise<Response>)
+    | undefined;
+}
 
 interface RuntimeOptions {
   readonly maxJsonBodyBytes: number;
@@ -1042,6 +1047,6 @@ export const createFetchHandler = (
         return candidate.handler(request);
       }
     }
-    return notFoundResponse(request);
+    return options.onUnmatched?.(request) ?? notFoundResponse(request);
   };
 };
