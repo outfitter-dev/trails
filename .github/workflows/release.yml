@@ -121,6 +121,8 @@ jobs:
     if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.outputs.decision == 'auto' && needs.publish-policy.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment: npm-auto
+    env:
+      DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
     permissions:
       contents: read
       id-token: write
@@ -128,7 +130,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
-          ref: ${{ needs.publish-policy.outputs.release_sha }}
+          ref: ${{ github.sha }}
       - uses: ./.github/actions/setup
       - name: Set up npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -138,12 +140,16 @@ jobs:
           package-manager-cache: false
       - name: Pin trusted publishing npm CLI
         run: npm install --global npm@11.18.0
+      - name: Verify prepared package sources
+        env:
+          RELEASE_SHA: ${{ needs.publish-policy.outputs.release_sha }}
+        run: git diff --exit-code "$RELEASE_SHA" HEAD -- apps adapters packages bun.lock
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: GITHUB_SHA="$(git rev-parse HEAD)" bun run publish:packages -- --trusted-publishing
+        run: bun run publish:packages -- --trusted-publishing --tag "$DIST_TAG"
       - name: Verify published packages
-        run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
+        run: bun run publish:registry-check:published --tag "$DIST_TAG"
 
   publish:
     name: Publish to npm manually
@@ -151,6 +157,8 @@ jobs:
     if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
+    env:
+      DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
     permissions:
       contents: read
       id-token: write
@@ -158,7 +166,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
-          ref: ${{ needs.publish-policy.outputs.release_sha }}
+          ref: ${{ github.sha }}
       - uses: ./.github/actions/setup
       - name: Set up npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -168,12 +176,16 @@ jobs:
           package-manager-cache: false
       - name: Pin trusted publishing npm CLI
         run: npm install --global npm@11.18.0
+      - name: Verify prepared package sources
+        env:
+          RELEASE_SHA: ${{ needs.publish-policy.outputs.release_sha }}
+        run: git diff --exit-code "$RELEASE_SHA" HEAD -- apps adapters packages bun.lock
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: GITHUB_SHA="$(git rev-parse HEAD)" bun run publish:packages -- --trusted-publishing
+        run: bun run publish:packages -- --trusted-publishing --tag "$DIST_TAG"
       - name: Verify published packages
-        run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
+        run: bun run publish:registry-check:published --tag "$DIST_TAG"
 
   release-assets:
     name: Build CLI asset (${{ matrix.platform }})
