@@ -139,7 +139,10 @@ Capability boundaries are explicit:
 
 - `indexed`/`indexes`, `references`, and `search` stay store metadata for this driver; the D1 adapter does not create secondary indexes, foreign keys, or FTS tables yet.
 - `list(filters)` performs simple equality filtering in the adapter after reading table rows, then applies `offset`/`limit`.
-- `connectD1(definition, database, options)` is exported for tests and advanced runtimes that already hold a D1 binding. Schema creation and optional runtime `seed` run lazily before the first accessor call so the Workers env bridge can resolve resources synchronously. Runtime seed rows require explicit stable identities and are insert-only, so rematerializing a Worker cannot overwrite user edits.
+- `connectD1(definition, database, options)` connects synchronously and performs no DDL or automatic seeding by default. Apply reviewed migrations before accessor use. `renderD1SchemaSql(definition, { tablePrefix })` renders deterministic create-only physical SQL; Wrangler owns application/history. Reuse the authored prefix (`options.tablePrefix ?? resource.id` for resources, `store` by default for direct connections).
+- Only explicit `autoCreate: true` enables lazy development/test bootstrap. Runtime `seed` requires that opt-in and stable identities, and remains insert-only. Configured runtime seed without opt-in throws `ValidationError`; table fixtures and `mockSeed` remain unchanged.
+
+See [D1 schema migrations](../../docs/migration/d1-schema.md) for the default/seed compatibility change, initial and later migrations, existing lazy-database adoption, prefix rules and upgrade steps. `IF NOT EXISTS` does not verify an existing schema or migrate JSON entity data.
 
 Every `cloudflareD1` resource carries an in-memory mock factory seeded from table fixtures or `mockSeed`, so `testAll(app)` remains configuration-free. Miniflare can provide a real D1 binding for local integration tests without a Cloudflare account.
 

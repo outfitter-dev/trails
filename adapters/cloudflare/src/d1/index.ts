@@ -32,6 +32,21 @@ import type {
 import { bindStoreDefinition } from '@ontrails/store/adapter-support';
 
 import { registerEnvBinding } from '../env.js';
+import {
+  d1TableName as storageTableName,
+  defaultD1TablePrefix as defaultResourceId,
+  quoteD1Identifier as quoteIdentifier,
+  renderD1CreateTableSql,
+} from './schema.js';
+
+/**
+ * Render deterministic create-only D1 schema SQL for reviewed migrations.
+ * @example
+ * ```ts
+ * const sql = renderD1SchemaSql(definition, { tablePrefix: db.id });
+ * ```
+ */
+export { renderD1SchemaSql } from './schema.js';
 
 // ---------------------------------------------------------------------------
 // D1 binding shape
@@ -73,12 +88,14 @@ export type CloudflareD1Connection<TStore extends AnyStoreDefinition> =
 export interface ConnectD1Options<
   TStore extends AnyStoreDefinition = AnyStoreDefinition,
 > {
+  /** Explicit lazy schema creation for development/tests. Defaults to false. */
+  readonly autoCreate?: boolean | undefined;
   /**
    * Optional identity generator for generated identity fields. Defaults to
    * `crypto.randomUUID()`.
    */
   readonly generateIdentity?: (() => string) | undefined;
-  /** Optional runtime seed rows inserted during lazy schema initialization. */
+  /** Insert-only dev/test runtime seeds; requires explicit autoCreate: true. */
   readonly seed?: StoreMockSeed<TStore> | undefined;
   /**
    * Optional D1 table-name prefix. Defaults to `"store"`.
@@ -112,8 +129,6 @@ export type CloudflareD1Resource<TStore extends AnyStoreDefinition> = Resource<
 // Shared row helpers
 // ---------------------------------------------------------------------------
 
-const defaultResourceId = 'store';
-
 const defaultGenerateIdentity = (): string => {
   if (globalThis.crypto?.randomUUID !== undefined) {
     return globalThis.crypto.randomUUID();
@@ -123,12 +138,6 @@ const defaultGenerateIdentity = (): string => {
 
 const encodeIdentifier = (id: unknown): string =>
   JSON.stringify(id) ?? String(id);
-
-const quoteIdentifier = (value: string): string =>
-  `"${value.replaceAll('"', '""')}"`;
-
-const storageTableName = (scope: string, table: AnyStoreTable): string =>
-  `${scope}.${table.name}`;
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === 'object' && value !== null;
@@ -402,9 +411,7 @@ const ensureD1Table = async (
   database: CloudflareD1Database,
   tableName: string
 ): Promise<void> => {
-  await database.exec(
-    `CREATE TABLE IF NOT EXISTS ${quoteIdentifier(tableName)} (id TEXT PRIMARY KEY, entity TEXT NOT NULL, version INTEGER)`
-  );
+  await database.exec(renderD1CreateTableSql(tableName));
 };
 
 const getD1Row = async <TTable extends AnyStoreTable>(
@@ -917,12 +924,20 @@ const bindResourceConnection = <TStore extends AnyStoreDefinition>(
 // Public API
 // ---------------------------------------------------------------------------
 
+const validateBootstrapOptions = (options: ConnectD1Options): void => {
+  if (options.seed !== undefined && options.autoCreate !== true) {
+    throw new ValidationError(
+      'D1 runtime seed requires explicit autoCreate: true for development/tests; apply production data migrations outside request initialization'
+    );
+  }
+};
+
 /**
  * Connect a store definition to a D1 database binding.
  *
  * The returned connection is synchronous to create so it can flow through the
- * Workers env bridge. Schema creation and optional seeding run lazily before
- * the first accessor operation.
+ * Workers env bridge. Apply reviewed schema migrations before runtime use.
+ * Only explicit autoCreate: true enables lazy development/test bootstrap.
  *
  * @example
  * ```ts
@@ -937,11 +952,15 @@ export const connectD1 = <TStore extends AnyStoreDefinition>(
   database: CloudflareD1Database,
   options: ConnectD1Options<TStore> = {}
 ): CloudflareD1Connection<TStore> => {
+  validateBootstrapOptions(options);
   const generateIdentity = options.generateIdentity ?? defaultGenerateIdentity;
   const tablePrefix = options.tablePrefix ?? defaultResourceId;
   let ready: Promise<void> | undefined;
 
   const initialize = async (): Promise<void> => {
+    if (options.autoCreate !== true) {
+      return;
+    }
     for (const tableName of definition.tableNames) {
       const table = definition.tables[tableName];
       if (table !== undefined) {
@@ -1034,6 +1053,7 @@ export const cloudflareD1 = <TStore extends AnyStoreDefinition>(
   definition: TStore,
   options: CloudflareD1Options<TStore>
 ): CloudflareD1Resource<TStore> => {
+  validateBootstrapOptions(options);
   const scope = options.id ?? defaultResourceId;
   const store = bindStoreDefinition(definition, scope) as TStore;
   const base = resource<CloudflareD1Connection<TStore>>(scope, {
@@ -1071,6 +1091,7 @@ export const cloudflareD1 = <TStore extends AnyStoreDefinition>(
       isD1Binding(value)
         ? Result.ok(
             connectD1(store, value, {
+              autoCreate: options.autoCreate,
               generateIdentity: options.generateIdentity,
               seed: options.seed,
               tablePrefix: options.tablePrefix ?? scope,

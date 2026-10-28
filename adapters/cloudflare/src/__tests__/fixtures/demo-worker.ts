@@ -29,6 +29,7 @@ const notesStore = defineStore({
   },
 });
 const notes = cloudflareD1(notesStore, {
+  autoCreate: true,
   binding: 'DB',
   id: 'notes.store',
 });
