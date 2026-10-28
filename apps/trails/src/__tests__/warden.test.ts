@@ -474,13 +474,30 @@ describe('trails warden', () => {
     ]);
   });
 
-  test.each(['standalone', 'configured-app', 'workspace', 'source'] as const)(
+  test.each([
+    'standalone',
+    'configured-app',
+    'workspace',
+    'source',
+    'configured-source-fix',
+  ] as const)(
     'records only the app actually evaluated by a one-app run (%s)',
     async (selection) => {
       const dir = makeTempDir();
       try {
-        if (selection === 'configured-app' || selection === 'workspace') {
+        if (
+          selection === 'configured-app' ||
+          selection === 'workspace' ||
+          selection === 'configured-source-fix'
+        ) {
           writeConfiguredWorkspaceFixture(dir);
+          if (selection === 'configured-source-fix') {
+            await writeAppRootLock(
+              join(dir, 'apps/alpha'),
+              'alpha',
+              deriveTopoGraph(topo('alpha', []))
+            );
+          }
           if (selection === 'workspace') {
             writeFileSync(
               join(dir, 'trails.config.json'),
@@ -498,10 +515,19 @@ describe('trails warden', () => {
         }
         const result = await wardenTrail.implementation(
           {
-            ...(selection === 'configured-app' ? { app: 'alpha' } : {}),
-            depth: selection === 'source' ? 'source' : 'topo',
+            ...(selection === 'configured-app' ||
+            selection === 'configured-source-fix'
+              ? { app: 'alpha' }
+              : {}),
+            depth:
+              selection === 'source' || selection === 'configured-source-fix'
+                ? 'source'
+                : 'topo',
+            fix: selection === 'configured-source-fix',
             format: 'json',
-            lock: 'skip',
+            ...(selection === 'configured-source-fix'
+              ? {}
+              : { lock: 'skip' as const }),
             rootDir: dir,
           },
           { cwd: dir, env: {} } as never
@@ -526,6 +552,25 @@ describe('trails warden', () => {
           } else {
             expect(output).not.toHaveProperty('executedAppId');
           }
+        }
+        if (selection === 'configured-source-fix') {
+          const cli = runCli(
+            trailsBinPath,
+            [
+              'warden',
+              '--depth',
+              'source',
+              '--fix',
+              '--app',
+              'alpha',
+              '--json',
+              '--root-dir',
+              dir,
+            ],
+            repoRoot
+          );
+          expect(cli.exitCode).toBe(0);
+          expect(cli.json).not.toHaveProperty('executedAppId');
         }
         if (selection === 'standalone') {
           const cli = runCli(
