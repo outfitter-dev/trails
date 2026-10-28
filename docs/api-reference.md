@@ -333,6 +333,23 @@ createApp(graph, options?)             // create a Hono app without serving
 CreateAppOptions, SurfaceHttpResult
 ```
 
+## `@ontrails/cloudflare/workers`
+
+The [Workers guide](../adapters/cloudflare/README.md) covers HTTP/queue/scheduled hosting and the additive structural MCP slot. The package root re-exports this host API alongside its existing Cloudflare resource collection.
+
+```typescript
+createWorkersHandler(graph, options?) // Worker fetch/queue/scheduled export; optional exact MCP host path + factory
+workersHostConfigSchema              // pure strict host data; no runtime handler/native env objects
+buildEnvResourceOverrides(graph, env, options?)
+registerEnvBinding(resource, spec), getEnvBinding(resource)
+
+CloudflareWorker, CreateWorkersHandlerOptions, WorkersExecutionContext
+WorkersResourceOverrides, WorkersEnv, EnvBindingSpec, BuildEnvResourceOverridesOptions
+WorkersHostConfig, WorkersMcpContext, WorkersMcpFactory, WorkersMcpHandler
+```
+
+`host.mcp.path` is the sole MCP path declaration; the separate `mcp` factory receives env-resolved resources, shared config/context hooks and selections. Exact pathname matching reserves the endpoint for every method, rejects HTTP collisions, and never treats MCP errors as route misses. No-MCP apps retain existing behavior. Real MCP transport/client proof follows [TRL-1340](https://linear.app/outfitter/issue/TRL-1340); saved path facts and rendering remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452)/[TRL-1469](https://linear.app/outfitter/issue/TRL-1469).
+
 ## `@ontrails/cloudflare/d1`
 
 The [D1 migration guide](./migration/d1-schema.md) covers schema preparation and the default/seed compatibility change. Runtime connections require pre-applied schema unless `autoCreate: true` is explicitly selected for development/tests.

@@ -120,11 +120,37 @@ export type {
   CloudflareScheduledHandler,
   CreateScheduledHandlerOptions,
 } from './schedules/index.js';
+/**
+ * Worker host and pure configuration data, with a structural MCP callback slot.
+ * @example
+ * ```ts
+ * const host = workersHostConfigSchema.parse({ mcp: { path: '/mcp' } });
+ * ```
+ */
 export { createWorkersHandler } from './workers/index.js';
+/**
+ * Pure host data is exported directly from its owning declaration module.
+ * @example
+ * ```ts
+ * const host = workersHostConfigSchema.parse({ mcp: { path: '/mcp' } });
+ * ```
+ */
+export { workersHostConfigSchema } from './workers/host.js';
+/**
+ * Worker materialization, host data and structural MCP factory contracts.
+ * @example
+ * ```ts
+ * const host: WorkersHostConfig = { mcp: { path: '/mcp' } };
+ * ```
+ */
 export type {
   CloudflareWorker,
   CreateWorkersHandlerOptions,
   WorkersExecutionContext,
+  WorkersHostConfig,
+  WorkersMcpContext,
+  WorkersMcpFactory,
+  WorkersMcpHandler,
   WorkersResourceOverrides,
 } from './workers/index.js';
 
