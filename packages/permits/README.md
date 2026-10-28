@@ -172,6 +172,12 @@ Built-in rules:
 - `writeWithoutPermit` — warning if a write trail has no permit
 - `scopeNamingConsistency` — warning if a scope doesn't follow `entity:action`
 - `orphanScopeDetection` — warning if a scope appears in only one trail
+- `composeScopeCoverage` — warning if a parent omits a scope required by a
+  reachable composed trail
+
+Composition scope coverage walks transitively, including through public or undeclared intermediate trails. A public or undeclared permit declares no scopes; a child with either posture adds none of its own. Scope comparison is exact: a scope such as `entity:*` does not cover `entity:read`. Missing scopes are deduplicated and sorted into one finding per parent. Cycles terminate. The walk includes the current declarations and every non-archived fork's declarations because one permit contract applies across trail versions. It does not infer call-specific version options from `composes`; revisions share the current implementation graph. Existing reference checks own unknown targets and unsupported versions.
+
+These findings are exposed by Warden's existing `permit-governance` topo rule as `permit.composeScopeCoverage`. Declare the required scopes on every composing parent to make its entry contract accurate. Runtime still checks the selected child's permit at each composition; this governance check does not grant authority or replace enforcement.
 
 ## Installation
 

@@ -88,12 +88,12 @@
       ],
       "kind": "standalone-skill",
       "name": "be-clark",
-      "outputHash": "sha256:6258c328b9106a61933b4096b1fb5e5db5a7585f7364ff29ee2256ed4390cf56",
+      "outputHash": "sha256:1204266c92d5ad0de5e407d6be4d67c555d5d47c0f6d026dcf80e305d9813c58",
       "outputPath": "be-clark/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
-      "sourceHash": "sha256:4545ebe062cccbc3cfa3769ce9b2ed8c2fed95a6a95c2edbc2259b5c07e1704d",
+      "sourceHash": "sha256:4c784658f5607e08e10efe29a245824b460281d698df2be12dc1c9382c4086dd",
       "sourcePath": ".skillset/skills/be-clark/SKILL.md",
       "version": "0.1.0"
     },
@@ -117,7 +117,7 @@
       "owner": {
         "target": "codex"
       },
-      "sourceHash": "sha256:4545ebe062cccbc3cfa3769ce9b2ed8c2fed95a6a95c2edbc2259b5c07e1704d",
+      "sourceHash": "sha256:4c784658f5607e08e10efe29a245824b460281d698df2be12dc1c9382c4086dd",
       "sourcePath": ".skillset/skills/be-clark/SKILL.md",
       "version": "0.1.0"
     },
@@ -843,19 +843,19 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:30764b094db8869a412dce257ddcbcfd1781a5498c885fcd36d4b4f5763e3a95",
+      "outputHash": "sha256:9d8d6058cbb5f9042bc368c663ebb8acc6f373f8669fef47889fc4ccba7a8f14",
       "outputPath": "trails/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
       "plugin": "trails",
-      "sourceHash": "sha256:db0c71fd88cddb46cf3131d491aff5169fd405c15734817243359b720a69eb9b",
+      "sourceHash": "sha256:e366bf4dcda2f53fee3d91b2015a69b7c815519ee5f2f92b4546542787c90deb",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
       "version": "0.4.0"
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:71ae6b9b14f8a8ab1c8cbf00a66aaf433fe411899dbbdbf6be60b31203b589fc",
+  "provenanceHash": "sha256:d74c1cf2326102044eb41bcab547e45716fea93d5121cd84116627fdc107f3fd",
   "renderResults": [
     {
       "destination": "skill",

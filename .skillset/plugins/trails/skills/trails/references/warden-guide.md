@@ -85,7 +85,7 @@ This file is generated from the `@ontrails/warden` rule manifest bundled with th
 ### Permits
 
 - `no-dev-permit-in-source` (error, source/source-static, external): The `--dev-permit` CLI flag string never appears in committed source.
-- `permit-governance` (warn, topo/topo-aware, external): Destroy trails declare explicit permit requirements. Guidance: Make destructive trail authorization visible on the trail contract.
+- `permit-governance` (warn, topo/topo-aware, external): Trails declare permit requirements for destructive intent and reachable composition. Guidance: Keep destructive trails protected and composing trails explicit about required scopes.
 
 ### Resources
 

@@ -95,6 +95,12 @@ For non-GitHub CI, call the bin directly after installing Bun and project depend
 bunx @ontrails/warden@0.2.4 --ci --apps trails,trails-demo --fail-on error
 ```
 
+## Composition Scope Coverage
+
+The topo-aware `permit-governance` rule includes `permit.composeScopeCoverage`: a warning when a trail does not declare every scope required by the trails it can reach through `composes`. The walk is transitive, so a public intermediate trail cannot hide a protected descendant's requirement. Public and undeclared permits count as empty scope sets; public or undeclared children add no requirement of their own but do not stop traversal.
+
+Declare the missing scopes on the composing parent. Comparisons use exact scope strings, matching runtime enforcement. Findings deduplicate and sort missing scopes per parent; cycles terminate. The check includes current declarations and every non-archived historical fork, reflecting the permit contract shared across versions. The topo does not record a call's version option, so the rule does not infer which version a particular invocation selects; revisions use the current implementation graph. Existing reference checks own missing targets and unsupported versions. The rule does not execute implementations or change runtime permit enforcement. Use `--fail-on warning` when this governance warning should block CI.
+
 ## Authoring Durable Rules
 
 Durable Warden rules should explain the doctrine they enforce. When adding one:
