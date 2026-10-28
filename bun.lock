@@ -280,6 +280,19 @@
         "zod": "catalog:",
       },
     },
+    "packages/blob": {
+      "name": "@ontrails/blob",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/cli": {
       "name": "@ontrails/cli",
       "version": "0.2.5",
@@ -622,6 +635,8 @@
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
     "@ontrails/adapter-kit": ["@ontrails/adapter-kit@workspace:packages/adapter-kit"],
+
+    "@ontrails/blob": ["@ontrails/blob@workspace:packages/blob"],
 
     "@ontrails/cli": ["@ontrails/cli@workspace:packages/cli"],
 
