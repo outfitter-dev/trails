@@ -108,6 +108,14 @@ trails compile --app api
 
 `--root-dir` fixes the discovery boundary, `--app` selects a configured app, and CWD selects an app when it is inside exactly one configured app root. `--module` only refines the selected app's entry module; it cannot select an app, change its lock root, or bypass the configured topo-name binding. Compile at a configured workspace root without `--app` fails with the configured app IDs and writes nothing.
 
+#### Recover unreadable or conflicted locks
+
+An existing `trails.lock` is compilation input, including force audit history that source cannot reconstruct. Compile refuses Git conflict markers, malformed JSON, and unsupported lock schemas before replacing artifacts or persisting a snapshot. `--force` does not bypass this integrity check. A first compile still works when no lock exists.
+
+Preserve the conflicting versions, finish the source merge, and restore a verified lock from Git before compiling again. For example, use `git restore --source=HEAD -- trails.lock` only after verifying that `HEAD` contains the audit history you need to retain; select the appropriate revision and app-relative path otherwise. Do not delete or hand-merge an audit-bearing lock to make compilation pass. Recovery that combines different histories requires preserving both sides rather than choosing one blindly.
+
+For an older schema, follow the documented migration for that schema while retaining the original artifact. Compile does not repair a corrupt file or perform an unsupported schema migration. The same preservation rule applies to committed legacy `topo.lock` artifacts.
+
 ### `trails diff`
 
 Compare the current topo against a saved TopoGraph target. The default target is the selected app root's committed `trails.lock`; explicit targets may be workspace-relative `trails.lock` or legacy `topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.

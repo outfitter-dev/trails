@@ -28,17 +28,17 @@ import {
 const DEFAULT_DIR = '.trails';
 const LOCK_MANIFEST_FILE = 'trails.lock';
 const TOPO_GRAPH_FILE = 'topo.lock';
-const REGENERATE_LOCK_MESSAGE =
-  'Unsupported trails.lock format; regenerate with `trails compile`.';
-const REGENERATE_TOPO_GRAPH_MESSAGE =
-  'Unsupported topo.lock format; regenerate with `trails compile`.';
+const LOCK_RECOVERY_GUIDANCE =
+  'Restore a verified copy from Git, or follow the documented migration for its schema, before compiling. Do not delete a committed lock: source cannot reconstruct its force audit history.';
+const UNSUPPORTED_LOCK_MESSAGE = `Unsupported trails.lock format. ${LOCK_RECOVERY_GUIDANCE}`;
+const UNSUPPORTED_TOPO_GRAPH_MESSAGE = `Unsupported topo.lock format. ${LOCK_RECOVERY_GUIDANCE}`;
 
 export const isTopoArtifactRegenerationError = (
   error: unknown
 ): error is Error =>
   error instanceof Error &&
-  (error.message.includes(REGENERATE_LOCK_MESSAGE) ||
-    error.message.includes(REGENERATE_TOPO_GRAPH_MESSAGE));
+  (error.message.includes('Unsupported trails.lock format') ||
+    error.message.includes('Unsupported topo.lock format'));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,12 +70,15 @@ const readTextIfExists = async (filePath: string): Promise<string | null> => {
 const parseJson = (
   content: string,
   fileName: string,
-  regenerateMessage: string
+  recoveryMessage: string
 ): unknown => {
   try {
     return JSON.parse(content) as unknown;
   } catch {
-    throw new Error(`Invalid JSON in ${fileName}. ${regenerateMessage}`);
+    const reason = /^\s*(?:<<<<<<<|=======|>>>>>>>)/m.test(content)
+      ? 'Git conflict markers'
+      : 'Invalid JSON';
+    throw new Error(`${reason} in ${fileName}. ${recoveryMessage}`);
   }
 };
 
@@ -83,39 +86,39 @@ const parseLockManifest = (content: string): LockManifest => {
   const parsed = parseJson(
     content,
     LOCK_MANIFEST_FILE,
-    REGENERATE_LOCK_MESSAGE
+    UNSUPPORTED_LOCK_MESSAGE
   );
   const result = lockManifestSchema.safeParse(parsed);
   if (result.success) {
     return result.data;
   }
-  throw new Error(REGENERATE_LOCK_MESSAGE);
+  throw new Error(UNSUPPORTED_LOCK_MESSAGE);
 };
 
 const parseTrailsLock = (content: string): TrailsLock => {
   const parsed = parseJson(
     content,
     LOCK_MANIFEST_FILE,
-    REGENERATE_LOCK_MESSAGE
+    UNSUPPORTED_LOCK_MESSAGE
   );
   const result = trailsLockSchema.safeParse(parsed);
   if (result.success) {
     return result.data as TrailsLock;
   }
-  throw new Error(REGENERATE_LOCK_MESSAGE);
+  throw new Error(UNSUPPORTED_LOCK_MESSAGE);
 };
 
 const parseTopoGraph = (content: string): TopoGraph => {
   const parsed = parseJson(
     content,
     TOPO_GRAPH_FILE,
-    REGENERATE_TOPO_GRAPH_MESSAGE
+    UNSUPPORTED_TOPO_GRAPH_MESSAGE
   );
   const result = topoGraphSchema.safeParse(parsed);
   if (result.success) {
     return result.data as TopoGraph;
   }
-  throw new Error(REGENERATE_TOPO_GRAPH_MESSAGE);
+  throw new Error(UNSUPPORTED_TOPO_GRAPH_MESSAGE);
 };
 
 const lockManifestFromTrailsLock = (lock: TrailsLock): LockManifest => ({

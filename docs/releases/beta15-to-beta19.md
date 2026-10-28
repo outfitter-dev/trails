@@ -76,6 +76,8 @@ Beta 19 renames the first-class trail composition family from `cross` to `compos
 
 Rename every `crosses:` declaration to `composes:`, every `ctx.cross(...)` call to `ctx.compose(...)`, and any imported `Cross*` / `crossInput` symbols to their `Compose*` / `composeInput` equivalents. After renaming, run `bun run compile` to re-key the committed `.trails/topo.lock`, then `bun run validate` to confirm no drift remains. (Scaffolded projects expose the framework commands as package scripts — `bun run compile`, `bun run validate`, `bun run diff` — so prefer those over `bun trails …`, which only works where a `trails` script exists; otherwise use `bunx trails …`.)
 
+Artifact re-keying assumes a readable lock in a supported schema. Preserve the committed lock and its force audit history before migrating. If compilation reports conflict markers, malformed JSON, or an unsupported format, restore a verified artifact from Git or complete the documented schema migration first. Deleting a committed `topo.lock` is not a general recovery procedure: source cannot reconstruct retained audit events. See [lock recovery](../topo-store.md#recover-unreadable-or-conflicted-locks) for current guidance.
+
 ### Topo artifact commands are top-level
 
 `trails compile` and `trails validate` are the canonical top-level artifact commands. The retired `trails topo compile`, `trails topo verify`, and `trails topo check` shapes now exit non-zero with a diagnostic pointing at the top-level commands. If CI or scripts pinned the `trails topo …` forms, update them. See [Topographer Artifact Workflow](#topographer-artifact-workflow) for the full command set.
