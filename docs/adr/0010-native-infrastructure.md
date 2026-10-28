@@ -118,7 +118,7 @@ The workspace gives infrastructure a known home. Config reads local per-develope
 
 ### Adapters are the integration point
 
-Each infrastructure package ships a zero-dependency built-in and optional adapters as subpath exports:
+Infrastructure packages own their zero-dependency built-ins. Optional adapters follow the dependency and ownership boundary, using built-in subpaths or extracted adapter packages as described below:
 
 - **Config:** TypeScript config + env resolution built-in. No adapters needed in v1 — the built-in covers the common case.
 - **Permits:** JWT/JWKS verification stays built-in at `@ontrails/permits/jwt`. Provider adapters follow [ADR-0057](0057-auth-adapter-packaging.md#the-selected-targets-have-concrete-homes): selected extracted packages and the existing Cloudflare Access collection subpath replace this ADR's earlier provider-subpath sketch.

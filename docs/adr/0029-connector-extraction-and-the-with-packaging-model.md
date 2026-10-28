@@ -63,8 +63,9 @@ This provides:
 
 - **One-way dependency arrows.** Extracted adapters depend on core contracts.
   Core contracts never depend on extracted adapters.
-- **Independent release cadence.** A Hono or Drizzle change does not force a
-  publish of the contract package that it binds to.
+- **Separate dependency and contribution boundaries.** A Hono or Drizzle change
+  belongs to its adapter. Versioning follows the current lockstep policy in
+  [ADR-0047](0047-stable-release-line-discipline.md#the-package-line-stays-lockstep).
 - **Clearer contribution boundaries.** New adapters can land without changing
   the owning contract package's exports or internals.
 
@@ -203,8 +204,9 @@ The return type is identical. The topo registration is identical. The trail's `r
   contract. `@ontrails/http` owns the route projection contract. Extracted
   adapters stop expanding those packages' dependency and release scope.
 - **Built-in backends stay discoverable.** A developer can start with `@ontrails/store/jsonfile` without learning the external adapter catalog first.
-- **Independent release cadence.** Extracted adapters version and publish
-  independently. A Hono or Drizzle update does not block a contract change.
+- **Focused release intent.** Each adapter owns its compatibility and changeset
+  evidence while public `@ontrails/*` packages version together under ADR-0047.
+  Extraction does not grant independent versioning or publication authority.
 - **Runtime adapters can stack.** Packages such as `@ontrails/vite` can compose
   above an extracted surface without inventing a second projection model.
 - **Clear dependency direction.** The one-way arrow from extracted adapters
