@@ -15,6 +15,7 @@ import {
   MAP_PATH,
   ROOT,
 } from './paths.ts';
+import { requireActivePath } from './active-paths.ts';
 import type { AdrFile } from './frontmatter.ts';
 import {
   listNumberedAdrs,
@@ -399,9 +400,13 @@ export const buildDecisionMapContents = (): readonly {
 
 /** Write all generated ADR artifacts. */
 export const writeDecisionMap = (): void => {
+  const artifacts = buildDecisionMapContents();
+  for (const artifact of artifacts) {
+    requireActivePath(artifact.path);
+  }
   mkdirSync(DRAFTS_DIR, { recursive: true });
 
-  for (const artifact of buildDecisionMapContents()) {
+  for (const artifact of artifacts) {
     writeFileSync(artifact.path, artifact.content, 'utf8');
     console.log(`Updated ${artifact.path}`);
   }

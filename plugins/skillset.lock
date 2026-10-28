@@ -130,9 +130,11 @@
         "trails-dev/agents/skills/trails-adrs/LICENSE.txt": "0644",
         "trails-dev/agents/skills/trails-adrs/SKILL.md": "0644",
         "trails-dev/agents/skills/trails-adrs/assets/adr-management.md": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/__tests__/relative-links.test.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/adr.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/active-paths.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/discovery.ts": "0644",
@@ -149,9 +151,11 @@
         "trails-dev/agents/skills/trails-adrs/LICENSE.txt",
         "trails-dev/agents/skills/trails-adrs/SKILL.md",
         "trails-dev/agents/skills/trails-adrs/assets/adr-management.md",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/adr.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/active-paths.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/discovery.ts",
@@ -166,13 +170,13 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:a73668f517ada1b66de888d538d385a5c3d0fa774d1c5de2f6122ff746dcd879",
+      "outputHash": "sha256:712fbf11125fa53d261e3e975b22b93516de4704ec58b0e827f62ae4a4669ca6",
       "outputPath": "trails-dev/agents/skills/trails-adrs/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "plugin": "trails-dev",
-      "sourceHash": "sha256:58282aee38fb49bd2871d6d8cb6c8d53208687b0a839c1224b148c1203cc7cef",
+      "sourceHash": "sha256:4abc4db37de61e49204daae32da7097f1c1b3526f0f9b114855010ec72b33b0b",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -573,7 +577,7 @@
     }
   ],
   "outputRoot": "plugins",
-  "provenanceHash": "sha256:b536b6fe566a1b4abe0fec996207ed9a327bc69a2fe74ee34df4c557144d1545",
+  "provenanceHash": "sha256:a95ea3ec80ea6ba4ea3f3d766b26fee333d4075e171a317841cb8a2779ad8269",
   "renderResults": [
     {
       "destination": "plugin-manifest",
@@ -769,6 +773,10 @@
         },
         {
           "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts"
+        },
+        {
+          "kind": "plugin-skill",
           "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts"
         },
         {
@@ -778,6 +786,10 @@
         {
           "kind": "plugin-skill",
           "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/adr.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/active-paths.ts"
         },
         {
           "kind": "plugin-skill",

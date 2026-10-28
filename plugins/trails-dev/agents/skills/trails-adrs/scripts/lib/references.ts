@@ -1,8 +1,14 @@
 /* oxlint-disable max-statements -- cross-reference scanning and rewriting */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
-import { ADR_DIR, ROOT } from './paths.ts';
+import { ROOT } from './paths.ts';
 import { listNumberedAdrs, listDrafts } from './discovery.ts';
 import { serializeFrontmatter } from './frontmatter.ts';
 import type { Frontmatter } from './frontmatter.ts';
@@ -12,12 +18,11 @@ import type { Frontmatter } from './frontmatter.ts';
  * Scans all ADR and draft files, replacing old short-padded filenames with new ones.
  */
 export const fixCrossReferences = (): void => {
-  const allFiles = [...listNumberedAdrs(), ...listDrafts()];
+  const numbered = listNumberedAdrs();
+  const allFiles = [...numbered, ...listDrafts()];
   const oldToNew = new Map<string, string>();
 
-  for (const adr of readdirSync(ADR_DIR).filter((f) =>
-    /^\d+-.*\.md$/.test(f)
-  )) {
+  for (const { filename: adr } of numbered) {
     const match = adr.match(/^(\d+)-(.+)$/);
     if (!match) {
       continue;
@@ -70,14 +75,14 @@ const allReferencingFiles = (): { path: string; filename: string }[] => {
   // Non-ADR docs
   const docsDir = join(ROOT, 'docs');
   for (const f of readdirSync(docsDir)) {
-    if (f.endsWith('.md')) {
+    if (f.endsWith('.md') && lstatSync(join(docsDir, f)).isFile()) {
       files.push({ filename: f, path: join(docsDir, f) });
     }
   }
 
   // AGENTS.md
   const agentsPath = join(ROOT, 'AGENTS.md');
-  if (existsSync(agentsPath)) {
+  if (existsSync(agentsPath) && lstatSync(agentsPath).isFile()) {
     files.push({ filename: 'AGENTS.md', path: agentsPath });
   }
 

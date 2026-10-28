@@ -102,9 +102,11 @@
         "skills/trails-adrs/LICENSE.txt": "0644",
         "skills/trails-adrs/SKILL.md": "0644",
         "skills/trails-adrs/assets/adr-management.md": "0644",
+        "skills/trails-adrs/scripts/__tests__/archive-aware.test.ts": "0644",
         "skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts": "0644",
         "skills/trails-adrs/scripts/__tests__/relative-links.test.ts": "0644",
         "skills/trails-adrs/scripts/adr.ts": "0644",
+        "skills/trails-adrs/scripts/lib/active-paths.ts": "0644",
         "skills/trails-adrs/scripts/lib/cli.ts": "0644",
         "skills/trails-adrs/scripts/lib/decision-map.ts": "0644",
         "skills/trails-adrs/scripts/lib/discovery.ts": "0644",
@@ -121,9 +123,11 @@
         "skills/trails-adrs/LICENSE.txt",
         "skills/trails-adrs/SKILL.md",
         "skills/trails-adrs/assets/adr-management.md",
+        "skills/trails-adrs/scripts/__tests__/archive-aware.test.ts",
         "skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
         "skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
         "skills/trails-adrs/scripts/adr.ts",
+        "skills/trails-adrs/scripts/lib/active-paths.ts",
         "skills/trails-adrs/scripts/lib/cli.ts",
         "skills/trails-adrs/scripts/lib/decision-map.ts",
         "skills/trails-adrs/scripts/lib/discovery.ts",
@@ -138,10 +142,10 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:0865bc98f7d90514e12f5325fd6e293b7a84a8a2b48503baf01db56d85d96cb2",
+      "outputHash": "sha256:1b6b6c77cee6cba0927e3c32fec274c25f2a52c2541bbfab02d714e708b5e5f9",
       "outputPath": "skills/trails-adrs/SKILL.md",
       "plugin": "trails-dev",
-      "sourceHash": "sha256:58282aee38fb49bd2871d6d8cb6c8d53208687b0a839c1224b148c1203cc7cef",
+      "sourceHash": "sha256:4abc4db37de61e49204daae32da7097f1c1b3526f0f9b114855010ec72b33b0b",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -329,7 +333,7 @@
     }
   ],
   "outputRoot": "plugin-dev",
-  "provenanceHash": "sha256:898442787d898e3973bf2531c33be67a2def1703d9c4e6414bf9d3b9b455fddf",
+  "provenanceHash": "sha256:dee2e613298d624b4c6e94a5e3d3c3ac6052df0e05485df053faae2560f32ff1",
   "renderResults": [
     {
       "destination": "plugin-manifest",
@@ -532,6 +536,10 @@
         },
         {
           "kind": "plugin-skill",
+          "path": "plugin-dev/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts"
+        },
+        {
+          "kind": "plugin-skill",
           "path": "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts"
         },
         {
@@ -541,6 +549,10 @@
         {
           "kind": "plugin-skill",
           "path": "plugin-dev/skills/trails-adrs/scripts/adr.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugin-dev/skills/trails-adrs/scripts/lib/active-paths.ts"
         },
         {
           "kind": "plugin-skill",
