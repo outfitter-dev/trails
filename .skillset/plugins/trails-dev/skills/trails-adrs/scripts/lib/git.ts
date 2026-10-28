@@ -1,8 +1,12 @@
 import { linkSync, lstatSync, unlinkSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { ROOT } from './paths.ts';
 
 /** Move without replacing an existing path; failed fallback leaves the source intact. */
 export const gitMove = (from: string, to: string): void => {
+  if (resolve(from) === resolve(to)) {
+    return;
+  }
   if (lstatSync(to, { throwIfNoEntry: false })) {
     throw new Error(`Destination already exists: ${to}`);
   }

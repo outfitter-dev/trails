@@ -369,4 +369,35 @@ mock.module('node:fs', () => ({ ...actual,
     expect(run(root, 'map').code).toBe(0);
     expect(run(root, 'check').code).toBe(1);
   });
+  test('same-slug and same-number updates keep their no-op move behavior', () => {
+    const root = fixture('');
+    expect(
+      run(
+        root,
+        'update',
+        'existing',
+        '--slug',
+        'existing',
+        '--title',
+        'Changed',
+        '--yes'
+      ).code
+    ).toBe(0);
+    const source = join(root, 'docs/adr/0001-existing.md');
+    expect(readFileSync(source, 'utf8')).toContain('# ADR-0001: Changed');
+    expect(
+      run(
+        root,
+        'update',
+        '0001',
+        '--renumber',
+        '0001',
+        '--status',
+        'proposed',
+        '--yes'
+      ).code
+    ).toBe(0);
+    expect(readFileSync(source, 'utf8')).toContain('status: proposed');
+    expect(run(root, 'check').code).toBe(0);
+  });
 });
