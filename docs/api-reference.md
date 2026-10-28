@@ -225,7 +225,7 @@ CreateProgramOptions, SurfaceCliResult, ToCommanderOptions
 surface(graph, options?)               // one-liner: create server, connect stdio, return close handle
 createServer(graph, options?)          // create an MCP server without connecting
 deriveMcpTools(graph, options?)        // derivation: Result-returning tool definitions
-connectStdio(server)                   // connect a created server to stdio transport
+connectStdio(factory)                  // serve protocol-aware stdio; returns a close handle
 deriveToolName(appName, trailId)       // tool name derivation
 deriveAnnotations(trail)               // MCP annotations from intent, idempotency, and description
 createMcpProgressCallback(extra)       // progress bridge
