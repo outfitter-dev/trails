@@ -30,6 +30,38 @@ import { buildEnvResourceOverrides } from '../env.js';
 import type { WorkersEnv } from '../env.js';
 import { createQueueHandler } from '../queues/index.js';
 import type { CloudflareQueueBatch } from '../queues/index.js';
+import type { WorkersHostConfig } from './host.js';
+import { createWorkersMcpHost } from './mcp.js';
+import type { WorkersMcpFactory } from './mcp.js';
+
+/**
+ * Pure typed host configuration; runtime routing and future facts share one value.
+ * @example
+ * ```ts
+ * const host = workersHostConfigSchema.parse({ mcp: { path: '/mcp' } });
+ * ```
+ */
+export { workersHostConfigSchema } from './host.js';
+/**
+ * Host data and structural MCP factory contracts.
+ * @example
+ * ```ts
+ * const host: WorkersHostConfig = { mcp: { path: '/mcp' } };
+ * ```
+ */
+export type { WorkersHostConfig } from './host.js';
+/**
+ * Runtime MCP input/handler types, without an SDK dependency.
+ * @example
+ * ```ts
+ * const mcp: WorkersMcpFactory = () => async () => new Response('test double');
+ * ```
+ */
+export type {
+  WorkersMcpContext,
+  WorkersMcpFactory,
+  WorkersMcpHandler,
+} from './mcp.js';
 
 export {
   buildEnvResourceOverrides,
@@ -61,6 +93,10 @@ export type WorkersResourceOverrides =
  * Options for building a Trails Worker handler.
  */
 export interface CreateWorkersHandlerOptions extends BaseSurfaceOptions {
+  /** One pure authored host value; MCP path matching is exact. */
+  readonly host?: WorkersHostConfig | undefined;
+  /** Required with host.mcp; materialized lazily per env identity. */
+  readonly mcp?: WorkersMcpFactory | undefined;
   readonly basePath?: string | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
@@ -148,7 +184,7 @@ const resolveResourceOverrides = (
   graph: Topo,
   env: WorkersEnv,
   options: CreateWorkersHandlerOptions,
-  entrypoint: 'fetch' | 'queue',
+  entrypoint: 'fetch' | 'mcp' | 'queue',
   queueName?: string
 ): ResourceOverrideMap => {
   // Explicit overrides are the documented escape hatch, so they resolve
@@ -206,6 +242,9 @@ export const createWorkersHandler = (
 ): CloudflareWorker => {
   let materialized: MaterializedHandler | undefined;
   let materializedQueue: MaterializedQueueHandler | undefined;
+  const mcp = createWorkersMcpHost(graph, options, (env) =>
+    resolveResourceOverrides(graph, env ?? {}, options, 'mcp')
+  );
 
   const handlerFor = (
     env: WorkersEnv | undefined
@@ -264,6 +303,9 @@ export const createWorkersHandler = (
   return {
     fetch: async (request, env, _executionCtx) => {
       try {
+        if (mcp !== undefined && new URL(request.url).pathname === mcp.path) {
+          return await mcp.handlerFor(env)(request);
+        }
         return await handlerFor(env)(request);
       } catch (error: unknown) {
         return mapCaughtError(error);

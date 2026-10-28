@@ -112,8 +112,8 @@ export interface BuildEnvResourceOverridesOptions extends Pick<
 > {
   /** Resource IDs already provided explicitly; env resolution skips them. */
   readonly except?: readonly string[] | undefined;
-  /** Worker entrypoint whose reachable resources should be materialized. */
-  readonly entrypoint?: 'fetch' | 'queue' | undefined;
+  /** MCP selects surface trails only; fetch/queue also select their activations. */
+  readonly entrypoint?: 'fetch' | 'mcp' | 'queue' | undefined;
   /** Physical queue delivered to the current queue entrypoint. */
   readonly queue?: string | undefined;
 }
@@ -186,7 +186,7 @@ const collectSurfaceEligibleTrails = (
 ): readonly Trail<unknown, unknown, unknown>[] => {
   const trails = graph.list();
   const eligible = new Map<string, Trail<unknown, unknown, unknown>>();
-  if ((options.entrypoint ?? 'fetch') === 'fetch') {
+  if ((options.entrypoint ?? 'fetch') !== 'queue') {
     const filtered = filterSurfaceTrails(trails, {
       exclude: options.exclude,
       include: options.include,
@@ -196,7 +196,7 @@ const collectSurfaceEligibleTrails = (
       eligible.set(graphTrail.id, graphTrail);
     }
   }
-  for (const graphTrail of trails) {
+  for (const graphTrail of options.entrypoint === 'mcp' ? [] : trails) {
     if (
       !eligible.has(graphTrail.id) &&
       isEligibleWorkerActivationTrail(graphTrail, options)
