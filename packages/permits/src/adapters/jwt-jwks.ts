@@ -45,14 +45,12 @@ const secureUrl = (value: string, issuer = false): URL => {
   return url;
 };
 
-const fetchJson = async (url: string): Promise<Response> => {
-  const abortSignal = AbortSignal.timeout(5000);
-  return await fetch(url, {
+const fetchJson = async (url: string): Promise<Response> =>
+  await fetch(url, {
     headers: { accept: 'application/json' },
     redirect: 'error',
-    signal: abortSignal,
+    signal: AbortSignal.timeout(5000),
   });
-};
 
 /** Discover only from configured issuer URLs, never token jku/x5u headers. */
 const discover = async (issuer: string): Promise<string> => {
