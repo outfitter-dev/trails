@@ -16,7 +16,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0007](0007-governance-as-trails.md) | Governance as Trails with AST-Based Analysis | Accepted |
 | [0008](0008-deterministic-trailhead-derivation.md) | Deterministic Surface Derivation | Accepted |
 | [0009](0009-first-class-resources.md) | First-Class Resources | Accepted |
-| [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Partially-superseded |
+| [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Partially-superseded (amended 2026-10-28) |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
 | [0012](0012-connector-agnostic-permits.md) | Adapter-Agnostic Permits | Accepted |
 | [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Partially-superseded |
@@ -35,7 +35,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md) | Error Taxonomy as Transport-Independent Behavior Contract | Accepted |
 | [0027](0027-visibility-and-filtering.md) | Trail Visibility and Surface Filtering | Accepted |
 | [0028](0028-concurrent-crossing.md) | Concurrent Trail Composition | Accepted |
-| [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Adapter Extraction and Composition Around Core Contracts | Accepted |
+| [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Adapter Extraction and Composition Around Core Contracts | Accepted (amended 2026-10-28) |
 | [0030](0030-contours-as-first-class-domain-objects.md) | Contours as First-Class Domain Objects | Accepted |
 | [0031](0031-backend-agnostic-store-schemas.md) | Backend-Agnostic Store Schemas | Accepted |
 | [0032](0032-derivetrail-and-trail-factories.md) | deriveTrail() and Trail Factories | Accepted |
@@ -57,7 +57,8 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0048](0048-trail-versioning-v3.md) | Trail Versioning v3 | Accepted |
 | [0049](0049-composition-is-compose-not-cross.md) | Composition is `compose`, not `cross` | Accepted |
 | [0050](0050-surface-accommodations-preserve-trail-identity.md) | Surface Accommodations Preserve Trail Identity | Accepted |
-| [0051](0051-package-ownership-follows-natural-altitude.md) | Package Ownership Follows Natural Altitude | Accepted |
+| [0051](0051-package-ownership-follows-natural-altitude.md) | Package Ownership Follows Natural Altitude | Accepted (amended 2026-10-28) |
 | [0052](0052-overlays-one-extension-mechanism.md) | Overlays Are the Lock's One Extension Mechanism | Accepted |
 | [0053](0053-regrade-moves-governed-contract-change.md) | Regrade Moves Governed Contract Change | Accepted |
 | [0054](0054-project-substrate-names-its-truth.md) | Project Substrate Names Its Truth | Accepted |
+| [0057](0057-auth-adapter-packaging.md) | Provider Auth Adapters Own Their Package Boundaries | Accepted |
