@@ -55,8 +55,8 @@ Branch/PR conventions:
 - When delegating source-control writes, name the exact worktree, branch or stack, file scope, and permitted commands. The subagent must verify that state before mutation and preserve unrelated work.
 - For downstack fixes, check out the owning branch directly, run `git branch --show-current`, apply the fix, commit, `gh stack rebase --upstack` (or `git rebase --update-refs`), and walk upward through affected descendants.
 - Do not fold lower-layer review fixes into the top layer as the normal review-fix workflow for goal stacks.
-- Do not add merge queue labels unless Matt explicitly asks.
-- Do not merge (including `gh stack merge`) unless Matt explicitly asks.
+- Do not add merge queue labels without explicit authorization from the project owners or their delegates.
+- Do not merge (including `gh stack merge`) without explicit authorization from the project owners or their delegates.
 
 Plan packet commit policy:
 
@@ -65,7 +65,7 @@ Plan packet commit policy:
 
 Archive before merge:
 
-- Before merging a completed goal stack, move completed packets wholesale to `.agents/plans/archive/` unless Matt asks to keep the active packet in place.
+- Before merging a completed goal stack, move completed packets wholesale to `.agents/plans/archive/` unless the project owners or their delegates ask to keep the active packet in place.
 
 ## Planning Packet
 
@@ -88,7 +88,7 @@ Do not make a tracked packet depend on ignored or untracked scratch docs. If a s
 Local review:
 
 - Bias toward local review before remote submission.
-- For large or stacked goals, run multiple local review passes; default to at least three passes unless the packet states a stricter condition.
+- For large or stacked goals, obtain the required independent review against written acceptance. Repeat focused review after fixes or changed inputs. Add a distinct full-stack pass when the acceptance contract requires one; do not require a fixed pass count.
 - Stop local review only when the latest pass is P3-only or clean.
 - Reviews should inspect from the stack tip; fixes should land on the lowest owning branch and then be walked upward.
 
@@ -138,10 +138,10 @@ Do not introduce `npm publish` or `changeset publish` guidance.
 
 Stop or ask before continuing if:
 
-- The plan appears stale against `main`, Linear, or open PR state.
-- A required upstream stack has not merged.
+- Reconciliation with `main`, Linear, or open PR state reveals a substantive conflict, changed contract, missing authority, or invalidated required evidence that cannot be resolved within the delegated scope. Reconcile routine state changes in scope and record the update; pause only affected work.
+- A required upstream state cannot be consumed from its approved branch or stack layer. An unmerged upstream alone does not block dependent implementation or review; honor bottom-to-top merge gates.
 - A public API, artifact layout, or doctrinal decision must change beyond the
   packet.
-- Verification fails for unrelated reasons after focused retry.
-- Secrets, credentials, production systems, or irreversible actions are needed.
+- A candidate still fails mandatory verification after focused retry and baseline comparison. Keep the candidate blocked. Continue unrelated safe lanes. Record optional diagnostic failures separately. Do not report those failures as passes.
+- Secrets, credentials, production systems, or irreversible actions are needed outside the existing authorization.
 - More than four post-ready remote-review turns have elapsed and P2+ feedback remains unresolved.

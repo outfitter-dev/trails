@@ -62,9 +62,9 @@
       ],
       "kind": "standalone-skill",
       "name": "be-lewis",
-      "outputHash": "sha256:ec49b8961983070f68cf1d0cdcc4afb3ca20025ae364d5714d0d6683a77311b2",
+      "outputHash": "sha256:d5354ffb821e7734cc4853cc00b2343c05f9b1c54e358047475bbcb77b73a763",
       "outputPath": "be-lewis/SKILL.md",
-      "sourceHash": "sha256:7e1986f5bac6f093ee0d014e1789c4753947ce823f40e0a1ea729bed51af4595",
+      "sourceHash": "sha256:eb59ae7f522b53ebf08d01791e14669161e3247c5550d222c438d102f1ebd38f",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "version": "0.1.0"
     },
@@ -141,15 +141,15 @@
       ],
       "kind": "standalone-skill",
       "name": "trails-local-review",
-      "outputHash": "sha256:cd38fad88b737e6b3c62bf02e74de7357b256ab62de902a8b7b64fee88a4d3c6",
+      "outputHash": "sha256:abd10a82c0d38a444e9b74a20f1a20c077e658424323852985b18a3a8a9992cd",
       "outputPath": "trails-local-review/SKILL.md",
-      "sourceHash": "sha256:cd331360a40f8bd9e8a09821bc7312d2139121e341944804361eba1ec7474252",
+      "sourceHash": "sha256:269a46cc15b917e9803250faa74f06d4dcda56d055cf3a25f56aebd8079536ab",
       "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
       "version": "0.1.0"
     }
   ],
   "outputRoot": ".claude/skills",
-  "provenanceHash": "sha256:af69956969125a7cf131daa18c4b291f4827577de2ade9ba759077d3e087bf99",
+  "provenanceHash": "sha256:e1cda29e4c64c95a76ac4e3c4d035d9fc2606411d65a05f6ad5992f706d9c53d",
   "renderResults": [
     {
       "destination": "skill",

@@ -140,12 +140,12 @@
       ],
       "kind": "standalone-skill",
       "name": "be-lewis",
-      "outputHash": "sha256:fdd229c843a7d355d5201f09a9e3485a782e0dcd5ea0b5ea5c304374e0616286",
+      "outputHash": "sha256:0049e33873aeea1d4d351447395082834188038c0a1248d0e9ede6f510b7550b",
       "outputPath": "be-lewis/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
-      "sourceHash": "sha256:7e1986f5bac6f093ee0d014e1789c4753947ce823f40e0a1ea729bed51af4595",
+      "sourceHash": "sha256:eb59ae7f522b53ebf08d01791e14669161e3247c5550d222c438d102f1ebd38f",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "version": "0.1.0"
     },
@@ -169,7 +169,7 @@
       "owner": {
         "target": "codex"
       },
-      "sourceHash": "sha256:7e1986f5bac6f093ee0d014e1789c4753947ce823f40e0a1ea729bed51af4595",
+      "sourceHash": "sha256:eb59ae7f522b53ebf08d01791e14669161e3247c5550d222c438d102f1ebd38f",
       "sourcePath": ".skillset/skills/be-lewis/SKILL.md",
       "version": "0.1.0"
     },
@@ -622,12 +622,12 @@
       ],
       "kind": "standalone-skill",
       "name": "trails-local-review",
-      "outputHash": "sha256:61f57b145277d8e56e4d1ac566555df934f4b1dd255cb19b775463fe6ae7f7a7",
+      "outputHash": "sha256:45f496219b32476e10847586d989d6b4cec839662f2987112e7d3214d16226c3",
       "outputPath": "trails-local-review/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
-      "sourceHash": "sha256:cd331360a40f8bd9e8a09821bc7312d2139121e341944804361eba1ec7474252",
+      "sourceHash": "sha256:269a46cc15b917e9803250faa74f06d4dcda56d055cf3a25f56aebd8079536ab",
       "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
       "version": "0.1.0"
     },
@@ -651,7 +651,7 @@
       "owner": {
         "target": "codex"
       },
-      "sourceHash": "sha256:cd331360a40f8bd9e8a09821bc7312d2139121e341944804361eba1ec7474252",
+      "sourceHash": "sha256:269a46cc15b917e9803250faa74f06d4dcda56d055cf3a25f56aebd8079536ab",
       "sourcePath": ".skillset/skills/trails-local-review/SKILL.md",
       "version": "0.1.0"
     },
@@ -855,7 +855,7 @@
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:0dde585f567dbff2f34d09315637822be95f214d40ee9cdbef57343711746fb0",
+  "provenanceHash": "sha256:71ae6b9b14f8a8ab1c8cbf00a66aaf433fe411899dbbdbf6be60b31203b589fc",
   "renderResults": [
     {
       "destination": "skill",

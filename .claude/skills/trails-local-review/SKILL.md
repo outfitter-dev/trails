@@ -43,7 +43,7 @@ Verify evidence directly. Quote the relevant path and line, command result, PR t
 
 The builder should inspect its own work before handoff, but self-review does not become independent merely because it is thorough. For substantive agent-produced work, prefer a fresh-context reviewer when the repository or coordinator requires independence and the harness can provide it.
 
-The coordinating agent chooses reviewer topology, report durability, fix ownership, and the final review gate. The user or delegated coordinator retains ready, merge, release, and publication authority.
+The coordinating agent chooses reviewer topology, report durability, fix ownership, and the final review gate. Project owners or their explicit delegates control PR readiness, merge, release, and publication. A contribution request or PR submission does not grant that authority.
 
 Within one fix loop, reuse the same reviewer so findings can be rechecked consistently. Use a fresh reviewer for a genuinely independent milestone or full-stack judgment when required.
 
@@ -52,7 +52,9 @@ Within one fix loop, reuse the same reviewer so findings can be rechecked consis
 - **P0:** unsafe or impossible to proceed, including security, data loss, destructive behavior, or a broken required release path.
 - **P1:** correctness or contract regression, including broken behavior, public API, migration, or governing doctrine.
 - **P2:** important quality or readiness defect that should be fixed before handoff, including misleading guidance, generated drift, missing release intent, or unresolved review evidence.
-- **P3:** optional polish with no correctness, doctrine, documentation, or release impact.
+- **P3:** optional polish with no material correctness, doctrine, documentation, or release impact, including nonblocking prose or comment nits.
+
+If the coordinator defers a P3, record its owner and follow-up. Verify closure. If tracker issue creation is not authorized, use the permitted review report or goal packet. Do not defer misleading contract or operational guidance as polish.
 
 Lead with findings in severity order. Each finding should include the contract violated, exact evidence, impact, and smallest credible fix. Lower confidence rather than filling an evidence gap with plausible prose.
 
