@@ -143,5 +143,5 @@ Stop or ask before continuing if:
 - A public API, artifact layout, or doctrinal decision must change beyond the
   packet.
 - A candidate still fails mandatory verification after focused retry and baseline comparison. Keep that candidate blocked; continue unrelated safe lanes. Record optional diagnostic failures separately without relabeling them as passes.
-- Secrets, credentials, production systems, or irreversible actions are needed.
+- Secrets, credentials, production systems, or irreversible actions are needed outside the existing authorization.
 - More than four post-ready remote-review turns have elapsed and P2+ feedback remains unresolved.
