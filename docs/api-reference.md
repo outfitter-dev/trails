@@ -308,7 +308,7 @@ OpenApiOptions, OpenApiSpec, OpenApiServer
 createRouteHandler(route, options?)    // materialize one Web Fetch Request -> Response handler
 createFetchHandler(graph, options?)    // materialize a full topo Web Fetch dispatcher
 
-CreateRouteHandlerOptions, CreateFetchHandlerOptions
+CreateRouteHandlerOptions, CreateFetchHandlerOptions // onUnmatched? runs only on dispatch misses
 ```
 
 The fetch kernel owns query/body parsing, content-length checks, public HTTP error rendering, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP bindings.
@@ -335,7 +335,7 @@ CreateAppOptions, SurfaceHttpResult
 
 ## `@ontrails/cloudflare/workers`
 
-The [Workers guide](../adapters/cloudflare/README.md) covers HTTP/queue/scheduled hosting and the additive structural MCP slot. The package root re-exports this host API alongside its existing Cloudflare resource collection.
+The [Workers guide](../adapters/cloudflare/README.md) covers HTTP/queue/scheduled hosting, the additive structural MCP slot, and assets fallback after unmatched HTTP routes. The package root re-exports this host API alongside its existing Cloudflare resource collection.
 
 ```typescript
 createWorkersHandler(graph, options?) // Worker fetch/queue/scheduled export; optional exact MCP host path + factory

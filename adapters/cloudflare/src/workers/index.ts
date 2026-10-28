@@ -33,6 +33,8 @@ import { createQueueHandler } from '../queues/index.js';
 import type { CloudflareQueueBatch } from '../queues/index.js';
 import { createScheduledHandler } from '../schedules/index.js';
 import type { CloudflareScheduledController } from '../schedules/index.js';
+import { createAssetsFallback } from './assets.js';
+import { parseWorkersHostConfig } from './host.js';
 import type { WorkersHostConfig } from './host.js';
 import { createWorkersMcpHost } from './mcp.js';
 import type { WorkersMcpFactory } from './mcp.js';
@@ -261,7 +263,8 @@ export const createWorkersHandler = (
   // of the trails on its own cron, so an unrelated schedule's missing binding
   // never blocks it.
   const materializedScheduled = new Map<string, MaterializedScheduledHandler>();
-  const mcp = createWorkersMcpHost(graph, options, (env) =>
+  const host = parseWorkersHostConfig(options.host);
+  const mcp = createWorkersMcpHost(graph, { ...options, host }, (env) =>
     resolveResourceOverrides(graph, env ?? {}, options, 'mcp')
   );
 
@@ -280,6 +283,7 @@ export const createWorkersHandler = (
       intent: options.intent,
       layers: options.layers,
       maxJsonBodyBytes: options.maxJsonBodyBytes,
+      onUnmatched: createAssetsFallback(host.assets, env),
       resolvePermit: options.resolvePermit,
       resources: resolveResourceOverrides(graph, env ?? {}, options, 'fetch'),
       validate: options.validate,
