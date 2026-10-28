@@ -39,7 +39,7 @@ Short-lived credentials are the documented default. Static API keys remain suppo
 
 `PermitExtractionInput` can carry bearer credentials, API-key headers such as `x-api-key` or `x-auth-token`, edge assertions such as `Cf-Access-Jwt-Assertion`, or a same-origin session cookie. The adapter decides which credential sources it trusts. Credentials never come from query strings, including browser WebSocket URLs.
 
-Shared code in `@ontrails/permits` owns verification, effective-permission calculation, protected-resource metadata, and challenge formatting. Each surface supplies three facts:
+Shared code in `@ontrails/permits` owns verification, effective-permission calculation, protected-resource metadata, and challenge formatting. [TRL-1468] owns this surface contract and metadata derivation. Each surface supplies three facts:
 
 | Surface responsibility | Meaning |
 | --- | --- |
@@ -80,7 +80,7 @@ Effective permission is an intersection whose terms depend on the credential:
 | OAuth access token carrying scope | Token scopes ∩ role expansion, when roles are supplied ∩ current-actor ceiling. |
 | Explicitly supported role-only credential | Role expansion ∩ current-actor ceiling. |
 | API key | Stored key scopes ∩ the owner's current role expansion ∩ current-actor ceiling. |
-| Exchanged token | The scoped-token calculation; the authorization server narrows consent during exchange. |
+| Exchanged token | The scoped-token calculation, bounded by the scopes actually issued under the authorization server's exchange policy. |
 | Stored subscription grant | Grant scopes ∩ the subject's current role expansion ∩ current-actor ceiling at revalidation. |
 
 A scoped read-only token remains read-only even when its subject is an administrator. If a scoped token supplies no roles, its role term drops out; its consented scope still bounds access. A role-only credential with no mapped roles yields no scopes. Role-only behavior is explicit adapter policy, never a fallback for an OAuth token missing its scope claim.
@@ -103,11 +103,11 @@ interface PermitActor {
 
 Known actor kinds include `client`, `agent`, `service` and `workload`, but the set remains open. Client claims such as `client_id` or `azp` and RFC 8693 `act` nesting supply the chain when the issuer vouches for them. Caller assertions remain visibly unverified.
 
-Only the current actor affects access control: the outermost `act`, or the client claims when `act` is absent. Earlier actors are audit history, not additional enforcement terms. This follows RFC 8693 §4.1; restrictions accumulated through token exchange must already narrow the token's own scopes.[^actors] Actor ceilings may narrow current-actor authority by kind or ID. An unverified current actor can trigger a restrictive ceiling but cannot satisfy an exception that widens access.
+Only the current actor affects access control: the outermost `act`, or the client claims when `act` is absent. Earlier actors are audit history, not additional enforcement terms. This follows RFC 8693 §4.1; any delegation restrictions that must affect enforcement must be represented in the exchanged token's top-level scopes, not inferred from actor history.[^actors] Actor ceilings may narrow current-actor authority by kind or ID. An unverified current actor can trigger a restrictive ceiling but cannot satisfy an exception that widens access.
 
 ### Step-up reuses the permission outcome
 
-An intent-aware policy may require step-up when a non-human actor reaches a destructive trail. The plain denial remains the existing `permission` category: `PermitError`, HTTP 403, `context.code: 'step_up_required'`, and `context.requiredScopes`. This adds no surface-specific error category.
+An intent-aware policy may require step-up when a non-human actor reaches a destructive trail. The plain denial remains the existing `permission` category: `PermitError`, HTTP 403, `context.code: 'step_up_required'`, and `context.requiredScopes`. [TRL-1454] owns this plain step-up rule and outcome. It adds no surface-specific error category.
 
 The MCP elicitation decision under [TRL-1483] owns the consent outcome, and [TRL-1488] owns its MCP rendering, including the intended URL-mode consent path and its input-required outcome. That consent exchange does not replace the plain permission denial. Replay authorization and paused state retain their separate governing issues; this ADR does not prescribe a new retry mechanism.
 
@@ -123,7 +123,7 @@ A connection without identity may authenticate through a first `trails.auth` fra
 
 A durable subscription has no present caller token to verify. Its grant records issuer-qualified subject and tenant, actor chain, effective scopes at creation, and a delegation reference when it acts on a user's consent. The subscriptions decision under [TRL-1497] owns the subscription entity and delivery model; this ADR owns the authorization facts. [TRL-1464] implements the grant.
 
-Bounded grants default to 30 days regardless of the credential that created them. A derived renew trail accepts a fresh credential and extends the grant in place, preserving subscription ID and cursor. A typed expiring signal arrives on the subscription's delivery channel, defaulting to three days before expiry. Sliding renewal is opt-in; successful revalidation can extend the grant only while the subject, scopes and delegation remain valid.
+Bounded grants default to 30 days regardless of the credential that created them. A derived renew trail runs under a freshly authenticated permit obtained through surface credential extraction and extends the grant in place, preserving subscription ID and cursor. Raw credentials do not become renew-trail input or stored grant data. A typed expiring signal arrives on the subscription's delivery channel, defaulting to three days before expiry. Sliding renewal is opt-in; successful revalidation can extend the grant only while the subject, scopes and delegation remain valid.
 
 Revalidation checks that the subject is active, scopes still fit current roles and the current actor's ceiling, and delegated consent remains live. Webhooks revalidate per delivery with a short cache; queues revalidate when drained. Never-expiring or sliding delegated grants require an adapter capable of checking the delegation. JWKS verification alone is insufficient; an adapter without introspection or a consent-checking API must keep those grants bounded. That bounded fallback is an accepted exposure limit, not proof that consent is still live. An adapter reports only the checks it can perform; an actual observed expiry or revalidation failure still stops delivery.
 
@@ -190,7 +190,9 @@ This is documentation-only release intent (`release:none`). It changes no runtim
 [TRL-1447]: https://linear.app/outfitter/issue/TRL-1447
 [TRL-1450]: https://linear.app/outfitter/issue/TRL-1450
 [TRL-1453]: https://linear.app/outfitter/issue/TRL-1453
+[TRL-1454]: https://linear.app/outfitter/issue/TRL-1454
 [TRL-1464]: https://linear.app/outfitter/issue/TRL-1464
+[TRL-1468]: https://linear.app/outfitter/issue/TRL-1468
 [TRL-1475]: https://linear.app/outfitter/issue/TRL-1475
 [TRL-1479]: https://linear.app/outfitter/issue/TRL-1479
 [TRL-1483]: https://linear.app/outfitter/issue/TRL-1483
