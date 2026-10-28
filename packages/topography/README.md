@@ -35,6 +35,8 @@ This is not a private helper package. The Trails operator app consumes Topograph
   including artifact loading, provenance envelopes, typed entity filters,
   relation traversal, error facts, adapter facts, and explicit graph diffs
 
+Configured workspace lock observation reconciles authored app roots with their canonical physical paths, including case-only differences on case-insensitive filesystems. This preserves the authored app identity while applying lock-scope exclusions and collection boundaries to the same physical app; a case-only spelling does not create an unowned lock.
+
 `@ontrails/topography` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on Topography.
 
 ## Usage
