@@ -656,6 +656,7 @@ clearConfigState()                   // clear global config state (for tests)
 // Derivation helpers
 deriveConfig(options?)               // resolve config values against schema + sources
 deriveConfigFields(schema)           // field descriptions from the schema
+deriveConfigSecretFields(schema, options?) // declared secret-field metadata, or typed incomplete evidence
 deriveConfigProvenance(result)       // provenance by resolved field
 deriveConfigEnvExample(schema)       // .env.example content from the schema
 deriveConfigExample(schema, format?) // commented example config for TOML / YAML / JSON
@@ -669,7 +670,10 @@ configInit                           // generate example config files
 DefineConfigOptions, TrailsWorkspaceConfig, TrailsWorkspaceAppConfig
 ReadTrailsProjectIdentityOptions, ReadTrailsProjectIdentityResult, ResolvedTrailsWorkspaceApp
 ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
+ConfigSecretAncestor, ConfigSecretField, ConfigSecretFieldProjection, DeriveConfigSecretFieldsOptions
 ```
+
+Secret-field projection uses explicit non-secret discriminant selections and returns only names, paths, sensitivity, local requiredness, and ancestor wrapper facts. Callers own effective profile applicability and must treat incomplete results as blocked derivation. Descriptor-safe object inspection is capability-gated: complete projection is qualified on Zod 4.6.7; exact 4.3.5 imports and typechecks the API but returns incomplete for object inspection. The existing peer range is unchanged, and no defaults, getters, refinements, transforms, or resource factories are evaluated. See the [Config fieldguide](../packages/config/README.md#declared-secret-field-metadata).
 
 ## `@ontrails/permits`
 

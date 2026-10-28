@@ -44,6 +44,21 @@ export {
   type LoadedTrailsConfigValue,
 } from './trails-config-file.js';
 export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
+/**
+ * @example
+ * ```ts
+ * const projection = deriveConfigSecretFields(resourceConfigSchema, {
+ *   discriminants: { adapter: 'jwt' },
+ * });
+ * ```
+ */
+export {
+  deriveConfigSecretFields,
+  type ConfigSecretAncestor,
+  type ConfigSecretField,
+  type ConfigSecretFieldProjection,
+  type DeriveConfigSecretFieldsOptions,
+} from './secret-fields.js';
 export {
   checkConfig,
   type ConfigReport,

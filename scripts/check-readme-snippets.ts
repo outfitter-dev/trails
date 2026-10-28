@@ -174,6 +174,7 @@ export const defaultOnResult: any;
 export const defineConfig: any;
 export const deprecated: any;
 export const deriveCliCommands: any;
+export const deriveConfigSecretFields: any;
 export const deriveFlags: any;
 export const deriveHttpRoutes: any;
 export const deriveMcpTools: any;
