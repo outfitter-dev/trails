@@ -61,7 +61,7 @@ export const jwksFixture = async (algorithm: Algorithm = 'RS256') => {
   };
   const key = await makeKey('first');
   const state = {
-    keys: [key.jwk],
+    keys: [key.jwk] as (JsonWebKey & { readonly kid?: string })[],
     keysStatus: 200,
     metadata: { issuer, jwks_uri: jwksUrl },
     metadataStatus: 200,
