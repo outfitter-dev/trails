@@ -5,7 +5,10 @@ import { join } from 'node:path';
 
 import { Result, resource, signal, topo, trail } from '@ontrails/core';
 import type { Layer, Topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topography';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphEntryHash,
+} from '@ontrails/topography';
 import type { TopoGraphEntry } from '@ontrails/topography';
 import { z } from 'zod';
 
@@ -281,6 +284,7 @@ describe('createTrailWatcher', () => {
     } as const;
 
     expect(hashTopoGraphEntry(entry)).toBe(hashTopoGraphEntry(entry));
+    expect(hashTopoGraphEntry(entry)).toBe(deriveTopoGraphEntryHash(entry));
     expect(hashTopoGraphEntry({ ...entry, intent: 'write' })).not.toBe(
       hashTopoGraphEntry(entry)
     );

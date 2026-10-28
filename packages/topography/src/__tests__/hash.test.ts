@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 
-import { deriveTopoGraphHash } from '../hash.js';
+import { deriveTopoGraphEntryHash, deriveTopoGraphHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
-import type { TopoGraph } from '../types.js';
+import type { TopoGraph, TopoGraphEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -137,5 +137,54 @@ describe('deriveTopoGraphHash', () => {
     });
 
     expect(deriveTopoGraphHash(map1)).not.toBe(deriveTopoGraphHash(map2));
+  });
+});
+
+describe('deriveTopoGraphEntryHash', () => {
+  const entry: TopoGraphEntry = {
+    exampleCount: 0,
+    id: 'entity.show',
+    input: {
+      properties: { id: { type: 'string' }, verbose: { type: 'boolean' } },
+      required: ['id', 'verbose'],
+      type: 'object',
+    },
+    intent: 'read',
+    kind: 'trail',
+    output: { type: 'object' },
+    surfaces: ['cli', 'mcp'],
+  };
+
+  test('preserves the existing watch hash bytes', () => {
+    expect(deriveTopoGraphEntryHash(entry)).toBe(
+      'd4d50496765048d081cdd96a6e3be51466cc6d41594f391523520ed37dc77e06'
+    );
+  });
+
+  test('normalizes nested object key order', () => {
+    const properties = Object.fromEntries([
+      ['verbose', { type: 'boolean' }],
+      ['id', { type: 'string' }],
+    ]);
+    expect(Object.keys(properties)).toEqual(['verbose', 'id']);
+    expect(
+      deriveTopoGraphEntryHash({
+        ...entry,
+        input: {
+          properties,
+          required: ['id', 'verbose'],
+          type: 'object',
+        },
+      })
+    ).toBe(deriveTopoGraphEntryHash(entry));
+  });
+
+  test('preserves array order and contract field differences', () => {
+    expect(
+      deriveTopoGraphEntryHash({ ...entry, surfaces: ['mcp', 'cli'] })
+    ).not.toBe(deriveTopoGraphEntryHash(entry));
+    expect(deriveTopoGraphEntryHash({ ...entry, intent: 'write' })).not.toBe(
+      deriveTopoGraphEntryHash(entry)
+    );
   });
 });
