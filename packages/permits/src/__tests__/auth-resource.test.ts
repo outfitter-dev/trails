@@ -92,7 +92,7 @@ describe('authResource', () => {
     });
   });
 
-  test('JWT config requires the implemented secret-backed adapter path', () => {
+  test('JWT config requires a secret or both issuer and expected audience', () => {
     const parsed = authResourceConfigSchema.safeParse({
       adapter: 'jwt',
       jwksUrl: 'https://example.com/.well-known/jwks.json',

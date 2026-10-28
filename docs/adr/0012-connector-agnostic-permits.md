@@ -171,6 +171,14 @@ No cookies. No session-based auth at the framework level. Session management via
 
 ## Amendment log
 
+- 2026-10-28: TRL-1435 implements the promised provider-agnostic JWT/JWKS path
+  in `@ontrails/permits/jwt` with native WebCrypto. A configured secret preserves
+  HS256 behavior, including optional issuer/audience checks; issuer without a
+  secret selects discovery and requires audience and expiration verification.
+  RS256, ES256 (P-256), and EdDSA (Ed25519) use cached public keys with bounded
+  refresh on key rotation. Sender-constrained tokens are rejected because this
+  adapter does not verify their proof. The existing Permit shape is unchanged;
+  resource-server doctrine and provider packaging amendments remain separate.
 - 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
   examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
   stable.
