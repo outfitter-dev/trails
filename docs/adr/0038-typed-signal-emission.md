@@ -265,5 +265,5 @@ Typed signal v1 does not introduce:
   producer API.
 - [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) -
   schedule and webhook source materializers build on this signal contract.
-- [ADR: WebSocket Trailhead](drafts/20260331-websocket-trailhead.md) (draft) -
+- [ADR: RPC Is a Surface Hosted on WebSocket](drafts/20260331-rpc-surface-hosted-on-websocket.md) (draft) -
   external subscriptions remain deferred from ADR-0038's local signal runtime.
