@@ -16547,6 +16547,9 @@
             "errorCount": {
               "type": "number"
             },
+            "executedAppId": {
+              "type": "string"
+            },
             "fixes": {
               "properties": {
                 "applied": {
@@ -41620,6 +41623,9 @@
               "errorCount": {
                 "type": "number"
               },
+              "executedAppId": {
+                "type": "string"
+              },
               "fixes": {
                 "properties": {
                   "applied": {
@@ -42698,6 +42704,6 @@
       }
     ]
   },
-  "topoGraphHash": "ec53f101bd1a4ae573b9e8e1beb2eb6b16f5aaeba96c945d85032c2c151fe4ff",
+  "topoGraphHash": "e4ba4c7f81ca221767295e1732f070b9a11a0bd74f941a0cd43dc7e1da1dbb93",
   "version": 5
 }

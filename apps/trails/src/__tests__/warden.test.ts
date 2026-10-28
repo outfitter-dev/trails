@@ -474,6 +474,131 @@ describe('trails warden', () => {
     ]);
   });
 
+  test.each([
+    'standalone',
+    'configured-app',
+    'workspace',
+    'source',
+    'configured-source-fix',
+  ] as const)(
+    'records only the app actually evaluated by a one-app run (%s)',
+    async (selection) => {
+      const dir = makeTempDir();
+      try {
+        if (
+          selection === 'configured-app' ||
+          selection === 'workspace' ||
+          selection === 'configured-source-fix'
+        ) {
+          writeConfiguredWorkspaceFixture(dir);
+          if (selection === 'configured-source-fix') {
+            await writeAppRootLock(
+              join(dir, 'apps/alpha'),
+              'alpha',
+              deriveTopoGraph(topo('alpha', []))
+            );
+          }
+          if (selection === 'workspace') {
+            writeFileSync(
+              join(dir, 'trails.config.json'),
+              JSON.stringify({
+                workspace: { apps: { alpha: { root: 'apps/alpha' } } },
+              })
+            );
+          }
+        } else {
+          mkdirSync(join(dir, 'src'), { recursive: true });
+          writeFileSync(
+            join(dir, 'src', 'app.ts'),
+            `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const app = topo('evaluated-standalone', []);\n`
+          );
+        }
+        const result = await wardenTrail.implementation(
+          {
+            ...(selection === 'configured-app' ||
+            selection === 'configured-source-fix'
+              ? { app: 'alpha' }
+              : {}),
+            depth:
+              selection === 'source' || selection === 'configured-source-fix'
+                ? 'source'
+                : 'topo',
+            fix: selection === 'configured-source-fix',
+            format: 'json',
+            ...(selection === 'configured-source-fix'
+              ? {}
+              : { lock: 'skip' as const }),
+            rootDir: dir,
+          },
+          { cwd: dir, env: {} } as never
+        );
+        expect(result.isOk()).toBe(true);
+        if (result.isErr()) {
+          throw result.error;
+        }
+        expect(result.value.passed).toBe(true);
+        expect(result.value.diagnostics).toEqual([]);
+        const outputs = [
+          result.value,
+          wardenTrail.output.parse(result.value),
+          JSON.parse(result.value.formatted),
+        ];
+        for (const output of outputs) {
+          if (selection === 'standalone' || selection === 'configured-app') {
+            expect(output).toHaveProperty(
+              'executedAppId',
+              selection === 'standalone' ? 'evaluated-standalone' : 'alpha'
+            );
+          } else {
+            expect(output).not.toHaveProperty('executedAppId');
+          }
+        }
+        if (selection === 'configured-source-fix') {
+          const cli = runCli(
+            trailsBinPath,
+            [
+              'warden',
+              '--depth',
+              'source',
+              '--fix',
+              '--app',
+              'alpha',
+              '--json',
+              '--root-dir',
+              dir,
+            ],
+            repoRoot
+          );
+          expect(cli.exitCode).toBe(0);
+          expect(cli.json).not.toHaveProperty('executedAppId');
+        }
+        if (selection === 'standalone') {
+          const cli = runCli(
+            trailsBinPath,
+            [
+              'warden',
+              '--depth',
+              'topo',
+              '--lock',
+              'skip',
+              '--json',
+              '--root-dir',
+              dir,
+            ],
+            repoRoot
+          );
+          expect(cli.exitCode).toBe(0);
+          expect(cli.json).toHaveProperty(
+            'executedAppId',
+            'evaluated-standalone'
+          );
+        }
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    }
+  );
+
   test('runs through the shared Warden command and returns formatted output', async () => {
     const dir = makeTempDir();
     try {
