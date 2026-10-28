@@ -88,7 +88,7 @@ One error class hierarchy maps deterministically onto every surface. The rows ju
 | --- | --- | --- | --- | --- |
 | `AuthError` (bad webhook signature) | auth | 9 | 401 | -32600 |
 | `PermitError` (viewer attempting a mutation) | permission | 4 | 403 | -32600 |
-| `NotFoundError` (unknown endpoint/event/target/route) | not_found | 2 | 404 | -32601 |
+| `NotFoundError` (unknown endpoint/event/target/route) | not_found | 2 | 404 | -32001 |
 | `ValidationError` (malformed payload, disabled target) | validation | 1 | 400 | -32602 |
 | `NetworkError` (target unreachable, pre-detour) | network | 7 | 502 | -32603 |
 | `RetryExhaustedError` (delivery detour exhausted) | inherits wrapped `NetworkError` → network | 7 | 502 | -32603 |

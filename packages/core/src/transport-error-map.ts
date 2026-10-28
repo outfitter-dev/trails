@@ -11,7 +11,9 @@ import {
   exitCodeMap,
   jsonRpcCodeMap,
   statusCodeMap,
+  surfaceErrorCodeOverrides,
 } from './errors.js';
+import type { PublicErrorRendering } from './error-rendering.js';
 import { renderPublicError } from './error-rendering.js';
 
 const CLI_INTERNAL_ERROR_PUBLIC_MESSAGE = 'Internal error';
@@ -46,12 +48,25 @@ export type SurfaceErrorMappings<T> = Record<ErrorCategory, T>;
 export type SurfaceErrorCode =
   (typeof codesByCategory)[ErrorCategory][(typeof surfaceCodeKeys)[SurfaceName]];
 
-export interface SurfaceErrorRendering {
-  readonly category: ErrorCategory;
+/** The taxonomy data carried inside a JSON-RPC error response. */
+export type JsonRpcErrorData = Pick<
+  PublicErrorRendering,
+  'category' | 'name' | 'retryable'
+>;
+
+/** A public JSON-RPC error body, without the request's id or envelope. */
+export interface JsonRpcErrorRendering {
+  readonly code: SurfaceErrorCode;
+  readonly data: JsonRpcErrorData;
+  readonly message: string;
+}
+
+/** Protocol methods with a core-owned surface code override. */
+export type SurfaceErrorMethod = keyof typeof surfaceErrorCodeOverrides.mcp;
+
+export interface SurfaceErrorRendering extends JsonRpcErrorData {
   readonly code: SurfaceErrorCode;
   readonly message: string;
-  readonly name: string;
-  readonly retryable: boolean;
   readonly surface: SurfaceName;
 }
 
@@ -94,18 +109,35 @@ export const surfaceErrorRegistry = {
   },
 } as const;
 
+const resolveSurfaceErrorCode = (
+  surface: SurfaceName,
+  category: ErrorCategory,
+  method?: SurfaceErrorMethod
+): SurfaceErrorCode => {
+  if (surface === 'mcp' && method !== undefined) {
+    const overrides: Partial<Record<ErrorCategory, SurfaceErrorCode>> =
+      surfaceErrorCodeOverrides.mcp[method];
+    const override = overrides[category];
+    if (override !== undefined) {
+      return override;
+    }
+  }
+  return codesByCategory[category][surfaceCodeKeys[surface]];
+};
+
 export const mapSurfaceError = (
   surface: SurfaceName,
-  error: TrailsError
-): SurfaceErrorCode =>
-  codesByCategory[error.category][surfaceCodeKeys[surface]];
+  error: TrailsError,
+  method?: SurfaceErrorMethod
+): SurfaceErrorCode => resolveSurfaceErrorCode(surface, error.category, method);
 
 export const renderSurfaceError = (
   surface: SurfaceName,
-  error: TrailsError
+  error: TrailsError,
+  method?: SurfaceErrorMethod
 ): SurfaceErrorRendering => ({
   category: error.category,
-  code: mapSurfaceError(surface, error),
+  code: mapSurfaceError(surface, error, method),
   message: error.message,
   name: error.name,
   retryable: error.retryable,
@@ -114,12 +146,13 @@ export const renderSurfaceError = (
 
 export const renderPublicSurfaceError = (
   surface: SurfaceName,
-  error: Error
+  error: Error,
+  method?: SurfaceErrorMethod
 ): SurfaceErrorRendering => {
   const rendering = renderPublicError(error);
   return {
     ...rendering,
-    code: codesByCategory[rendering.category][surfaceCodeKeys[surface]],
+    code: resolveSurfaceErrorCode(surface, rendering.category, method),
     message:
       surface === 'cli' && rendering.category === 'internal'
         ? CLI_INTERNAL_ERROR_PUBLIC_MESSAGE
@@ -147,7 +180,8 @@ const fixedErrorClassByName: ReadonlyMap<string, FixedErrorClassRegistryEntry> =
  */
 export const renderErrorClassSurface = (
   surface: SurfaceName,
-  errorName: string
+  errorName: string,
+  method?: SurfaceErrorMethod
 ): ErrorClassSurfaceRendering | undefined => {
   const entry = fixedErrorClassByName.get(errorName);
   if (entry === undefined) {
@@ -155,9 +189,35 @@ export const renderErrorClassSurface = (
   }
   return {
     category: entry.category,
-    code: codesByCategory[entry.category][surfaceCodeKeys[surface]],
+    code: resolveSurfaceErrorCode(surface, entry.category, method),
     name: entry.name,
     retryable: entry.retryable,
     surface,
   };
+};
+
+/**
+ * Render a protocol error using core codes, public redaction, and taxonomy data.
+ *
+ * @remarks
+ * MCP trail failures remain tool results; use this for protocol failures such
+ * as an unknown resource. A method override never changes the category default.
+ *
+ * @example
+ * ```ts
+ * renderJsonRpcError('mcp', new NotFoundError('missing'), 'resources/read');
+ * // { code: -32602, message: 'missing', data: { category: 'not_found', name: 'NotFoundError', retryable: false } }
+ * ```
+ */
+export const renderJsonRpcError = (
+  surface: Extract<SurfaceName, 'jsonRpc' | 'mcp'>,
+  error: Error,
+  method?: SurfaceErrorMethod
+): JsonRpcErrorRendering => {
+  const { category, code, message, name, retryable } = renderPublicSurfaceError(
+    surface,
+    error,
+    method
+  );
+  return { code, data: { category, name, retryable }, message };
 };

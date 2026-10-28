@@ -34,6 +34,15 @@ export {
   isRetryable,
   isTrailsError,
 } from './errors.js';
+/**
+ * Protocol-specific method codes remain separate from trail category defaults.
+ * @example
+ * ```ts
+ * import { surfaceErrorCodeOverrides } from '@ontrails/core';
+ * surfaceErrorCodeOverrides.mcp['resources/read'].not_found; // -32602
+ * ```
+ */
+export { surfaceErrorCodeOverrides } from './errors.js';
 export type {
   DynamicErrorClassRegistryEntry,
   ErrorCategory,
@@ -51,6 +60,28 @@ export {
   surfaceErrorMap,
   surfaceErrorRegistry,
   surfaceNames,
+} from './transport-error-map.js';
+/**
+ * Public JSON-RPC error rendering for protocol boundaries.
+ * @example
+ * ```ts
+ * import { NotFoundError, renderJsonRpcError } from '@ontrails/core';
+ * const error = renderJsonRpcError('mcp', new NotFoundError('missing'), 'resources/read');
+ * ```
+ */
+export { renderJsonRpcError } from './transport-error-map.js';
+/**
+ * Shared JSON-RPC wire data and supported protocol override methods.
+ * @example
+ * ```ts
+ * import type { JsonRpcErrorData } from '@ontrails/core';
+ * const data: JsonRpcErrorData = { category: 'not_found', name: 'NotFoundError', retryable: false };
+ * ```
+ */
+export type {
+  JsonRpcErrorData,
+  JsonRpcErrorRendering,
+  SurfaceErrorMethod,
 } from './transport-error-map.js';
 export type {
   ErrorClassSurfaceRendering,

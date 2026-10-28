@@ -197,7 +197,7 @@ Result.err(new NotFoundError('Entity not found'));
 //     "ontrails/error": {
 //       name: "NotFoundError",
 //       category: "not_found",
-//       code: -32601,
+//       code: -32001,
 //       retryable: false,
 //       message: "Entity not found",
 //       surface: "mcp"
@@ -216,6 +216,8 @@ If the result contains a `BlobRef` declared with `blobRefSchema`, MCP renders th
 // -> { content: [{ type: "image", data: "<base64>", mimeType: "image/png" }] }
 // -> { structuredContent: { file: { kind: "blob", name, mimeType, size, uri } } }
 ```
+
+Unknown resource reads are protocol failures: `resources/read` returns SDK error code `-32602` with core-owned `data.category`, `data.name`, and `data.retryable`. Core resolves that method override; it does not change the `-32001` code in a trail's `isError` tool result. The default `not_found` code previously rendered as `-32601`; clients that matched that old code should update to `-32001` or read the taxonomy category. Error messages use the same public redaction policy in both cases.
 
 ## Progress Bridging
 

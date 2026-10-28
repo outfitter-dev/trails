@@ -187,7 +187,7 @@ describe('codesByCategory', () => {
     expect(codesByCategory.not_found).toEqual({
       exit: 2,
       http: 404,
-      jsonRpc: -32_601,
+      jsonRpc: -32_001,
     });
     expect(codesByCategory.conflict).toEqual({
       exit: 3,
@@ -280,7 +280,7 @@ describe('statusCodeMap', () => {
 describe('jsonRpcCodeMap', () => {
   test('maps all categories to expected JSON-RPC codes', () => {
     expect(jsonRpcCodeMap.validation).toBe(-32_602);
-    expect(jsonRpcCodeMap.not_found).toBe(-32_601);
+    expect(jsonRpcCodeMap.not_found).toBe(-32_001);
     expect(jsonRpcCodeMap.conflict).toBe(-32_603);
     expect(jsonRpcCodeMap.permission).toBe(-32_600);
     expect(jsonRpcCodeMap.timeout).toBe(-32_603);

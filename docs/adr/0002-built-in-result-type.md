@@ -26,7 +26,7 @@ Several good Result libraries exist in the TypeScript ecosystem — `neverthrow`
 - **`oxide.ts`** and **`true-myth`** are Rust-inspired and thorough. They're also larger than what we need and bring opinions about Option types, pattern matching, and other primitives that don't align with Trails' scope.
 - **`@badrap/result`** is tiny and close to what we need. But it doesn't handle serialization, and serialization is a first-class concern for us.
 
-The common issue: none of these libraries know about `TrailsError`. None of them know that a `NotFoundError` maps to HTTP 404, CLI exit code 2, and JSON-RPC -32601. None of them can serialize a Result across a process boundary and reconstruct it on the other side. That integration is the reason we need our own.
+The common issue: none of these libraries know about `TrailsError`. None of them know that a `NotFoundError` maps to HTTP 404, CLI exit code 2, and JSON-RPC -32001. None of them can serialize a Result across a process boundary and reconstruct it on the other side. That integration is the reason we need our own.
 
 ### Serialization matters
 
@@ -90,8 +90,8 @@ The Result type exists in tight partnership with the error taxonomy. The table b
 | `ValidationError` | `validation` | 400 | 1 | -32602 | No |
 | `AmbiguousError` | `validation` | 400 | 1 | -32602 | No |
 | `AssertionError` | `internal` | 500 | 8 | -32603 | No |
-| `NotFoundError` | `not_found` | 404 | 2 | -32601 | No |
-| `VersionNotSupportedError` | `not_found` | 404 | 2 | -32601 | No |
+| `NotFoundError` | `not_found` | 404 | 2 | -32001 | No |
+| `VersionNotSupportedError` | `not_found` | 404 | 2 | -32001 | No |
 | `AlreadyExistsError` | `conflict` | 409 | 3 | -32603 | No |
 | `ConflictError` | `conflict` | 409 | 3 | -32603 | No |
 | `PermissionError` | `permission` | 403 | 4 | -32600 | No |

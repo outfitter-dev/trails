@@ -5,12 +5,12 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
-  ErrorCode,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   McpError,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { NotFoundError, renderJsonRpcError } from '@ontrails/core';
 import type {
   BaseSurfaceOptions,
   Layer,
@@ -192,10 +192,12 @@ const createMcpServer = (
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const content = mcpResources.read(request.params.uri);
       if (content === undefined) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `Resource ${request.params.uri} not found`
+        const error = renderJsonRpcError(
+          'mcp',
+          new NotFoundError(`Resource ${request.params.uri} not found`),
+          'resources/read'
         );
+        throw new McpError(error.code, error.message, error.data);
       }
       return {
         contents: [content],

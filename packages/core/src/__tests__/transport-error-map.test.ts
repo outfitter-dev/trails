@@ -18,6 +18,8 @@ import {
   createSurfaceErrorMapper,
   mapSurfaceError,
   renderErrorClassSurface,
+  renderJsonRpcError,
+  renderPublicSurfaceError,
   renderSurfaceError,
   surfaceErrorMap,
   surfaceErrorRegistry,
@@ -53,8 +55,8 @@ describe('surfaceErrorRegistry', () => {
 
     expect(surfaceErrorRegistry.cli.map(notFound)).toBe(2);
     expect(surfaceErrorRegistry.http.map(notFound)).toBe(404);
-    expect(surfaceErrorRegistry.jsonRpc.map(notFound)).toBe(-32_601);
-    expect(surfaceErrorRegistry.mcp.map(notFound)).toBe(-32_601);
+    expect(surfaceErrorRegistry.jsonRpc.map(notFound)).toBe(-32_001);
+    expect(surfaceErrorRegistry.mcp.map(notFound)).toBe(-32_001);
   });
 });
 
@@ -85,7 +87,7 @@ describe('mapSurfaceError', () => {
         detour: 'recoverMissing',
       }),
       name: 'RetryExhaustedError<NotFoundError>',
-      values: { cli: 2, http: 404, jsonRpc: -32_601, mcp: -32_601 },
+      values: { cli: 2, http: 404, jsonRpc: -32_001, mcp: -32_001 },
     },
   ];
 
@@ -97,8 +99,8 @@ describe('mapSurfaceError', () => {
 
     expect(mapSurfaceError('cli', validation)).toBe(1);
     expect(mapSurfaceError('http', notFound)).toBe(404);
-    expect(mapSurfaceError('jsonRpc', notFound)).toBe(-32_601);
-    expect(mapSurfaceError('mcp', notFound)).toBe(-32_601);
+    expect(mapSurfaceError('jsonRpc', notFound)).toBe(-32_001);
+    expect(mapSurfaceError('mcp', notFound)).toBe(-32_001);
     expect(mapSurfaceError('http', network)).toBe(502);
     expect(mapSurfaceError('cli', cancelled)).toBe(130);
   });
@@ -172,5 +174,63 @@ describe('createSurfaceErrorMapper', () => {
     expect(mapper(new ValidationError('bad input'))).toBe('validation');
     expect(mapper(new NetworkError('offline'))).toBe('network');
     expect(mapper(new CancelledError('cancelled'))).toBe('cancelled');
+  });
+});
+
+describe('JSON-RPC error contract', () => {
+  test('keeps the default code distinct from the MCP resource-read override', () => {
+    const error = new NotFoundError('missing');
+    expect(mapSurfaceError('jsonRpc', error)).toBe(-32_001);
+    expect(mapSurfaceError('mcp', error)).toBe(-32_001);
+    expect(mapSurfaceError('mcp', error, 'resources/read')).toBe(-32_602);
+    expect(mapSurfaceError('http', error, 'resources/read')).toBe(404);
+    expect(
+      mapSurfaceError('mcp', new NetworkError('offline'), 'resources/read')
+    ).toBe(-32_603);
+  });
+
+  test('applies the method override consistently across public, diagnostic, and class renderings', () => {
+    const error = new NotFoundError('missing');
+    expect(renderSurfaceError('mcp', error, 'resources/read').code).toBe(
+      -32_602
+    );
+    expect(renderPublicSurfaceError('mcp', error, 'resources/read').code).toBe(
+      -32_602
+    );
+    expect(
+      renderErrorClassSurface('mcp', 'NotFoundError', 'resources/read')?.code
+    ).toBe(-32_602);
+    expect(surfaceErrorRegistry.mcp.map(error)).toBe(-32_001);
+  });
+
+  test('renders only public taxonomy data on the wire', () => {
+    const error = new NotFoundError('Missing token=secret', {
+      context: { token: 'secret' },
+    });
+    expect(renderJsonRpcError('mcp', error, 'resources/read')).toEqual({
+      code: -32_602,
+      data: { category: 'not_found', name: 'NotFoundError', retryable: false },
+      message: 'Missing [REDACTED]',
+    });
+    expect(renderJsonRpcError('jsonRpc', new Error('token=secret'))).toEqual({
+      code: -32_603,
+      data: { category: 'internal', name: 'InternalError', retryable: false },
+      message: 'Internal server error',
+    });
+  });
+
+  test('preserves the wrapped category and actual retryability', () => {
+    const error = new RetryExhaustedError(new NotFoundError('missing'), {
+      attempts: 2,
+      detour: 'recoverMissing',
+    });
+    expect(renderJsonRpcError('jsonRpc', error)).toMatchObject({
+      code: -32_001,
+      data: {
+        category: 'not_found',
+        name: 'RetryExhaustedError',
+        retryable: false,
+      },
+    });
   });
 });
