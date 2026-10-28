@@ -64,6 +64,7 @@ const fixture = (body: string) => {
   writeFileSync(join(root, 'docs/diagram.png'), 'image fixture');
   writeFileSync(join(root, 'docs/guide#v.md'), '# Hash');
   writeFileSync(join(root, 'docs/guide?v.md'), '# Query');
+  writeFileSync(join(root, 'docs/a>guide.md'), '# Guide');
   return root;
 };
 
@@ -421,6 +422,24 @@ mock.module('node:fs', () => ({ ...actual,
     expect(
       readFileSync(join(root, 'docs/adr/drafts', filename), 'utf8')
     ).toContain(links);
+    expect(run(root, 'check').code).toBe(0);
+  });
+  test('reference destinations share escaped angle parsing and leave invalid bare-space prose intact', () => {
+    const links = String.raw`[Use][Bracket \]]
+[Bracket \]]: <../../a\>guide.md>
+[Not a definition]: ../../a\ guide.md`;
+    const root = fixture(links);
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(0);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const promoted = readFileSync(
+      join(root, 'docs/adr/0002-moving.md'),
+      'utf8'
+    );
+    expect(promoted).toContain(String.raw`[Bracket \]]: <../a\>guide.md>`);
+    expect(promoted).toContain(
+      String.raw`[Not a definition]: ../../a\ guide.md`
+    );
     expect(run(root, 'check').code).toBe(0);
   });
 });

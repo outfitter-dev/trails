@@ -43,14 +43,14 @@ interface LinkSpan extends MarkdownLink {
 }
 
 const destinationSpan = (raw: string, offset: number) => {
-  const leading = raw.length - raw.trimStart().length;
-  const trimmed = raw.trim();
-  const angle = trimmed.startsWith('<');
-  const start = leading + (angle ? 1 : 0);
-  const end = angle ? trimmed.indexOf('>') : trimmed.search(/\s/);
+  const wrapped = `(${raw})`;
+  const destination = inlineDestination(wrapped, 0);
+  if (!destination || destination.close !== wrapped.length - 1) {
+    return null;
+  }
   return {
-    end: offset + leading + (end === -1 ? trimmed.length : end),
-    start: offset + start,
+    end: offset + destination.end - 1,
+    start: offset + destination.start - 1,
   };
 };
 
@@ -112,13 +112,15 @@ const lineLinks = (
       reference[2],
       line.length - reference[2].length
     );
-    links.push({
-      ...span,
-      line: lineNumber,
-      target: line.slice(span.start, span.end),
-      text: reference[1],
-    });
-    return links;
+    if (span) {
+      links.push({
+        ...span,
+        line: lineNumber,
+        target: line.slice(span.start, span.end),
+        text: reference[1],
+      });
+      return links;
+    }
   }
   const labels: number[] = [];
   for (let cursor = 0; cursor < masked.length; cursor += 1) {

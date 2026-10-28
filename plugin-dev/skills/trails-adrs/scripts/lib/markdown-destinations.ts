@@ -4,6 +4,16 @@ interface InlineDestination {
   readonly close: number;
 }
 
+const isPunctuation = (character: string): boolean => {
+  const code = character.codePointAt(0) ?? 0;
+  return (
+    (code >= 33 && code <= 47) ||
+    (code >= 58 && code <= 64) ||
+    (code >= 91 && code <= 96) ||
+    (code >= 123 && code <= 126)
+  );
+};
+
 const skipWhitespace = (line: string, offset: number): number => {
   let cursor = offset;
   while (cursor < line.length && /\s/.test(line[cursor])) {
@@ -33,7 +43,7 @@ const barePathEnd = (line: string, start: number): number | null => {
   let depth = 0;
   for (let cursor = start; cursor < line.length; cursor += 1) {
     const character = line[cursor];
-    if (character === '\\' && cursor + 1 < line.length) {
+    if (character === '\\' && isPunctuation(line[cursor + 1] ?? '')) {
       cursor += 1;
       continue;
     }
@@ -85,12 +95,6 @@ export const inlineDestination = (
 
 /** Decode Markdown's escaped ASCII punctuation before resolving a destination on disk. */
 export const unescapeMarkdownTarget = (target: string): string =>
-  target.replaceAll(/\\([\s\S])/g, (escaped, character: string) => {
-    const code = character.codePointAt(0) ?? 0;
-    const punctuation =
-      (code >= 33 && code <= 47) ||
-      (code >= 58 && code <= 64) ||
-      (code >= 91 && code <= 96) ||
-      (code >= 123 && code <= 126);
-    return punctuation ? character : escaped;
-  });
+  target.replaceAll(/\\([\s\S])/g, (escaped, character: string) =>
+    isPunctuation(character) ? character : escaped
+  );

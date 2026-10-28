@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "trl-1222-adrts-promotedemote-moves-adr-files-without-rewriting-their",
-          "sha": "643232deb1039cd46bea9472ffb2123beaaa8d3d",
+          "sha": "1e82af6e0e9e9351565075cbffaee03e913fcdad",
           "sourceKind": "current"
         }
       },
@@ -420,14 +420,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "trl-1222-adrts-promotedemote-moves-adr-files-without-rewriting-their",
-          "sha": "643232deb1039cd46bea9472ffb2123beaaa8d3d",
+          "sha": "1e82af6e0e9e9351565075cbffaee03e913fcdad",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:0025f27650e61716dd65cd4d5b249626c41b134622c05622329133a2a611228c",
+  "provenanceHash": "sha256:13f958a9209a370b39c44e5c87fd89edfb922b2f040fb003015a5f87468094b7",
   "renderResults": [
     {
       "destination": "changelog",
