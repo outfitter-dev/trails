@@ -242,11 +242,16 @@ const runCliExample = async (
 ): Promise<NormalizedSurfaceParityResult> => {
   const { ctx, resources } = await createInvocationContext(app, trail, options);
   const cliOptions = options.cli;
+  const presets = cliOptions?.presets ?? [];
+  const registered = new Set(presets.flat().map((flag) => flag.name));
   const harness = createCliHarness({
     graph: app,
     ...cliOptions,
     ctx: mergeSurfaceContext(ctx, cliOptions?.ctx),
-    presets: [outputModePreset(), ...(cliOptions?.presets ?? [])],
+    presets: [
+      ...presets,
+      outputModePreset().filter((flag) => !registered.has(flag.name)),
+    ],
     resources,
   });
   return normalizeCliResult(

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import { outputModePreset } from '@ontrails/cli';
 import { NotFoundError, Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -54,6 +55,35 @@ describe('runSurfaceParityExample', () => {
       cli: { ok: true, value: '123' },
       http: { ok: true, value: '123' },
       mcp: { ok: true, value: '123' },
+    });
+  });
+
+  test('preserves caller output preset registrations without duplicating internal flags', async () => {
+    const read = trail('configured.read', {
+      examples: [
+        { expected: 'configured', input: {}, name: 'Configured output' },
+      ],
+      implementation: () => Result.ok('configured'),
+      input: z.object({}),
+      intent: 'read',
+      output: z.string(),
+    });
+    const graph = topo('parity-app', { read });
+    const comparison = await runSurfaceParityExample(
+      graph,
+      read,
+      {
+        expected: 'configured',
+
+        input: {},
+        name: 'Configured output',
+      },
+      { cli: { presets: [outputModePreset()] } }
+    );
+    expect(comparison).toEqual({
+      cli: { ok: true, value: 'configured' },
+      http: { ok: true, value: 'configured' },
+      mcp: { ok: true, value: 'configured' },
     });
   });
 
