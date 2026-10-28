@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "trl-1337-migrate-ontrailsmcp-to-mcp-sdk-v2-modelcontextprotocolserver",
-          "sha": "e67d90f5c1679daf4bc490f00d1879ec7c109bfa",
+          "ref": "devin/1793210413-campaign-guidance",
+          "sha": "4e118f02bb922f4e3b2a4a17a1bf90f645b37595",
           "sourceKind": "current"
         }
       },
@@ -411,15 +411,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "trl-1337-migrate-ontrailsmcp-to-mcp-sdk-v2-modelcontextprotocolserver",
-          "sha": "e67d90f5c1679daf4bc490f00d1879ec7c109bfa",
+          "ref": "devin/1793210413-campaign-guidance",
+          "sha": "4e118f02bb922f4e3b2a4a17a1bf90f645b37595",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:ce29a6a77384ac9af62670decc79efc8f53e9e8e4e1d2d217d143be3502a3bfc",
+  "provenanceHash": "sha256:79d6b614f6db32c3171c3e4bb624b5ee60be4e0a9deec1bab6fed1ace576f52d",
   "renderResults": [
     {
       "destination": "changelog",
