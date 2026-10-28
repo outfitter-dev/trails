@@ -102,6 +102,9 @@ describe('Skillset ownership contract', () => {
       await readRepoFile('package.json')
     ) as Record<string, Record<string, string>>;
 
+    expect(packageJson.scripts?.['skillset:generate']).toBe(
+      'skillset build --yes --root . && skillset marketplace update trails --yes --root .'
+    );
     expect(packageJson.scripts?.['skillset:sync']).toBe(
       'bun scripts/sync-skillset-outputs.ts'
     );
