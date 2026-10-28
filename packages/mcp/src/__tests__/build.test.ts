@@ -518,7 +518,7 @@ describe('deriveMcpTools', () => {
       ]);
       expect(result?._meta?.[MCP_TOOL_ERROR_META_KEY]).toEqual({
         category: 'not_found',
-        code: -32_601,
+        code: -32_001,
         message: 'Item not found',
         name: 'NotFoundError',
         retryable: false,

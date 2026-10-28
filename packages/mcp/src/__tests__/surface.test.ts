@@ -181,7 +181,14 @@ describe('surface', () => {
 
       await expect(
         client.readResource({ uri: 'trails://missing' })
-      ).rejects.toThrow('Resource trails://missing not found');
+      ).rejects.toMatchObject({
+        code: -32_602,
+        data: {
+          category: 'not_found',
+          name: 'NotFoundError',
+          retryable: false,
+        },
+      });
     } finally {
       await Promise.allSettled([client.close(), server.close()]);
     }

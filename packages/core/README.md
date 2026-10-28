@@ -123,7 +123,7 @@ The current taxonomy is generated from the `errorClasses` owner registry and cat
 | Category | CLI Exit | HTTP | JSON-RPC | Retryable | Fixed Classes |
 | --- | --- | --- | --- | --- | --- |
 | `validation` | 1 | 400 | -32602 | No | `ValidationError`, `AmbiguousError` |
-| `not_found` | 2 | 404 | -32601 | No | `NotFoundError`, `VersionNotSupportedError` |
+| `not_found` | 2 | 404 | -32001 | No | `NotFoundError`, `VersionNotSupportedError` |
 | `conflict` | 3 | 409 | -32603 | No | `AlreadyExistsError`, `ConflictError` |
 | `permission` | 4 | 403 | -32600 | No | `PermissionError`, `PermitError` |
 | `timeout` | 5 | 504 | -32603 | Yes | `TimeoutError` |
@@ -142,6 +142,23 @@ Dynamic classes:
 Public surfaces share one redacted rendering contract before applying surface codes. Sensitive substrings are removed from non-internal `TrailsError` messages. Internal-category `TrailsError` instances and unknown native errors remain opaque: HTTP, MCP, and library boundaries use `Internal server error`, while CLI uses the transport-neutral `Internal error`. Diagnostics and serialized payloads keep their useful structure while redacting messages, context, and stack strings.
 
 The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
+
+The default JSON-RPC `not_found` code is `-32001`, correcting the former `-32601` mapping (reserved for an unknown JSON-RPC method). Consumers that matched the old number should update that check or use the error's `category`. HTTP `404` and CLI exit `2` are unchanged.
+
+`JsonRpcErrorData` derives `category`, `name`, and `retryable` from the shared public error contract. `renderJsonRpcError(surface, error, method?)` returns `{ code, message, data }` with the same redaction policy. The method-specific `surfaceErrorCodeOverrides` table keeps protocol requirements separate from category defaults:
+
+```typescript
+import { NotFoundError, renderJsonRpcError } from '@ontrails/core';
+
+const missing = new NotFoundError('Record missing');
+renderJsonRpcError('jsonRpc', missing);
+// code: -32001; data: { category: 'not_found', name: 'NotFoundError', retryable: false }
+
+renderJsonRpcError('mcp', missing, 'resources/read');
+// code: -32602; same taxonomy data, because MCP resource reads mandate Invalid Params.
+```
+
+MCP trail failures remain `isError` tool results with `_meta['ontrails/error']`; their `not_found` code remains the default `-32001`. The resource-read override applies only to that protocol method. The RPC surface will consume this core contract when its kernel lands; this core/MCP slice does not implement that consumer or add an RPC surface registration.
 
 ### Other exports
 

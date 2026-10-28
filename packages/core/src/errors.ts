@@ -417,13 +417,31 @@ export const codesByCategory = {
   conflict: { exit: 3, http: 409, jsonRpc: -32_603 },
   internal: { exit: 8, http: 500, jsonRpc: -32_603 },
   network: { exit: 7, http: 502, jsonRpc: -32_603 },
-  not_found: { exit: 2, http: 404, jsonRpc: -32_601 },
+  not_found: { exit: 2, http: 404, jsonRpc: -32_001 },
   permission: { exit: 4, http: 403, jsonRpc: -32_600 },
   rate_limit: { exit: 6, http: 429, jsonRpc: -32_603 },
   shift: { exit: 10, http: 503, jsonRpc: -32_603 },
   timeout: { exit: 5, http: 504, jsonRpc: -32_603 },
   validation: { exit: 1, http: 400, jsonRpc: -32_602 },
 } as const satisfies Record<ErrorCategory, ErrorCategoryCodes>;
+
+/**
+ * Protocol-mandated codes override the category default only for that method.
+ *
+ * @example
+ * ```ts
+ * surfaceErrorCodeOverrides.mcp['resources/read'].not_found; // -32602
+ * codesByCategory.not_found.jsonRpc; // -32001 for trail failures
+ * ```
+ */
+export const surfaceErrorCodeOverrides = {
+  mcp: {
+    'resources/read': { not_found: -32_602 },
+  },
+} as const satisfies Record<
+  string,
+  Record<string, Partial<Record<ErrorCategory, number>>>
+>;
 
 const deriveCodeMap = <TCode extends keyof ErrorCategoryCodes>(
   code: TCode
