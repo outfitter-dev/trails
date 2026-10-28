@@ -26,7 +26,7 @@ Several good Result libraries exist in the TypeScript ecosystem — `neverthrow`
 - **`oxide.ts`** and **`true-myth`** are Rust-inspired and thorough. They're also larger than what we need and bring opinions about Option types, pattern matching, and other primitives that don't align with Trails' scope.
 - **`@badrap/result`** is tiny and close to what we need. But it doesn't handle serialization, and serialization is a first-class concern for us.
 
-The common issue: none of these libraries know about `TrailsError`. None of them know that a `NotFoundError` maps to HTTP 404, CLI exit code 2, and JSON-RPC -32601. None of them can serialize a Result across a process boundary and reconstruct it on the other side. That integration is the reason we need our own.
+The common issue: none of these libraries know about `TrailsError`. None of them know that a `NotFoundError` maps to HTTP 404, CLI exit code 2, and JSON-RPC -32001. None of them can serialize a Result across a process boundary and reconstruct it on the other side. That integration is the reason we need our own.
 
 ### Serialization matters
 
