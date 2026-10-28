@@ -47,7 +47,7 @@ export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
 /**
  * @example
  * ```ts
- * const projection = deriveConfigSecretFields(resourceConfigSchema, {
+ * const derivation = deriveConfigSecretFields(resourceConfigSchema, {
  *   discriminants: { adapter: 'jwt' },
  * });
  * ```
@@ -56,7 +56,7 @@ export {
   deriveConfigSecretFields,
   type ConfigSecretAncestor,
   type ConfigSecretField,
-  type ConfigSecretFieldProjection,
+  type ConfigSecretFieldDerivation,
   type DeriveConfigSecretFieldsOptions,
 } from './secret-fields.js';
 export {

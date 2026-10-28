@@ -71,6 +71,11 @@ const rawSecretShape = (
 export const secretObjectShape = (
   schema: z.ZodType
 ): Record<string, z.ZodType> | undefined => {
+  // Dynamic-key schemas cannot be enumerated; even annotated never is metadata.
+  const catchall = Object.getOwnPropertyDescriptor(zodDef(schema), 'catchall');
+  if (catchall && (!('value' in catchall) || catchall.value !== undefined)) {
+    return undefined;
+  }
   // Reading `.shape` resolves authored getters; Zod's raw view does not.
   const shape = rawSecretShape(schema);
   if (!shape) {

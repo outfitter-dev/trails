@@ -28,7 +28,7 @@ export interface ConfigSecretField {
 }
 
 /** Completeness covers declared metadata of the supported selected schema only. */
-export type ConfigSecretFieldProjection =
+export type ConfigSecretFieldDerivation =
   | { readonly complete: true; readonly fields: readonly ConfigSecretField[] }
   | {
       readonly complete: false;
@@ -61,7 +61,7 @@ const incomplete = (
     | 'missing-discriminant'
     | 'invalid-discriminant'
     | 'unsupported-schema' = 'unsupported-schema'
-): Extract<ConfigSecretFieldProjection, { complete: false }> => ({
+): Extract<ConfigSecretFieldDerivation, { complete: false }> => ({
   complete: false,
   path,
   reason,
@@ -137,7 +137,7 @@ const ancestorFacts = (
     : entry.ancestors;
 
 /**
- * Project declared secret fields without reading values or evaluating schemas.
+ * Derive declared secret fields without reading values or evaluating schemas.
  *
  * Select discriminated unions explicitly; defaults never choose a branch.
  * Optional/defaulted leaves are not locally required; nullable alone is required.
@@ -148,13 +148,13 @@ const ancestorFacts = (
  * @example
  * ```ts
  * const schema = z.object({ token: secret(env(z.string(), 'TOKEN')) });
- * const projection = deriveConfigSecretFields(schema);
+ * const derivation = deriveConfigSecretFields(schema);
  * ```
  */
 export const deriveConfigSecretFields = (
   schema: z.ZodType,
   options: DeriveConfigSecretFieldsOptions = {}
-): ConfigSecretFieldProjection => {
+): ConfigSecretFieldDerivation => {
   const fields: ConfigSecretField[] = [];
   const queue: WalkEntry[] = [{ ancestors: [], path: '', schema }];
   for (let entry = queue.pop(); entry; entry = queue.pop()) {

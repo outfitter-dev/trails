@@ -670,10 +670,10 @@ configInit                           // generate example config files
 DefineConfigOptions, TrailsWorkspaceConfig, TrailsWorkspaceAppConfig
 ReadTrailsProjectIdentityOptions, ReadTrailsProjectIdentityResult, ResolvedTrailsWorkspaceApp
 ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
-ConfigSecretAncestor, ConfigSecretField, ConfigSecretFieldProjection, DeriveConfigSecretFieldsOptions
+ConfigSecretAncestor, ConfigSecretField, ConfigSecretFieldDerivation, DeriveConfigSecretFieldsOptions
 ```
 
-Secret-field projection uses explicit non-secret discriminant selections and returns only names, paths, sensitivity, local requiredness, and ancestor wrapper facts. Callers own effective profile applicability and must treat incomplete results as blocked derivation. Descriptor-safe object inspection is capability-gated: complete projection is qualified on Zod 4.6.7; exact 4.3.5 imports and typechecks the API but returns incomplete for object inspection. The existing peer range is unchanged, and no defaults, getters, refinements, transforms, or resource factories are evaluated. See the [Config fieldguide](../packages/config/README.md#declared-secret-field-metadata).
+Secret-field derivation uses explicit non-secret discriminant selections and returns only names, paths, sensitivity, local requiredness, and ancestor wrapper facts. Every present non-undefined object catchall, including strict and loose object policies, returns typed incompleteness at the containing object; plain stripped objects remain supported. Callers own effective profile applicability and must treat incomplete results as blocked derivation. Descriptor-safe object inspection is capability-gated: complete derivation is qualified on Zod 4.6.7; exact 4.3.5 imports and typechecks the API but returns incomplete for object inspection. The existing peer range is unchanged, and no defaults, getters, refinements, transforms, or resource factories are evaluated. See the [Config fieldguide](../packages/config/README.md#declared-secret-field-metadata).
 
 ## `@ontrails/permits`
 

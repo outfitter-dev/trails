@@ -198,7 +198,7 @@ const schema = z.object({
 
 ## Declared secret-field metadata
 
-`deriveConfigSecretFields()` projects only field paths, authored environment names, sensitivity, local requiredness, and ancestor wrapper facts. Supply non-secret discriminant literals explicitly when selecting a resource config branch:
+`deriveConfigSecretFields()` derives only field paths, authored environment names, sensitivity, local requiredness, and ancestor wrapper facts. Supply non-secret discriminant literals explicitly when selecting a resource config branch:
 
 ```typescript
 import { deriveConfigSecretFields, env, secret } from '@ontrails/config';
@@ -212,12 +212,12 @@ const authSchema = z.discriminatedUnion('adapter', [
   }),
 ]).default({ adapter: 'none' });
 
-const projection = deriveConfigSecretFields(authSchema, {
+const derivation = deriveConfigSecretFields(authSchema, {
   discriminants: { adapter: 'key' },
 });
 ```
 
-A complete projection describes declared metadata for the selected supported shape. It does not prove that every effective profile secret is provisioned. Profile and binding selection remain the caller's responsibility.
+A complete derivation describes declared metadata for the selected supported shape. It does not prove that every effective profile secret is provisioned. Profile and binding selection remain the caller's responsibility.
 
 - `required` describes the field's own declaration: optional/defaulted fields are
   false; nullable alone remains true.
@@ -230,10 +230,14 @@ A complete projection describes declared metadata for the selected supported sha
   `complete: false` with a path and typed reason. Ordinary unions, transforms, coercions,
   accessor-backed objects, and structured or annotated array elements are
   incomplete; metadata-free scalar-element arrays are inspectable leaves.
+- Every present non-undefined catchall is incomplete at its containing object,
+  including strict and loose objects and annotated `unknown`/`never` schemas.
+  Plain objects and `.strip()` with no catchall remain supported. The helper
+  does not infer arbitrary-key secret paths or evaluate catchall accessors.
 
-The projection never evaluates defaults, refinements, transforms, or resource factories. It returns no defaults, examples, descriptions, schema objects, discriminant values, credential values, or value hashes. Use the existing `secret(env(...))` annotations; no separate secret-name list is authored.
+The derivation never evaluates defaults, refinements, transforms, or resource factories. It returns no defaults, examples, descriptions, schema objects, discriminant values, credential values, or value hashes. Use the existing `secret(env(...))` annotations; no separate secret-name list is authored.
 
-Object inspection requires the installed Zod version's public `util.rawShape` capability. Complete object projection is qualified on Zod 4.6.7; exact Zod 4.3.5 remains supported by the package and returns `complete: false` with `unsupported-schema` for object inspection. The capability is checked at runtime; its introduction version and intermediate-version behavior are not established here. No shape getter is evaluated as a fallback, even if a caller previously accessed the schema. Consumers must treat incomplete metadata as a blocked derivation, never as an empty list of required secrets.
+Object inspection requires the installed Zod version's public `util.rawShape` capability. Complete object derivation is qualified on Zod 4.6.7; exact Zod 4.3.5 remains supported by the package and returns `complete: false` with `unsupported-schema` for object inspection. The capability is checked at runtime; its introduction version and intermediate-version behavior are not established here. No shape getter is evaluated as a fallback, even if a caller previously accessed the schema. Consumers must treat incomplete metadata as a blocked derivation, never as an empty list of required secrets.
 
 ## The resource
 

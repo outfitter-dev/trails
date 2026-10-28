@@ -5,7 +5,7 @@ import { deriveConfigSecretFields } from '../index.js';
 import { deprecated, env, secret } from '../extensions.js';
 
 describe('deriveConfigSecretFields', () => {
-  test('projects only explicitly sensitive fields and local requiredness', () => {
+  test('derives only explicitly sensitive fields and local requiredness', () => {
     const schema = z.object({
       defaulted: secret(env(z.string(), 'DEFAULTED')).default(
         'private-default'
@@ -261,11 +261,88 @@ describe('deriveConfigSecretFields', () => {
     expect(
       deriveConfigSecretFields(z.object({ 'a.b': secret(z.string()) }))
     ).toEqual({ complete: false, path: '', reason: 'unsupported-schema' });
-    expect(deriveConfigSecretFields(secret(z.literal()))).toEqual({
+    expect(deriveConfigSecretFields(secret(z.literal(1n)))).toEqual({
       complete: false,
       path: '',
       reason: 'unsupported-schema',
     });
+  });
+
+  test('rejects every present catchall instead of omitting dynamic metadata', () => {
+    for (const catchall of [
+      secret(env(z.string(), 'DYNAMIC_SECRET')),
+      z.object({ token: secret(z.string()) }),
+      secret(z.unknown()),
+      env(z.unknown(), 'DYNAMIC_UNKNOWN'),
+      secret(z.never()),
+      z.unknown(),
+      z.never(),
+    ]) {
+      expect(deriveConfigSecretFields(z.object({}).catchall(catchall))).toEqual(
+        { complete: false, path: '', reason: 'unsupported-schema' }
+      );
+    }
+    expect(deriveConfigSecretFields(z.looseObject({}))).toEqual({
+      complete: false,
+      path: '',
+      reason: 'unsupported-schema',
+    });
+    expect(deriveConfigSecretFields(z.strictObject({}))).toEqual({
+      complete: false,
+      path: '',
+      reason: 'unsupported-schema',
+    });
+    expect(deriveConfigSecretFields(z.object({}).strip())).toEqual({
+      complete: true,
+      fields: [],
+    });
+  });
+
+  test('reports the catchall container and inspects only the selected branch', () => {
+    const dynamic = z.object({}).catchall(secret(z.string()));
+    expect(deriveConfigSecretFields(z.object({ nested: dynamic }))).toEqual({
+      complete: false,
+      path: 'nested',
+      reason: 'unsupported-schema',
+    });
+    const schema = z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('none') }),
+      z.object({ kind: z.literal('dynamic') }).catchall(secret(z.string())),
+    ]);
+    expect(
+      deriveConfigSecretFields(schema, { discriminants: { kind: 'none' } })
+    ).toEqual({ complete: true, fields: [] });
+    expect(
+      deriveConfigSecretFields(schema, { discriminants: { kind: 'dynamic' } })
+    ).toEqual({ complete: false, path: '', reason: 'unsupported-schema' });
+  });
+
+  test('does not evaluate catchall accessors or defaults', () => {
+    let effects = 0;
+    const accessor = z.object({});
+    Object.defineProperty(accessor.def, 'catchall', {
+      get() {
+        effects += 1;
+        return secret(z.string());
+      },
+    });
+    expect(deriveConfigSecretFields(accessor)).toEqual({
+      complete: false,
+      path: '',
+      reason: 'unsupported-schema',
+    });
+    const withDefault = z.object({}).catchall(
+      secret(z.string()).default(() => {
+        effects += 1;
+        return 'must-not-read';
+      })
+    );
+    expect(deriveConfigSecretFields(withDefault)).toEqual({
+      complete: false,
+      path: '',
+      reason: 'unsupported-schema',
+    });
+    expect(effects).toBe(0);
   });
 
   test('does not turn uninspected array elements into empty success', () => {
@@ -449,8 +526,8 @@ describe('deriveConfigSecretFields', () => {
        const {deriveConfigSecretFields} = await import(${JSON.stringify(moduleUrl)});
        let calls = 0;
        const schema = z.object({get token(){calls++;return z.string();}});
-       const projected = deriveConfigSecretFields(schema);
-       console.log(JSON.stringify({projected,calls}));`,
+       const derived = deriveConfigSecretFields(schema);
+       console.log(JSON.stringify({derived,calls}));`,
       ],
       { cwd: import.meta.dir }
     );
@@ -458,7 +535,7 @@ describe('deriveConfigSecretFields', () => {
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout.toString())).toEqual({
       calls: 0,
-      projected: { complete: false, path: '', reason: 'unsupported-schema' },
+      derived: { complete: false, path: '', reason: 'unsupported-schema' },
     });
   });
 });
