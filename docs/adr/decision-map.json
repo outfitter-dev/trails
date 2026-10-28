@@ -971,6 +971,11 @@
           "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
         },
         {
+          "context": "- [ADR-0009](0009-first-class-resources.md) — credentials are a resource with a mock.",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
+        },
+        {
           "context": "- docs/adr/0009-first-class-resources.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
@@ -1121,6 +1126,11 @@
           "context": "Trails already separates permit declarations, credential extraction, and scope enforcement. [ADR-0012](0012-connector-agnostic-permits.md#decision) established that model, but left discovery, challeng",
           "from": "0056",
           "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
+        },
+        {
+          "context": "- [ADR-0012](0012-connector-agnostic-permits.md) — amended CLI credential acquisition boundary.",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
         },
         {
           "context": "- **[ADR-0012: Adapter-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface",
@@ -2394,6 +2404,11 @@
           "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
         },
         {
+          "context": "- [ADR-0035](0035-surface-apis-render-the-graph.md) — surface derivation and runtime ownership.",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
+        },
+        {
           "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` rendering ladder",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -3031,6 +3046,11 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
+          "context": "Eligible apps receive `<app> login` and `<app> logout` as fixed default routes to `auth.login` and `auth.logout`. These are the same trails and retain their identity under [ADR-0050](0050-surface-acco",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
+        },
+        {
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -3119,6 +3139,11 @@
           "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
         },
         {
+          "context": "- [ADR-0052](0052-overlays-one-extension-mechanism.md) — app-authored bindings and overlay provenance.",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
+        },
+        {
           "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -3192,6 +3217,11 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "Compile, fresh derivation and execution must use one consistent configuration context. A runtime profile cannot silently add trails missing from the committed graph or leave a different graph falsely ",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
+        },
+        {
           "context": "- docs/adr/0054-project-substrate-names-its-truth.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -3233,6 +3263,11 @@
           "context": "[ADR-0056](0056-permits-as-oauth-resource-server.md#decision) amends this decision's auth boundary: Trails is an OAuth resource server, surfaces normalize supported credentials, and shared permit poli",
           "from": "0012",
           "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        },
+        {
+          "context": "[ADR-0056](0056-permits-as-oauth-resource-server.md#decision) keeps Trails an OAuth resource server. The CLI can be an OAuth client of that server without making Trails a token issuer. This decision r",
+          "from": "0060",
+          "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
         }
       ],
       "number": "0056",
@@ -3242,6 +3277,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Permits Make Trails an OAuth Resource Server",
+      "updated": "2026-10-28"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["9", "12", "35", "50", "52", "54", "56"],
+      "inbound": [
+        {
+          "context": "[ADR-0060](0060-cli-credentials-and-app-login.md#decision) adds provider-backed remote CLI login and credential storage, with conditional CLI-only auth trails and coherent login/logout shortcuts. It p",
+          "from": "0012",
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        }
+      ],
+      "number": "0060",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0060-cli-credentials-and-app-login.md",
+      "slug": "cli-credentials-and-app-login",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "CLIs Sign In Through the App's Provider",
       "updated": "2026-10-28"
     }
   ],

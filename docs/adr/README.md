@@ -63,3 +63,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0054](0054-project-substrate-names-its-truth.md) | Project Substrate Names Its Truth | Accepted |
 | [0055](0055-mcp-stateless-core-on-sdk-v2.md) | MCP Targets the Stateless Core on SDK v2 | Accepted |
 | [0056](0056-permits-as-oauth-resource-server.md) | Permits Make Trails an OAuth Resource Server | Accepted |
+| [0060](0060-cli-credentials-and-app-login.md) | CLIs Sign In Through the App's Provider | Accepted |
