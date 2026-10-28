@@ -319,6 +319,19 @@
         "zod": "catalog:",
       },
     },
+    "packages/kv": {
+      "name": "@ontrails/kv",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/library": {
       "name": "@ontrails/library",
       "version": "0.2.5",
@@ -638,6 +651,8 @@
     "@ontrails/hono": ["@ontrails/hono@workspace:adapters/hono"],
 
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
+
+    "@ontrails/kv": ["@ontrails/kv@workspace:packages/kv"],
 
     "@ontrails/library": ["@ontrails/library@workspace:packages/library"],
 
