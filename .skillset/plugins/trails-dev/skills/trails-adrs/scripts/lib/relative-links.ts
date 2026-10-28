@@ -34,11 +34,12 @@ export const rebaseRelativeLinks = (
     const rawPath = escapedSeparator ? path.slice(0, -1) : path;
     const rawSuffix = escapedSeparator ? `\\${suffix}` : suffix;
     const originalTarget = resolve(dirname(from), rawPath);
-    const rebased = relative(
-      dirname(to),
-      originalTarget === from ? to : originalTarget
-    );
-    return rebased + rawSuffix;
+    const rebased =
+      relative(dirname(to), originalTarget === from ? to : originalTarget) ||
+      '.';
+    const trailingSlash =
+      rawPath.endsWith('/') && !rebased.endsWith('/') ? '/' : '';
+    return rebased + trailingSlash + rawSuffix;
   });
 
 /** Check local file targets only; heading anchors remain the repository check's responsibility. */

@@ -400,4 +400,27 @@ mock.module('node:fs', () => ({ ...actual,
     expect(readFileSync(source, 'utf8')).toContain('status: proposed');
     expect(run(root, 'check').code).toBe(0);
   });
+  test('directory links retain their target, slash, query and fragment on a round trip', () => {
+    const links =
+      '[ADRs](../) [Fragment](../#section) [Query](../?sort=name) [Here](./)';
+    const root = fixture(links);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    expect(
+      readFileSync(join(root, 'docs/adr/0002-moving.md'), 'utf8')
+    ).toContain(
+      '[ADRs](./) [Fragment](./#section) [Query](./?sort=name) [Here](drafts/)'
+    );
+    expect(run(root, 'check').code).toBe(0);
+    expect(run(root, 'demote', '0002', '--yes').code).toBe(0);
+    const filename = readdirSync(join(root, 'docs/adr/drafts')).find((name) =>
+      name.endsWith('-moving.md')
+    );
+    if (!filename) {
+      throw new Error('Demoted ADR missing');
+    }
+    expect(
+      readFileSync(join(root, 'docs/adr/drafts', filename), 'utf8')
+    ).toContain(links);
+    expect(run(root, 'check').code).toBe(0);
+  });
 });
