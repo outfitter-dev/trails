@@ -11,6 +11,7 @@ import {
 import {
   extractMarkdownLinks,
   updateFenceState,
+  unescapeMarkdownTarget,
 } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
 import type { MarkdownLink } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
 export { extractMarkdownLinks } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
@@ -189,11 +190,12 @@ export const checkMarkdownDocumentLinks = (
   const anchorsForPath = options.readAnchors ?? readAnchors;
 
   for (const link of extractMarkdownLinks(markdown)) {
-    if (isExternalTarget(link.target) || link.target.length === 0) {
+    const normalized = unescapeMarkdownTarget(link.target);
+    if (isExternalTarget(normalized) || normalized.length === 0) {
       continue;
     }
 
-    const { anchor, path } = parseTarget(link.target);
+    const { anchor, path } = parseTarget(normalized);
     const targetPath = targetPathFor(sourcePath, path);
 
     if (!targetExists(targetPath)) {

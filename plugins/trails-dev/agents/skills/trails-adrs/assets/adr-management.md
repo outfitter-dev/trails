@@ -12,7 +12,7 @@ Manual instructions for ADR lifecycle operations when the `../scripts/adr.ts` sc
 ## Promoting a draft
 
 1. Assign the next ADR number (check `docs/adr/README.md` for the current highest, zero-padded to 4 digits)
-2. Rename: `docs/adr/drafts/YYYYMMDD-slug.md` → `docs/adr/NNNN-slug.md` (use `git mv` to preserve history)
+2. Rename: `docs/adr/drafts/YYYYMMDD-slug.md` → `docs/adr/NNNN-slug.md` (use `git mv` to preserve history; stop if the destination exists)
 3. Update frontmatter: set `status` to `proposed` or `accepted`, update `updated` date
 4. Update the title: `# ADR: Title` → `# ADR-NNNN: Title`
 5. Rebase the moved document’s own relative links for its new directory (`../NNNN-slug.md` → `NNNN-slug.md`, `../../tenets.md` → `../tenets.md`), including image targets and reference definitions
@@ -22,7 +22,7 @@ Manual instructions for ADR lifecycle operations when the `../scripts/adr.ts` sc
 
 ## Demoting a numbered ADR
 
-1. Rename: `docs/adr/NNNN-slug.md` → `docs/adr/drafts/YYYYMMDD-slug.md` (use `git mv`)
+1. Rename: `docs/adr/NNNN-slug.md` → `docs/adr/drafts/YYYYMMDD-slug.md` (use `git mv`; stop if the destination exists)
 2. Update frontmatter: set `status: draft`, update `updated` date
 3. Update the title: `# ADR-NNNN: Title` → `# ADR: Title`
 4. Rebase the document’s own relative links for the draft directory (`NNNN-slug.md` → `../NNNN-slug.md`, `../tenets.md` → `../../tenets.md`), including image targets and reference definitions

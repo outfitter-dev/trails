@@ -180,9 +180,8 @@ const cmdPromote = (args: Args): void => {
     `# ADR-${padded}: `
   );
   const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
-  writeFileSync(adr.path, content, 'utf8');
-
   gitMove(adr.path, newPath);
+  writeFileSync(newPath, content, 'utf8');
 
   // Rewrite all references from draft filename to new numbered filename
   console.log('Rewriting draft references...');
@@ -257,9 +256,8 @@ const cmdDemote = (args: Args): void => {
     '# ADR: '
   );
   const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
-  writeFileSync(adr.path, content, 'utf8');
-
   gitMove(adr.path, newPath);
+  writeFileSync(newPath, content, 'utf8');
 
   rebuildIndex();
   writeDecisionMap();

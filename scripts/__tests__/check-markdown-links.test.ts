@@ -84,6 +84,19 @@ describe('collectAnchors', () => {
 });
 
 describe('checkMarkdownDocumentLinks', () => {
+  test('normalizes Markdown escapes before interpreting URL query and fragment separators', () => {
+    const documents = new Map([['docs/index.md', '# New to Trails\n']]);
+    const failures = checkMarkdownDocumentLinks(
+      'docs/example.md',
+      String.raw`[Fragment](index.md\#new-to-trails) [Query](index.md\?view=plain)`,
+      {
+        readAnchors: (path) => collectAnchors(documents.get(path) ?? ''),
+        targetExists: (path) => documents.has(path),
+      }
+    );
+    expect(failures).toEqual([]);
+  });
+
   test('reports missing relative targets with source line detail', () => {
     const failures = checkMarkdownDocumentLinks(
       'docs/example.md',

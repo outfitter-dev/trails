@@ -60,6 +60,10 @@ const fixture = (body: string) => {
   );
   writeFileSync(join(root, 'docs/tenets.md'), '# Tenets');
   writeFileSync(join(root, 'docs/a guide.md'), '# Guide');
+  writeFileSync(join(root, 'docs/guide(v2).md'), '# Guide');
+  writeFileSync(join(root, 'docs/diagram.png'), 'image fixture');
+  writeFileSync(join(root, 'docs/guide#v.md'), '# Hash');
+  writeFileSync(join(root, 'docs/guide?v.md'), '# Query');
   return root;
 };
 
@@ -206,4 +210,163 @@ describe('ADR relative links', () => {
       expect(readFileSync(path, 'utf8')).toBe(before);
     }
   );
+  test('linked images preserve both destinations through promotion and demotion', () => {
+    const links = '[![Diagram](../../diagram.png)](../../tenets.md)';
+    const root = fixture(links);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const path = join(root, 'docs/adr/0002-moving.md');
+    expect(readFileSync(path, 'utf8')).toContain(
+      '[![Diagram](../diagram.png)](../tenets.md)'
+    );
+    expect(run(root, 'check').code).toBe(0);
+    writeFileSync(
+      path,
+      readFileSync(path, 'utf8').replace('](../tenets.md)', '](../missing.md)')
+    );
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(1);
+    writeFileSync(
+      path,
+      readFileSync(path, 'utf8').replace('](../missing.md)', '](../tenets.md)')
+    );
+    expect(run(root, 'demote', '0002', '--yes').code).toBe(0);
+    const filename = readdirSync(join(root, 'docs/adr/drafts')).find((name) =>
+      name.endsWith('-moving.md')
+    );
+    if (!filename) {
+      throw new Error('Demoted ADR missing');
+    }
+    expect(
+      readFileSync(join(root, 'docs/adr/drafts', filename), 'utf8')
+    ).toContain(links);
+    expect(run(root, 'check').code).toBe(0);
+  });
+
+  test('checks and rebases balanced and escaped parentheses in destinations', () => {
+    const links = String.raw`[Guide](../../guide(v2).md) [Escaped](../../guide\(v2\).md)`;
+    const root = fixture(links);
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(0);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    expect(
+      readFileSync(join(root, 'docs/adr/0002-moving.md'), 'utf8')
+    ).toContain(
+      String.raw`[Guide](../guide(v2).md) [Escaped](../guide\(v2\).md)`
+    );
+    expect(run(root, 'check').code).toBe(0);
+  });
+
+  test('fence-like content with an info string does not conceal links below the real closer', () => {
+    const example = [
+      '```text',
+      '```ts',
+      '[Example](../../missing.md)',
+      '```',
+      '[Tenets](../../tenets.md)',
+    ].join('\n');
+    const root = fixture(example);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const promoted = readFileSync(
+      join(root, 'docs/adr/0002-moving.md'),
+      'utf8'
+    );
+    expect(promoted).toContain('[Example](../../missing.md)');
+    expect(promoted).toContain('[Tenets](../tenets.md)');
+    expect(run(root, 'check').code).toBe(0);
+  });
+  test('escaped link delimiters distinguish literal prose from rendered links', () => {
+    const links = String.raw`\[Literal](../../missing.md) [Bracket \]](../../tenets.md)`;
+    const root = fixture(links);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    expect(
+      readFileSync(join(root, 'docs/adr/0002-moving.md'), 'utf8')
+    ).toContain(
+      String.raw`\[Literal](../../missing.md) [Bracket \]](../tenets.md)`
+    );
+    expect(run(root, 'check').code).toBe(0);
+  });
+
+  test('demotion refuses a same-day draft collision without changing either decision', () => {
+    const root = fixture('[Tenets](../../tenets.md)');
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const source = join(root, 'docs/adr/0002-moving.md');
+    const before = readFileSync(source, 'utf8');
+    expect(
+      run(root, 'create', '--title', 'Unrelated sentinel', '--slug', 'moving')
+        .code
+    ).toBe(0);
+    const filename = readdirSync(join(root, 'docs/adr/drafts')).find((name) =>
+      name.endsWith('-moving.md')
+    );
+    if (!filename) {
+      throw new Error('Collision fixture missing');
+    }
+    const destination = join(root, 'docs/adr/drafts', filename);
+    const sentinel = readFileSync(destination, 'utf8');
+    expect(run(root, 'demote', '0002', '--yes').code).toBe(1);
+    expect(readFileSync(source, 'utf8')).toBe(before);
+    expect(readFileSync(destination, 'utf8')).toBe(sentinel);
+  });
+
+  test('forced move failure preserves source and an unrelated destination sentinel', () => {
+    const root = fixture('[Tenets](../../tenets.md)');
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const source = join(root, 'docs/adr/0002-moving.md');
+    const before = readFileSync(source, 'utf8');
+    const sentinel = join(root, 'docs/adr/drafts/sentinel.md');
+    writeFileSync(sentinel, 'Unrelated destination sentinel');
+    const preload = join(root, 'fail-move.ts');
+    writeFileSync(
+      preload,
+      `import { mock } from 'bun:test';
+import * as fs from 'node:fs';
+const actual = { ...fs };
+mock.module('node:fs', () => ({ ...actual,
+  linkSync: () => { throw new Error('forced move failure'); },
+  renameSync: () => { throw new Error('forced move failure'); },
+}));`
+    );
+    const failed = Bun.spawnSync(
+      [
+        process.execPath,
+        '--preload',
+        preload,
+        script,
+        'demote',
+        '0002',
+        '--yes',
+      ],
+      { cwd: root }
+    );
+    expect(failed.exitCode).toBe(1);
+    expect(failed.stderr.toString()).toContain('forced move failure');
+    expect(readFileSync(source, 'utf8')).toBe(before);
+    expect(readFileSync(sentinel, 'utf8')).toBe(
+      'Unrelated destination sentinel'
+    );
+  });
+  test('escaped reference labels and escaped URL separators preserve rendered links', () => {
+    const links = String.raw`[Bracket \]][Bracket \]]
+[Bracket \]]: ../../tenets.md
+[Tenets](../../tenets.md\#tenets)
+[Hash filename](../../guide%23v.md) [Query filename](../../guide%3Fv.md)`;
+    const root = fixture(links);
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(0);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const path = join(root, 'docs/adr/0002-moving.md');
+    expect(readFileSync(path, 'utf8')).toContain(
+      String.raw`[Bracket \]]: ../tenets.md`
+    );
+    expect(readFileSync(path, 'utf8')).toContain(
+      String.raw`[Tenets](../tenets.md\#tenets)`
+    );
+    expect(run(root, 'check').code).toBe(0);
+    writeFileSync(
+      path,
+      readFileSync(path, 'utf8').replace(']: ../tenets.md', ']: ../missing.md')
+    );
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(1);
+  });
 });

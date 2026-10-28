@@ -1,3 +1,6 @@
+import { inlineDestination } from './markdown-destinations.ts';
+export { unescapeMarkdownTarget } from './markdown-destinations.ts';
+
 /** Markdown link scanning shared by ADR operations and repository link validation. */
 export interface MarkdownLink {
   readonly line: number;
@@ -24,7 +27,11 @@ export const updateFenceState = (
   if (!fence) {
     return { fence: { length, marker }, matched: true };
   }
-  if (fence.marker === marker && length >= fence.length) {
+  if (
+    fence.marker === marker &&
+    length >= fence.length &&
+    line.slice(fenceMatch[0].length).trim() === ''
+  ) {
     return { fence: null, matched: true };
   }
   return { fence, matched: true };
@@ -99,7 +106,7 @@ const lineLinks = (
   lineNumber: number
 ): LinkSpan[] => {
   const links: LinkSpan[] = [];
-  const reference = /^\s{0,3}\[([^\]]+)]:\s+(\S.*)$/.exec(masked);
+  const reference = /^\s{0,3}\[((?:\\.|[^\]\\])+)]:\s+(\S.*)$/.exec(masked);
   if (reference && !reference[1].startsWith('^')) {
     const span = destinationSpan(
       reference[2],
@@ -113,16 +120,35 @@ const lineLinks = (
     });
     return links;
   }
-  const pattern = /!?\[([^\]\n]*)]\(([^)\n]+)\)/g;
-  for (const match of masked.matchAll(pattern)) {
-    const offset = match.index + match[0].indexOf('](') + 2;
-    const span = destinationSpan(match[2], offset);
+  const labels: number[] = [];
+  for (let cursor = 0; cursor < masked.length; cursor += 1) {
+    if (isEscaped(masked, cursor)) {
+      continue;
+    }
+    if (masked[cursor] === '[') {
+      labels.push(cursor);
+      continue;
+    }
+    if (masked[cursor] !== ']') {
+      continue;
+    }
+    const labelStart = labels.pop();
+    if (labelStart === undefined || masked[cursor + 1] !== '(') {
+      continue;
+    }
+    const destination = inlineDestination(masked, cursor + 1);
+    if (!destination) {
+      continue;
+    }
+    const { start, end, close } = destination;
     links.push({
-      ...span,
+      end,
       line: lineNumber,
-      target: line.slice(span.start, span.end),
-      text: match[1].trim(),
+      start,
+      target: line.slice(start, end),
+      text: line.slice(labelStart + 1, cursor).trim(),
     });
+    cursor = close;
   }
   return links;
 };
