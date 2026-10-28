@@ -395,7 +395,8 @@ const renderWardenSelection = (
   formatted: string,
   format: 'github' | 'json' | 'summary',
   project: OperatorProjectContextOutput,
-  workspaceEvidence?: WardenWorkspaceEvidence | undefined
+  workspaceEvidence: WardenWorkspaceEvidence | undefined,
+  executedAppId: string | undefined
 ): Result<string, ValidationError> => {
   if (format === 'json') {
     try {
@@ -403,6 +404,7 @@ const renderWardenSelection = (
       return Result.ok(
         JSON.stringify({
           ...parsed,
+          ...(executedAppId === undefined ? {} : { executedAppId }),
           project,
           ...(workspaceEvidence === undefined ? {} : { workspaceEvidence }),
         })
@@ -545,6 +547,10 @@ export const wardenTrail = trail('warden', {
         return preflight;
       }
     }
+    const executedAppId =
+      context.selectedExtent !== 'workspace' && report.topoNames?.length === 1
+        ? report.topoNames[0]
+        : undefined;
     const project = operatorProjectContextOutput(context);
     const workspaceEvidence = deriveWardenWorkspaceEvidence(
       context,
@@ -554,7 +560,8 @@ export const wardenTrail = trail('warden', {
       result.output,
       report.effectiveConfig?.format ?? 'summary',
       project,
-      workspaceEvidence
+      workspaceEvidence,
+      executedAppId
     );
     if (formatted.isErr()) {
       return formatted;
@@ -564,6 +571,7 @@ export const wardenTrail = trail('warden', {
       diagnostics: [...report.diagnostics],
       drift: report.drift,
       errorCount: report.errorCount,
+      ...(executedAppId === undefined ? {} : { executedAppId }),
       fixes: report.fixes,
       formatted: formatted.value,
       passed: report.passed,
@@ -587,6 +595,7 @@ export const wardenTrail = trail('warden', {
       })
       .nullable(),
     errorCount: z.number(),
+    executedAppId: z.string().optional(),
     fixes: z
       .object({
         applied: z.number(),
