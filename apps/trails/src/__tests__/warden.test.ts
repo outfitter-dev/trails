@@ -47,7 +47,7 @@ const makeTempDir = (): string => {
     `trails-warden-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
   mkdirSync(dir, { recursive: true });
-  return dir;
+  return realpathSync(dir);
 };
 
 interface WardenJsonOutput {

@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   renameSync,
   rmSync,
   symlinkSync,
@@ -36,7 +37,9 @@ import { loadApp, loadFreshAppLease } from '../trails/load-app.js';
 
 const roots: string[] = [];
 const temporaryRoot = (): string => {
-  const root = mkdtempSync(join(tmpdir(), 'trails-scratch-test-'));
+  const root = realpathSync(
+    mkdtempSync(join(tmpdir(), 'trails-scratch-test-'))
+  );
   roots.push(root);
   return root;
 };
