@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 interface ReleaseJob {
+  env?: Record<string, string>;
   if?: string;
   outputs?: Record<string, string>;
   steps: {
@@ -168,6 +169,7 @@ test.each(['publish-policy', 'publish', 'publish-auto'])(
         ['bash', '-eu', '-o', 'pipefail', '-c', script ?? ''],
         {
           ...gitEnv,
+          DIST_TAG: 'beta',
           GITHUB_OUTPUT: output,
           GITHUB_SHA:
             jobId === 'publish-policy' ? 'later-dispatch-commit' : release,
@@ -233,8 +235,61 @@ test.each(['publish', 'publish-auto'])(
         steps.findIndex((step) => step.name === 'Publish packages')
       );
       expect(steps.find((step) => step.name === 'Publish packages')?.run).toBe(
-        'bun run publish:packages -- --trusted-publishing'
+        'bun run publish:packages -- --trusted-publishing --tag "$DIST_TAG"'
       );
+    });
+  }
+);
+
+test.each(['publish', 'publish-auto'])(
+  '%s retains the policy tag after a later commit removes prerelease state',
+  async (jobId) => {
+    const job = workflow.jobs[jobId];
+    expect(job?.env?.DIST_TAG).toMatch(
+      /^\$\{\{ needs\.publish-policy\.outputs\.tag \}\}$/
+    );
+    await fixture(async (root, output) => {
+      await writeVersion(root, '0.3.0-beta.1');
+      await mkdir(join(root, '.changeset'));
+      const pre = join(root, '.changeset/pre.json');
+      await writeFile(pre, JSON.stringify({ mode: 'pre', tag: 'beta' }));
+      const release = commit(root);
+      await rm(pre);
+      commit(root);
+      expect(
+        run(
+          root,
+          ['bash', '-eu', '-o', 'pipefail', '-c', packageGuard(jobId)],
+          {
+            ...gitEnv,
+            RELEASE_SHA: release,
+          }
+        ).exitCode
+      ).toBe(0);
+      const bin = join(root, 'bin');
+      await mkdir(bin);
+      await writeFile(join(bin, 'bun'), '#!/bin/sh\nprintf "%s\\n" "$@"\n', {
+        mode: 0o755,
+      });
+      for (const name of ['Publish packages', 'Verify published packages']) {
+        const script = job?.steps.find((step) => step.name === name)?.run;
+        expect(script).toBeDefined();
+        const result = run(
+          root,
+          ['bash', '-eu', '-o', 'pipefail', '-c', script ?? ''],
+          {
+            ...gitEnv,
+            DIST_TAG: 'beta',
+            GITHUB_OUTPUT: output,
+            PATH: `${bin}:${gitEnv.PATH ?? ''}`,
+          }
+        );
+        expect(result.exitCode, result.stderr.toString()).toBe(0);
+        expect(result.stdout.toString().trim().split('\n').slice(-2)).toEqual([
+          '--tag',
+          'beta',
+        ]);
+      }
     });
   }
 );

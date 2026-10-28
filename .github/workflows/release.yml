@@ -121,6 +121,8 @@ jobs:
     if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.outputs.decision == 'auto' && needs.publish-policy.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment: npm-auto
+    env:
+      DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
     permissions:
       contents: read
       id-token: write
@@ -145,9 +147,9 @@ jobs:
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: bun run publish:packages -- --trusted-publishing
+        run: bun run publish:packages -- --trusted-publishing --tag "$DIST_TAG"
       - name: Verify published packages
-        run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
+        run: bun run publish:registry-check:published --tag "$DIST_TAG"
 
   publish:
     name: Publish to npm manually
@@ -155,6 +157,8 @@ jobs:
     if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
+    env:
+      DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
     permissions:
       contents: read
       id-token: write
@@ -179,9 +183,9 @@ jobs:
       - name: Validate package before publish
         run: bun run publish:check
       - name: Publish packages
-        run: bun run publish:packages -- --trusted-publishing
+        run: bun run publish:packages -- --trusted-publishing --tag "$DIST_TAG"
       - name: Verify published packages
-        run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
+        run: bun run publish:registry-check:published --tag "$DIST_TAG"
 
   release-assets:
     name: Build CLI asset (${{ matrix.platform }})
