@@ -1538,6 +1538,11 @@
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
+          "context": "- [ADR-0017](../0017-serialized-topo-graph.md): historical durable serialized graph contract.",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
+        },
+        {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -2848,6 +2853,11 @@
           "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         },
         {
+          "context": "- [ADR-0046](../0046-lock-v3-artifact-family.md): historical artifact layout, superseded by ADR-0054.",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
+        },
+        {
           "context": "Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
           "from": "topo-store-reference",
           "fromPath": "docs/topo-store-reference.md"
@@ -3102,6 +3112,11 @@
           "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
+        },
+        {
+          "context": "- [ADR-0052](../0052-overlays-one-extension-mechanism.md#the-category-question): one overlay mechanism and tolerant preservation of unknown facts.",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
         }
       ],
       "number": "0052",
@@ -3170,6 +3185,11 @@
           "context": "- docs/adr/0054-project-substrate-names-its-truth.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
+        },
+        {
+          "context": "- [ADR-0054](../0054-project-substrate-names-its-truth.md#one-app-owns-one-app-lock): current app-root lock ownership; [workspace view](../0054-project-substrate-names-its-truth.md#a-workspace-derives",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
         }
       ],
       "number": "0054",
