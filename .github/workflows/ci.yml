@@ -101,6 +101,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
 
       - name: Warden
@@ -116,6 +118,15 @@ jobs:
 
       - name: CI workflow contract
         run: bun test scripts/__tests__/ci-workspace-context-contract.test.ts scripts/__tests__/release-publish-target.test.ts
+
+      - name: Skillset lock provenance
+        if: github.event_name == 'pull_request'
+        env:
+          SKILLSET_BASE: ${{ github.event.pull_request.base.sha }}
+        run: bun scripts/check-skillset-lock-provenance.ts "$SKILLSET_BASE"
+
+      - name: Skillset lock regression
+        run: bun test scripts/__tests__/skillset-lock-provenance.test.ts scripts/__tests__/sync-skillset-outputs.test.ts
 
       - name: Skillset output check
         run: bun run skillset:check
