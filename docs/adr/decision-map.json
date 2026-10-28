@@ -1040,6 +1040,11 @@
           "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
         },
         {
+          "context": "- [ADR-0010](0010-native-infrastructure.md#decision) — built-in infrastructure and adapters.",
+          "from": "0056",
+          "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
+        },
+        {
           "context": "- docs/adr/0010-native-infrastructure.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -1113,6 +1118,11 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
+          "context": "Trails already separates permit declarations, credential extraction, and scope enforcement. [ADR-0012](0012-connector-agnostic-permits.md#decision) established that model, but left discovery, challeng",
+          "from": "0056",
+          "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
+        },
+        {
           "context": "- **[ADR-0012: Adapter-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1130,7 +1140,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Adapter-Agnostic Permits",
-      "updated": "2026-05-19"
+      "updated": "2026-10-28"
     },
     {
       "created": "2026-03-30",
@@ -1959,6 +1969,11 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
+          "context": "This surface contract does not replace the shared error taxonomy. [ADR-0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md#decision) owns categories and behavior; [ADR-0035](0035-s",
+          "from": "0056",
+          "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
+        },
+        {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -2372,6 +2387,11 @@
           "context": "Package migration and protocol migration are distinct. SDK v2 still permits legacy-only entry points. Trails must move its entry points to the SDK's `serveStdio` and `createMcpHandler` APIs to serve t",
           "from": "0055",
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
+        },
+        {
+          "context": "This surface contract does not replace the shared error taxonomy. [ADR-0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md#decision) owns categories and behavior; [ADR-0035](0035-s",
+          "from": "0056",
+          "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
         },
         {
           "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` rendering ladder",
@@ -3094,6 +3114,11 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
+          "context": "Core enforcement remains scopes-only and exact-match. The app authors its role map and actor ceilings once through an app-authored `permits.roles` overlay under [ADR-0052](0052-overlays-one-extension-",
+          "from": "0056",
+          "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
+        },
+        {
           "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -3184,7 +3209,13 @@
     {
       "created": "2026-10-28",
       "depends_on": ["0", "5", "6", "26", "35", "47", "50", "52"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "This decision ratifies the resource-server direction recorded in [TRL-1429] and the October 27 auth draft.[^draft] It amends ADR-0012 while retaining explicit scope declarations, `permit: 'public'`, s",
+          "from": "0056",
+          "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
+        }
+      ],
       "number": "0055",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md",
@@ -3192,6 +3223,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "MCP Targets the Stateless Core on SDK v2",
+      "updated": "2026-10-28"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["10", "12", "26", "35", "52", "55"],
+      "inbound": [
+        {
+          "context": "[ADR-0056](0056-permits-as-oauth-resource-server.md#decision) amends this decision's auth boundary: Trails is an OAuth resource server, surfaces normalize supported credentials, and shared permit poli",
+          "from": "0012",
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        }
+      ],
+      "number": "0056",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0056-permits-as-oauth-resource-server.md",
+      "slug": "permits-as-oauth-resource-server",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Permits Make Trails an OAuth Resource Server",
       "updated": "2026-10-28"
     }
   ],

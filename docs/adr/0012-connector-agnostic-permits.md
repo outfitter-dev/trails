@@ -4,13 +4,16 @@ slug: connector-agnostic-permits
 title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
-updated: 2026-05-19
+updated: 2026-10-28
+amended: 2026-10-28
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0012: Adapter-Agnostic Permits
 
 The historical slug is preserved for reference stability. The 2026-05-08 amendment renames the current auth boundary from connector vocabulary to adapter vocabulary.
+
+[ADR-0056](0056-permits-as-oauth-resource-server.md#decision) amends this decision's auth boundary: Trails is an OAuth resource server, surfaces normalize supported credentials, and shared permit policy owns verification, challenges and effective scopes. Its actor, expiration, role and long-lived grant decisions have separate implementing issues. The original MCP handshake, bearer-only and informational-role descriptions below record the earlier model; they do not override ADR-0056 or establish that its implementations have shipped. Exact-match scope enforcement and explicit permit declarations remain foundational. The compose-scope Warden check is a required implementation under [TRL-1450](https://linear.app/outfitter/issue/TRL-1450), not an existing guarantee established by this historical text.
 
 ## Context
 
@@ -171,6 +174,12 @@ No cookies. No session-based auth at the framework level. Session management via
 
 ## Amendment log
 
+- 2026-10-28: [ADR-0056](0056-permits-as-oauth-resource-server.md#decision)
+  establishes the OAuth resource-server boundary, generalized credential
+  extraction, per-request MCP authorization, role/actor policy and bounded
+  long-lived authorization. It preserves explicit scopes and separates accepted
+  direction from the implementing issues; provider packaging and CLI login keep
+  their own decisions.
 - 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
   examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
   stable.
