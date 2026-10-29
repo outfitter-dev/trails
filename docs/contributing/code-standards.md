@@ -237,3 +237,9 @@ Trails is Bun-native. Use Bun APIs where they improve the developer experience a
 - Use `Bun.spawn()` for subprocesses.
 - Use `bun:sqlite` for storage.
 - Use `node:fs` or `node:fs/promises` for capabilities Bun intentionally mirrors there, such as directory creation or recursive directory reads.
+
+## Workspace Peers and Development Inputs
+
+A peer declaration describes the consumer contract. When a package's implementation, public types, or conformance tests import a workspace peer, also declare that peer in `devDependencies` using the same workspace range. Preserve its `peerDependencies` entry and any `peerDependenciesMeta.optional` flag. An optional surface peer can remain optional for consumers while being available to compile and test the package locally.
+
+For extracted adapters, the owner package must remain a peer dependency even when it is also needed for local development. The adapter check accepts this dual declaration, rejects a development-only owner declaration, and continues to prohibit the owner in runtime or optional dependencies. See [Adapter owner dependencies](../../packages/adapter-kit/README.md#adapter-owner-dependencies).
