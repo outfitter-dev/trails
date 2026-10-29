@@ -68,6 +68,8 @@ On the frozen Trail object, `composes` defaults to `[]`. Every trail has it. Mos
 
 ### `ctx.compose()` is the composition mechanism
 
+<!-- fix ::: Qualify the ID-only and sequential-only statements here and in non-decisions with later ADR-0024 and ADR-0028; typed trail objects and batch composition are supported. Preserve the original unification rationale. #stale -->
+
 The execution context provides `ctx.compose()` at runtime. It resolves a trail by ID from the topo, validates the input, runs it, and returns the Result. The calling trail never imports or references the composed trail directly — it uses the ID declared in its `composes` array.
 
 ### The warden enforces alignment

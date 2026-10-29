@@ -42,6 +42,8 @@ This is dogfooding. The governance system uses the same contract model it enforc
 
 Rules that need structural understanding of code use `oxc-parser` instead of regex. The `parseSync()` function produces a full AST from TypeScript source with native speed[^oxc].
 
+<!-- fix ::: Update the current AST helper inventory to findImplementationBodies and implementation fields; packages/source/src/index.ts owns the exported helper. Preserve historical vocabulary elsewhere. #stale -->
+
 The warden provides lightweight helpers over the raw AST:
 
 - `parse()` — parse source into an AST, returning null on failure
