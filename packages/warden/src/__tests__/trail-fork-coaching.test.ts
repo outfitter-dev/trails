@@ -151,6 +151,7 @@ export const notify = trail('entity.notify', {
     expect(diagnostics).toEqual([]);
   });
 
+  // fix ::: Use the signal payload schema contract in this fixture instead of trail-shaped input/implementation fields; the current source does not represent the valid signal named by the test. #coverage
   test('ignores signal definitions with action payloads', () => {
     const diagnostics = check(`
 import { Result, signal } from '@ontrails/core';

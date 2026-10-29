@@ -191,6 +191,7 @@ export const staleDriftMessage = (drift: DriftResult): string => {
 /**
  * Check whether the committed trails.lock is stale compared to the current topology.
  *
+ * fix ::: Describe stored export hash comparison, unknown fallback, and blocked lock reads when topo is absent; missing topo does not guarantee a clean result. #stale
  * When no topo is provided, returns a clean result (no drift detectable without runtime info).
  * When a topo is provided, `options.overlays` carries the app-module overlay
  * registrations so the fresh comparison graph embeds the same namespaced

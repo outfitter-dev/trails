@@ -141,6 +141,7 @@ const getComposeElements = (config: AstNode): readonly AstNode[] | null => {
   return elements ?? null;
 };
 
+// fix ::: Remove both diagnostic-softening claims below; unresolved declarations still produce error-severity diagnostics for undeclared string calls, as the regression test asserts. #stale
 interface DeclaredComposes {
   /** Statically resolved trail IDs from string literals / const identifiers. */
   readonly ids: ReadonlySet<string>;
