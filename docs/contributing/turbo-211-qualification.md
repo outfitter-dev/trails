@@ -36,7 +36,7 @@ The complete optional Testing test-source TypeScript configuration still reports
 
 ## Bun v2 control
 
-A fresh disposable two-workspace project uses Bun's generated version-2 lock, a catalog-resolved Turbo, and an optional peer with its development declaration. Qualification resolves the installed native Turbo binary before running it, with no missing-binary repair. The graph must parse without fallback. Actual build, TypeScript, and Bun test tasks produce six cold misses, six warm hits, and six misses after a provider source change. Replacing a cached output symlink with a stale target proves that a warm cache hit restores the original target. The fixture uses the repository's real ignore patterns so generated logs and outputs cannot become new inputs.
+A fresh disposable two-workspace fixture uses Bun's generated version-2 lock, a catalog-resolved Turbo, and an optional peer with its development declaration. Qualification resolves the installed native Turbo binary before running it, with no missing-binary repair. The graph must parse without fallback. Actual build, TypeScript, and Bun test tasks produce six cold misses, six warm hits, and six misses after a provider source change. Replacing a cached output symlink with a stale target proves that a warm cache hit restores the original target. The fixture uses the repository's real ignore patterns so generated logs and outputs cannot become new inputs.
 
 This control establishes parser and cache compatibility for a real Bun-generated v2 lock. It does not migrate the repository lock or complete [TRL-1307](https://linear.app/outfitter/issue/TRL-1307).
 
