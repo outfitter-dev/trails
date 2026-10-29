@@ -84,7 +84,6 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
         permit: extra?.permit,
         progressToken: extra?.progressToken,
         sendProgress: extra?.sendProgress,
-        sessionId: extra?.sessionId,
       });
 
       return {
