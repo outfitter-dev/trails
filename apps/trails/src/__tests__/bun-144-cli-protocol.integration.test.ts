@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -34,10 +34,10 @@ afterEach(() => {
 });
 
 describe('Bun 1.4.4 CLI protocol qualification', () => {
-  test('keeps a Node warning on stderr while Wayfinder emits plain JSON on stdout', () => {
+  test('keeps a Node warning on stderr while Wayfinder emits plain JSON on stdout', async () => {
     const fixture = temporaryDirectory();
     const warningPreload = join(fixture, 'warning-preload.ts');
-    writeFileSync(
+    await Bun.write(
       warningPreload,
       `process.emitWarning('TRL-1433 warning sentinel', {
   code: 'TRL1433',

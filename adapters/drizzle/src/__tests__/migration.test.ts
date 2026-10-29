@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { store as defineStore } from '@ontrails/store';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
@@ -51,15 +51,15 @@ const unwrapCreated = async <T>(
   return result.unwrap();
 };
 
-const writeMigration = (
+const writeMigration = async (
   rootDir: string,
   tag: string,
   statements: readonly string[]
-): string => {
+): Promise<string> => {
   const migrationsFolder = join(rootDir, 'migrations');
   const metadataFolder = join(migrationsFolder, 'meta');
   mkdirSync(metadataFolder, { recursive: true });
-  writeFileSync(
+  await Bun.write(
     join(metadataFolder, '_journal.json'),
     `${JSON.stringify(
       {
@@ -79,7 +79,7 @@ const writeMigration = (
       2
     )}\n`
   );
-  writeFileSync(
+  await Bun.write(
     join(migrationsFolder, `${tag}.sql`),
     `${statements.join('\n--> statement-breakpoint\n')}\n`
   );
@@ -189,14 +189,18 @@ describe('@ontrails/drizzle migrations', () => {
       rootDir,
       resources
     );
-    const migrationsFolder = writeMigration(rootDir, '0000_evolve_users', [
-      'ALTER TABLE "users" ADD COLUMN "status" text NOT NULL DEFAULT \'pending\';',
-      'CREATE TABLE "migration_effects" ("affected_rows" integer NOT NULL);',
-      'CREATE TABLE "user_audit" ("user_id" text NOT NULL, "status" text NOT NULL);',
-      'CREATE TRIGGER "users_status_audit" AFTER UPDATE OF "status" ON "users" BEGIN INSERT INTO "user_audit" ("user_id", "status") VALUES (NEW."id", NEW."status"); END;',
-      'UPDATE "users" SET "status" = \'active\' WHERE "id" = \'user-1\';',
-      'INSERT INTO "migration_effects" ("affected_rows") VALUES (changes());',
-    ]);
+    const migrationsFolder = await writeMigration(
+      rootDir,
+      '0000_evolve_users',
+      [
+        'ALTER TABLE "users" ADD COLUMN "status" text NOT NULL DEFAULT \'pending\';',
+        'CREATE TABLE "migration_effects" ("affected_rows" integer NOT NULL);',
+        'CREATE TABLE "user_audit" ("user_id" text NOT NULL, "status" text NOT NULL);',
+        'CREATE TRIGGER "users_status_audit" AFTER UPDATE OF "status" ON "users" BEGIN INSERT INTO "user_audit" ("user_id", "status") VALUES (NEW."id", NEW."status"); END;',
+        'UPDATE "users" SET "status" = \'active\' WHERE "id" = \'user-1\';',
+        'INSERT INTO "migration_effects" ("affected_rows") VALUES (changes());',
+      ]
+    );
 
     await connection.query(({ drizzle }) =>
       migrate(drizzle, { migrationsFolder })
@@ -275,12 +279,16 @@ describe('@ontrails/drizzle migrations', () => {
       rootDir,
       resources
     );
-    const migrationsFolder = writeMigration(rootDir, '0000_broken_users', [
-      'CREATE TABLE "partial_artifact" ("id" text NOT NULL);',
-      'UPDATE "users" SET "email" = \'mutated@example.com\' WHERE "id" = \'user-1\';',
-      'THIS IS NOT VALID SQL;',
-      'CREATE TRIGGER "never_created" AFTER UPDATE ON "users" BEGIN INSERT INTO "partial_artifact" ("id") VALUES (NEW."id"); END;',
-    ]);
+    const migrationsFolder = await writeMigration(
+      rootDir,
+      '0000_broken_users',
+      [
+        'CREATE TABLE "partial_artifact" ("id" text NOT NULL);',
+        'UPDATE "users" SET "email" = \'mutated@example.com\' WHERE "id" = \'user-1\';',
+        'THIS IS NOT VALID SQL;',
+        'CREATE TRIGGER "never_created" AFTER UPDATE ON "users" BEGIN INSERT INTO "partial_artifact" ("id") VALUES (NEW."id"); END;',
+      ]
+    );
 
     await expect(
       connection.query(({ drizzle }) => migrate(drizzle, { migrationsFolder }))
