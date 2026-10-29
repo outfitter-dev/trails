@@ -7,9 +7,18 @@ import type { McpFetchBoundaryOptions } from './fetch-boundary.js';
 import { createServerFactory } from './server.js';
 import type { CreateServerOptions } from './server.js';
 
-/** Options for the portable MCP HTTP entry, separate from runtime hosting. */
+/**
+ * Options for the portable MCP HTTP entry, separate from runtime hosting.
+ *
+ * The entry always builds with the `network` credential posture: identity
+ * enters only through `resolvePermit`, a `createContext` permit is
+ * discarded at runtime, and protected trails without a resolver are refused
+ * at build time. The posture is not configurable here.
+ */
 export interface CreateMcpFetchHandlerOptions
-  extends CreateServerOptions, McpFetchBoundaryOptions {}
+  extends
+    Omit<CreateServerOptions, 'credentialPosture'>,
+    McpFetchBoundaryOptions {}
 
 /** Portable request handler with teardown of active server instances and streams. */
 export interface McpFetchHandler {
@@ -36,7 +45,10 @@ export const createFetchHandler = (
   options: CreateMcpFetchHandlerOptions = {}
 ): McpFetchHandler => {
   const guard = createMcpFetchBoundary(options);
-  const factory = createServerFactory(graph, options);
+  const factory = createServerFactory(graph, {
+    ...options,
+    credentialPosture: 'network',
+  });
   const instances = new Set<Server>();
   let closed = false;
   const handler = createMcpHandler(

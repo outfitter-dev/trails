@@ -53,7 +53,10 @@ import type {
 
 import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
-import { resolveMcpPermit } from './permit-resolution.js';
+import {
+  resolveMcpPermit,
+  surfaceContextFactory,
+} from './permit-resolution.js';
 import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
 
@@ -134,7 +137,23 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
+  /**
+   * Where callers reach this surface from.
+   *
+   * `host` (the default) is the in-process posture: the launching process is
+   * the caller, so a `createContext` permit and a host-supplied `extra.permit`
+   * are accepted as the host's own policy. `network` is the posture the
+   * fetch-shaped entry sets: identity enters only through `resolvePermit`,
+   * a `createContext` permit is discarded at runtime with a diagnostic,
+   * `extra.permit` is ignored, a presented bearer with no resolver is an
+   * `AuthError`, and protected trails without a resolver are refused at
+   * build time.
+   */
+  readonly credentialPosture?: McpCredentialPosture | undefined;
 }
+
+/** See {@link DeriveMcpToolsOptions.credentialPosture}. */
+export type McpCredentialPosture = 'host' | 'network';
 
 export type McpSurfaceTrailheadTrailSelector = string | readonly string[];
 
@@ -859,7 +878,7 @@ const createHandler =
     const result = await executeTrail(t, trailInput, {
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
-      createContext: options.createContext,
+      createContext: surfaceContextFactory(options),
       ctx: withMcpSurface(progressCb, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
@@ -1225,10 +1244,53 @@ const eligibleTrails = (
     intent: options.intent,
   });
 
+const requiresVerifiedPermit = (
+  trailItem: Trail<unknown, unknown, unknown>
+): boolean => trailItem.permit !== undefined && trailItem.permit !== 'public';
+
+/**
+ * A network surface with protected trails and no verifier would fail every
+ * protected call at runtime; refuse at build time so the gap teaches.
+ */
+const validateNetworkVerifier = (
+  graph: Topo,
+  options: DeriveMcpToolsOptions
+): Result<void, Error> => {
+  if (
+    options.credentialPosture !== 'network' ||
+    options.resolvePermit !== undefined
+  ) {
+    return Result.ok();
+  }
+  const protectedIds = eligibleTrails(graph, options)
+    .filter((trailItem) => requiresVerifiedPermit(trailItem))
+    .map((trailItem) => trailItem.id);
+  if (protectedIds.length === 0) {
+    return Result.ok();
+  }
+  return Result.err(
+    new ValidationError(
+      `MCP network surface exposes protected trails without a permit resolver: ${protectedIds.join(', ')}. Configure resolvePermit with a verifier, or exclude those trails from this surface. A createContext permit is not an identity source on a network surface.`,
+      {
+        context: {
+          code: 'network_surface_missing_verifier',
+          trailIds: protectedIds,
+        },
+      }
+    )
+  );
+};
+
 const validateToolBuild = (
   graph: Topo,
   options: DeriveMcpToolsOptions
-): Result<void, Error> => validateSurfaceTopo(graph, options);
+): Result<void, Error> => {
+  const validated = validateSurfaceTopo(graph, options);
+  if (validated.isErr()) {
+    return validated;
+  }
+  return validateNetworkVerifier(graph, options);
+};
 
 const collectTrailheadMembers = (
   graph: Topo,

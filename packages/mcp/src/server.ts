@@ -19,6 +19,7 @@ import type {
   McpExtra,
   McpToolDefinition,
   ResolveMcpPermit,
+  McpCredentialPosture,
 } from './build.js';
 import { deriveMcpTools } from './build.js';
 import {
@@ -58,6 +59,8 @@ export interface CreateServerOptions extends BaseSurfaceOptions {
   readonly name?: string | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
+  /** See `DeriveMcpToolsOptions.credentialPosture`; the fetch entry forces `network`. */
+  readonly credentialPosture?: McpCredentialPosture | undefined;
   readonly version?: string | undefined;
 }
 
@@ -262,6 +265,7 @@ export const createServerFactory = (
   const toolsResult = deriveMcpTools(graph, {
     configValues: options.configValues,
     createContext: options.createContext,
+    credentialPosture: options.credentialPosture,
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
