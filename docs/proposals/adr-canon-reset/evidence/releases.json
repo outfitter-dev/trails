@@ -1,0 +1,93 @@
+[
+  {
+    "isDraft": false,
+    "isPrerelease": false,
+    "name": "Trails v0.2.4",
+    "publishedAt": "2026-10-22T21:50:48Z",
+    "tagName": "v0.2.4"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": false,
+    "name": "Trails v0.2.3",
+    "publishedAt": "2026-09-22T12:47:25Z",
+    "tagName": "v0.2.3"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": false,
+    "name": "Trails v0.2.2",
+    "publishedAt": "2026-09-12T17:12:25Z",
+    "tagName": "v0.2.2"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": false,
+    "name": "Trails v0.2.1",
+    "publishedAt": "2026-09-12T00:19:52Z",
+    "tagName": "v0.2.1"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": false,
+    "name": "Trails v0.2.0",
+    "publishedAt": "2026-09-11T19:30:00Z",
+    "tagName": "v0.2.0"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.50",
+    "publishedAt": "2026-08-20T23:03:59Z",
+    "tagName": "v1.0.0-beta.50"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.49",
+    "publishedAt": "2026-08-20T22:00:10Z",
+    "tagName": "v1.0.0-beta.49"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.48",
+    "publishedAt": "2026-08-11T19:33:55Z",
+    "tagName": "v1.0.0-beta.48"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.47",
+    "publishedAt": "2026-08-10T01:57:33Z",
+    "tagName": "v1.0.0-beta.47"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.46",
+    "publishedAt": "2026-07-18T13:23:45Z",
+    "tagName": "v1.0.0-beta.46"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.45",
+    "publishedAt": "2026-07-16T13:14:38Z",
+    "tagName": "v1.0.0-beta.45"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.43",
+    "publishedAt": "2026-07-15T13:14:28Z",
+    "tagName": "v1.0.0-beta.43"
+  },
+  {
+    "isDraft": false,
+    "isPrerelease": true,
+    "name": "Trails v1.0.0-beta.39",
+    "publishedAt": "2026-07-07T16:11:49Z",
+    "tagName": "v1.0.0-beta.39"
+  }
+]

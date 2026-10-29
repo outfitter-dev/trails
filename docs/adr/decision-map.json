@@ -213,6 +213,11 @@
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0000](../../../docs/adr/0000-core-premise.md) | accepted | N02 | Core invariants; reconcile incoming deployment scope and replace stale terms/artifact paths. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0000",
@@ -327,6 +332,11 @@
           "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, [ADR-0001: Naming Conventions](adr/0001-naming-conventions.",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
+        },
+        {
+          "context": "| [0001](../../../docs/adr/0001-naming-conventions.md) | accepted | N03 | Structural grammar, accessor verbs, paths and scope distinctions; current lexicon owns current words. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0001",
@@ -381,6 +391,11 @@
           "context": "- **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0002](../../../docs/adr/0002-built-in-result-type.md) | accepted | N05 | Shared Result construction/serialization; current owner taxonomy replaces duplicated tables. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0002",
@@ -480,6 +495,11 @@
           "context": "- **[ADR-0003: Unified Trail Primitive](./adr/0003-unified-trail-primitive.md)** — One `trail()`, composition as a property",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0003](../../../docs/adr/0003-unified-trail-primitive.md) | accepted | N04 | One trail replaces hike; typed objects plus dynamic string escape hatch replace string-only prose. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0003",
@@ -534,6 +554,11 @@
           "context": "- **[ADR-0004: Intent as a First-Class Property](./adr/0004-intent-as-first-class-property.md)** — One field drives all surface behavior",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0004](../../../docs/adr/0004-intent-as-first-class-property.md) | accepted | N04 | Read/write/destroy and orthogonal idempotency; surface mappings derive from owner facts. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0004",
@@ -583,6 +608,11 @@
           "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin adapter packages",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0005](../../../docs/adr/0005-framework-agnostic-http-route-model.md) | accepted | N17 | Framework-neutral HTTP routes survive; old package examples become history. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0005",
@@ -717,6 +747,11 @@
           "context": "- [ADR-0006: Shared Execution Pipeline](../adr/0006-shared-execution-pipeline.md)",
           "from": "layer-evolution",
           "fromPath": "docs/migration/layer-evolution.md"
+        },
+        {
+          "context": "| [0006](../../../docs/adr/0006-shared-execution-pipeline.md) | accepted | N06 | One execution pipeline survives; use current layers/permits/resources/recovery, not obsolete stage order. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0006",
@@ -786,6 +821,11 @@
           "context": "- **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0007](../../../docs/adr/0007-governance-as-trails.md) | accepted | N19 | Rules are trails, source analysis uses AST, diagnostics are structured data. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0007",
@@ -890,6 +930,11 @@
           "context": "- **[ADR-0008: Deterministic Surface Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every surface",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0008](../../../docs/adr/0008-deterministic-trailhead-derivation.md) | accepted | N17 | Pure deterministic surface derivation; reconcile current overlays/accommodations. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0008",
@@ -1001,6 +1046,11 @@
           "fromPath": "docs/index.md"
         },
         {
+          "context": "| [0009](../../../docs/adr/0009-first-class-resources.md) | accepted | N07 | Declared resource lifecycle, typed access, eager resolution, mocks and governance survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "For the complete design decision, tradeoffs, and future directions (request-scoped resources, composable config, intent-based type narrowing), see [ADR-0009: First-Class Resources](./adr/0009-first-cl",
           "from": "resources",
           "fromPath": "docs/resources.md"
@@ -1048,6 +1098,11 @@
           "context": "- **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0010](../../../docs/adr/0010-native-infrastructure.md) | partially-superseded | N07, N08, N09, N16, N18 | Partial supersession: inspectable infrastructure/bootstrap survive. Retire mandatory trifec",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0010",
@@ -1082,6 +1137,11 @@
           "context": "- **[ADR-0011: Schema-Driven Config](./adr/0011-schema-driven-config.md)** — Typed configuration from schemas",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0011](../../../docs/adr/0011-schema-driven-config.md) | accepted | N08, N16 | Deployment config and provenance survive; static `workspace.apps` identity is specialized by ADR-0054. Resource config ",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0011",
@@ -1235,6 +1295,11 @@
           "context": "- **[ADR-0013: Tracing](./adr/0013-tracing.md)** — Runtime recording primitive",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0013](../../../docs/adr/0013-tracing.md) | partially-superseded | N18 | Partial supersession: recording, sampling and lineage survive under current core/observability ownership. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0013",
@@ -1284,6 +1349,11 @@
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0014](../../../docs/adr/0014-core-database-primitive.md) | accepted | N16 | Shared SQLite, restricted writes and subsystem ownership survive; repo-local placement does not. Owner-only shared-SQLite",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "**ADRs:** [0014](../adr/0014-core-database-primitive.md), [0015](../adr/0015-topo-store.md)",
@@ -1343,6 +1413,11 @@
           "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational rendering of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0015](../../../docs/adr/0015-topo-store.md) | accepted | N14, N16 | Queryable graph, snapshots/pins and read-only analysis survive; current artifact authority follows ADR-0054. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "**ADRs:** [0014](../adr/0014-core-database-primitive.md), [0015](../adr/0015-topo-store.md)",
@@ -1422,6 +1497,11 @@
           "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, adapter binding, fixtures",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0016](../../../docs/adr/0016-schema-derived-persistence.md) | accepted | N11 | Schema-first store becomes resource when bound; backend-neutral protocol replaces SQL assumptions. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "**ADRs:** [0016](../adr/0016-schema-derived-persistence.md), [0022](../adr/0022-drizzle-store-connector.md)",
@@ -1548,6 +1628,11 @@
           "fromPath": "docs/index.md"
         },
         {
+          "context": "| [0017](../../../docs/adr/0017-serialized-topo-graph.md) | partially-superseded | N14, N16 | Partial supersession: inspectable committed graph survives; old manifest/content pair and layout do not. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "**ADR:** [0017](../adr/0017-serialized-topo-graph.md)",
           "from": "beta14",
           "fromPath": "docs/releases/beta14.md"
@@ -1580,6 +1665,11 @@
           "context": "- **[ADR-0018: Signal-Driven Governance](./adr/0018-signal-driven-governance.md)** — Governance through signals",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0018](../../../docs/adr/0018-signal-driven-governance.md) | accepted | N12, N19 | Ordinary trails/signals for governance survive. Named framework signal/lock-export examples are absent; dev-intelli",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "**ADR:** [0018](../adr/0018-signal-driven-governance.md)",
@@ -1626,6 +1716,11 @@
           "fromPath": "docs/index.md"
         },
         {
+          "context": "| [0019](../../../docs/adr/0019-hierarchical-command-trees-from-trail-ids.md) | accepted | N17 | Full dotted command paths, executable parents, explicit overrides and graph visibility survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "**ADR:** [0019](../adr/0019-hierarchical-command-trees-from-trail-ids.md)",
           "from": "beta14",
           "fromPath": "docs/releases/beta14.md"
@@ -1660,6 +1755,11 @@
           "fromPath": "docs/index.md"
         },
         {
+          "context": "| [0020](../../../docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md) | accepted | N17 | Truthful flags/positionals, structured input channels and one validation boundary survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "**ADR:** [0020](../adr/0020-flags-for-fields-structured-input-on-the-cli.md)",
           "from": "beta14",
           "fromPath": "docs/releases/beta14.md"
@@ -1687,6 +1787,11 @@
           "context": "- **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "| [0021](../../../docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md) | accepted | N20 | Draft markers, contamination/exclusion, visible debt and promotion survive independently of ADR prose",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "**ADR:** [0021](../adr/0021-draft-state-stays-out-of-the-resolved-graph.md)",
@@ -1825,6 +1930,11 @@
           "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, [ADR-0001: Naming Conventions](adr/0001-naming-conventions.",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
+        },
+        {
+          "context": "| [0023](../../../docs/adr/0023-simplifying-the-trails-lexicon.md) | accepted | N03 | Brand-versus-plain heuristic survives; historical term census does not. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0023",
@@ -1894,6 +2004,11 @@
           "context": "`composeInput` fields are merged with `input` for the implementation. When invoked via a surface, `composeInput` fields are absent. When invoked via `ctx.compose()`, the caller can pass both. See [ADR",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
+        },
+        {
+          "context": "| [0024](../../../docs/adr/0024-typed-trail-composition.md) | accepted | N04 | Typed and dynamic composition, composition-only input and merged validation survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0024",
@@ -1913,6 +2028,11 @@
           "context": "- [ADR-0025: Composition Testing](0025-composition-testing.md) -- `scenario()` and `expectedMatch` for testing concurrent composition flows",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
+        },
+        {
+          "context": "| [0025](../../../docs/adr/0025-composition-testing.md) | accepted | N23 | Examples, assertion strengths, subset semantics, scenarios/references and real-pipeline testing survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0025",
@@ -1977,6 +2097,11 @@
           "context": "[adr-0026]: ../0026-error-taxonomy-as-transport-independent-behavior-contract.md",
           "from": "20260612",
           "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
+        },
+        {
+          "context": "| [0026](../../../docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md) | accepted | N05 | Taxonomy behavior and complete mappings survive; keep current class/code tables owner-d",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0026",
@@ -2036,6 +2161,11 @@
           "context": "- docs/adr/0027-visibility-and-filtering.md",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
+        },
+        {
+          "context": "| [0027](../../../docs/adr/0027-visibility-and-filtering.md) | accepted | N17 | Public/internal visibility, selectors, intent/profiles/permits and subtractive exposure survive under current overlay ru",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0027",
@@ -2060,6 +2190,11 @@
           "context": "- docs/adr/0028-concurrent-crossing.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
+        },
+        {
+          "context": "| [0028](../../../docs/adr/0028-concurrent-crossing.md) | accepted | N04, N06 | Ordered all-branch results, bounded concurrency and independent branch resource scopes survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0028",
@@ -2222,6 +2357,11 @@
           "context": "- docs/adr/0031-backend-agnostic-store-schemas.md",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        },
+        {
+          "context": "| [0031](../../../docs/adr/0031-backend-agnostic-store-schemas.md) | accepted | N11 | Backend-neutral schema, binding realization, versions and change signals survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0031",
@@ -2281,6 +2421,11 @@
           "context": "- docs/adr/0032-derivetrail-and-trail-factories.md",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
+        },
+        {
+          "context": "| [0032](../../../docs/adr/0032-derivetrail-and-trail-factories.md) | accepted | N10 | Factories produce ordinary trails; deriveTrail is lower-level, domain packages own families. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0032",
@@ -2302,6 +2447,11 @@
           "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
         },
         {
+          "context": "| [0033](../../../docs/adr/0033-detour-execution-for-recovery.md) | accepted | N05, N06 | Typed ordered bounded detours, retryability overrides and exhaustion survive; narrow reconcile exception remai",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "| `detour` | **keep** | The term names error-class-specific recovery and has a mechanical boundary from layers: detours branch on a declared error class; layers do not. [ADR-0033](../adr/0033-detour-e",
           "from": "v1-vocabulary-reset",
           "fromPath": "docs/releases/v1-vocabulary-reset.md"
@@ -2319,7 +2469,13 @@
     {
       "created": "2026-04-12",
       "depends_on": ["31"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [0034](../../../docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md) | accepted | N11 | Portable equality, accessor tiers, identity/generated fields, versions and correctne",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": "0034",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md",
@@ -2394,6 +2550,11 @@
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
         {
+          "context": "| [0035](../../../docs/adr/0035-surface-apis-render-the-graph.md) | accepted | N17 | Derive/create/surface responsibility ladder survives; update examples to current exports. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes the lexicon work to ADR-0023, but the surface-API renames listed here are governed by [ADR-0035: Surface APIs Render the",
           "from": "beta15",
           "fromPath": "docs/releases/beta15.md"
@@ -2426,6 +2587,11 @@
           "context": "Use it with [Warden](../warden.md), [ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and [ADR-0037](../adr/0037-owner-first-authority.md).",
           "from": "warden-rules",
           "fromPath": "docs/contributing/warden-rules.md"
+        },
+        {
+          "context": "| [0036](../../../docs/adr/0036-warden-rules-ship-only-as-trails.md) | accepted | N19 | Public rule trails and registry; raw rule objects stay private. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "4. Wrap built-in rules as trails, in line with [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md).",
@@ -2470,6 +2636,11 @@
           "context": "Use it with [Warden](../warden.md), [ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and [ADR-0037](../adr/0037-owner-first-authority.md).",
           "from": "warden-rules",
           "fromPath": "docs/contributing/warden-rules.md"
+        },
+        {
+          "context": "| [0037](../../../docs/adr/0037-owner-first-authority.md) | accepted | N13, N19 | One typed owner and rule-local policy boundary survive; merge ownership law with ADR-0051. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0037",
@@ -2504,6 +2675,11 @@
           "context": "- docs/adr/0038-typed-signal-emission.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "| [0038](../../../docs/adr/0038-typed-signal-emission.md) | accepted | N12 | Typed signals, producer/consumer edges and observable consumer failures survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "| `fires` | **keep** | The plural declaration `fires: [...]` mirrors the runtime verb `ctx.fire(...)` and pairs with consumer-side `on: [...]`; the [lexicon](../lexicon.md#fires) teaches that producer",
@@ -2553,6 +2729,11 @@
           "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- activation sources and WebSocket subscriptions would both consume typed signal contracts",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "| [0039](../../../docs/adr/0039-reactive-trail-activation.md) | accepted | N12 | Activation is ordinary invocation; source declaration and runtime materialization remain distinct. Guards filter withou",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0039",
@@ -2568,6 +2749,11 @@
       "created": "2026-04-19",
       "depends_on": ["9", "16", "22", "23"],
       "inbound": [
+        {
+          "context": "| [0040](../../../docs/adr/0040-resource-scoped-store-signal-identity.md) | accepted | N11, N12 | Resource-scoped derived signal identity and late binding survive; ambiguous binding fails closed. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
         {
           "context": "- [ADR-0040: Resource-Scoped Store Signal Identity](./adr/0040-resource-scoped-store-signal-identity.md)",
           "from": "store-signal-identity-migration",
@@ -2631,6 +2817,11 @@
           "context": "- [ADR-0041: Unified Observability](../adr/0041-unified-observability.md)",
           "from": "layer-evolution",
           "fromPath": "docs/migration/layer-evolution.md"
+        },
+        {
+          "context": "| [0041](../../../docs/adr/0041-unified-observability.md) | accepted | N18 | Current observability owner split survives; removed compatibility package is history. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0041",
@@ -2680,6 +2871,11 @@
           "context": "A package needs Topography only when it crosses a process boundary or compares state across time. The runtime never reads Topography artifacts to execute trails — every `topo()` call resolves entirely",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
+        },
+        {
+          "context": "| [0042](../../../docs/adr/0042-core-topography-boundary-doctrine.md) | accepted | N14 | Core in-memory versus Topography durable facts; runtime artifact independence remains law. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0042",
@@ -2729,6 +2925,11 @@
           "context": "How to migrate apps off the legacy layer model onto the typed `Layer` model that ships with Trails today. See [ADR-0043: Layer Evolution](../adr/0043-layer-evolution.md) for the full rationale.",
           "from": "layer-evolution",
           "fromPath": "docs/migration/layer-evolution.md"
+        },
+        {
+          "context": "| [0043](../../../docs/adr/0043-layer-evolution.md) | accepted | N06 | Fixed framework stages, declared layer inputs and implementation isolation survive. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0043",
@@ -2753,6 +2954,11 @@
           "context": "- [ADR-0044: Trail Versioning](0044-trail-versioning.md)",
           "from": "0048",
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
+          "context": "| [0044](../../../docs/adr/0044-trail-versioning.md) | superseded | Historical lineage: N21 | Explicitly superseded by ADR-0048; no independent normative clauses, only versioning lineage. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0044",
@@ -2772,6 +2978,11 @@
           "context": "- [ADR-0045: v1 Resolved Graph Error Scope](0045-v1-resolved-graph-error-scope.md)",
           "from": "0046",
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
+        },
+        {
+          "context": "| [0045](../../../docs/adr/0045-v1-resolved-graph-error-scope.md) | accepted | N05, N14 | Authored/derived/inferred/observed distinction; no exhaustive runtime-error claims. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error c",
@@ -2858,6 +3069,11 @@
           "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
         },
         {
+          "context": "| [0046](../../../docs/adr/0046-lock-v3-artifact-family.md) | superseded | Historical lineage: N14, N16 | Explicitly superseded by ADR-0054; preserve durable-graph/migration rationale through successo",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
           "from": "topo-store-reference",
           "fromPath": "docs/topo-store-reference.md"
@@ -2905,6 +3121,11 @@
           "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
           "from": "20260613",
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        },
+        {
+          "context": "| [0047](../../../docs/adr/0047-stable-release-line-discipline.md) | accepted | N24 | Lockstep family and 0.x compatibility survive; one-time source reset is historical. Preserve latest/explicit-prere",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         },
         {
           "context": "The approved initial `1.0.0` to `0.2.0` source reset is a one-time exception: it requires `channel:stable` and `publish:manual`, with no release-size label because the version decreases. Only the publ",
@@ -2968,6 +3189,11 @@
           "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md"
         },
         {
+          "context": "| [0048](../../../docs/adr/0048-trail-versioning-v3.md) | accepted | N21 | Sole current versioning model: explicit historical schemas, revisions/forks, lifecycle, markers and negotiation. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "| `transpose` | **keep** | The field has a narrow job on a revision entry: pure input/output translation between a historical contract and current, without runtime context. The [lexicon](../lexicon.md",
           "from": "v1-vocabulary-reset",
           "fromPath": "docs/releases/v1-vocabulary-reset.md"
@@ -2990,6 +3216,11 @@
           "context": "- **Cutover 4** ([ADR-0049](0049-composition-is-compose-not-cross.md)): Composition vocabulary cleanup. Retired `cross` / `crosses` in favor of `compose` / `composes`, including `ctx.compose()`, `comp",
           "from": "0001",
           "fromPath": "docs/adr/0001-naming-conventions.md"
+        },
+        {
+          "context": "| [0049](../../../docs/adr/0049-composition-is-compose-not-cross.md) | accepted | N03, N04 | Current compose vocabulary survives; migration story historical. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0049",
@@ -3036,6 +3267,11 @@
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
         {
+          "context": "| [0050](../../../docs/adr/0050-surface-accommodations-preserve-trail-identity.md) | accepted | N17 | Identity/fork test survives through current scalar/list overlay carrier. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [AD",
           "from": "cli",
           "fromPath": "docs/surfaces/cli.md"
@@ -3078,6 +3314,11 @@
           "context": "[ADR-0051](0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a voc",
           "from": "0052",
           "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
+        },
+        {
+          "context": "| [0051](../../../docs/adr/0051-package-ownership-follows-natural-altitude.md) | accepted | N13 | One natural reusable owner; consumers compose rather than reimplement. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0051",
@@ -3117,6 +3358,11 @@
           "context": "- [ADR-0052](../0052-overlays-one-extension-mechanism.md#the-category-question): one overlay mechanism and tolerant preservation of unknown facts.",
           "from": "20261028",
           "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
+        },
+        {
+          "context": "| [0052](../../../docs/adr/0052-overlays-one-extension-mechanism.md) | accepted | N15, N17 | One extension/provenance/hash/preservation mechanism; app-authored binding authority and shared collection ",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0052",
@@ -3136,6 +3382,11 @@
           "context": "- [ADR-0053: Regrade Moves Governed Contract Change](0053-regrade-moves-governed-contract-change.md)",
           "from": "0054",
           "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
+        },
+        {
+          "context": "| [0053](../../../docs/adr/0053-regrade-moves-governed-contract-change.md) | accepted | N19, N22 | Owner facts, reviewable plans, conservative apply, compact immutable receipts and durable governance ",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0053",
@@ -3190,6 +3441,11 @@
           "context": "- [ADR-0054](../0054-project-substrate-names-its-truth.md#one-app-owns-one-app-lock): current app-root lock ownership; [workspace view](../0054-project-substrate-names-its-truth.md#a-workspace-derives",
           "from": "20261028",
           "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
+        },
+        {
+          "context": "| [0054](../../../docs/adr/0054-project-substrate-names-its-truth.md) | accepted | N08, N16 | App-owned locks, static identity, partitioned views, machine-local observations and proven freshness survi",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": "0054",
@@ -3204,7 +3460,13 @@
     {
       "created": "2026-10-28",
       "depends_on": ["0", "5", "6", "26", "35", "47", "50", "52"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [0055](../../../docs/adr/0055-mcp-stateless-core-on-sdk-v2.md) | accepted | N25 | Accepted target-state must survive; implementation gaps do not downgrade status or prove delivery. |",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": "0055",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md",

@@ -1,0 +1,181 @@
+{
+  "baseline": "3cb861758b897562c7e32d9ad01a6d6f217d780d",
+  "resetCutoff": null,
+  "records": [
+    {
+      "id": "N01",
+      "title": "A clean canon preserves its history",
+      "filename": "0001-a-clean-canon-preserves-its-history.md",
+      "dependsOn": [],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N02",
+      "title": "The trail is the product",
+      "filename": "0002-the-trail-is-the-product.md",
+      "dependsOn": ["N01"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N03",
+      "title": "Names reveal the contract",
+      "filename": "0003-names-reveal-the-contract.md",
+      "dependsOn": ["N02"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N04",
+      "title": "Composition preserves the trail contract",
+      "filename": "0004-composition-preserves-the-trail-contract.md",
+      "dependsOn": ["N02", "N03"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N05",
+      "title": "Failure is a portable contract",
+      "filename": "0005-failure-is-a-portable-contract.md",
+      "dependsOn": ["N04"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N06",
+      "title": "Every invocation uses the same execution pipeline",
+      "filename": "0006-every-invocation-uses-the-same-pipeline.md",
+      "dependsOn": ["N04", "N05"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N07",
+      "title": "Infrastructure is declared as resources",
+      "filename": "0007-infrastructure-is-declared-as-resources.md",
+      "dependsOn": ["N04", "N05"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N08",
+      "title": "Configuration has a schema and a lifecycle",
+      "filename": "0008-configuration-has-a-schema-and-a-lifecycle.md",
+      "dependsOn": ["N07"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N09",
+      "title": "Authority is checked at the trail boundary",
+      "filename": "0009-authority-is-checked-at-the-trail-boundary.md",
+      "dependsOn": ["N04", "N05", "N07"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N10",
+      "title": "Domain structure derives ordinary trails",
+      "filename": "0010-domain-structure-derives-ordinary-trails.md",
+      "dependsOn": ["N04"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N11",
+      "title": "Persistence binds a schema to a backend",
+      "filename": "0011-persistence-binds-a-schema-to-a-backend.md",
+      "dependsOn": ["N07", "N10"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N12",
+      "title": "Signals activate ordinary trails",
+      "filename": "0012-signals-activate-ordinary-trails.md",
+      "dependsOn": ["N04", "N06", "N07"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N13",
+      "title": "Reusable facts have one natural owner",
+      "filename": "0013-reusable-facts-have-one-natural-owner.md",
+      "dependsOn": ["N02", "N03"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N14",
+      "title": "The resolved graph records what is known",
+      "filename": "0014-the-resolved-graph-records-what-is-known.md",
+      "dependsOn": ["N04", "N05", "N12", "N13"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N15",
+      "title": "Overlays are the graph's extension mechanism",
+      "filename": "0015-overlays-are-the-graphs-extension-mechanism.md",
+      "dependsOn": ["N14"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N16",
+      "title": "Each app owns its committed graph",
+      "filename": "0016-each-app-owns-its-committed-graph.md",
+      "dependsOn": ["N08", "N14", "N15"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N17",
+      "title": "Surfaces preserve capability identity",
+      "filename": "0017-surfaces-preserve-capability-identity.md",
+      "dependsOn": ["N04", "N05", "N09", "N14", "N15"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N18",
+      "title": "Observation follows execution without owning it",
+      "filename": "0018-observation-follows-execution-without-owning-it.md",
+      "dependsOn": ["N06", "N12", "N13"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N19",
+      "title": "Governance uses the same contracts it checks",
+      "filename": "0019-governance-uses-the-contracts-it-checks.md",
+      "dependsOn": ["N04", "N13", "N14"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N20",
+      "title": "Draft contracts stay outside established truth",
+      "filename": "0020-draft-contracts-stay-outside-established-truth.md",
+      "dependsOn": ["N14", "N19"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N21",
+      "title": "Trail versions preserve historical contracts",
+      "filename": "0021-trail-versions-preserve-historical-contracts.md",
+      "dependsOn": ["N04", "N05", "N14", "N17"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N22",
+      "title": "Governed change leaves verifiable receipts",
+      "filename": "0022-governed-change-leaves-verifiable-receipts.md",
+      "dependsOn": ["N14", "N19", "N20", "N21"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N23",
+      "title": "Examples and scenarios exercise the real contract",
+      "filename": "0023-examples-and-scenarios-exercise-the-real-contract.md",
+      "dependsOn": ["N04", "N06", "N07", "N11", "N12", "N17", "N21"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N24",
+      "title": "Releases derive from owned compatibility facts",
+      "filename": "0024-releases-derive-from-owned-compatibility-facts.md",
+      "dependsOn": ["N13", "N14", "N21", "N22"],
+      "status": "proposed-outline"
+    },
+    {
+      "id": "N25",
+      "title": "MCP uses explicit request authority and application state",
+      "filename": "0025-mcp-uses-explicit-request-authority-and-state.md",
+      "dependsOn": ["N09", "N17", "N18"],
+      "status": "proposed-outline"
+    }
+  ]
+}
