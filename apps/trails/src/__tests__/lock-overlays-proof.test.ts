@@ -111,6 +111,7 @@ describe('lock overlays proof (TRL-1199 compile-path collection)', () => {
     expect(overlays).toEqual({
       cloudflare: {
         bindings: [{ binding: 'FLAGS', resourceId: 'flags' }],
+        schedules: [],
       },
       surfaces: {
         cli: { ls: 'flags.read' },
