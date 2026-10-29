@@ -8,11 +8,11 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { Result, topo, trail } from '@ontrails/core';
+import { Result, schedule, topo, trail } from '@ontrails/core';
 import { store as defineStore } from '@ontrails/store';
 import { z } from 'zod';
 
-import { cloudflareOverlay } from '../facts.js';
+import { CLOUDFLARE_CRON_REALIZATION, cloudflareOverlay } from '../facts.js';
 import { cloudflareD1 } from '../d1/index.js';
 import { cloudflareKv } from '../kv/index.js';
 import { cloudflareQueue } from '../queues/index.js';
@@ -47,6 +47,7 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'FLAGS', resourceId: 'flags' }],
+      schedules: [],
     });
   });
 
@@ -76,6 +77,7 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'DB', resourceId: 'notes.store' }],
+      schedules: [],
     });
   });
 
@@ -95,6 +97,7 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'JOBS', resourceId: 'jobs' }],
+      schedules: [],
     });
   });
 
@@ -114,6 +117,7 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'ASSETS', resourceId: 'assets' }],
+      schedules: [],
     });
   });
 
@@ -137,6 +141,7 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'FLAGS', resourceId: 'flags' }],
+      schedules: [],
     });
   });
 
@@ -149,6 +154,77 @@ describe('cloudflareOverlay', () => {
     });
     const app = topo('cf-facts-empty', { ping });
 
-    expect(cloudflareOverlay.derive(app)).toEqual({ bindings: [] });
+    expect(cloudflareOverlay.derive(app)).toEqual({
+      bindings: [],
+      schedules: [],
+    });
+  });
+
+  test('derives schedule() sources with normalized crons and the UTC-only realization', () => {
+    const heartbeat = schedule('heartbeat', { cron: '*/5   *  * * *' });
+    const nightly = schedule('nightly', {
+      cron: '0 3 * * *',
+      timezone: 'America/Chicago',
+    });
+    const beat = trail('heartbeat.record', {
+      implementation: () => Result.ok({ beat: true }),
+      input: z.object({}),
+      on: [heartbeat],
+      output: z.object({ beat: z.boolean() }),
+    });
+    const sweep = trail('sweep.run', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [nightly],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const app = topo('cf-facts-schedules', { beat, sweep });
+
+    expect(cloudflareOverlay.derive(app)).toEqual({
+      bindings: [],
+      schedules: [
+        {
+          cron: '*/5 * * * *',
+          realization: CLOUDFLARE_CRON_REALIZATION,
+          sourceId: 'heartbeat',
+          trailId: 'heartbeat.record',
+        },
+        {
+          cron: '0 3 * * *',
+          realization: CLOUDFLARE_CRON_REALIZATION,
+          sourceId: 'nightly',
+          timezone: 'America/Chicago',
+          trailId: 'sweep.run',
+        },
+      ],
+    });
+    expect(
+      cloudflareOverlay.schema.safeParse(cloudflareOverlay.derive(app)).success
+    ).toBe(true);
+  });
+
+  test('schedule facts are ordered by trail id, source id, then cron', () => {
+    const a = schedule('a', { cron: '1 * * * *' });
+    const b = schedule('b', { cron: '2 * * * *' });
+    const zeta = trail('zeta.run', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [b, a],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const alpha = trail('alpha.run', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [b],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const app = topo('cf-facts-schedule-order', { alpha, zeta });
+    const first = cloudflareOverlay.derive(app);
+    expect(JSON.stringify(cloudflareOverlay.derive(app))).toBe(
+      JSON.stringify(first)
+    );
+    expect(
+      first.schedules.map((entry) => `${entry.trailId}:${entry.sourceId}`)
+    ).toEqual(['alpha.run:b', 'zeta.run:a', 'zeta.run:b']);
   });
 });
