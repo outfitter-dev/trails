@@ -52,46 +52,48 @@ const workspaceManifest = (path: string, tree: GitTree): boolean =>
     new Bun.Glob(pattern).match(posix.dirname(path))
   );
 
-/** Intermediate paths can be introduced and retired between the comparison endpoints. */
+/** Enumerate every removal, including intermediate paths absent from both endpoints. */
 const removedInHistory = (
   root: string,
   before: string,
-  head: string,
-  path: string
-): boolean => {
+  head: string
+): ReadonlySet<string> => {
+  const removed = new Set<string>();
   const commits = gitOutput(root, [
-    'log',
-    '--format=%H',
-    '--full-history',
-    '-m',
-    '--no-renames',
-    '--diff-filter=DT',
+    'rev-list',
+    '--parents',
     `${before}..${head}`,
-    '--',
-    path,
   ])
     .trim()
     .split('\n')
     .filter(Boolean);
-  return commits.some((commit) => {
-    if (regularFile(readGitTree(root, commit).files.get(path))) {
-      return false;
+  for (const record of commits) {
+    const [commit, ...parents] = record.split(' ');
+    for (const parent of parents) {
+      const changes = readGitChanges(root, parent, commit).filter(
+        (change) =>
+          change.status === 'D' ||
+          change.status.startsWith('R') ||
+          change.status === 'T'
+      );
+      if (changes.length === 0) {
+        continue;
+      }
+      const oldTree = readGitTree(root, parent);
+      const tree = readGitTree(root, commit);
+      for (const change of changes) {
+        if (
+          (change.status !== 'T' ||
+            !regularFile(tree.files.get(change.from))) &&
+          regularFile(oldTree.files.get(change.from)) &&
+          documentationPath(change.from, oldTree)
+        ) {
+          removed.add(change.from);
+        }
+      }
     }
-    const parents = gitOutput(root, [
-      'rev-list',
-      '--parents',
-      '-n',
-      '1',
-      commit,
-    ])
-      .trim()
-      .split(' ')
-      .slice(1);
-    return parents.some((parent) => {
-      const tree = readGitTree(root, parent);
-      return regularFile(tree.files.get(path)) && documentationPath(path, tree);
-    });
-  });
+  }
+  return removed;
 };
 
 const parseLedger = (raw: string): readonly MigrationEntry[] => {
@@ -244,25 +246,9 @@ export const checkDocumentationMigrations = (
         );
       }
     }
-    const removed = readGitChanges(root, before, head)
-      .filter(
-        (change) =>
-          change.status === 'D' ||
-          change.status.startsWith('R') ||
-          (change.status === 'T' && !regularFile(tree.files.get(change.from)))
-      )
-      .map((change) => change.from)
-      .filter(
-        (path) =>
-          documentationPath(path, oldTree) &&
-          regularFile(oldTree.files.get(path))
-      );
+    const removed = removedInHistory(root, before, head);
     for (const entry of entries) {
-      if (
-        !priorSources.has(entry.from) &&
-        !removed.includes(entry.from) &&
-        !removedInHistory(root, before, head, entry.from)
-      ) {
+      if (!priorSources.has(entry.from) && !removed.has(entry.from)) {
         failures.push(
           `${entry.from}: new migration entry has no removed public source in this comparison`
         );
