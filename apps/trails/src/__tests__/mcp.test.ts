@@ -101,6 +101,7 @@ describe('Trails MCP surface shaping', () => {
 
     expect(tools.map((tool) => tool.name).toSorted()).toEqual([
       'trails_adapter_check',
+      'trails_add_resource',
       'trails_add_surface',
       'trails_add_trail',
       'trails_adjust_regrade',
