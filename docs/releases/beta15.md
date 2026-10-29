@@ -197,6 +197,8 @@ import { createLogtapeSink } from '@ontrails/logtape';
 const sink = createLogtapeSink({ logger });
 ```
 
+<!-- fix ::: Qualify this as the beta.15 OTel path and direct current v1 readers to @ontrails/observability/otel (docs/migration/logging-to-observe.md). #stale -->
+
 Use `@ontrails/tracing/otel` for the v1 OpenTelemetry trace adapter:
 
 ```ts

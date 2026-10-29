@@ -55,6 +55,7 @@ resultAccessorNames                // canonical Result instance accessors used b
 Result.ok(value?), Result.err(error), Result.combine(results)
 Result.fromFetch(url, opts?), Result.fromJson(string), Result.toJson(value)
 
+// <!-- fix ::: Include the public WorkspaceShiftError export in this taxonomy list (packages/core/src/index.ts). #drift -->
 // Error taxonomy
 TrailsError, ValidationError, NotFoundError, VersionNotSupportedError, AlreadyExistsError,
 ConflictError, PermissionError, PermitError, AuthError, TimeoutError,

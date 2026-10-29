@@ -498,6 +498,8 @@ The store declaration stays kind-agnostic. The binding (native or adapter) choos
 
 `render` presents derived facts through a surface or format. CLI flags render schema fields, HTTP routes render intent and input contracts, and public error renderings redact diagnostics for callers. The framework derives facts and renders them for consumers; developers author the source.
 
+<!-- todo ::: Reconcile the aliases-API exclusion below with the supported trail-owned cli.aliases field; ADR-0052 removes app-module alias carriers (packages/core/src/derive.ts; trail.ts). #drift #verify -->
+
 ### Other plain terms
 
 | Term | Concept |

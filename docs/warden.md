@@ -71,6 +71,8 @@ jobs:
           fail-on: error
 ```
 
+<!-- fix ::: Document the main/master and empty-ref exceptions that select unversioned @ontrails/warden (.github/actions/check/action.yml). #drift -->
+
 The action wraps `bunx @ontrails/warden --ci`. When the action is used from a version tag such as `@v1.0.0`, it runs `@ontrails/warden@1.0.0` by default; use the `warden-version` input only when the action tag and npm package version must intentionally diverge. Workflows that pin the action by SHA or by a non-version branch must set `warden-version` explicitly because those refs do not identify an npm package version. Framework PR CI should keep using the local workspace bin so PRs test branch code rather than the latest published package.
 
 For non-GitHub CI, call the bin directly after installing Bun and project dependencies:

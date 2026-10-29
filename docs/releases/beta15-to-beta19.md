@@ -40,6 +40,8 @@ bun add -d @ontrails/trails@1.0.0-beta.19 \
 
 If the app authors its own HTTP adapter, add `@ontrails/adapter-kit@1.0.0-beta.19` (new in beta.19) as a dev dependency. See [Beta 18 → Beta 19](#beta-18-to-beta-19).
 
+<!-- fix ::: Preserve beta.19 instructions but update the current-prerelease claims here and under Observability to the package roles in docs/migration/logging-to-observe.md. #stale -->
+
 If the app uses observability or LogTape/Pino forwarding, add `@ontrails/observe`, `@ontrails/tracing`, and one of `@ontrails/logtape` or `@ontrails/pino` from the same beta line. These standalone forwarding packages are the beta.19 shape; current prereleases use subpaths of `@ontrails/observe` instead.
 
 During the beta line, `latest` may intentionally lag behind `beta`. The [Beta Channel Policy](./beta-channel-policy.md) explains the dist-tag posture, install pins versus `@beta`, and read-only registry checks. Do not mix `beta.15`, `beta.18`, `beta.19`, and `@beta` ranges in one app.

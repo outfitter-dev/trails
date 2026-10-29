@@ -58,6 +58,8 @@ Remove imports of `AuthConnector`, `authConnectorSchema`, `JwtConnectorOptions`,
 
 ## Auth Resource Config
 
+<!-- fix ::: Place adapter configuration under the auth resource configValues entry instead of passing it as ResourceContext to create (packages/permits/src/auth-resource.ts and __tests__/boundary.test.ts). #bug -->
+
 Rename the auth resource discriminant:
 
 ```diff
