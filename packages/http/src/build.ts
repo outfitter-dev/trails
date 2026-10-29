@@ -87,6 +87,10 @@ export interface HttpExecutionContext {
 }
 
 export interface ResolveHttpPermitInput {
+  /** Candidate from x-api-key; the configured resolver decides whether to trust it. */
+  readonly apiKey?: string | undefined;
+  /** Candidate from x-auth-token; no verification is implied. */
+  readonly authToken?: string | undefined;
   readonly authorization?: string | undefined;
   readonly bearerToken?: string | undefined;
   readonly headers?: HttpHeaderSource | undefined;
@@ -222,17 +226,6 @@ const parseBearerAuthorization = (
   return Result.ok(token);
 };
 
-const isBearerAuthorization = (authorization: string | undefined): boolean =>
-  authorization !== undefined && /^Bearer(?:\s|$)/i.test(authorization.trim());
-
-const shouldResolveHttpPermit = (
-  options: DeriveHttpRoutesOptions,
-  authorization: string | undefined,
-  requiresPermit: boolean
-): boolean =>
-  requiresPermit ||
-  (options.resolvePermit !== undefined && isBearerAuthorization(authorization));
-
 const resolveHttpPermit = async (
   options: DeriveHttpRoutesOptions,
   request: HttpExecutionContext | undefined,
@@ -240,22 +233,24 @@ const resolveHttpPermit = async (
   requiresPermit: boolean
 ): Promise<Result<BasePermit | undefined, Error>> => {
   const authorization = readHeader(request?.headers, 'authorization');
-  if (!shouldResolveHttpPermit(options, authorization, requiresPermit)) {
-    return Result.ok();
-  }
-  const token = parseBearerAuthorization(authorization);
-  if (token.isErr()) {
-    return token;
-  }
-  if (token.value === undefined) {
-    return Result.ok();
-  }
   if (options.resolvePermit === undefined) {
+    // Keep legacy protected-route header errors when no custom policy exists.
+    if (requiresPermit) {
+      const parsed = parseBearerAuthorization(authorization);
+      if (parsed.isErr()) {
+        return parsed;
+      }
+    }
     return Result.ok();
   }
+  // Bearer parsing is a candidate projection, not an authentication gate.
+  // Preserve raw Authorization so the selected adapter owns its scheme policy.
+  const token = parseBearerAuthorization(authorization);
   const resolved = await options.resolvePermit({
+    apiKey: readHeader(request?.headers, 'x-api-key'),
+    authToken: readHeader(request?.headers, 'x-auth-token'),
     authorization,
-    bearerToken: token.value,
+    bearerToken: token.isOk() ? token.value : undefined,
     headers: request?.headers,
     requestId,
   });

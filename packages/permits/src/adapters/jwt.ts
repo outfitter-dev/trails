@@ -386,8 +386,22 @@ export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
   const authenticate = async (
     input: PermitExtractionInput
   ): Promise<Result<Permit | null, AuthError>> => {
-    if (!input.bearerToken) {
+    let token = input.bearerToken;
+    if (
+      input.authorization !== undefined &&
+      /^\s*Bearer(?:\s|$)/i.test(input.authorization)
+    ) {
+      const match = input.authorization.match(/^Bearer +([\w.~+/-]+=*)$/i);
+      token = match?.[1];
+      if (token === undefined) {
+        return authErr('invalid_token', 'Malformed Bearer credential');
+      }
+    }
+    if (token === undefined) {
       return Result.ok(null);
+    }
+    if (token.length === 0) {
+      return authErr('invalid_token', 'Selected Bearer credential is empty');
     }
     if (!options.secret && (!options.issuer || !options.audience)) {
       return authErr(
@@ -395,7 +409,7 @@ export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
         'Configure a secret or an issuer and expected audience'
       );
     }
-    const decoded = await decodeAndVerify(input.bearerToken, options);
+    const decoded = await decodeAndVerify(token, options);
     return decoded.isErr() ? decoded : payloadToPermit(decoded.value, options);
   };
 

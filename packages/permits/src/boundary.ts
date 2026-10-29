@@ -25,8 +25,11 @@ type LocatedAuthResource =
   | { readonly kind: 'override'; readonly value: unknown }
   | { readonly kind: 'declared'; readonly resource: AnyResource };
 
-export interface ResolvePermitFromBearerTokenOptions {
-  readonly bearerToken: string;
+export interface ResolvePermitFromInputOptions {
+  readonly bearerToken?: string | undefined;
+  readonly authorization?: string | undefined;
+  readonly apiKey?: string | undefined;
+  readonly authToken?: string | undefined;
   readonly graph: Topo;
   readonly requestId: string;
   readonly surface: PermitExtractionInput['surface'];
@@ -38,6 +41,11 @@ export interface ResolvePermitFromBearerTokenOptions {
   readonly env?: Record<string, string | undefined> | undefined;
   readonly workspaceRoot?: string | undefined;
   readonly missingAuthResourceMessage?: string | undefined;
+}
+
+/** Options for the strict Bearer-token compatibility boundary. */
+export interface ResolvePermitFromBearerTokenOptions extends ResolvePermitFromInputOptions {
+  readonly bearerToken: string;
   readonly nullPermitMessage?: string | undefined;
 }
 
@@ -72,7 +80,7 @@ const lookupAuthResource = (
 const materializeAuthAdapter = async (
   resolved: LocatedAuthResource,
   options: Pick<
-    ResolvePermitFromBearerTokenOptions,
+    ResolvePermitFromInputOptions,
     'configValues' | 'cwd' | 'env' | 'workspaceRoot'
   >
 ): Promise<Result<AuthAdapter, Error>> => {
@@ -117,18 +125,29 @@ const materializeAuthAdapter = async (
 };
 
 /**
- * Resolve a surface-extracted bearer token to a `BasePermit`.
+ * Resolve normalized credential candidates through the configured auth adapter.
  *
  * Surfaces own credential extraction. This helper owns the shared auth
  * adapter lookup, invocation, error normalization, and BasePermit rendering.
+ * An adapter's null outcome means no accepted credential was selected; a
+ * selected credential that fails verification must return an error.
+ *
+ * @example
+ * const result = await resolvePermitFromInput({
+ *   graph, requestId: 'request-1', surface: 'http', apiKey: 'selected-key',
+ * });
  */
-export const resolvePermitFromBearerToken = async (
-  options: ResolvePermitFromBearerTokenOptions
-): Promise<Result<BasePermit, Error>> => {
+const resolveCredentialPermit = async (
+  options: ResolvePermitFromInputOptions,
+  bearerCompatibility: boolean
+): Promise<Result<BasePermit | null, Error>> => {
   const located = lookupAuthResource(
     options.graph,
     options.resources,
-    options.missingAuthResourceMessage
+    options.missingAuthResourceMessage ??
+      (bearerCompatibility
+        ? undefined
+        : 'Credential auth requires an auth adapter. Register authResource from @ontrails/permits in your topo.')
   );
   if (located.isErr()) {
     return located;
@@ -138,7 +157,16 @@ export const resolvePermitFromBearerToken = async (
     return adapterResult;
   }
   const inputResult = permitExtractionInputSchema.safeParse({
-    bearerToken: options.bearerToken,
+    ...(options.bearerToken === undefined
+      ? {}
+      : { bearerToken: options.bearerToken }),
+    ...(options.authorization === undefined
+      ? {}
+      : { authorization: options.authorization }),
+    ...(options.apiKey === undefined ? {} : { apiKey: options.apiKey }),
+    ...(options.authToken === undefined
+      ? {}
+      : { authToken: options.authToken }),
     ...(options.headers === undefined ? {} : { headers: options.headers }),
     requestId: options.requestId,
     ...(options.sessionId === undefined
@@ -148,9 +176,14 @@ export const resolvePermitFromBearerToken = async (
   });
   if (!inputResult.success) {
     return Result.err(
-      new ValidationError('Invalid bearer token extraction input.', {
-        context: { issues: inputResult.error.issues },
-      })
+      new ValidationError(
+        bearerCompatibility
+          ? 'Invalid bearer token extraction input.'
+          : 'Invalid credential extraction input.',
+        {
+          context: { issues: inputResult.error.issues },
+        }
+      )
     );
   }
   let authResult: Awaited<ReturnType<AuthAdapter['authenticate']>>;
@@ -162,9 +195,14 @@ export const resolvePermitFromBearerToken = async (
         ? { cause: error, context: { code: 'invalid_token' } }
         : { context: { code: 'invalid_token' } };
     return Result.err(
-      new AuthError('Auth adapter threw while authenticating bearer token', {
-        ...errorOptions,
-      })
+      new AuthError(
+        bearerCompatibility
+          ? 'Auth adapter threw while authenticating bearer token'
+          : 'Auth adapter threw while authenticating credentials',
+        {
+          ...errorOptions,
+        }
+      )
     );
   }
   if (authResult.isErr()) {
@@ -178,15 +216,7 @@ export const resolvePermitFromBearerToken = async (
     return Result.err(new AuthError(message, { context: { code } }));
   }
   if (authResult.value === null) {
-    return Result.err(
-      new AuthError(
-        options.nullPermitMessage ??
-          'Auth adapter did not produce a permit for bearer token',
-        {
-          context: { code: 'missing_credentials' },
-        }
-      )
-    );
+    return Result.ok(null);
   }
   const permit = basePermitSchema.safeParse(authResult.value);
   if (!permit.success) {
@@ -197,4 +227,44 @@ export const resolvePermitFromBearerToken = async (
     );
   }
   return Result.ok(permit.data);
+};
+
+/**
+ * Resolve normalized input; null means the adapter selected no credential.
+ *
+ * @example
+ * const result = await resolvePermitFromInput({
+ *   graph, requestId: 'request-1', surface: 'http', apiKey: 'selected-key',
+ * });
+ */
+export const resolvePermitFromInput = (
+  options: ResolvePermitFromInputOptions
+): Promise<Result<BasePermit | null, Error>> =>
+  resolveCredentialPermit(options, false);
+
+/**
+ * Resolve a Bearer token, rejecting an adapter's null outcome as before.
+ *
+ * @example
+ * const result = await resolvePermitFromBearerToken({
+ *   graph, requestId: 'request-1', surface: 'http', bearerToken: 'token',
+ * });
+ */
+export const resolvePermitFromBearerToken = async (
+  options: ResolvePermitFromBearerTokenOptions
+): Promise<Result<BasePermit, Error>> => {
+  const result = await resolveCredentialPermit(options, true);
+  if (result.isErr()) {
+    return result;
+  }
+  if (result.value !== null) {
+    return Result.ok(result.value);
+  }
+  return Result.err(
+    new AuthError(
+      options.nullPermitMessage ??
+        'Auth adapter did not produce a permit for bearer token',
+      { context: { code: 'missing_credentials' } }
+    )
+  );
 };

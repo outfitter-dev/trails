@@ -97,6 +97,33 @@ const adapter = createJwtAdapter({
 
 The same options work in `authResource` configuration with `adapter: 'jwt'`. Existing apps using `secret` need no migration. `requireExpiration: false` remains available for secret-backed tokens; issuer mode always requires expiration. The default clock tolerance for `exp` and `nbf` remains 60 seconds in both modes. Tokens are expired when `exp` equals the current time minus the tolerance; this corrects the previous HS256 boundary accepting equality. This addition keeps the existing `Permit` fields and does not provide sign-in, token minting, or DPoP verification.
 
+The JWT adapter accepts Bearer credentials only. A raw Authorization value with a Bearer scheme is selected before the normalized `bearerToken` candidate; malformed presented Bearer and selected empty tokens fail authentication rather than becoming anonymous access. An invalid selected Bearer is never rescued by an alternate API key or token. Other Authorization schemes are not JWT credentials. Existing normalized Bearer callers remain supported.
+
+### Opaque tokens and API-key lookup
+
+Use `createTokenCallbackAdapter` when verification delegates to a portable `kv` or `store` lookup, a provider API, or a Service Binding. The helper selects one credential before lookup and does not retry another source.
+
+```typescript
+import { Result } from '@ontrails/core';
+import { createTokenCallbackAdapter } from '@ontrails/permits';
+
+// keys is supplied by the app's portable kv/store resource, not a host SDK.
+const adapter = createTokenCallbackAdapter({
+  extractToken: input => input.apiKey,
+  lookup: async token => Result.ok(await keys.get(token)),
+});
+```
+
+This policy trusts only `x-api-key`. `undefined` means that source is absent, so lookup is skipped and authentication returns `Result.ok(null)`. A selected empty value, lookup miss (`Result.ok(null)` from `lookup`), or callback exception is an authentication error. Lookup errors remain errors. The selected bytes are preserved exactly; the helper never trims, decodes or applies JWT grammar. Both callbacks run at most once. An alternative candidate cannot rescue a failed selected credential. The original normalized input passed to `lookup` supports correlation and policy context, not another selection attempt.
+
+`PermitExtractionInput` carries optional `apiKey` (`x-api-key`), `authToken` (`x-auth-token`), `authorization` (the raw Authorization value) and `bearerToken` candidates. Presence is not trust. The adapter explicitly chooses its accepted sources and syntax, including whether raw Authorization is an API key. An extractor must return an error sentinel (`''`) for its selected malformed source rather than treating it as absent. Credentials are never read from query strings. Custom `AuthAdapter` implementations remain available for richer extraction policies; once a credential is selected, failure must return an error.
+
+Static API keys are supported as a fallback. Prefer exchanging them for short-lived tokens at the provider. An organization key identifies the organization in `Permit.id`; do not invent a person identity for it. Scope intersection with current roles and actor ceilings is separate work.
+
+For surface integration, `resolvePermitFromInput` uses the existing auth resource lookup, materialization and runtime permit validation, returning `BasePermit | null`. `resolvePermitFromBearerToken` retains its strict contract: an adapter's null outcome is a missing-credentials error. Register the callback adapter through the existing auth resource override or an app-owned resource factory; function callbacks are not serialized into resource config or a lock.
+
+Resource config uses the existing Config `env`/`secret` annotations for actual secret fields. Keep secret names in declaration metadata and values out of committed artifacts; do not add an API-key pepper unless the chosen lookup uses one. Profile projection and deployment rendering remain owned by their deploy integration and are not provided by the callback helper.
+
 ### Custom adapters
 
 Implement the `AuthAdapter` interface:
