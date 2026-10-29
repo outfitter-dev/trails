@@ -7,6 +7,7 @@ import { trailsOverlays } from './app.js';
 
 export const trailsMcpIncludedTrails = [
   'adapter.check',
+  'add.resource',
   'add.surface',
   'add.trail',
   'compile',
