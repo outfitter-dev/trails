@@ -470,7 +470,7 @@ describe('@ontrails/http/bun', () => {
       resolvePermit: ({ headers }) => {
         observedHeader =
           headers instanceof Headers ? headers.get('x-tenant-id') : undefined;
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     });
 
