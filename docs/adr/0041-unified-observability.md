@@ -72,6 +72,8 @@ trails run gist.create '{"description": "hello"}' --trace
 {"ok": true, "value": {"id": "g_abc123", ...}}
 ```
 
+<!-- fix ::: Qualify automatic recording here and in the execution-pipeline description by the installed-sink requirement in Topo configuration below; NOOP_SINK is the default. #drift -->
+
 No extra packages. No configuration. The framework traces automatically because tracing is in the execution pipeline.
 
 ### `ctx.trace()` as first-class API
@@ -117,6 +119,8 @@ The initial activation record names are:
 | `activation.cycle_detected` | Signal fan-out safety suppressed a cyclic or over-depth activation chain. |
 
 This keeps activation visible in traces even when no normal trail record exists, while avoiding a second event model beside `TraceRecord`. Activation records use the same flat lineage fields, status vocabulary, and sink path as trail, span, and signal records.
+
+<!-- fix ::: Align this public package name with the canonical @ontrails/observability boundary below, preserving earlier naming as history. #stale -->
 
 ### Production observability in `@ontrails/observe`
 

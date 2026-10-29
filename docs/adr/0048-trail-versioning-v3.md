@@ -173,6 +173,8 @@ The resolved graph projects versioning as additive TopoGraph content on the trai
 
 `forces` is graph-only audit debt for future `--force` compile behavior. It is not source, not an authored version entry, and not implemented by M1/M2 except where graph types must leave room for it.
 
+<!-- fix ::: Qualify this historical ADR-0046 artifact layout and reference ADR-0054 for current lock and store locations. #stale -->
+
 ADR-0046 does not need a manifest-schema amendment for this. `.trails/trails.lock` continues to hash the TopoGraph content artifact. The TopoGraph content schema evolves additively.
 
 ### Runtime resolution

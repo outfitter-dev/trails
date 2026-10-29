@@ -213,6 +213,8 @@ All values have sensible defaults. Zero configuration required.
 - [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — the framework lifecycle as a topo
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here
 
+<!-- fix ::: Make this DevStore footnote historical and reference the current per-user state location in ADR-0054. #stale -->
+
 [^devstore]: The current DevStore default path is `.trails/state/trails.db`,
     shared with other framework subsystems through the core database primitive.
     Older beta builds used a tracing-local `.trails/dev/tracing.db` path.

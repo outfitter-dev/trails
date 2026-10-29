@@ -97,6 +97,8 @@ Steps 3, 7, and 8 are pipeline stages that replaced framework layers. Step 4 is 
 
 **Permit enforcement is a pipeline stage.** The pipeline reads `trail.permit`. When defined, it checks `ctx.permit` against declared scopes. On failure, it returns `Result.err(PermitError)` before execution enters the blaze. A trail with `permit: { scopes: ['billing:write'] }` is protected on every surface automatically. A surface that forgets to configure auth doesn't silently leave trails unprotected.
 
+<!-- todo ::: Reconcile the lifecycle-event and default dev-recording claims here and in Level 0 with ADR-0038 deferred lifecycle signals and ADR-0041 opt-in sinks. #drift #verify -->
+
 **Recording is a pipeline stage.** The pipeline always records. In development, the default sink writes to the local dev store with 100% sampling. In production, the sink is configured at bootstrap. Sampling policy is derived from trail properties: mutations default to 100%, reads to a configured rate. Per-trail overrides are declarations on the trail spec, not wrapper configuration.
 
 **Layers compose inside the auth/record envelope:**

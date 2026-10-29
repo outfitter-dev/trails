@@ -77,6 +77,8 @@ Warden still validates local rules that are checkable today: blazes return `Resu
 
 v1 does not merge runtime observations into the resolved graph. Traces, logs, serialized error payloads, and adapter responses may contain actual error identity after execution. They are evidence about a run, not stable resolved graph state.
 
+<!-- fix ::: Update the agent-facing artifact guidance below to ADR-0054 root trails.lock and per-user topo storage; preserve the error-scope decision. #stale -->
+
 ## Consequences
 
 - No new v1 graph field is added for exhaustive per-trail errors in this ADR.
