@@ -10,6 +10,7 @@ export interface Permit extends BasePermit {
 /**
  * Type-safe accessor for `ctx.permit` with a downcast to `Permit`.
  *
+ * fix ::: Replace the removed auth-layer-only-writer rationale with current BasePermit-compatible surface resolution; see the package README and this accessor signature. #stale
  * `TrailContext.permit` is typed as `BasePermit` (id + scopes). This accessor
  * returns the full `Permit` when the auth layer has set one. Safe because
  * the auth layer is the only writer and always sets a full `Permit`.
