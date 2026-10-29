@@ -91,6 +91,8 @@ The v1 vocabulary families are live. Use `derive` for contract-owned fact produc
 - Keep `composes` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
 - Every resource should define a `mock` factory so `testAll(app)` works without configuration.
 
+<!-- fix ::: Document unmockable: { reason } as the explicit alternative when a faithful mock cannot be supplied; ResourceSpec and resource-mock-coverage already support it. #drift -->
+
 ## Surface Accommodations
 
 Land the capability in the trail and accommodate the surface in rendering. Surface accommodations include aliases, future input mappings, and trailheads. They are valid only while the same authored trail contract remains true.
@@ -382,6 +384,8 @@ To exit pre-release mode for a stable release: `bunx changeset pre exit`, then v
 - `bun:test` is the test runner.
 - Follow TDD when the work is substantial: red, green, refactor.
 - Trail examples are the happy-path tests. Add focused tests for edge cases, error paths, and integrations when examples are not enough.
+
+<!-- fix ::: Qualify the sibling test-config convention or add the missing oxlint-plugin test config; its main config excludes tests and it has no tsconfig.tests.json. #drift -->
 
 Each package's main `tsconfig.json` excludes test files so build output stays clean. A sibling `tsconfig.tests.json` includes them so editors' LSP can resolve tests (e.g. `Array.prototype.toSorted`). Neither affects the `tsc --noEmit` CI gate, which still uses the main config.
 
