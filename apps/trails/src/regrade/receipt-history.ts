@@ -382,6 +382,7 @@ export const buildRegradeHistoryReceipt = (params: {
     evidence: {
       changedFiles: params.changedFiles,
       detailEvidenceHash: regradeReceiptContentHash(params.completedReport),
+      // todo ::: Reconcile this report-fact hash with ADR-0053 and history.ts promises of observed lock state; prepared-run.ts hashes lock files separately. Cover independent lock changes and define receipt compatibility before changing persisted evidence. #drift #verify
       lockStateHash: regradeSourceHash(params.report),
       policyHash: regradeReceiptContentHash(
         listGovernedVocabularyTransitions()

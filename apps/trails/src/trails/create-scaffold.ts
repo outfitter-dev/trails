@@ -368,6 +368,7 @@ export const remove = trail('entity.delete', {
 });
 `;
 
+// fix ::: Generate store-backed search behavior or explicitly teach this as a stub; the emitted trail promises entity search while ignoring the query and always returning an empty result. Test a seeded match. #bug #coverage
 const generateSearchTrail = (): string =>
   `import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
