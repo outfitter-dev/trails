@@ -245,7 +245,7 @@ CreateMcpFetchHandlerOptions          // server options plus exact Host/Origin a
 McpFetchHandler
 ```
 
-See [MCP Over HTTP](surfaces/mcp-http.md) for validation and remaining auth/client gates.
+See [MCP Over HTTP](surfaces/mcp-http.md) for validation and remaining auth and client follow-ups.
 
 ## `@ontrails/http`
 

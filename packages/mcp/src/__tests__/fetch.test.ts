@@ -19,11 +19,11 @@ describe('portable MCP fetch entry', () => {
   for (const mode of ['legacy', { pin: '2026-07-28' }] as const) {
     test(`close cancels an active ${typeof mode === 'object' ? 'modern' : 'legacy'} exchange`, async () => {
       const started = Promise.withResolvers<undefined>();
-      let signal: AbortSignal | undefined;
+      let abortSignal: AbortSignal | undefined;
       const graph = topo('shutdown', {
         wait: trail('wait', {
           implementation: async (_input, ctx) => {
-            signal = ctx.abortSignal;
+            ({ abortSignal } = ctx);
             started.resolve();
             // oxlint-disable-next-line avoid-new -- Deliberately pending user work exercises host teardown.
             return await new Promise<Result<{ ok: boolean }, Error>>(() => {});
@@ -67,7 +67,7 @@ describe('portable MCP fetch entry', () => {
         );
         await started.promise;
         await handler.close();
-        expect(signal?.aborted).toBe(true);
+        expect(abortSignal?.aborted).toBe(true);
         if (mode === 'legacy') {
           expect(streamEnd).toBeDefined();
           expect(

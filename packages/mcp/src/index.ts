@@ -57,13 +57,11 @@ export { deriveAnnotations, type McpAnnotations } from './annotations.js';
 // Progress
 export { createMcpProgressCallback } from './progress.js';
 
+// Server
+export { createServer, type CreateServerOptions } from './server.js';
+
 // Surface
-export {
-  createServer,
-  surface,
-  type CreateServerOptions,
-  type SurfaceMcpResult,
-} from './surface.js';
+export { surface, type SurfaceMcpResult } from './surface.js';
 
 // Transport
 export { connectStdio } from './stdio.js';
