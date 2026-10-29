@@ -28,6 +28,12 @@ CI fetches and pins canonical main for pull requests, merge groups and manual ru
 
 After migration accounting, the aggregate runs the current link/anchor, snippet, hard-wrap, error-taxonomy, root Warden-guide and ADR checks. Snippet validation creates and removes an ephemeral typecheck harness; it does not modify tracked source. These are the existing owners' current scan scopes, not a claim that all public navigation or metadata is already validated.
 
+### Current link and anchor coverage
+
+The existing `scripts/check-markdown-links.ts` owner recursively scans regular `.md` and `.mdx` files under `docs/`, `packages/`, `apps/`, `adapters/` and `.skillset/`. It skips `CHANGELOG.md` and directories named `node_modules`, `dist` or `.turbo`, and does not follow symlink entries. Root `README.md`, root `AGENTS.md`, `examples/`, private `.agents/` records and the generated `plugin/`, `plugin-dev/` and `plugins/` trees are outside its source scan. The migration population below is broader in some places; passing the aggregate does not establish link coverage for those unscanned sources.
+
+For scanned sources, the owner checks local link-target existence and referenced Markdown heading anchors, including targets outside those scan roots. That target check does not recursively validate an unscanned page's outgoing links. External URLs are skipped; no network availability is tested. Fenced code is excluded, and MDX is treated as Markdown rather than executed. Anchor collection recognizes ATX headings (`#` through `######`), not arbitrary rendered HTML or MDX anchors. Broader public coverage remains an open foundation requirement; this slice composes the existing owner without extending its parser or scan roots.
+
 ## Account for removed paths
 
 When the first eligible path is removed, add `docs/migration-map.json`. An empty ledger is unnecessary before any removal. The authored schema is:
@@ -45,7 +51,7 @@ When the first eligible path is removed, add `docs/migration-map.json`. An empty
 }
 ```
 
-Each removed source needs one normalized repository-relative Markdown path and one disposition. `moved`, `merged` and `archived` have one surviving destination; `split` has at least two distinct destinations; `deleted` has none and requires a nonempty `reason`. Destinations must be regular public Markdown sources in the committed candidate. Retain prior source entries; if a destination moves later, update older entries to surviving final targets rather than leaving a chain of missing paths. New entries must correspond to an actual removal in the comparison, including intermediate public paths introduced and retired between its endpoints. A recorded source cannot remain or return as a regular public page while the entry claims its retirement.
+Each removed source needs one normalized repository-relative Markdown path and one disposition. `moved`, `merged` and `archived` have one surviving destination; `split` has at least two distinct destinations; `deleted` has none and requires a nonempty `reason`. Destinations must be regular public Markdown sources in the committed candidate. Retain prior source entries; if a destination moves later, update older entries to surviving final targets rather than leaving a chain of missing paths. New entries must correspond to an actual removal in the comparison. Every qualifying rename, deletion or type change in its commit range requires accounting, including intermediate public paths absent from both endpoint trees. Ownership is checked against each change's parent tree, including that parent's workspace declarations. A recorded source cannot remain or return as a regular public page while the entry claims its retirement.
 
 The bounded migration population is root `README.md`, Markdown/MDX under `docs/` outside the separately owned ADR subtree, and direct READMEs of workspaces discovered from the package manifest at both comparison trees. Successors follow that same population; moving content into ADR lifecycle ownership needs its separate workflow. Removing an entire workspace cannot hide its former README. Dirty workspace manifests matching either tree's declared patterns fail, including an untracked new workspace. Root `README.md` and `docs/index.md` are fixed architectural roots and cannot have migration entries, including after an intermediate deletion and restoration.
 

@@ -168,6 +168,38 @@ describe('documentation migration accounting', () => {
     expect(checkDocumentationMigrations(root, base).failures).toEqual([]);
   });
 
+  test('requires accounting for an intermediate path absent from both endpoint trees', () => {
+    const { root, base } = fixture();
+    const intermediate = 'docs/intermediate [guide]\nname.md';
+    move(root, 'docs/old.md', intermediate);
+    commit(root);
+    move(root, intermediate, 'docs/final.md');
+    ledger(root, [
+      { disposition: 'moved', from: 'docs/old.md', to: ['docs/final.md'] },
+    ]);
+    commit(root);
+    expect(checkDocumentationMigrations(root, base).failures).toContain(
+      `${intermediate}: missing migration entry in docs/migration-map.json`
+    );
+    ledger(root, [
+      { disposition: 'moved', from: 'docs/old.md', to: ['docs/final.md'] },
+      { disposition: 'moved', from: intermediate, to: ['docs/final.md'] },
+    ]);
+    commit(root);
+    expect(checkDocumentationMigrations(root, base).failures).toEqual([]);
+  });
+
+  test('rejects an unrecorded fixed-root deletion even when the root is restored', () => {
+    const { root, base } = fixture();
+    rmSync(join(root, 'docs/index.md'));
+    commit(root);
+    write(root, 'docs/index.md', '# Restored router\n');
+    commit(root);
+    expect(
+      checkDocumentationMigrations(root, base).failures.join('\n')
+    ).toContain('docs/index.md: fixed documentation root cannot be removed');
+  });
+
   test.each(['docs/invented.md', 'docs/old.md'])(
     'rejects a new migration record without a removal (%s)',
     (from) => {
@@ -232,10 +264,10 @@ describe('documentation migration accounting', () => {
   });
 
   test('uses historical workspace declarations when a whole workspace disappears', () => {
-    const { root } = fixture();
+    const { root, base } = fixture();
     write(root, 'examples/app/package.json', '{}');
     write(root, 'examples/app/README.md', '# Example\n');
-    const base = commit(root);
+    commit(root);
     rmSync(join(root, 'examples'), { recursive: true });
     write(root, 'package.json', JSON.stringify({ workspaces: [] }));
     commit(root);
