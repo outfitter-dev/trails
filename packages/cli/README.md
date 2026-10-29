@@ -189,6 +189,8 @@ await surface(graph, { exclude: ['dev.**'] });
 
 The CLI surface derives previously layer-shaped behavior directly from trail schemas:
 
+<!-- fix ::: Require input cursor for --all and describe schema-based date detection with Date/date/datetime outputs; see buildFlags and date-shortcuts.ts formatExpandedDate. #stale -->
+
 - Trails whose output matches the pagination pattern (`items`, `hasMore`,
   `nextCursor`) automatically get an `--all` flag that walks every page.
 - Trails with `since`/`until` input fields automatically expand date shortcuts

@@ -1,6 +1,8 @@
 /**
  * CLI surface absorption for paginated trail outputs.
  *
+ * <!-- fix ::: State the required input cursor and declared output nextCursor fields; see build.ts buildFlags and isPaginatedOutput. #stale -->
+ *
  * When a trail's `output` schema matches the pagination shape
  * (`items`, `hasMore`, optional `nextCursor`), the CLI surface
  * derivation auto-emits an `--all` flag and, when set, iterates
@@ -46,6 +48,7 @@ export const isPaginatedOutput = (trail: AnyTrail): boolean => {
 
 /**
  * Return true if a trail's input schema declares a `cursor` field.
+ * <!-- fix ::: Remove the nonexistent nextCursor fallback; build.ts runPaginatedIteration rejects input without cursor. #stale -->
  * When false, the iteration helper falls back to writing `nextCursor`
  * onto the merged input record.
  */
@@ -96,6 +99,7 @@ export interface IteratePagesOptions {
    * call is `{ ...baseInput, [cursorField]: <cursor> }`.
    */
   readonly baseInput: Record<string, unknown>;
+  // <!-- fix ::: Describe cursorField as required; iteratePages has no default and the CLI caller supplies cursor. #stale -->
   /** Field name to write the cursor onto. Defaults to `cursor`. */
   readonly cursorField: string;
   /** Per-page sink. When provided, items stream out as they arrive. */
@@ -156,6 +160,8 @@ const repeatedCursorError = (cursor: string): ValidationError =>
  * `hasMore === false`. Returns a Result whose ok value matches the
  * canonical paginated shape with all collected items aggregated into
  * a single array.
+ *
+ * <!-- fix ::: Explain that onItem streams a mismatched page and returns an empty aggregate instead of the page value; see the branch below. #stale -->
  *
  * If a page is reached whose value does not match the paginated shape,
  * iteration stops and that page's value is returned verbatim — this is

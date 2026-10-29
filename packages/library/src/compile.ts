@@ -1,4 +1,6 @@
 /**
+ * <!-- fix ::: Describe compile accepting a Topo and deriving its rendering plan internally; see compile below. #stale -->
+ *
  * `compile` — the package emitter. Consumes the `LibraryRenderingPlan` (never the
  * topo directly) and produces the source files of a generated TypeScript
  * package: consumer-fluent root, `/result`, `/schemas`, `/trails` subpaths.
@@ -31,6 +33,7 @@ export interface CompileOptions extends DeriveLibraryApiOptions {
   readonly libraryDependency?: string;
   /** Generated package version. Defaults to `0.0.0`. */
   readonly version?: string;
+  // <!-- fix ::: Describe Zod as a regular dependency; see generatePackageJson dependencies. #stale -->
   /** Peer dependency range for Zod in emitted package.json. */
   readonly zodDependency?: string;
   /**
@@ -324,6 +327,7 @@ const generateSchemas = (
         `export type ${binding.output} = TrailOutput<typeof ${binding.sourceExport}>;`
       );
     }
+    // <!-- fix ::: Describe generated input schemas as rendered trail and layer inputs; see deriveLibraryApi and renderLibraryInput. #drift -->
     lines.push(
       '',
       jsDoc([
