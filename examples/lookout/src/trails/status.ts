@@ -66,6 +66,7 @@ const uptimeReportOutputSchema = z.object({
 // uptime.report
 // ---------------------------------------------------------------------------
 
+// <!-- fix ::: Include every probe in the requested uptime window or disclose truncation; probeHistory.total can exceed this cap while uptimeReport reports only the capped subset. #bug #hardcoded -->
 const HISTORY_WINDOW_LIMIT = 10_000;
 
 export const uptimeReport = trail('uptime.report', {

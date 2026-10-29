@@ -11,6 +11,7 @@ import { reconcile } from '@ontrails/store/trails';
 import { db } from '../resources/db.js';
 import { stashStoreDefinition } from '../store.js';
 
+// <!-- fix ::: Restrict reconciliation to an authorized maintenance path that preserves snippet ownership and visibility; anonymous HTTP calls currently mutate and disclose secret rows. #bug -->
 export const reconcileSnippet = reconcile({
   description:
     'Reconcile a snippet row by versioned upsert (last-write-wins on conflict)',

@@ -185,6 +185,7 @@ export const updateCheck = trail('check.update', {
     if (!existing) {
       return Result.err(new NotFoundError(`Check "${id}" not found`));
     }
+    // <!-- fix ::: Merge expectation patches with existing.expect so changing bodyIncludes preserves status and vice versa; probe.ts otherwise defaults the lost status to 200. #bug -->
     const expect =
       expectStatus === undefined && expectBodyIncludes === undefined
         ? existing.expect
