@@ -1,7 +1,7 @@
 // GENERATED FILE — do not edit by hand. Run `bun run scaffold-versions:sync` to regenerate.
 
 export const scaffoldDependencyVersions = {
-  bunTypes: '^1.4.3',
+  bunTypes: '^1.4.4',
   commander: '^14.0.3',
   lefthook: '^2.1.1',
   nodeTypes: '^25.9.9',

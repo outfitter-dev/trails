@@ -27,8 +27,8 @@ The split is intentional: framework concepts stay in the public docs, while repo
 
 ## Bun setup
 
-The package consumer engine floor is Bun 1.4.0 (`engines.bun >=1.4.0`). Repository checkouts use the `.bun-version` pin, currently 1.4.2, also declared by the root `packageManager`. Remote bootstrap uses strict mode and requires that exact version. Local compatible mode accepts the pinned patch or a newer patch in the same major/minor line; it does not accept 1.4.0 or 1.4.1 against the 1.4.2 pin.
+The package consumer engine floor is Bun 1.4.0 (`engines.bun >=1.4.0`). Repository checkouts use the `.bun-version` pin, currently 1.4.4, also declared by the root `packageManager`. Remote bootstrap uses strict mode and requires that exact version. Local compatible mode accepts the pinned patch or a newer patch in the same major/minor line; it does not accept older 1.4 patches against the 1.4.4 pin.
 
-Run `./scripts/bootstrap.sh repo` to prepare a checkout. The shell entrypoint repairs a missing or incompatible Bun to the pin before dispatch; the repo bootstrap then enforces the host's policy and installs dependencies with the frozen lockfile. Repairing 1.4.0 to 1.4.2 is not direct acceptance of 1.4.0. `./scripts/bootstrap.sh doctor` diagnoses the environment without installing or repairing Bun.
+Run `./scripts/bootstrap.sh repo` to prepare a checkout. The shell entrypoint repairs a missing or incompatible Bun to the pin before dispatch; the repo bootstrap then enforces the host's policy and installs dependencies with the frozen lockfile. Repairing 1.4.0 to 1.4.4 is not direct acceptance of 1.4.0. `./scripts/bootstrap.sh doctor` diagnoses the environment without installing or repairing Bun.
 
 Root `@types/bun` and generated scaffold dependency metadata use the Bun 1.4 type line. After changing dependency versions, run `bun run scaffold-versions:sync`, then `bun run scaffold-versions:check`.

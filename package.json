@@ -77,7 +77,7 @@
     "@ontrails/trails": "workspace:*",
     "@ontrails/warden": "workspace:*",
     "@skillset/cli": "0.27.0",
-    "@types/bun": "^1.4.3",
+    "@types/bun": "^1.4.4",
     "@types/node": "^25.9.9",
     "knip": "^6.12.2",
     "lefthook": "^2.1.1",
@@ -92,7 +92,7 @@
   "engines": {
     "bun": ">=1.4.0"
   },
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.4",
   "catalog": {
     "commander": "^14.0.3",
     "zod": "^4.3.5"
