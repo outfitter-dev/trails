@@ -78,7 +78,18 @@ The check also validates package names in every current Changesets-readable file
 
 Retained prerelease changesets are validated too: Changesets validates workspace package names before it filters consumed prerelease IDs. Valid consumed history stays untouched. When removing or renaming a package, remove its stale frontmatter rows through the existing retirement cleanup; do not hide them behind `.changeset/pre.json`. Deleted changesets have no remaining package references to validate.
 
-When release-check discovery returns no workspaces, changeset-name validation uses the pinned Changesets package reader to distinguish root-only repositories from pnpm, Bolt, and Lerna workspaces and collect their package names. This fallback only supplies names for changeset validation; release-fact discovery is unchanged. Malformed workspace configuration produces a package-inventory validation error instead of a root-package fallback.
+When release-check discovery returns no workspaces, changeset-name validation uses the directly pinned `@manypkg/get-packages` reader to distinguish root-only repositories from pnpm, Bolt, and Lerna workspaces and collect their package names. This fallback only supplies names for changeset validation; release-fact discovery is unchanged. Malformed workspace configuration produces a package-inventory validation error instead of a root-package fallback.
+
+The [TRL-1396](https://linear.app/outfitter/issue/TRL-1396/audit-manypkg-31-release-package-discovery-without-changing-release) audit retains the direct `1.1.3` pin. Candidate `3.1.0` uses ESM, declares Node >=20, and replaces the tool-name string with a `Tool` object; this caller consumes only `.packages`. Under the pinned Bun 1.4.2 runtime, Bun/npm/Yarn fixtures with their lock markers, pnpm, Lerna, and single-package fixtures preserve their package-name inventories. These probes do not establish a new runtime floor.
+
+The candidate does not preserve the ownership contract in these disposable counterexamples:
+
+| Fixture | Reader 1.1.3 | Candidate 3.1.0 |
+| --- | --- | --- |
+| Root manifest with `bolt.workspaces: ["packages/*"]` and a named child | `.packages` contains the child, excludes the root | `.packages` contains only the root |
+| Root manifest with `workspaces: ["packages/*"]`, no matching children, and no package-manager lock marker | `.packages` is empty | `.packages` contains the root |
+
+The fallback therefore accepts an invalid workspace-root changeset and rejects a valid Bolt child with the candidate. The adjacent pending-changeset tests preserve child acceptance, root exclusion, and empty-workspace behavior. Keep the current pin until a candidate preserves those contracts; the newer transitive reader used by Changesets does not qualify this direct dependency.
 
 ## Stacked Pull Requests
 
