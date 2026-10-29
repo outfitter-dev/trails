@@ -67,7 +67,7 @@ describe('trails resolve accepted current tip', () => {
     const lockPath = join(root, 'trails.lock');
     await compile(root);
     const priorAudit = force(
-      'beta',
+      'alpha',
       '2025-01-01T00:00:00.000Z',
       'prior retained audit'
     );

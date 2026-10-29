@@ -66,7 +66,10 @@ export const isRecordedTipTransition = (
     if (!sameEndpoint(fresh, tip.topoGraph, diff)) {
       return false;
     }
-    const changes = deriveTopoGraphDiff(base.topoGraph, tip.topoGraph).breaking;
+    const changes = deriveTopoGraphDiff(
+      stripTopoGraphForces(base.topoGraph),
+      stripTopoGraphForces(tip.topoGraph)
+    ).breaking;
     const recorded = forceEvents(tip.topoGraph).filter(
       (event) => !inherited.has(deriveTopoGraphForceIdentity(event))
     );

@@ -5,6 +5,7 @@ import {
   carryForwardTopoGraphForces,
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
+  stripTopoGraphForces,
   trailsLockSchema,
   TRAILS_LOCK_SCHEMA_VERSION,
 } from '@ontrails/topography';
@@ -26,8 +27,12 @@ const breakingChanges = (
   base: TrailsLock | undefined
 ): readonly DiffEntry[] => {
   const changes = new Map<string, DiffEntry>();
+  const nextContract = stripTopoGraphForces(next);
   for (const parent of parents) {
-    for (const entry of deriveTopoGraphDiff(parent.topoGraph, next).breaking) {
+    for (const entry of deriveTopoGraphDiff(
+      stripTopoGraphForces(parent.topoGraph),
+      nextContract
+    ).breaking) {
       if (isRecordedTipTransition(entry, parent, next, parents, base)) {
         continue;
       }
