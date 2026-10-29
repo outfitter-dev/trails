@@ -18,6 +18,8 @@ const graph = topo('myapp', { greet });
 await surface(graph);
 ```
 
+<!-- fix ::: Include the auto-promoted optional name positional in greet help (derivePositionalArgs in build.ts and addArgs in adapters/commander/src/to-commander.ts). #stale -->
+
 ```bash
 $ myapp greet --name World
 Hello, World!

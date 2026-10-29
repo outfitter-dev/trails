@@ -243,6 +243,7 @@ const validateInheritedFlagSemantics = (
  * ```ts
  * import { validateCliCommands, type CliCommand } from '@ontrails/cli';
  *
+ * // <!-- fix ::: Supply the required execute method so this CliCommand example typechecks (command.ts). #stale -->
  * const commands = [
  *   {
  *     args: [],

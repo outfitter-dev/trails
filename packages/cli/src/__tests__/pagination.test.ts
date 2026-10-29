@@ -1,6 +1,8 @@
 /**
  * Tests for CLI surface derivation absorbing pagination behavior.
  *
+ * <!-- fix ::: State the input cursor and declared output nextCursor requirements for --all; its value may be optional (buildFlags and isPaginatedOutput). #stale -->
+ *
  * Verifies that when a trail's output has the paginated shape
  * (`items`, `hasMore`, optional `nextCursor`), the CLI command:
  *   - exposes an auto-derived `--all` flag,
