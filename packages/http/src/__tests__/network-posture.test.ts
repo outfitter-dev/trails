@@ -3,9 +3,11 @@ import {
   AuthError,
   createTrailContext,
   isTrailsError,
+  resource,
   Result,
   topo,
   trail,
+  webhook,
 } from '@ontrails/core';
 import type { Logger } from '@ontrails/core';
 import { z } from 'zod';
@@ -178,5 +180,66 @@ describe('HTTP network credential posture', () => {
     const denied = await update(request('/record/update', { method: 'POST' }));
     expect(denied.status).toBe(403);
     expect(warnings).toHaveLength(1);
+  });
+
+  test('protected webhook consumers count in the build-time verifier check', () => {
+    const source = webhook('webhook.payment.received', {
+      parse: z.object({ paymentId: z.string() }),
+      path: '/webhooks/payment',
+    });
+    const receiver = trail('payment.receive', {
+      implementation: (input) => Result.ok({ paymentId: input.paymentId }),
+      input: z.object({ paymentId: z.string() }),
+      on: [source],
+      output: z.object({ paymentId: z.string() }),
+      permit: { scopes: ['payment:write'] },
+    });
+    const refused = deriveHttpRoutes(topo('billing', { receiver }), {
+      credentialPosture: 'network',
+    });
+    expect(refused.isErr()).toBe(true);
+    if (refused.isErr()) {
+      expect(refused.error.message).toContain('payment.receive');
+    }
+    expect(
+      deriveHttpRoutes(topo('billing', { receiver }), {
+        credentialPosture: 'network',
+        resolvePermit: resolveBearer,
+      }).isOk()
+    ).toBe(true);
+  });
+
+  test('a resource-backed webhook verifier never sees the seeded permit on the network', async () => {
+    const secrets = resource('secrets', {
+      create: () => Result.ok({ token: 'expected' }),
+    });
+    const seenPermits: (string | undefined)[] = [];
+    const source = webhook('webhook.payment.received', {
+      parse: z.object({ paymentId: z.string() }),
+      path: '/webhooks/payment',
+      resources: [secrets],
+      verify: (_request, ctx) => {
+        seenPermits.push(ctx?.permit?.id);
+        return Result.ok();
+      },
+    });
+    const receiver = trail('payment.receive', {
+      implementation: (input) => Result.ok({ paymentId: input.paymentId }),
+      input: z.object({ paymentId: z.string() }),
+      on: [source],
+      output: z.object({ paymentId: z.string() }),
+    });
+    const handler = createFetchHandler(topo('billing', { receiver, secrets }), {
+      createContext: seededContext,
+    });
+    const response = await handler(
+      request('/webhooks/payment', {
+        body: JSON.stringify({ paymentId: 'p1' }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+    );
+    expect(response.status).toBeLessThan(300);
+    expect(seenPermits).toEqual([undefined]);
   });
 });

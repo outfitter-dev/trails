@@ -1243,9 +1243,10 @@ const createWebhookVerifier =
       return await verifyWebhookRequest(source, request);
     }
 
-    const seed = options.createContext
-      ? await options.createContext()
-      : undefined;
+    // The verifier's context goes through the same posture filter as the
+    // consumer's: a seeded permit never reaches `verify` on a network surface.
+    const factory = surfaceContextFactory(options);
+    const seed = factory === undefined ? undefined : await factory();
     const scope = await createResources(
       { resources: declared },
       createTrailContext(seed),
@@ -1660,7 +1661,12 @@ export const deriveHttpRoutes = (
     return validated;
   }
   const trails = eligibleTrails(graph, options);
-  const verifier = validateNetworkVerifier(trails, options);
+  // Webhook consumers are activated trails, excluded from `eligibleTrails`,
+  // but their routes still enforce the consumer's permit on every delivery.
+  const verifier = validateNetworkVerifier(
+    [...trails, ...eligibleWebhookTrails(graph, options)],
+    options
+  );
   if (verifier.isErr()) {
     return verifier;
   }
