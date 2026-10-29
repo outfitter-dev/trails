@@ -103,6 +103,7 @@
         "skills/trails-adrs/SKILL.md": "0644",
         "skills/trails-adrs/assets/adr-management.md": "0644",
         "skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts": "0644",
+        "skills/trails-adrs/scripts/__tests__/relative-links.test.ts": "0644",
         "skills/trails-adrs/scripts/adr.ts": "0644",
         "skills/trails-adrs/scripts/lib/cli.ts": "0644",
         "skills/trails-adrs/scripts/lib/decision-map.ts": "0644",
@@ -110,14 +111,18 @@
         "skills/trails-adrs/scripts/lib/frontmatter.ts": "0644",
         "skills/trails-adrs/scripts/lib/git.ts": "0644",
         "skills/trails-adrs/scripts/lib/index.ts": "0644",
+        "skills/trails-adrs/scripts/lib/markdown-destinations.ts": "0644",
+        "skills/trails-adrs/scripts/lib/markdown-links.ts": "0644",
         "skills/trails-adrs/scripts/lib/paths.ts": "0644",
-        "skills/trails-adrs/scripts/lib/references.ts": "0644"
+        "skills/trails-adrs/scripts/lib/references.ts": "0644",
+        "skills/trails-adrs/scripts/lib/relative-links.ts": "0644"
       },
       "files": [
         "skills/trails-adrs/LICENSE.txt",
         "skills/trails-adrs/SKILL.md",
         "skills/trails-adrs/assets/adr-management.md",
         "skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+        "skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
         "skills/trails-adrs/scripts/adr.ts",
         "skills/trails-adrs/scripts/lib/cli.ts",
         "skills/trails-adrs/scripts/lib/decision-map.ts",
@@ -125,15 +130,18 @@
         "skills/trails-adrs/scripts/lib/frontmatter.ts",
         "skills/trails-adrs/scripts/lib/git.ts",
         "skills/trails-adrs/scripts/lib/index.ts",
+        "skills/trails-adrs/scripts/lib/markdown-destinations.ts",
+        "skills/trails-adrs/scripts/lib/markdown-links.ts",
         "skills/trails-adrs/scripts/lib/paths.ts",
-        "skills/trails-adrs/scripts/lib/references.ts"
+        "skills/trails-adrs/scripts/lib/references.ts",
+        "skills/trails-adrs/scripts/lib/relative-links.ts"
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:d7e8f75643ff9ed555c1ff5f601765f0ef615c1bc9aff4c2e23ec1e36dd66883",
+      "outputHash": "sha256:0865bc98f7d90514e12f5325fd6e293b7a84a8a2b48503baf01db56d85d96cb2",
       "outputPath": "skills/trails-adrs/SKILL.md",
       "plugin": "trails-dev",
-      "sourceHash": "sha256:bfce6fbf8fb84b2124205e0281d073797afae7a1a331f9690f62cb48387ba0a4",
+      "sourceHash": "sha256:58282aee38fb49bd2871d6d8cb6c8d53208687b0a839c1224b148c1203cc7cef",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -321,7 +329,7 @@
     }
   ],
   "outputRoot": "plugin-dev",
-  "provenanceHash": "sha256:f82b6fe85bfb06ee7534ee1e3409d3115c92ead406fcfd94e0d440d0737cb96e",
+  "provenanceHash": "sha256:898442787d898e3973bf2531c33be67a2def1703d9c4e6414bf9d3b9b455fddf",
   "renderResults": [
     {
       "destination": "plugin-manifest",
@@ -528,6 +536,10 @@
         },
         {
           "kind": "plugin-skill",
+          "path": "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts"
+        },
+        {
+          "kind": "plugin-skill",
           "path": "plugin-dev/skills/trails-adrs/scripts/adr.ts"
         },
         {
@@ -556,11 +568,23 @@
         },
         {
           "kind": "plugin-skill",
+          "path": "plugin-dev/skills/trails-adrs/scripts/lib/markdown-destinations.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugin-dev/skills/trails-adrs/scripts/lib/markdown-links.ts"
+        },
+        {
+          "kind": "plugin-skill",
           "path": "plugin-dev/skills/trails-adrs/scripts/lib/paths.ts"
         },
         {
           "kind": "plugin-skill",
           "path": "plugin-dev/skills/trails-adrs/scripts/lib/references.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugin-dev/skills/trails-adrs/scripts/lib/relative-links.ts"
         }
       ],
       "schema": "skillset-render-result@2",

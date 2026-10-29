@@ -8,11 +8,14 @@ import {
   resolve,
 } from 'node:path';
 
-export interface MarkdownLink {
-  readonly line: number;
-  readonly target: string;
-  readonly text: string;
-}
+import {
+  extractMarkdownLinks,
+  updateFenceState,
+  unescapeMarkdownTarget,
+} from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
+import type { MarkdownLink } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
+export { extractMarkdownLinks } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
+export type { MarkdownLink } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
 
 export interface LinkCheckFailure extends MarkdownLink {
   readonly message: string;
@@ -86,110 +89,6 @@ const walkMarkdownFiles = (root: string): readonly string[] => {
 
 export const discoverMarkdownFiles = (): readonly string[] =>
   scanRoots.flatMap(walkMarkdownFiles).sort();
-
-const stripInlineCode = (line: string) =>
-  line.replaceAll(/`[^`]*`/g, (match) => ' '.repeat(match.length));
-
-const parseDestination = (raw: string): string => {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('<')) {
-    const close = trimmed.indexOf('>');
-    return close === -1 ? trimmed.slice(1) : trimmed.slice(1, close);
-  }
-
-  const whitespace = /\s/.exec(trimmed);
-  return whitespace ? trimmed.slice(0, whitespace.index) : trimmed;
-};
-
-const collectReferenceDefinitions = (
-  line: string,
-  lineNumber: number
-): readonly MarkdownLink[] => {
-  const match = /^\s{0,3}\[([^\]]+)]:\s+(\S.*)$/.exec(line);
-  if (!match) {
-    return [];
-  }
-
-  if (match[1].startsWith('^')) {
-    return [];
-  }
-
-  return [
-    {
-      line: lineNumber,
-      target: parseDestination(match[2]),
-      text: match[1],
-    },
-  ];
-};
-
-const collectInlineLinks = (
-  line: string,
-  lineNumber: number
-): readonly MarkdownLink[] => {
-  const stripped = stripInlineCode(line);
-  const links: MarkdownLink[] = [];
-  const pattern = /!?\[([^\]\n]+)]\(([^)\n]+)\)/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = pattern.exec(stripped))) {
-    links.push({
-      line: lineNumber,
-      target: parseDestination(match[2]),
-      text: match[1].trim(),
-    });
-  }
-
-  return links;
-};
-
-const updateFenceState = (
-  line: string,
-  fence: MarkdownFence | null
-): { readonly fence: MarkdownFence | null; readonly matched: boolean } => {
-  const fenceMatch = /^ {0,3}(`{3,}|~{3,})/.exec(line);
-  if (!fenceMatch) {
-    return { fence, matched: false };
-  }
-
-  const [, fenceMarker] = fenceMatch;
-  const [marker] = fenceMarker as '`' | '~';
-  const { length } = fenceMarker;
-  if (!fence) {
-    return { fence: { length, marker }, matched: true };
-  }
-
-  if (fence.marker === marker && length >= fence.length) {
-    return { fence: null, matched: true };
-  }
-  return { fence, matched: true };
-};
-
-export const extractMarkdownLinks = (
-  markdown: string
-): readonly MarkdownLink[] => {
-  const links: MarkdownLink[] = [];
-  const lines = markdown.split('\n');
-  let fence: MarkdownFence | null = null;
-
-  for (const [index, line] of lines.entries()) {
-    const nextFence = updateFenceState(line, fence);
-    ({ fence } = nextFence);
-    if (nextFence.matched) {
-      continue;
-    }
-
-    if (fence) {
-      continue;
-    }
-
-    const lineNumber = index + 1;
-    links.push(...collectReferenceDefinitions(line, lineNumber));
-    links.push(...collectInlineLinks(line, lineNumber));
-  }
-
-  return links;
-};
 
 const stripMarkdownForAnchor = (heading: string) =>
   heading
@@ -291,11 +190,12 @@ export const checkMarkdownDocumentLinks = (
   const anchorsForPath = options.readAnchors ?? readAnchors;
 
   for (const link of extractMarkdownLinks(markdown)) {
-    if (isExternalTarget(link.target) || link.target.length === 0) {
+    const normalized = unescapeMarkdownTarget(link.target);
+    if (isExternalTarget(normalized) || normalized.length === 0) {
       continue;
     }
 
-    const { anchor, path } = parseTarget(link.target);
+    const { anchor, path } = parseTarget(normalized);
     const targetPath = targetPathFor(sourcePath, path);
 
     if (!targetExists(targetPath)) {
