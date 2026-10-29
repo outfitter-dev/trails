@@ -42,7 +42,10 @@
     "miniflare": "^4.20250617.4"
   },
   "peerDependencies": {
+    "@ontrails/blob": "workspace:^",
     "@ontrails/http": "workspace:^",
+    "@ontrails/kv": "workspace:^",
+    "@ontrails/queue": "workspace:^",
     "@ontrails/store": "workspace:^",
     "zod": "catalog:"
   },
