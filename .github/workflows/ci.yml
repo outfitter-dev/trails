@@ -216,6 +216,7 @@ jobs:
           echo "| Changeset | \`${{ needs.changeset.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Release Pack | \`${{ needs.release-pack.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
+      # <!-- todo ::: Verify gate behavior for cancelled required dependencies; this failure-only condition can omit them. Distinguish intentional PR-only skips before tightening the gate. #coverage #verify -->
       - name: Require all jobs to pass
         if: contains(needs.*.result, 'failure') && !cancelled()
         run: exit 1

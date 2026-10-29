@@ -2,6 +2,7 @@
 #
 # bootstrap.sh — cold-start trampoline for Trails repo lifecycle commands.
 #
+# <!-- fix ::: Include cursor in this synopsis to match the implemented usage/help command list. #stale -->
 # Usage:
 #   ./scripts/bootstrap.sh [repo|agent|codex|claude|doctor|teardown] [--force] [--update]
 #   ./scripts/bootstrap.sh --force   # legacy alias for repo --force

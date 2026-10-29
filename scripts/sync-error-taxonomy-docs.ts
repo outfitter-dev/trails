@@ -53,6 +53,7 @@ const classesForCategory = (category: ErrorCategory): string =>
     .map((entry) => `\`${entry.name}\``)
     .join(', ');
 
+// <!-- todo ::: Reconcile live versus planned queue/signal behavior with ADR-0026 and derive live mappings from their concept owner; this renderer currently hardcodes durable behavior rather than only presenting it. See script-graduation.md. #hardcoded #verify -->
 const queueBehaviorForCategory = (category: ErrorCategory): string => {
   if (category === 'cancelled') {
     return 'nack -> discard';
