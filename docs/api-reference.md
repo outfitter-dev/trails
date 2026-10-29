@@ -237,6 +237,16 @@ McpToolDefinition,                     // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
 
+## `@ontrails/mcp/fetch`
+
+```typescript
+createFetchHandler(graph, options?)   // portable { fetch(Request), close() }, modern + legacy stateless
+CreateMcpFetchHandlerOptions          // server options plus exact Host/Origin allowlists
+McpFetchHandler
+```
+
+See [MCP Over HTTP](surfaces/mcp-http.md) for validation and remaining auth/client gates.
+
 ## `@ontrails/http`
 
 ```typescript

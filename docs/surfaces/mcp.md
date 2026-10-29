@@ -106,6 +106,10 @@ A scalar binding is a tool synonym: an additional MCP tool whose name is the bin
 
 Binding selectors use dotted trail-id globs (`snippet.*`), the same grammar as CLI bindings and surface filters. `trails compile` embeds the bindings in `trails.lock` under `overlays.surfaces` and derives the graph's trailhead facts from the `mcp` list bindings, so `trails wayfind --trailheads`-style reads flow from the committed lock.
 
+## HTTP Hosting
+
+Use the portable `@ontrails/mcp/fetch` entry to mount the same graph on Bun or Hono. See [MCP Over HTTP](mcp-http.md) for the fetch API, Host/Origin allowlists, request credentials and remaining auth/client gates.
+
 ## MCP Resources For Cold Context
 
 Cold context belongs in **MCP resources**, not in extra tools and not in Trails `resource()` declarations. The MCP surface exposes resources by default when using `surface(graph)` or `createServer(graph)`:
