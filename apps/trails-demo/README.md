@@ -1,5 +1,7 @@
 # trails-demo
 
+<!-- fix ::: Align detour claims and the entity.show excerpt below with src/trails/entity.ts, which declares no recovery detour. #stale -->
+
 A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `composes`, a first-class resource, a schema-derived store, a signal, examples, meta, detours, idempotent upsert, and surface entrypoints on CLI, MCP, and HTTP.
 
 ## What this app does
@@ -18,7 +20,11 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 
 Plus one domain signal: `entity.updated` (fired by `entity.add` and `entity.delete`). The store resource also registers scoped change signals such as `demo.entity-store:entities.created`.
 
+<!-- fix ::: Include demo.notification-store registered alongside demo.entity-store in src/app.ts. #stale -->
+
 Plus one resource: `demo.entity-store` (a Drizzle-backed in-memory entity store derived from a root `store(...)` definition).
+
+<!-- fix ::: Provide a working entity:write permit path for CLI/HTTP mutations; current entrypoints supply none, and Deletable is a mock-only seed (bin/demo.ts; src/http.ts; src/resources/entity-store.ts). #bug #coverage -->
 
 ## Running the CLI
 

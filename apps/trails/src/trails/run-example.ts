@@ -164,6 +164,7 @@ const deepEqualWithDiff = (
   return true;
 };
 
+// <!-- todo ::: Align nested Result-match token handling with packages/testing/src/assertions.ts or document the serialization boundary; cover an executable nested Result example before claiming parity. #drift #coverage #verify -->
 const partialMatchWithDiff = (
   actual: unknown,
   expected: unknown,

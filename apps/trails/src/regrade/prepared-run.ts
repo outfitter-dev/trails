@@ -181,6 +181,7 @@ const projectRuleStateHash = (
  *
  * @example
  * ```ts
+ * // <!-- fix ::: Supply mandatory includeEntries in this example (preparedRegradeRunIdentity parameter contract below). #stale #coverage -->
  * const identity = preparedRegradeRunIdentity({ artifact, rootDir: '.' });
  * if (identity.isOk()) console.log(identity.value.planContentHash);
  * ```
