@@ -120,6 +120,7 @@ const surfaceBindingValueSchema = z.union([
   z.array(surfaceBindingRefSchema).min(1).readonly(),
 ]);
 
+// fix ::: Reject or preserve __proto__ binding names explicitly; schema parsing silently drops this nonempty key, and expandMcpSurfaceBindings also loses it through ordinary-object assignment. Cover both boundaries. #bug #coverage
 const surfaceBindingsRecordSchema = z.record(
   z.string().min(1),
   surfaceBindingValueSchema

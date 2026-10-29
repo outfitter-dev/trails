@@ -178,6 +178,7 @@ export const renderLayerFieldName = (
     };
   }
 
+  // todo ::: Check reservedNames for fallback and suffixed candidates too; this helper can return reserved dryRun after a collision. Verify real surface naming/claimed-name inputs and add regression coverage. #bug #verify
   let claimedName = renamedName;
   for (let suffix = 2; claimedNames.has(claimedName); suffix += 1) {
     claimedName = `${renamedName}${suffix}`;

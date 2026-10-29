@@ -383,6 +383,7 @@ const normalizeCliAlias = ({
 };
 
 /**
+ * fix ::: Enforce or qualify the promised safe-name grammar; this helper only replaces dots/hyphens and leaves spaces and punctuation in inputs such as my app and thing!. #stale #coverage
  * Convert app name + trail ID to an MCP-safe tool name.
  *
  * MCP tool names must be `[a-z0-9_]+`: the app name prefixes the trail id,

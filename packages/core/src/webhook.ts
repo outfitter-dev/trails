@@ -177,6 +177,7 @@ export const matchWebhookPath = (
 };
 
 /**
+ * fix ::: Align dynamic overlap with matchWebhookPath rejecting empty segments; /hooks/:x overlaps /hooks/ here although the matcher rejects that concrete path. #bug #coverage
  * True when two webhook path patterns can both match one concrete path.
  *
  * Segment-wise: two literals overlap only when equal; a dynamic segment
