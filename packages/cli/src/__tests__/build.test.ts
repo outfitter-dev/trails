@@ -1791,6 +1791,36 @@ describe('--permit wiring', () => {
     });
   });
 
+  test('--permit JSON without actors constructs an explicit empty chain', async () => {
+    // The documented recovery form (`--permit '{"id":"lock-recovery","scopes":["topo:write"]}'`)
+    // omits actors; the CLI adapter supplies the empty chain rather than
+    // rejecting operator-authored permits.
+    let observed: TrailContext['permit'];
+    const t = trail('thing.read', {
+      implementation: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: '{"id":"lock-recovery","scopes":["topo:write"]}' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toEqual({
+      actors: [],
+      id: 'lock-recovery',
+      scopes: ['topo:write'],
+    });
+  });
+
   test('omitted --permit leaves ctx.permit undefined', async () => {
     let observed: TrailContext['permit'] = {
       actors: [],

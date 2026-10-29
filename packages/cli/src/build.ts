@@ -204,6 +204,9 @@ const STRUCTURED_INLINE_JSON_ARG: CliArg = {
   variadic: false,
 };
 
+/** Inline permit JSON may omit `actors`; the CLI constructs the empty chain. */
+const inlinePermitSchema = basePermitSchema.partial({ actors: true });
+
 /**
  * Parse and validate the `--permit '<json>'` flag value.
  *
@@ -231,15 +234,19 @@ const parsePermitFlag = (
       new ValidationError(`--permit value is not valid JSON: ${detail}`)
     );
   }
-  const validated = basePermitSchema.safeParse(parsed);
+  // An inline --permit is operator-authored and unattested, so the CLI, as
+  // the adapter constructing it, supplies an explicit empty actor chain when
+  // the JSON omits one. Core still requires `actors` on every BasePermit.
+  const validated = inlinePermitSchema.safeParse(parsed);
   if (!validated.success) {
     return Result.err(
       new ValidationError(
-        `--permit JSON does not match the BasePermit shape ({ actors: PermitActor[]; id: string; scopes: string[] }): ${validated.error.message}`
+        `--permit JSON does not match the BasePermit shape ({ id: string; scopes: string[]; actors?: PermitActor[] }): ${validated.error.message}`
       )
     );
   }
-  return Result.ok(validated.data);
+  const { actors, ...permit } = validated.data;
+  return Result.ok({ ...permit, actors: actors ?? [] });
 };
 
 // ---------------------------------------------------------------------------
