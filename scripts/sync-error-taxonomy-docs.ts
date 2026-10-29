@@ -53,6 +53,7 @@ const classesForCategory = (category: ErrorCategory): string =>
     .map((entry) => `\`${entry.name}\``)
     .join(', ');
 
+// <!-- todo ::: Reconcile live versus planned queue/signal behavior with ADR-0026 and derive live mappings from their concept owner; this renderer currently hardcodes durable behavior rather than only presenting it. See script-graduation.md. #hardcoded #verify -->
 const queueBehaviorForCategory = (category: ErrorCategory): string => {
   if (category === 'cancelled') {
     return 'nack -> discard';
@@ -79,6 +80,7 @@ const signalBehaviorForCategory = (category: ErrorCategory): string => {
   return 'drop + dead-event';
 };
 
+// <!-- fix ::: Render queue/signal outcomes consistently with RetryExhaustedError retryable=false; inheriting a wrapped retryable category must not imply redelivery in the generated ADR-0026 table. #drift -->
 const renderDynamicBehaviorRows = (): readonly string[] =>
   dynamicEntries.map(
     (entry) =>

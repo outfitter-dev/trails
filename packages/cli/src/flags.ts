@@ -197,6 +197,7 @@ export const deriveFlags = (
  *   output: { aliases: { json: 'json' } },
  * });
  *
+ * // <!-- fix ::: Honor canonical/alias conflict handling in this example; output plus json throws without explicit flag provenance (applyCliFlagValueAliases below). #stale -->
  * const normalized = applyCliFlagValueAliases(flags, {
  *   output: 'text',
  *   json: true,
@@ -449,6 +450,8 @@ export const tokenPreset = (): CliFlag[] => [
 
 /**
  * Flag for live re-execution of `trails run`: --watch
+ *
+ * <!-- fix ::: Describe resolved-contract-hash-gated reruns and all watched extensions (apps/trails/src/run-watch.ts). #stale -->
  *
  * When set, the CLI runs the resolved trail once, installs a filesystem
  * watcher scoped to the trail's source file (and its sibling

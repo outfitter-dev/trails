@@ -2,6 +2,7 @@
 
 import type { SourceLocation } from './nodes.js';
 
+// <!-- fix ::: Describe offsets as UTF-16 code units, matching string indexing in both helpers; add non-ASCII coverage before accepting byte offsets. #stale #coverage -->
 /** Find the byte offset's line number (1-based) in source code. */
 export const offsetToLine = (sourceCode: string, offset: number): number => {
   let line = 1;

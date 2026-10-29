@@ -4,7 +4,11 @@ Schema definitions, query patterns, and programmatic API for the topo store. For
 
 ## SQLite Schema
 
+<!-- fix ::: Include topo_activation_sources and topo_activation_edges from packages/topography/src/internal/topo-snapshots.ts in this schema inventory. #coverage -->
+
 ### `topo_snapshots`
+
+<!-- fix ::: Add app_name and source_fingerprint to this DDL; see packages/topography/src/internal/topo-snapshots.ts. #drift -->
 
 Every topo snapshot. Pinned snapshots have a non-null `pinned_as` name.
 
@@ -22,6 +26,8 @@ CREATE TABLE topo_snapshots (
 ```
 
 ### `topo_trails`
+
+<!-- fix ::: Include the pattern column here and the pattern field in TopoStoreTrailRecord below; compare topo-snapshots.ts and topo-store-read.ts. #drift -->
 
 Trail definitions for each snapshot.
 
@@ -355,6 +361,8 @@ Extends trail record with `composes`, `detours`, `resources`, and `examples` arr
 Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error class name and effective attempt count. Neither examples nor detours are exhaustive per-trail error inference; see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
 ### `TopoStoreTopoGraphRecord`
+
+<!-- fix ::: Replace the superseded v3 artifact-family claim with the shipped root lock v5 envelope and graph v4 distinction; see packages/topography/src/types.ts and io.ts. #stale -->
 
 Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):
 

@@ -484,6 +484,7 @@ const listItems = (
  * await bucket.put('notes.txt', 'hello', {
  *   httpMetadata: { contentType: 'text/plain' },
  * });
+ * // <!-- fix ::: Narrow the get result to CloudflareR2ObjectBody before calling text; optional chaining alone does not exclude metadata-only CloudflareR2Object. #stale #coverage -->
  * await (await bucket.get('notes.txt'))?.text(); // 'hello'
  * ```
  */

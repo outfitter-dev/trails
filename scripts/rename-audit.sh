@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# <!-- fix ::: Retire or explicitly label this rename inventory as historical; trailhead is now a live grouped-entry concept, and current governed migrations belong in Regrade. See docs/lexicon.md and script-graduation.md. #stale -->
 # Audit current usage of names that will be renamed.
 # Run this to see scope of changes before applying renames.
 # Usage: ./scripts/rename-audit.sh [--docs | --code | --all]
@@ -24,6 +25,7 @@ count() {
   local pattern="$1"
   local glob="${2:-*.ts}"
   local label="$3"
+  # <!-- fix ::: Handle rg zero-match status under pipefail so the intended zero-count branch runs and later inventory checks continue. #bug -->
   local n
   n=$(rg --count-matches "$pattern" --glob "$glob" --glob '!node_modules/**' --glob '!dist/**' --glob '!.scratch/**' 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
   if [ "$n" -gt 0 ]; then

@@ -83,6 +83,8 @@ export const config = appConfig('myapp', {
 
 The declaration controls everything: schema, file conventions, format preferences. `jsonc` enables comments in generated JSON files; `json` generates plain JSON without comments. The developer chooses.
 
+<!-- todo ::: Reconcile these appConfig methods with the current AppConfig interface and separate generation/init trails; distinguish accepted target APIs from shipped methods before teaching callers to invoke them. #drift #verify -->
+
 From this declaration, the framework derives:
 
 - **Discovery** — `config.resolve()` searches for `.myapprc.toml`, `.myapprc.jsonc`, `.myapprc.yaml` (walking up from cwd or a specified path). Bun native imports handle parsing with zero dependencies.
@@ -223,6 +225,8 @@ Resolution order:
 3. Resolve resources (factories read `ResourceContext.config` instead of `ResourceContext.env`)
 4. Compose layers
 5. Execute
+
+<!-- fix ::: Describe resolution as asynchronous while retaining the before-resource-factories ordering; AppConfig.resolve returns Promise<Result<...>>. #stale -->
 
 Config resolution is synchronous and deterministic. Resource factories that follow may be sync or async — connecting to a remote database, validating credentials, or performing any other async initialization. The boundary is clean: config is fully resolved before any factory runs, and factories receive typed, validated config through `ResourceContext.config`.
 

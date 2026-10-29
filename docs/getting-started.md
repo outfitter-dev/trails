@@ -252,6 +252,8 @@ The dotted trail ID `math.add` becomes a subcommand on CLI (`myapp math add --a 
 
 ## Composing Trails
 
+<!-- fix ::: Compose the typed math.add trail object before accessing sum.value.result; ComposeFn string-ID overload defaults the result output to unknown. #bug -->
+
 A trail can compose other trails via `composes` to accomplish a higher-level task:
 
 ```typescript

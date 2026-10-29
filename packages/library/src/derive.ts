@@ -47,6 +47,8 @@ export interface LibraryExport {
   /** Output schema reference, when the trail declares one. */
   readonly output: ZodType | undefined;
   /**
+   * <!-- fix ::: Describe one factory for all resource-bearing exports, not grouping by shared resource sets; see compile.ts generateIndex. #stale -->
+   *
    * Resource ids this export depends on. Empty means a stateless function
    * export; non-empty means the emitter renders the export behind a
    * `createX()` factory/client, grouped by shared resources. Carrying ids (not
@@ -93,6 +95,7 @@ export interface LibraryRenderingPlan {
  * narrowing, for the library surface).
  */
 export interface DeriveLibraryApiOptions {
+  // <!-- fix ::: Document exact-ID internal inclusion while retaining draft exclusion; see filterSurfaceTrails and deriveLibraryApi. #stale -->
   /** Narrowing include patterns. Never widens drafts/internal. */
   readonly include?: readonly string[];
   /** Exclude patterns. */
@@ -102,6 +105,8 @@ export interface DeriveLibraryApiOptions {
 }
 
 /**
+ * <!-- fix ::: Describe lossy normalization and collision reporting; widget.get-thing and widget.get.thing collide in derive.test.ts. #stale -->
+ *
  * Derive a consumer-native export name from a trail id: camelCase across `.`
  * and `-` segments, preserving the full path so distinct trails stay distinct.
  * `widget.get` -> `widgetGet`, `entity.list-all` -> `entityListAll`.
@@ -126,6 +131,8 @@ const isInternal = (trail: AnyTrail): boolean =>
   trail.visibility === 'internal' || trail.meta?.['internal'] === true;
 
 /**
+ * <!-- fix ::: State the exact-ID internal inclusion exception; see filterSurfaceTrails. #stale -->
+ *
  * Derive a topo into a `LibraryRenderingPlan`. Selection composes
  * `filterSurfaceTrails` (visibility, activation, intent, include/exclude) and
  * adds draft exclusion. Established public, current-version trails become

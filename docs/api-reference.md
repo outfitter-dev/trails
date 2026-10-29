@@ -55,6 +55,7 @@ resultAccessorNames                // canonical Result instance accessors used b
 Result.ok(value?), Result.err(error), Result.combine(results)
 Result.fromFetch(url, opts?), Result.fromJson(string), Result.toJson(value)
 
+// <!-- fix ::: Include the public WorkspaceShiftError export in this taxonomy list (packages/core/src/index.ts). #drift -->
 // Error taxonomy
 TrailsError, ValidationError, NotFoundError, VersionNotSupportedError, AlreadyExistsError,
 ConflictError, PermissionError, PermitError, AuthError, TimeoutError,
@@ -735,6 +736,7 @@ writeActivationTraceRecord(name, attrs, status?, category?, parent?) // write an
 createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
+// <!-- fix ::: Group the memory sink exports under @ontrails/observability; the dev subpath does not export them. #stale -->
 // Developer-state tools (from @ontrails/observability/dev)
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink

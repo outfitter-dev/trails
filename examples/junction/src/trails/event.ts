@@ -112,6 +112,7 @@ export const get = trail('event.get', {
   resources: [relayStoreResource],
 });
 
+// <!-- fix ::: Reject signature-invalid events before replay; relay.dispatch also lacks this guard and can deliver ingress records rejected by webhook.receive. #bug -->
 export const replay = trail('event.replay', {
   description: 'Re-fire event.received for one stored event',
   examples: [

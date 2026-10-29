@@ -683,6 +683,7 @@ const classifyTrailingArgument = (
         'Wrap the options with `topo.options({ observe: sink })` to disambiguate.',
     };
   }
+  // <!-- fix ::: Preserve module exports named layers when observe is absent; isObserveInput(undefined) reaches this supposedly unreachable branch and a trail-valued layers later throws during option spreading. #bug #coverage -->
   if (isObserveInput(observeValue)) {
     // Catch-all for any future `ObserveInput` variant added to the
     // type. Today this branch is unreachable given the guards above.

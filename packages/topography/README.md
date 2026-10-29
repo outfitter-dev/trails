@@ -36,6 +36,8 @@ This is not a private helper package. The Trails operator app consumes Topograph
 
 ## Usage
 
+<!-- fix ::: Make the root directory explicit in the lock read/write examples and API descriptions; src/io.ts defaults omitted dir to .trails, so root trails.lock requires { dir: "." }. #stale -->
+
 ```typescript
 import {
   deriveTopoGraph,
@@ -77,6 +79,8 @@ The normal exported artifact is:
 Compatibility helpers still read the previous `.trails/trails.lock` plus `.trails/topo.lock` artifact family during the migration window. New writes should use `writeTrailsLock()`.
 
 ## API
+
+<!-- fix ::: Align lock versions in this table with src/types.ts: root envelopes are v5 and compatibility manifests are v4; see src/__tests__/io.test.ts. #stale -->
 
 | Export | What it does |
 | --- | --- |

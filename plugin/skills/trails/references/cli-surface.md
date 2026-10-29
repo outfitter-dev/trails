@@ -71,6 +71,8 @@ Groups are created automatically from the dot-separated prefix.
 
 ## Destructive Trails
 
+<!-- fix ::: Explain generated dry-run flags use ctx.dryRun for write and destroy; schema-authored dryRun remains input (packages/cli/src/__tests__/build.test.ts). #stale -->
+
 When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. If the implementation needs to branch on it, declare `dryRun` in the trail input schema so validation preserves it. You can also add this explicitly:
 
 ```typescript

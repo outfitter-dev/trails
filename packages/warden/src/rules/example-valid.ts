@@ -382,6 +382,7 @@ const checkEntityExamples = (
 };
 
 /**
+ * <!-- fix ::: Qualify the description below as best-effort static validation; UnsupportedEntityEvaluationError is deliberately skipped by buildEntityExampleErrorDiagnostic. #stale -->
  * Checks that entity examples validate against their schema.
  */
 export const exampleValid: WardenRule = {

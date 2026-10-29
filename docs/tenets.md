@@ -22,6 +22,8 @@ These are the foundational beliefs of the framework. Every feature, ADR, and API
 
 A trail definition is the source of truth. Surfaces (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
 
+<!-- fix ::: Describe versioning, permits, and activation sources as current trail capabilities rather than future maturity (packages/core/src/trail.ts and execute.ts). #stale -->
+
 The trail is the unit of everything. Testing targets the trail. Governance targets the trail. Composition follows the trail. As the framework matures, versioning, permissions, and activation sources will target the trail too. The trail is where capability lives.
 
 ### One schema, one Result, one error taxonomy
@@ -31,6 +33,8 @@ Every trail has one input schema and one output schema. Every implementation ret
 Drift across surfaces is structurally harder than alignment. You cannot have different parameter names across surfaces because there is only one schema.
 
 ### Schema always exists
+
+<!-- todo ::: Reconcile the output-schema-always-exists promise here and above with optional output authoring under Progressive disclosure and current TrailSpec; clarify intended enforcement before choosing a docs or implementation change. #verify -->
 
 There is no untyped state. If a trail accepts input, the input has a schema. If a trail returns output, the output has a schema. If a developer fires a signal, the payload has a type. If a resource has config, the config has a shape.
 
@@ -81,6 +85,8 @@ Six categories describe how information flows through the system. Understanding 
 **Authored.** New information only the developer knows. Schemas, intent, meta, examples, the `implementation` that establishes how the trail runs, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
 
 **Derived.** Mechanically produced from authored information, guaranteed correct. MCP tool names from trail IDs. CLI flags from schema fields. Exit codes from error classes. HTTP verbs from intent. If the authored input exists, the derived fact is unambiguous. `derive` produces those facts; `render` presents them through a surface or format.
+
+<!-- todo ::: Clarify whether Result eliminates throw/catch describes the authored policy or a compiler guarantee; TypeScript permits throws, and Warden enforces the authored prohibition. #verify -->
 
 **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the implementation can access. The compiler rejects non-compliance.
 

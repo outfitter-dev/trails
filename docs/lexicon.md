@@ -217,6 +217,8 @@ Recovery paths when the trail is blocked or fails. A runnable trail proceeds thr
 
 ### `compose` / `composes`
 
+<!-- fix ::: Compose typed trail objects in this example before reading created.value.id; the ComposeFn string-ID overload returns unknown output by default. #bug -->
+
 Trail-to-trail composition. `composes` is the declaration on the trail spec. `ctx.compose()` is the runtime call.
 
 ```typescript
@@ -441,6 +443,8 @@ A framework-derived, content-addressed contract identifier. Authors do not write
 
 ### `forces`
 
+<!-- fix ::: Describe force audit recording as shipped compile behavior (apps/trails/src/trails/compile.ts; packages/topography/src/forces.ts). #stale -->
+
 Compiler-managed graph audit records for future `--force` compile behavior. `forces:` appears only in the resolved graph, not in source, and is not a version entry.
 
 ### `graph`
@@ -493,6 +497,8 @@ The store declaration stays kind-agnostic. The binding (native or adapter) choos
 `derive` produces canonical facts or an intermediate representation from authored truth. The topo store derives relational facts from the resolved graph, and `deriveCliCommands(graph)` derives command definitions from trail contracts.
 
 `render` presents derived facts through a surface or format. CLI flags render schema fields, HTTP routes render intent and input contracts, and public error renderings redact diagnostics for callers. The framework derives facts and renders them for consumers; developers author the source.
+
+<!-- todo ::: Reconcile the aliases-API exclusion below with the supported trail-owned cli.aliases field; ADR-0052 removes app-module alias carriers (packages/core/src/derive.ts; trail.ts). #drift #verify -->
 
 ### Other plain terms
 

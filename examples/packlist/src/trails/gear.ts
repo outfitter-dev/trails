@@ -218,6 +218,7 @@ export const update = trail('gear.update', {
     if (!existing) {
       return Result.err(new NotFoundError(`Gear "${input.id}" not found`));
     }
+    // <!-- fix ::: Check renamed gear for duplicate names as create does; the update schema promises a unique name but this path accepts an existing one. #bug -->
     const gear = await connection.gear.update(input.id, {
       ...(input.category === undefined ? {} : { category: input.category }),
       ...(input.name === undefined ? {} : { name: input.name }),

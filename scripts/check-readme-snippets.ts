@@ -255,6 +255,7 @@ export const writeTopoGraph: any;
 export default {} as any;
 `.trim();
 
+// <!-- fix ::: Discover workspace READMEs instead of trusting this closed list; library and Cloudflare TypeScript examples currently escape snippet coverage. #coverage #hardcoded -->
 export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/source/README.md',
   'packages/core/README.md',
@@ -770,6 +771,7 @@ const runSnippetTypecheck = (
           noUncheckedIndexedAccess: true,
           paths: {
             '@logtape/logtape': ['module-stubs/readme-module.d.ts'],
+            // <!-- todo ::: Check examples against real package types or report the any-stub limitation; verifyExportedBindings checks names, not API signatures. #coverage -->
             '@ontrails/*': ['module-stubs/readme-module.d.ts'],
             pino: ['module-stubs/readme-module.d.ts'],
             vite: ['module-stubs/readme-module.d.ts'],

@@ -1,5 +1,7 @@
 # @ontrails/testing
 
+<!-- fix ::: Qualify full contract coverage: testExamples and testContracts depend on available examples, and derived-only examples skip composition coverage. #stale -->
+
 Contract-driven testing for Trails. Add examples to your trails, then `testAll(graph)` runs them as assertions, validates output schemas, checks composition graphs, and verifies structural integrity. One line of test code, full contract coverage.
 
 ## Usage
@@ -54,6 +56,8 @@ testTrail(showTrail, [
 ```
 
 ## Testing composition (trails with composes)
+
+<!-- fix ::: Teach testComposes for graph scenarios and clarify the compose context needed by testTrail; src/trail.ts directly invokes the implementation with a test context. #stale -->
 
 `testTrail` works the same for trails with `composes` -- it exercises the composition graph:
 

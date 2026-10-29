@@ -73,6 +73,7 @@ describe('unmaterialized-activation-source', () => {
   });
 
   test('stays quiet for queue, schedule, signal, and webhook activation sources', async () => {
+    // <!-- fix ::: Replace the retired blaze field with implementation and validate the runnable fixture; topo-rule inspection alone lets this malformed positive fixture pass. #stale #coverage -->
     const queueConsumer = trail('invoice.queue-consume', {
       blaze: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),

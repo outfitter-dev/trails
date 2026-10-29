@@ -25,6 +25,7 @@ import { wardenTopo } from './topo.js';
 import { buildProjectContext } from './wrap-rule.js';
 
 /**
+ * <!-- fix ::: Move this runner documentation to runWardenTrails; appendDiagnostics only appends already collected diagnostics. #stale -->
  * Run all file-scoped warden rule trails for a given file and collect diagnostics.
  *
  * Each rule trail runs independently. Errors from individual trails are
@@ -41,6 +42,7 @@ const appendDiagnostics = (
 
 type TrailIntentMap = Readonly<Record<string, Intent>>;
 
+// <!-- fix ::: Forward topoTrailIds, authoredMcpSurfaceBindingSets, and exportedSymbolDefinitionsByName from the shared project-aware input contract; this duplicated option list drops context and suppresses diagnostics such as dead-public-trail. #bug #drift #coverage -->
 interface ProjectRuleOptions {
   readonly governedVocabularyHistories?: readonly GovernedVocabularyHistoryEvidence[];
   readonly governedVocabularyHistoryIssues?: readonly GovernedVocabularyHistoryIssue[];

@@ -109,6 +109,8 @@ search: {
 }
 ```
 
+<!-- todo ::: Align the mock embedding dimensions with the 1536-dimensional index above, or specify how test bindings substitute index dimensions. #bug #verify -->
+
 The embedding resource is a standard Trails resource (ADR-0009):
 
 ```typescript

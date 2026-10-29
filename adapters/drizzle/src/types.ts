@@ -34,6 +34,8 @@ export interface DrizzleStoreOptions<
   /** Path to the SQLite database file. Use `":memory:"` for ephemeral runs. */
   readonly url: string;
   /**
+   * <!-- fix ::: Document seeding on every writable initialization and fixture fallback for omitted tables; see connectDrizzle and collectFixtures in runtime.ts. #stale -->
+   *
    * Optional fixture overrides applied when the writable runtime database is
    * first created.
    *

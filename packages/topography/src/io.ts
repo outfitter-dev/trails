@@ -205,6 +205,7 @@ export const writeLockManifest = async (
 };
 
 /**
+ * <!-- fix ::: Update this envelope version to v5; see TRAILS_LOCK_SCHEMA_VERSION in types.ts. #stale -->
  * Write a v4 Trails lock envelope to `<dir>/trails.lock`.
  */
 export const writeTrailsLock = async (
@@ -241,6 +242,7 @@ export const readLockManifest = async (
 };
 
 /**
+ * <!-- fix ::: Update this envelope version to v5; the compatibility manifest reader above owns v4. #stale -->
  * Read a v4 Trails lock envelope from `<dir>/trails.lock`.
  */
 export const readTrailsLock = async (

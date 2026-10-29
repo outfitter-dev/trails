@@ -88,6 +88,8 @@ defaults (schema) → base → profile → local → env
 
 Each layer overrides the previous. Environment variables always win.
 
+<!-- fix ::: Describe dotfile discovery as an alternative naming convention; src/app-config.ts configFileName selects either dotfile or normal names. #stale -->
+
 `appConfig()` discovers `*.config.toml`, `*.config.json`, `*.config.jsonc`, and `*.config.yaml` by default, plus dotfile equivalents when `dotfile: true`.
 
 ## Trails project roots

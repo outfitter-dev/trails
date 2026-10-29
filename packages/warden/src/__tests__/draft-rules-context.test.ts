@@ -8,6 +8,8 @@ import { draftFileMarking } from '../rules/draft-file-marking.js';
 import { draftVisibleDebt } from '../rules/draft-visible-debt.js';
 
 /**
+ * <!-- fix ::: Include the package-name fallback for alternate install paths in this exemption description (rules/source/drafts.ts and tests below). #stale -->
+ *
  * Absolute paths to the two real framework files that define the draft-prefix
  * constants. The exemption in `collectFrameworkDraftPrefixConstantOffsets` is
  * keyed on absolute-path equality against these two paths.

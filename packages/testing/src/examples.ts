@@ -1,6 +1,8 @@
 /**
  * testExamples — the headline one-liner.
  *
+ * <!-- fix ::: Qualify composition coverage here and on testExamples below: only authored examples count, and derived-only examples skip the coverage assertion. #stale -->
+ *
  * Iterates every trail in the app's topo. For each trail with examples,
  * generates describe/test blocks using bun:test. Progressive assertion
  * determines which check to run per example. For trails with `composes`

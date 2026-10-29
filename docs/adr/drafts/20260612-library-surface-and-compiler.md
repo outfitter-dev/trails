@@ -15,6 +15,8 @@ depends_on: [0, 6, 8, 9, 26, 46]
 > Matt/Lewis review. Replaces the retired compiled-pack draft, which is
 > deleted when this lands.
 
+<!-- fix ::: Date this pre-library context and reference the implemented library surface and Current governance and dogfood proof below; retain this proposal as draft. #stale #drift -->
+
 ## Context
 
 Trails has surfaces for CLI, MCP, and HTTP. Each takes the trail contract and renders it for a consumption context: CLI into argv and exit codes, MCP into JSON-RPC tools, HTTP into routes and status codes. One consumption context has no surface yet: **plain TypeScript**.

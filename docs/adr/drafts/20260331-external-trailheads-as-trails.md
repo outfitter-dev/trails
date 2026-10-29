@@ -728,6 +728,8 @@ A rigged trail with a schedule activation source becomes a periodic monitoring p
 
 This is the "observe the external world and announce what you found" pattern. Rig provides the observation. Signals provide the announcement. Activation sources provide the activation. Each is a separate primitive. Together they form a monitoring pipeline from external command through typed observation through reactive response.
 
+<!-- todo ::: Reconcile proposed rig metadata with ADR-0052 overlay ownership before ratifying this lock storage design. #drift #verify -->
+
 ### Rig locks in `trails.lock`
 
 Rig lock state rolls up into the `rigs` section of `trails.lock`:

@@ -225,6 +225,7 @@ export { validDetourContract } from './valid-detour-contract.js';
 export { validDescribeRefs } from './valid-describe-refs.js';
 export { webhookRouteCollision } from './webhook-route-collision.js';
 
+// <!-- fix ::: Scope this registry description to file-scoped built-ins; wardenTopoRules below contains the separately dispatched topo-aware rules. #stale -->
 /** All built-in warden rules, keyed by rule name. */
 export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   string,

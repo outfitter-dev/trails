@@ -86,6 +86,8 @@ basePath: '/api/v1'
 entity.show           → /api/v1/entity/show
 ```
 
+<!-- todo ::: Reconcile the REST path/method override direction with current direct-trail HTTP routes, which derive method/path without these overrides; label unimplemented accommodations explicitly before teaching them as available. See packages/http/src/build.ts. #drift #verify -->
+
 Trails with an explicit `http.path` override in `meta` can use custom paths when the derivation doesn't fit — REST-style resource paths like `/users/:id` need per-trail configuration. The default handles the common case; the override handles the rest.
 
 ### Method derivation from intent

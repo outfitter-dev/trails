@@ -897,6 +897,7 @@ const reExportDeclarationSpecifier = (
   return undefined;
 };
 
+// <!-- todo ::: Check conformance import discovery after astral characters; this repeats the code-point versus UTF-16 masking mismatch reproduced in source.ts maskDeadSourceText. #bug #coverage #verify -->
 const maskSource = (source: string, options: { strings: boolean }): string => {
   const output = [...source];
   let index = 0;

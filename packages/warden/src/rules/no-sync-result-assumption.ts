@@ -583,6 +583,7 @@ interface ScopeFrame {
   readonly kind: ScopeKind;
   readonly bindings: Set<string>;
   /**
+   * <!-- fix ::: Distinguish hoisted declarations from var reinitialization of a parameter; the latter registers a pending binding (no-sync-result-assumption.test.ts). #stale -->
    * For function frames: names that came from parameters (not hoisted `var`s).
    * A `var` declaration with the same name as a parameter is redundant in JS —
    * the parameter is the real binding. We track params separately so we don't

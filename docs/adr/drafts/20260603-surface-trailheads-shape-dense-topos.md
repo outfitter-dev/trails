@@ -122,6 +122,8 @@ This does not change runtime behavior. It only records that the author understan
 
 A trailhead description is authored prose. Its truth depends on resolved membership. Routine namespace growth should not force needless copy changes, but major membership drift should be visible.
 
+<!-- todo ::: Reconcile this proposed top-level graph carrier with ADR-0052 surface-overlay bindings before reusing or promoting this draft. #drift #verify -->
+
 The resolved topo artifact family records trailhead metadata as top-level derived facts, not as graph entries:
 
 ```ts

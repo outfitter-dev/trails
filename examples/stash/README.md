@@ -22,6 +22,8 @@ Twenty trails, two resources, twenty signals, all mocked-db testable with one `t
 
 Agents are the primary user here: "save this snippet," "find my sqlite snippets," "fork and modify." The MCP surface exposes the hot-path tools directly and groups the rest behind four trailheads, so a dense topo reads as a short tool list. The groupings are authored once as module overlay bindings in `app.ts` (so they land in `trails.lock` and any surface or reader can see them), while the call-site map in `mcp-options.ts` overrides the same members at runtime with richer descriptions.
 
+<!-- todo ::: Preserve this captured transcript as historical evidence and add current grouped tool calls using stash_snippets/stash_search with the trail/input envelope (src/mcp-options.ts); qualify the direct-tool claim above. #stale -->
+
 A real tool-call transcript, captured against the seeded app (`stash_snippet_create` with alice's bearer token, then `stash_search_query` — no reindex step in between; the `snippet.created` signal drove `search.index` reactively):
 
 ```text

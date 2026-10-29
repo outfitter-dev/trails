@@ -82,6 +82,7 @@ const STALE_VOCABULARY_PATTERNS: readonly {
     term: staleTerm(['Surface', ' maps']),
   },
   {
+    // <!-- fix ::: Remove live trailhead vocabulary from stale-term policy and consume the vocabulary owner where possible; checking current skill source against itself reports seven false stale hits. Preserve pending Skillset routing changes. #bug #hardcoded -->
     pattern: exactWordPattern(['trail', 'head'], 'i'),
     term: staleTerm(['trail', 'head']),
   },

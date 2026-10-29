@@ -1,6 +1,8 @@
 /**
  * Intrinsic tracing primitives.
  *
+ * <!-- fix ::: Qualify automatic record creation below: executeTrail skips root allocation and uses passthrough spans when the active sink is the no-op disabled sentinel. #stale -->
+ *
  * This module is the home for the trace record type, the sink interface,
  * the sink registry, and the helpers `executeTrail` uses to create root
  * trace records and child spans. Core keeps this minimal contract public so

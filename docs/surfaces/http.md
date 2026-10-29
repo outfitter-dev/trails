@@ -276,6 +276,8 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 
 ## Execution Layers
 
+<!-- fix ::: Include topo- and trail-attached layers alongside surface layers; topo attachment is supported (packages/core/src/topo.ts and trail.ts). #stale -->
+
 HTTP accepts execution layers in the surface options. They wrap trail execution for requests on that surface before execution enters the implementation; they are not declared on the topo or surfaced as contract graph nodes in v1.
 
 ```typescript
@@ -372,6 +374,8 @@ const longTask = trail('report.generate', {
 ```
 
 ## Example: Full HTTP Entry Point
+
+<!-- fix ::: Replace createTrailContext({ store }) with a declared resource and surface resources override; TrailContextInit has no store field. #bug -->
 
 ```typescript
 import { createTrailContext } from '@ontrails/core';

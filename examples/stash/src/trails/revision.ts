@@ -180,6 +180,7 @@ const diffStatus = (
   return changedLines === 0 ? 'unchanged' : 'modified';
 };
 
+// <!-- fix ::: Compare file content when determining modified status; textLines drops binary content and line sets hide reordered or repeated-line changes. #bug -->
 const diffFile = (
   name: string,
   before: StashFile | undefined,

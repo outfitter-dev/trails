@@ -196,6 +196,7 @@ export interface OtelSink extends TraceSink {
  * under a `trails.*` namespace. Pass any OTel-compatible exporter callback
  * to forward spans to your collector.
  *
+ * <!-- fix ::: Describe export at the configured batch threshold and explicit flush; writes below batchSize remain buffered. #stale -->
  * Translates and exports spans on each write. Call `flush()` on shutdown
  * to send any remaining buffered spans.
  */

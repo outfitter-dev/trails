@@ -744,6 +744,7 @@ export const findEntityDefinitions = (
         readonly id?: AstNode;
         readonly init?: AstNode;
       };
+      // <!-- fix ::: Honor topLevelOnly for variable declarators too; nested function-local entity declarations currently bypass the statement-start filter. #bug #coverage -->
       addNamedEntityDefinition(id, init);
       return;
     }

@@ -63,6 +63,8 @@ When behavior is maintained per-surface, APIs drift from documentation, CLIs dri
 
 ### One schema, one Result, one error taxonomy
 
+<!-- fix ::: Align the always/everywhere examples with core errors.ts: NotFound uses CLI 2 and JSON-RPC -32601, while Validation uses CLI 1. Preserve the taxonomy principle. #stale -->
+
 Every trail has one input schema and one output schema. Every blaze returns one `Result` type. Every error is a `TrailsError` with a category that maps deterministically to every surface's error representation.
 
 - `NotFoundError` → HTTP 404, CLI exit code 1, JSON-RPC -32001 — always, everywhere

@@ -279,6 +279,7 @@ const collectTrailDefinitions = (
               sourceFile,
               constInitializers
             ),
+            // <!-- todo ::: Reconcile release exposure facts with authored surfaceOverlay bindings; release-contract-facts.test.ts exercises a synthetic trail surfaces field instead (src/app.ts). #coverage #verify -->
             surfaces: normalizeExpressionText(
               findProperty(spec, 'surfaces')?.initializer,
               sourceFile,

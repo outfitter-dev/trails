@@ -1,6 +1,8 @@
 /**
  * Registry name snapshot used by `warden-export-symmetry`.
  *
+ * <!-- fix ::: Attribute live-registry parity enforcement to warden-export-symmetry.test.ts; the rule compares this snapshot with exports and cannot itself prove the snapshot matches live registries. #stale -->
+ *
  * Imports each rule module directly to avoid a dependency cycle with
  * `./index.ts`, which itself imports `warden-export-symmetry`. Keep this
  * list in lockstep with `wardenRules` / `wardenTopoRules` in `./index.ts` —

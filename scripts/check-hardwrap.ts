@@ -94,6 +94,7 @@ const listMarkdownFiles = (): readonly string[] => {
     .filter((path) => !excludePatterns.some((pattern) => pattern.test(path)));
 };
 
+// <!-- todo ::: Define whether standalone GENERATED markers suppress all following content; add a mixed-authored-file case so an unpaired marker cannot silently hide wrapped prose unintentionally. #coverage #verify -->
 const SENTINEL_START =
   /<!--\s*(?:[A-Za-z0-9_:-]+:start|BEGIN[: ]|GENERATED[: ])/;
 const SENTINEL_END = /<!--\s*(?:[A-Za-z0-9_:-]+:end|END[: ])/;

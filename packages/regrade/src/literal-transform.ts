@@ -37,6 +37,7 @@ const regradeTransformInputToChild = regradeTransformInput.transform(
 type RegradeTransformRawInput = z.input<typeof regradeTransformInputToChild>;
 
 /**
+ * <!-- fix ::: Remove the obsolete example cast below and revise the TRL-842 explanation; core SchemaOwnedTrailSpec now types examples with z.input, and removing the cast typechecks. #stale #drift -->
  * Post-transform implementation input shape — the trail's inferred input type `I`.
  *
  * TRL-842: With a `.transform()` input schema, the trail's inferred input type

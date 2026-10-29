@@ -64,6 +64,8 @@ One draft dependency can turn surprising amounts of downstream work into draft s
 
 ## What draft must never reach
 
+<!-- fix ::: Distinguish authored topo accessors from established-output validation; topo.ts get/list return draft declarations, while surface derivation rejects contaminated graphs instead of filtering the accessors. #stale -->
+
 These outputs reject draft state at runtime via `validateEstablishedTopo()`:
 
 - **Surface rendering** — no draft trails in current shipped surfaces
@@ -85,6 +87,8 @@ These outputs reject draft state at runtime via `validateEstablishedTopo()`:
 6. Loads the topo fresh and runs `deriveDraftReport()` to verify
 
 ### Example
+
+<!-- fix ::: Use --rename-files as a boolean switch without the trailing true argument, or omit it because it defaults to true; see draft-promote input schema and CLI help. #bug -->
 
 ```bash
 trails draft promote \

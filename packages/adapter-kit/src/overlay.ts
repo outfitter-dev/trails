@@ -1,6 +1,8 @@
 /**
  * The adapter overlay contract.
  *
+ * <!-- todo ::: Reconcile the byte-preservation claims here and on namespace with ADR-0052 and Topography io.ts JSON parsing/reserialization; test a noncanonical unknown-overlay round trip. #drift #coverage #verify -->
+ *
  * Adapters export an overlay object describing one namespaced fact
  * overlay; the app module re-exports it (conventionally as
  * `trailsOverlays`), and the compile path validates `derive(topo)`

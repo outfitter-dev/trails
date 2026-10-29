@@ -1,6 +1,8 @@
 /**
  * HTTP surface — the public status page plus the permit-gated admin API.
  *
+ * <!-- fix ::: Name GET /status/summary as the derived status route; GET /status has no matching direct trail route (packages/http/src/build.ts). #stale -->
+ *
  * Routes derive from trail ids: `GET /status` (via the status.summary cli/http
  * rendering `/status/summary`), `GET /status/badge?checkId=...`,
  * `GET /incident/list`, `GET /probe/history?checkId=...`. Public reads need

@@ -86,6 +86,7 @@ const element = <div />;
 });
 
 describe('README_SNIPPET_CONFIGS', () => {
+  // <!-- fix ::: Compare coverage against actual workspace README discovery; checking configs against the same hardcoded inventory cannot catch omitted packages. #coverage -->
   test('classifies every package, app, and adapter README in the v1 inventory', () => {
     expect(listUnconfiguredReadmes(README_SNIPPET_CONFIGS)).toEqual([]);
     expect(listUnexpectedReadmeConfigs(README_SNIPPET_CONFIGS)).toEqual([]);

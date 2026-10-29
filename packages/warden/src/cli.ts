@@ -111,6 +111,7 @@ export interface WardenTopoTarget {
  * Options for the shared Warden runner.
  */
 export interface WardenRunOptions {
+  // <!-- fix ::: Describe project-root discovery from cwd, with cwd fallback; runWarden calls resolveTrailsProjectRoot rather than defaulting directly. #stale -->
   /** Root directory to scan for TypeScript files. Defaults to cwd. */
   readonly rootDir?: string | undefined;
   /** Warden config section from `trails.config.ts`, if already loaded. */
@@ -163,6 +164,7 @@ export interface WardenRunOptions {
    */
   readonly projectRules?: boolean | undefined;
   /**
+   * <!-- fix ::: Include topos as an alternative in the topo and extraTopoRules remarks; topo-aware rules run per resolved target, not only with singular topo. #stale -->
    * App topology for drift detection. When provided, enables real topology
    * drift comparison and unlocks the topo-aware rule dispatch path.
    *
@@ -228,6 +230,7 @@ export interface WardenReport {
   readonly warnCount: number;
   /** Drift detection result, or null if skipped */
   readonly drift: DriftResult | null;
+  // <!-- fix ::: Include the effective failOn warning threshold and blocked drift reads in this success definition; see reportPassed. #stale -->
   /** Whether the warden run passed (no errors, no drift) */
   readonly passed: boolean;
   /** Effective shared config consumed by this run. */

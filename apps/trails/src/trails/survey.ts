@@ -916,6 +916,7 @@ export const surveyTrailDetailTrail = trail('survey.trail', {
   output: trailDetailOutput,
 });
 
+// <!-- fix ::: Label these resource and signal NotFoundError examples as absence cases; add fixture-backed successful detail examples to teach introspection. #stale #coverage -->
 export const surveyResourceTrail = trail('survey.resource', {
   args: ['id'],
   description: 'Inspect one resource by ID',

@@ -52,6 +52,8 @@ The identifier format disambiguates the source: `@ontrails/github` is npm, `outf
 
 ## Decision
 
+<!-- todo ::: Reconcile distribution-resource naming and the lock section below with current resource vocabulary and ADR-0052 overlays before ratification. #drift #verify -->
+
 ### Vocabulary
 
 | Term | What it is |

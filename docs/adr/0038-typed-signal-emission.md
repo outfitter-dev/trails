@@ -232,6 +232,8 @@ Typed signal v1 does not introduce:
 - **The runtime is intentionally not durable.** V1 gives typed local notification. Systems that need replay, retry, or distributed fan-out need a later delivery decision.
 - **Signal-cycle suppression is currently signal-ID based.** That prevents obvious re-entrant loops but may over-suppress some diamond-shaped fan-out patterns until per-path provenance is justified.
 
+<!-- fix ::: Qualify schedule and webhook deferral below as ADR-0038 scope; the source-materializer boundary above records their separate acceptance in ADR-0039. #drift -->
+
 ### Deferred work
 
 - Durable signal delivery, replay, retry, and dead-letter handling.

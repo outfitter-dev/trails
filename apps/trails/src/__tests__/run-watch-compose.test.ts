@@ -98,6 +98,7 @@ describe('runWatchLoop with run.example', () => {
     fixture.cleanup();
   });
 
+  // <!-- fix ::: Qualify this as a stubbed contract-hash rerun test; changing both the outcome and fabricated hash does not prove implementation-only edits trigger reruns (run-watch.ts). #stale #coverage -->
   test('rebuilds the comparison envelope on each rerun', async () => {
     // Simulate the `run.example` trail's behavior: the trail
     // returns a fresh comparison envelope per invocation. We model the

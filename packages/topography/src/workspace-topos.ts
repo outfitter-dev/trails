@@ -76,6 +76,8 @@ export interface BuildWorkspaceTrailIndexOptions {
  * and recorded in `collisions` instead — callers must consult `collisions`
  * to resolve ambiguous ids deterministically.
  *
+ * <!-- fix ::: Describe apps as including collision-only owners, not only names represented in the non-colliding index (cache loading and discovery below). #stale -->
+ *
  * `source` distinguishes a cache hit (the topo artifact already carried the
  * workspace trail index) from discovery (apps were walked and loaded). The
  * topo artifact path cannot collide because the index is itself a flat
@@ -235,6 +237,7 @@ const expandWorkspaceMembers = async (
       members.push(join(cwd, match));
     }
   }
+  // <!-- fix ::: Describe deterministic collision reporting; resolveOwners excludes colliding IDs instead of choosing the last writer. #stale -->
   // Sort for deterministic discovery order. Collision resolution depends on
   // a stable order so that "last-write-wins" is reproducible across runs.
   return [...members].toSorted();

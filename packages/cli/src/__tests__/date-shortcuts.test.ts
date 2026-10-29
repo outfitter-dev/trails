@@ -1,6 +1,8 @@
 /**
  * Tests for CLI surface derivation absorbing date-shortcut behavior.
  *
+ * <!-- fix ::: Include date-only strings and native Date values in the expansion summary (date-shortcuts.ts formatExpandedDate). #stale -->
+ *
  * Verifies that when a trail's input schema contains date-typed fields,
  * the CLI surface derivation pipeline expands shortcut strings
  * (`today`, `yesterday`, `Nd`, `this-week`, `this-month`) into UTC ISO
@@ -207,6 +209,7 @@ describe('expandDateShortcut', () => {
     }
   });
 
+  // <!-- fix ::: Correct the d7 error claim or define and test its intended handling; SHORTCUT_LIKE_PATTERN currently passes d7 through. #stale #coverage -->
   test("invalid Nd-shaped values (e.g. '7day', 'd7') return an error", () => {
     const bad = expandDateShortcut('7day', FIXED_NOW);
     expect(bad.ok).toBe(false);

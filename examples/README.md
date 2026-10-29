@@ -2,6 +2,8 @@
 
 Five showcase apps, each with one hero capability, at least two surfaces, and a one-sentence explanation a stranger understands. Together they cover the entire primitive set and serve as public showcases, forkable scaffolding for adopters, and a standing dogfood corpus.
 
+<!-- fix ::: Reframe placeholder/build-run planning as historical setup now that all five showcase apps have implementations and quickstarts. #stale -->
+
 Each app lives in `examples/<name>/` and is built in its own run, confined to its own directory. The workspaces here start as placeholders so `bun.lock` takes the workspace-membership churn once, before the parallel builds begin.
 
 ## The lineup

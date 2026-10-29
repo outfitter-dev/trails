@@ -115,6 +115,8 @@ The mapping is deterministic and lives in three lookup tables (`statusCodeMap`, 
 
 ### Retryable is a property of the error, not the caller
 
+<!-- fix ::: Update the exhaustive retryable list and helper description against core errors.ts: WorkspaceShiftError is retryable and isRetryable reads the instance flag, including RetryExhaustedError overrides. #stale -->
+
 `TimeoutError`, `RateLimitError`, and `NetworkError` are retryable. Everything else is not. This is declared on the error class itself (`readonly retryable = true`), not decided by the caller. `RateLimitError` additionally carries an optional `retryAfter` field parsed from HTTP headers.
 
 The `isRetryable(error)` helper checks the category map. Detours (trail-level recovery strategies) use this to decide whether to retry automatically. The caller doesn't implement retry logic — the error taxonomy already encodes whether retrying makes sense.

@@ -140,6 +140,8 @@ The category inheritance is the important part. A `RetryExhaustedError<ConflictE
 
 The instance-level `retryable: false` override is load-bearing for a different reason, covered next.
 
+<!-- todo ::: Reconcile this optional retryability proposal with the required boolean in the Tradeoffs below and packages/core/src/errors.ts. #drift #verify -->
+
 ### `TrailsError.retryable?: boolean` — an instance-level override
 
 Today the framework's error taxonomy carries `retryable` as a category-level property (e.g., the `timeout` category is retryable, the `conflict` category is not). This ADR introduces an optional instance-level override:
@@ -193,6 +195,8 @@ Each detour attempt is a child span of the trail's root span. A trace of one tra
 Runtime treats both uniformly. The detour loop doesn't know or care whether a detour was authored or derived. Provenance appears in the resolved graph for warden and survey to reason about, but the execution pipeline sees one field.
 
 ## Consequences
+
+<!-- todo ::: Reconcile the promised reconcile-factory recovery retirement below with the retained factory exception in AGENTS.md Trail Rules. #drift #verify -->
 
 ### Positive
 

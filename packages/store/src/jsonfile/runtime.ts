@@ -528,6 +528,7 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
 const createJsonFileTable = <TTable extends AnyStoreTable>(
   options: JsonFileTableOptions
 ): LoadableTable<TTable> => {
+  // <!-- fix ::: Normalize registry paths before lookup; dir and dir/. currently open separate stale indexes for the same file, violating the shared-table guarantee above. #bug #coverage -->
   const path = jsonFilePath(options.dir, options.table.name);
   const cached = tableRegistry.get(path) as
     | JsonFileTableRegistration<TTable>
@@ -642,6 +643,8 @@ export const connectJsonFile = async <TStore extends AnyStoreDefinition>(
 
 /**
  * Create a JSON-file-backed store resource.
+ *
+ * <!-- fix ::: Bind JSON store mutations to ctx.fire through from(ctx), as Drizzle does; this resource registers change signals but an upsert emits none despite the store README promise. Cover create/update/remove. #bug #coverage -->
  *
  * Returns a `Resource` that can be registered in a topo and resolved from
  * trail context via `db.from(ctx)`.

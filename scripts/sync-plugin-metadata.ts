@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 
 export const MARKETPLACE_MANIFEST_PATH = '.claude-plugin/marketplace.json';
 export const PLUGIN_MANIFEST_PATH = 'plugin/.claude-plugin/plugin.json';
+// <!-- todo ::: Reconcile and verify bundled skill target metadata with the pending skill migration before claiming current-framework alignment; audit base targets beta.42 while core is beta.48 (docs/releases/plugin-release.md). #drift #verify -->
 export const TRAILS_SKILL_PATH = 'plugin/skills/trails/SKILL.md';
 export const FRAMEWORK_PACKAGE_PATH = 'packages/core/package.json';
 

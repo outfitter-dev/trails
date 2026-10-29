@@ -93,6 +93,7 @@ export type SurfaceBindingValue =
 export type SurfaceBindings = Readonly<Record<string, SurfaceBindingValue>>;
 
 /**
+ * <!-- todo ::: Distinguish accepted keys from implemented consumers: CLI and MCP expand bindings, HTTP has no binding consumer in its current implementation, and WebSocket remains planned. Reconcile the can-obey-today claim. #drift #verify -->
  * The full `surfaces` overlay payload: per-surface binding maps keyed by the
  * surfaces that can obey bindings today (`cli`, `http`, `mcp`, `ws`).
  *
@@ -120,6 +121,7 @@ const surfaceBindingValueSchema = z.union([
   z.array(surfaceBindingRefSchema).min(1).readonly(),
 ]);
 
+// <!-- fix ::: Reject or preserve __proto__ binding names explicitly; schema parsing silently drops this nonempty key, and expandMcpSurfaceBindings also loses it through ordinary-object assignment. Cover both boundaries. #bug #coverage -->
 const surfaceBindingsRecordSchema = z.record(
   z.string().min(1),
   surfaceBindingValueSchema

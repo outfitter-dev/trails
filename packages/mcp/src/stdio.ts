@@ -1,6 +1,8 @@
 /**
  * Thin wrapper around MCP SDK's StdioServerTransport.
  *
+ * <!-- fix ::: Direct custom transports to createServer; surface hardcodes connectStdio (surface.ts). #stale -->
+ *
  * Exists as a separate function so it can be swapped for other transports
  * (SSE, streamable HTTP) without changing surface().
  */

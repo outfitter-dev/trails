@@ -87,6 +87,8 @@ Do not treat these as settled. Treat them as explicit follow-up slots for the ne
 
 ## Distinct On Purpose
 
+<!-- fix ::: Point the accessor verb distinction to ADR-0001 Accessor verb family; the language styleguide does not define get/read/find/list. #stale -->
+
 Do not merge these just because the code shape looks similar:
 
 - `get`, `read`, `find`, and `list` have distinct meanings documented in the language styleguide.

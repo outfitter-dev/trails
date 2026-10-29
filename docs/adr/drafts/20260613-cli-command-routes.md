@@ -159,6 +159,8 @@ wf search
 
 Absolute aliases are explicit because they can cross out of the canonical parent path.
 
+<!-- todo ::: Reconcile this proposed alias carrier with accepted ADR-0052 surface-overlay bindings before using or promoting this draft. #drift #verify -->
+
 ### Surface-owned aliases live with the CLI surface
 
 Some aliases belong to the app or distribution instead of the trail. They may exist for migration, compatibility, or local command ergonomics.

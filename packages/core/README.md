@@ -23,6 +23,8 @@ const graph = topo('myapp', { greet });
 
 Trails compose other trails through `composes` and `ctx.compose()`:
 
+<!-- fix ::: Align the example declaration with its actual composition: entity.relate is never composed; see packages/warden/src/rules/composes-declarations.ts buildUnusedDiagnostic. #drift -->
+
 ```typescript
 const onboard = trail('entity.onboard', {
   composes: ['entity.add', 'entity.relate'],
@@ -38,6 +40,8 @@ const onboard = trail('entity.onboard', {
 ## API
 
 ### Trail primitives
+
+<!-- fix ::: Qualify validateTopo coverage below: invalid input is allowed for expected ValidationError examples, and output schema presence is checked when an example declares expected output. See checkOneExample. #stale -->
 
 | Export | What it does |
 | --- | --- |
@@ -96,6 +100,8 @@ Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
 | `RunOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `run` |
 
 ### Result
+
+<!-- fix ::: Show fromFetch accepting a URL or Request and returning a promise; see packages/core/src/result.ts Result.fromFetch. It does not convert an existing Response. #stale -->
 
 ```typescript
 Result.ok(value);            // Success

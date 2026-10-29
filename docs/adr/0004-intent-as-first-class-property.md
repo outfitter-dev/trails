@@ -87,6 +87,8 @@ const intentToHint: Partial<Record<Intent, string>> = {
 
 A `'write'` trail sets no hint — the MCP SDK defaults apply. A `'read'` trail sets `readOnlyHint: true`. A `'destroy'` trail sets `destructiveHint: true`.
 
+<!-- fix ::: Add current guidance for write/destroy CLI dry-run flags and ctx.dryRun; an authored input dryRun field has distinct semantics. See packages/cli/src/build.ts and dry-run collision tests. #stale -->
+
 **CLI** — safety presets:
 
 A `'destroy'` trail automatically receives a `--dry-run` flag preset. The framework adds the surface flag because destroy trails should always offer a dry run. If the blaze needs to branch on the value, the trail should also declare `dryRun` in its input schema so Zod preserves it for the blaze.

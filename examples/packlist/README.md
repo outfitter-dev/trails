@@ -36,6 +36,8 @@ bun bin/packlist.ts gear update --id gear-stove --weight-grams 250
 bun bin/packlist.ts trip checklist --id trip-lostcoast
 ```
 
+<!-- fix ::: Distinguish trail-derived commands from the explicitly authored alias bindings in src/app.ts trailsOverlays. #stale -->
+
 Every command, flag, alias (`gear ls`, `gear get`, `gear add`), and exit code above is derived from the trail contracts — there is no hand-rolled argument parsing in this app.
 
 The `gear update` step is the reactive loop firing in plain sight. Because the stove rides in Weekend Loop, the weight change fires `pack.weight-stale`, and the `pack.recalculate` consumer recomputes the pack before the command returns:

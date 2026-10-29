@@ -122,6 +122,7 @@ const findTrailSource = (
 const isWhitespace = (ch: string | undefined): boolean =>
   ch === ' ' || ch === '\n' || ch === '\r' || ch === '\t';
 
+// <!-- fix ::: Use parser-owned property spans or skip comments while scanning; a comma in an inline schema comment truncates the historical property and reviseTrailSource returns Ok with invalid TypeScript. Cover revision and fork. #bug #coverage -->
 const scanPropertyValueEnd = (
   source: string,
   start: number,

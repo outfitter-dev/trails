@@ -1,6 +1,8 @@
 /**
  * CLI surface absorption for date-shortcut expansion.
  *
+ * <!-- fix ::: Describe date-only strings and native Date expansion as well as datetimes here and on expandDateShortcut (formatExpandedDate). #stale -->
+ *
  * When a trail's `input` schema contains date-typed fields, the CLI
  * surface derivation pipeline accepts shortcut strings (`today`,
  * `yesterday`, `Nd`, `this-week`, `this-month`) on the corresponding
@@ -309,6 +311,7 @@ export const expandDateShortcut = (
       value: formatExpandedDate(subtractDaysUtc(now, days), kind),
     };
   }
+  // <!-- fix ::: Narrow this and expandDateShortcut's malformed-shortcut claim to digits followed only by letters; SHORTCUT_LIKE_PATTERN allows ISO strings through. #stale -->
   // Anything that starts with a digit but did not match the `Nd` form
   // is almost certainly a typo of the rolling-window shortcut. Reject
   // with a helpful suggestion rather than passing it through to Zod

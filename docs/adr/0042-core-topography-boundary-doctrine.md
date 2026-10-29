@@ -61,6 +61,8 @@ The package boundary is the durability boundary, stated as one rule.
 
 **Core (`@ontrails/core`):** Everything required to resolve, validate, and execute the graph in a single process. `trail()`, `topo()`, `contour()`, `signal()`, `resource()`, `Result`, the error taxonomy, the execution pipeline, and the in-memory read API on the `Topo` value sufficient for runtime surfaces and in-process build-time projection.[^read-api-scope]
 
+<!-- fix ::: Add an ADR-0054 current-law qualification for the per-user topo store location while preserving this durability boundary. #stale -->
+
 **Topography (`@ontrails/topography`):** Everything that survives outside a single process. TopoGraph derivation, stable hashing, semantic diffing, lock/topo artifact persistence, and the topo store's snapshot/pin/history subsystem inside `.trails/state/trails.db`.
 
 The test that decides where a new piece of code lives:

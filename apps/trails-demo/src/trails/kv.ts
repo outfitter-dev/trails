@@ -12,6 +12,7 @@ import { z } from 'zod';
 // demo.upsert
 // ---------------------------------------------------------------------------
 
+// <!-- fix ::: Qualify the storage/upsert claims here and in README.md: this implementation echoes input without persisting a value. #stale -->
 export const upsert = trail('demo.upsert', {
   description: 'Upsert a key-value pair (idempotent)',
   examples: [

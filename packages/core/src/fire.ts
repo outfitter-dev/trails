@@ -1,6 +1,8 @@
 /**
  * Signal emission and auto-activation.
  *
+ * <!-- fix ::: Describe consumer fire as a fresh closure bound to consumer context here and on createFireFn; bindConsumerFire recursively creates it rather than sharing the producer closure. #stale -->
+ *
  * `createFireFn(topo, producerCtx?, executor, producerTrailId?)` returns a
  * `FireFn` bound to a topo. Calling `fire(signal, payload)` looks up the
  * signal, validates the payload against its schema, finds every trail with

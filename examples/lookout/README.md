@@ -71,6 +71,8 @@ bun bin/lookout.ts probe history --check-id <id>
 bun bin/lookout.ts probe prune --keep-per-check 100 --dry-run
 ```
 
+<!-- fix ::: Give separate stdio MCP authentication instructions after wiring a session permit in src/mcp.ts; Authorization headers apply to HTTP, not this stdio entry. #stale -->
+
 The local CLI runs as the operator, so admin trails work directly. The HTTP and MCP surfaces keep admin behind a bearer token: set `LOOKOUT_ADMIN_TOKEN` and send `Authorization: Bearer <token>`; public status reads need no auth at all.
 
 ## The activation model, plainly

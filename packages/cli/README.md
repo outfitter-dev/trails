@@ -18,6 +18,8 @@ const graph = topo('myapp', { greet });
 await surface(graph);
 ```
 
+<!-- fix ::: Include the auto-promoted optional name positional in greet help (derivePositionalArgs in build.ts and addArgs in adapters/commander/src/to-commander.ts). #stale -->
+
 ```bash
 $ myapp greet --name World
 Hello, World!
@@ -188,6 +190,8 @@ await surface(graph, { exclude: ['dev.**'] });
 ## Derived behavior
 
 The CLI surface derives previously layer-shaped behavior directly from trail schemas:
+
+<!-- fix ::: Require input cursor for --all and describe schema-based date detection with Date/date/datetime outputs; see buildFlags and date-shortcuts.ts formatExpandedDate. #stale -->
 
 - Trails whose output matches the pagination pattern (`items`, `hasMore`,
   `nextCursor`) automatically get an `--all` flag that walks every page.

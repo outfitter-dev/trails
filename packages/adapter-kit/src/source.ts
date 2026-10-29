@@ -194,6 +194,7 @@ const localDeclarationKind = (
   return hasTypeDeclaration ? 'type' : undefined;
 };
 
+// <!-- fix ::: Preserve UTF-16 indexing while masking source; spreading into code points breaks re-export discovery after astral characters. Add an emoji-before-export regression. #bug #coverage -->
 const maskDeadSourceText = (
   source: string,
   options: { strings: boolean }

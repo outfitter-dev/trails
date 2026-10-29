@@ -36,6 +36,7 @@ export const isNonEmptyArray = <T>(
 // Collection functions
 // ---------------------------------------------------------------------------
 
+// <!-- fix ::: Require or explicitly define finite integer chunk sizes; 1.5 yields chunks exceeding that size and NaN yields an empty chunk. #bug #coverage -->
 /** Split an array into chunks of at most `size` elements. */
 export const chunk = <T>(array: readonly T[], size: number): T[][] => {
   if (size < 1) {
@@ -49,6 +50,7 @@ export const chunk = <T>(array: readonly T[], size: number): T[][] => {
 };
 
 /**
+ * <!-- fix ::: Describe Set equality (SameValueZero), including deduplication of NaN, rather than strict equality. #stale -->
  * Remove duplicate items. When `key` is provided, uniqueness is determined
  * by the return value of the key function; otherwise strict equality is used.
  */
@@ -71,6 +73,7 @@ export const dedupe = <T>(
   return result;
 };
 
+// <!-- fix ::: Support inherited-property names as group keys; __proto__ and constructor resolve to non-array properties on this ordinary object and make push throw. #bug #coverage -->
 /** Group items by a string key. */
 export const groupBy = <T>(
   array: readonly T[],

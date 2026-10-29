@@ -39,6 +39,7 @@ const envTypeAnnotation = (
 ): string => {
   const parts = [`type: ${typeLabel(fieldSchema)}`];
   const info = getDefault(fieldSchema);
+  // <!-- fix ::: Suppress explicit and heuristic secret defaults in generated comments; envEntry marks secrets but this branch still discloses their defaults. #bug #coverage -->
   if (info.has) {
     parts.push(`default: ${formatValue(info.value)}`);
   }

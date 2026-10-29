@@ -75,6 +75,8 @@ const db = resource('db.main', {
 
 The type is inferred from the `create` factory's return value. `db` knows it produces a `Database` instance. No manual generic annotation needed.
 
+<!-- fix ::: Add current resource-config status: config schemas are supported, collected by packages/config/src/compose.ts, and validated values reach ResourceContext.config. Qualify the reserved/future statements here and in non-decisions. #stale -->
+
 The fields:
 
 - **`create`** — factory that returns `Result<T, Error>`. Receives a narrowed `ResourceContext` — not the full `TrailContext` — containing only stable, process-scoped fields: `env`, `cwd`, `workspaceRoot`. Singleton resources are resolved once and cached; request-specific fields like `requestId` or `signal` would reflect the first resolution and be stale for every subsequent call. The narrowed type makes this constraint structural rather than documentary. Named `create` per Convention 5 (`create*` for runtime instances).

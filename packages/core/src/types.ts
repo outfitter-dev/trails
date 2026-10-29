@@ -88,6 +88,7 @@ export type Implementation<I, O, Ctx extends TrailContext = TrailContext> = (
 /**
  * Invoke another trail — used for trail composition.
  *
+ * <!-- fix ::: Count all three supported call shapes, including the batch overload documented below. #stale -->
  * Two call shapes:
  *
  * - **By trail object** (typed): `ctx.compose(showGist, { id })` — the compiler

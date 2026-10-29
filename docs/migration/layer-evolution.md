@@ -45,6 +45,8 @@ Pagination is now auto-derived. A trail whose output schema matches `z.object({ 
 + // Nothing to wire. The CLI surface derives pagination from output shape.
 ```
 
+<!-- fix ::: Remove or implement both per-trail surface.cli opt-outs shown here; current TrailSpec has no surface property or autoIterate/dateShortcuts controls. #bug -->
+
 To opt out on a single trail, set `surface: { cli: { autoIterate: false } }` on the trail spec.
 
 ### `dateShortcutsLayer` from `@ontrails/cli`
@@ -63,6 +65,8 @@ Date shortcuts are now auto-derived. A trail with date-like input fields accepts
 To opt out on a single trail, set `surface: { cli: { dateShortcuts: false } }` on the trail spec.
 
 ## Authored Layers
+
+<!-- fix ::: Read layer input from the named LAYER_INPUTS_KEY context slot and preserve the wrapped implementation output type; Layer.wrap is generic and this preview object cannot satisfy arbitrary O. #bug -->
 
 Use a typed `Layer` when behavior should wrap trail execution. Add `input` only when the behavior needs surface-visible fields.
 
@@ -84,6 +88,8 @@ const dryRun: Layer = {
   },
 };
 ```
+
+<!-- fix ::: Show separate surface calls with direct layers options; Commander, MCP, and Hono do not accept the nested cli/mcp/http options below. #bug -->
 
 Attach layers at the right scope:
 

@@ -431,6 +431,7 @@ describe('validateTopo', () => {
       expect(issues[0]?.message).toContain('Bad input');
     });
 
+    // <!-- fix ::: Describe a validation failure, not a warning; the asserted Result.err contains output-schema-present. #stale -->
     test('example with expected output but no output schema warns', () => {
       const app = topo('app', {
         show: mockTrail('entity.show', {

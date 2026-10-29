@@ -13,6 +13,8 @@ import type { AnyTrail } from './trail.js';
 /**
  * Build the validation schema for a compose-invoked trail.
  *
+ * <!-- fix ::: Describe right-biased object merging separately from non-object intersection; overlapping object keys take composeInput definitions rather than intersecting both schemas. #stale -->
+ *
  * When the target trail declares `composeInput`, returns the intersection of
  * `trail.input` and `trail.composeInput`. Returns `undefined` when no
  * `composeInput` is declared, signaling that normal input validation suffices.

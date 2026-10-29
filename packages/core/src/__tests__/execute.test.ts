@@ -1675,6 +1675,7 @@ describe('executeTrail', () => {
       expect(capturedCtx?.cwd).toBe('/factory');
     });
 
+    // <!-- fix ::: Describe merging top-level extension keys; applyContextOverrides uses shallow spreads and this test does not establish nested-value merging. #stale #coverage -->
     test('deep-merges extensions from factory and overrides', async () => {
       let captured: TrailContext | undefined;
       const t = trail('ext.test', {

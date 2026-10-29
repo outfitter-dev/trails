@@ -112,6 +112,8 @@ const workspaceDirsForPattern = (
 /**
  * List package directories matched by workspace patterns.
  *
+ * <!-- fix ::: Document exact directories and trailing one-level /* as the supported patterns; workspaceDirsForPattern treats other globs, including **, as literal paths. #stale -->
+ *
  * Only directories containing `package.json` are returned.
  *
  * @example
@@ -223,6 +225,7 @@ export const findWorkspaceRoot = async (
 /**
  * Returns `true` if `filePath` is inside `workspaceRoot`.
  */
+// <!-- fix ::: Test complete parent segments rather than a two-dot prefix; /project/..foo/file.ts is inside /project but is rejected. #bug #coverage -->
 export const isInsideWorkspace = (
   filePath: string,
   workspaceRoot: string

@@ -88,6 +88,7 @@ describe('deriveTopoGraphHash', () => {
     expect(unique.size).toBe(1);
   });
 
+  // <!-- fix ::: Actually reverse insertion order in the second fixture; both inputs currently use the same key order and cannot prove canonicalization. #coverage -->
   test('key order in entry does not affect hash', () => {
     // Build two maps with same data but different insertion order
     const map1 = makeTopoGraph({

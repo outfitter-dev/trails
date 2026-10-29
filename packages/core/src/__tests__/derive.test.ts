@@ -330,6 +330,7 @@ describe('derive', () => {
   });
 
   describe('sorting and edge cases', () => {
+    // <!-- fix ::: Author fields in unsorted insertion order so this test detects removal of deriveFields sorting. #coverage -->
     test('returns fields sorted by name', () => {
       const schema = z.object({
         alpha: z.string(),

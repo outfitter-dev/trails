@@ -1,6 +1,8 @@
 /**
  * Demo seed — one command that makes the quickstart real.
  *
+ * <!-- fix ::: Clarify that rerunning resets seeded rows, including pack items changed by the user; stable IDs make the operation idempotent, not preservation-safe (seedDemo below). #stale -->
+ *
  * Upserts a small, fixed data set (stable ids, so re-running is
  * harmless) directly through the store accessors.
  */

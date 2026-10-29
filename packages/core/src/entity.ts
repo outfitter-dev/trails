@@ -52,6 +52,7 @@ export interface EntityReference<
   readonly field: string;
 }
 
+// <!-- fix ::: Update this symbol and wrapper-traversal documentation: metadata lives in entityIdMetadata WeakMap, not a symbol property on the inner schema. #stale -->
 /** Symbol used to tag branded entity reference schemas at runtime. */
 export const ENTITY_ID_METADATA = Symbol.for('@ontrails/core/entity-id');
 

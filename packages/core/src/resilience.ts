@@ -1,6 +1,8 @@
 /**
  * Resilience utilities for @ontrails/core
  *
+ * <!-- todo ::: Clarify the thrown-callback boundary: retry propagates callback rejection while withTimeout normalizes it. Decide whether Result-returning guidance needs qualification or behavior should align. #drift #verify -->
+ *
  * Retry with exponential backoff and timeout wrappers,
  * all returning Result types.
  */
@@ -89,6 +91,7 @@ export const deriveBackoffDelay = (
  * attempt budget remains. Applies exponential backoff with jitter between
  * retries.
  */
+// <!-- fix ::: Describe the done-discriminated result and relocate the preceding public retry documentation; continuation returns { done: false, result }, not undefined. #stale -->
 /** Attempt a single retry iteration. Returns the result to stop, or undefined to continue. */
 const tryAttempt = async <T>(
   fn: () => Promise<Result<T, Error>>,

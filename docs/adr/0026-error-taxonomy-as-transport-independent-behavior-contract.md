@@ -121,6 +121,8 @@ The deliberate friction from ADR-0002 applies: adding a new error class or categ
 
 ### Tradeoffs
 
+<!-- todo ::: Reconcile cancellation discard versus re-queue wording here and in Queue semantics; the accepted direction currently says both no redelivery and redelivery on another consumer. #drift #verify -->
+
 - **Queue dead-letter routing is coarse.** All permanent errors go to the dead-letter queue. A more nuanced system might route `ValidationError` (bad message) differently from `PermissionError` (configuration problem). The coarse mapping is correct for the common case; connectors can refine it if needed.
 - **`CancelledError` semantics vary.** For queues, discard is correct (the process is shutting down, re-queue the message on another consumer). For signal delivery, discard is also correct (cancellation is operational). But a future transport might want different cancellation behavior. The mapping is overridable per transport.
 

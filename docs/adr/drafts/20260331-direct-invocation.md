@@ -429,6 +429,8 @@ trails run entity.list '{}' --jsonl
 
 Each output item is a separate JSON line. Pipeable to `jq`, `grep`, another `trails run`, or any JSONL-aware tool.
 
+<!-- todo ::: Reconcile the mock-by-default claim below with the real-resource example invocation above before selecting or implementing this proposal. #drift #verify -->
+
 ### Resource resolution
 
 `trails run` resolves resources the same way any invocation does. In development, mock resources resolve by default (from the `mock` factory on the resource definition). The developer gets production-equivalent behavior without production infrastructure.

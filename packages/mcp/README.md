@@ -29,6 +29,8 @@ await surface(graph);
 
 This starts an MCP server over stdio with a `myapp_greet` tool. The tool gets `readOnlyHint: true`, JSON Schema input, JSON Schema output, and structured examples -- all derived from the trail definition.
 
+<!-- fix ::: Use the framework createServer bridge or show the actual SDK registerTool(name, config, callback) signature and schema conversion; this example reverses config and callback (installed SDK server/mcp.d.ts; src/surface.ts). #bug -->
+
 For more control, build the tools yourself:
 
 ```typescript
@@ -49,6 +51,8 @@ for (const tool of result.value) {
 `deriveMcpTools` returns `Result<McpToolDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same MCP tool name. Each `McpToolDefinition` includes a `trailId` field that records which trail the tool was derived from.
 
 ## API
+
+<!-- fix ::: Document createMcpProgressCallback with its McpExtra argument, not a server; see packages/mcp/src/progress.ts. #stale -->
 
 | Export | What it does |
 | --- | --- |
@@ -75,6 +79,8 @@ Trail intent, idempotency, and description map directly to MCP annotations:
 No manual annotation definitions. The contract is the source of truth.
 
 ## Schemas and Examples
+
+<!-- fix ::: Explain that object unions and other schemas without a literal object root also use the data wrapper (src/__tests__/build.test.ts). #stale -->
 
 MCP tool definitions include the trail's input schema, and trails with an `output` schema also render that schema into MCP `outputSchema`. Non-object trail outputs are wrapped in a `{ data: ... }` object because MCP structured tool results are object-shaped.
 

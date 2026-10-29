@@ -105,6 +105,7 @@ const titleFromMarkdown = (file: string, markdown: string) => {
   return `${folder} / ${stem}`;
 };
 
+// <!-- fix ::: Strip the same first H1 that titleFromMarkdown selects even after leading prose or blank lines; the anchored removal currently leaves that heading duplicated in the page body. #bug -->
 const stripFirstH1 = (markdown: string) => markdown.replace(/^#\s+.+\n+/, '');
 
 const readFrontmatterValue = (frontmatter: string | undefined, key: string) => {
@@ -118,6 +119,7 @@ const readFrontmatterValue = (frontmatter: string | undefined, key: string) => {
   return match?.[1]?.trim().replaceAll(/^"|"$/g, '');
 };
 
+// <!-- fix ::: Preserve existing YAML types and multiline values when adding Notion metadata; this line-based rewrite drops list members and quotes scalar/array syntax as strings. Cover lists and quoted values without external imports. #bug #coverage -->
 const writeNotionFrontmatter = async (
   file: string,
   original: string,

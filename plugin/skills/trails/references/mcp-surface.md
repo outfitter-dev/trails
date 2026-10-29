@@ -161,6 +161,8 @@ const tools = toolsResult.value;
 // Wire into your own MCP server setup
 ```
 
+<!-- fix ::: Describe examples as structured ontrails/examples metadata instead of appended description (packages/mcp/src/__tests__/build.test.ts). #stale -->
+
 Each `McpToolDefinition` includes:
 
 - `name` — derived tool name (`appName_trail_id`)

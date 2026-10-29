@@ -112,6 +112,8 @@ Before creating the version PR:
 
 10. No generated local SQLite artifacts are staged:
 
+    <!-- fix ::: Include --no-dry-run and a dev:write permit in the reset instruction below; --yes alone previews because dev-reset defaults dryRun to true. #bug -->
+
     ```bash
     git status --short -- .trails .trails-tmp
     git status --short -- .trails/state .trails/cache '.trails/trails.db*'
@@ -240,6 +242,8 @@ bun run publish:check
 bun run publish:registry-check
 git diff --check
 ```
+
+<!-- fix ::: Add project:write and entity:write permits to this and the later clean-cache create smoke, matching the pre-version smoke above; the create and scaffold trails enforce those scopes. #bug -->
 
 Generate a fresh app outside the monorepo and inspect its package ranges:
 

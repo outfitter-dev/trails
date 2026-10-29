@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 
 /**
+ * <!-- fix ::: Describe aliases as authored surface-overlay bindings in src/app.ts rather than inferred trail facts. #stale -->
+ *
  * packlist CLI — commands, flags, aliases, help text, and exit codes all
  * derive from the trail contracts in `src/app.ts`.
  *

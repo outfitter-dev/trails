@@ -1,6 +1,8 @@
 /**
  * Minimal semver comparison shared across release tooling.
  *
+ * <!-- fix ::: Use conforming prerelease precedence and ignore build metadata for ordering; this comparator disagrees with Bun.semver.order on 1.0.0-a versus 1.0.0-B and 1.0.0+build.1 versus 1.0.0. #bug #coverage -->
+ *
  * Extracted from `policy.ts` so the release policy engine and the registry
  * classifier compare versions through one implementation instead of two.
  */

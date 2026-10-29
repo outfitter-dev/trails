@@ -84,6 +84,7 @@ const containsNonSerializableLeaf = (
   );
 };
 
+// <!-- fix ::: Reject or faithfully represent non-finite numbers and undefined array entries before conversion; exported example inputs silently change these values to null. Preserve intentional omission of undefined object fields. #bug #drift -->
 const toJsonSerializable = (value: unknown): unknown | undefined => {
   if (containsNonSerializableLeaf(value, new WeakSet<object>())) {
     return undefined;

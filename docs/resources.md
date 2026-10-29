@@ -21,6 +21,8 @@ const db = resource('db.main', {
 
 The type of the resource instance is inferred from the `create` factory return. No manual generic needed.
 
+<!-- fix ::: Include config in the ResourceContext fields below; packages/core/src/resource.ts requires it alongside env, cwd, and workspaceRoot. #drift -->
+
 | Field | Purpose |
 | --- | --- |
 | `create` | Factory returning `Result<T, Error>`. Receives a `ResourceContext` with `env`, `cwd`, and `workspaceRoot` only -- not the full `TrailContext`. |
@@ -174,6 +176,8 @@ const graph = topo('myapp', entityTrails, resources);
 Namespace resource IDs with dots for packs and multi-resource apps: `db.primary`, `entity.store`, `cache.redis`.
 
 ## Governance
+
+<!-- fix ::: Include resource-mock-coverage, resource-id-grammar, and static-resource-accessor-preference in this overview (packages/warden/src/rules). #drift -->
 
 The warden provides two resource-related rules:
 

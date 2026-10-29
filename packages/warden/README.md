@@ -1,5 +1,7 @@
 # @ontrails/warden
 
+<!-- fix ::: Include project-static and topo-aware rules in the overview; Warden is not limited to code-level AST checks, as wardenRules and wardenTopoRules show. #stale -->
+
 AST-based code convention rules for Trails. Built-in lint rules catch contract violations at development time, alongside lock drift detection and CI formatters.
 
 Structural checks (compose target existence, declared resource existence, recursive composition, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.

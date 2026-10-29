@@ -71,6 +71,7 @@ const inviteCreate = trail('invite.create', {
   version: 2,
   versions: {
     1: {
+      // <!-- fix ::: Align the v1 example with its Hi, Ada. implementation and exercise the example; current graph-filter assertions do not prove its output. #stale #coverage -->
       examples: [
         {
           expected: { greeting: 'Hello, Ada!' },

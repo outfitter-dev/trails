@@ -183,6 +183,7 @@ export interface UserNamespaceContext {
 }
 
 /**
+ * <!-- fix ::: Attach this collector documentation to collectUserNamespacedMemberStarts, not getNonComputedMemberReceiver below. #stale -->
  * Walk the AST with a scope stack and collect `MemberExpression` start offsets
  * whose receiver is a user-namespace binding that is NOT shadowed by any
  * enclosing scope. Mirrors `collectFrameworkNamespacedCallStarts` for the
@@ -352,6 +353,7 @@ const asUserNamespaceContext = (
 };
 
 /**
+ * <!-- fix ::: Document the boolean receiver-admission helper this comment actually precedes; it does not return an entity ID or null. #stale -->
  * Resolve a user-namespace member access like `entities.user` to its entity
  * id. Returns the property name (e.g. `'user'`) when the receiver identifier
  * is a known user-defined namespace binding AND — when the caller provides a
@@ -612,6 +614,7 @@ export const collectEntityReferenceTargetsByName = (
 // ---------------------------------------------------------------------------
 
 /**
+ * <!-- fix ::: Remove or relocate this dangling extraction TSDoc; no implementation-body extractor follows it in this file. #stale -->
  * Extract top-level `implementation:` property values from an ObjectExpression's direct properties.
  *
  * Does not recurse into nested objects, so `meta: { implementation: ... }` is ignored.
