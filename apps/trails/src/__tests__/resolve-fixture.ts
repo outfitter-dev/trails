@@ -16,8 +16,15 @@ const gitEnvironment = (): Record<string, string> =>
     )
   );
 
+const gitIdentity = [
+  '-c',
+  'user.name=Trails Test',
+  '-c',
+  'user.email=trails-test@example.invalid',
+];
+
 export const git = (root: string, ...args: string[]): string => {
-  const result = Bun.spawnSync(['git', ...args], {
+  const result = Bun.spawnSync(['git', ...gitIdentity, ...args], {
     cwd: root,
     env: gitEnvironment(),
     stderr: 'pipe',
@@ -32,7 +39,7 @@ export const git = (root: string, ...args: string[]): string => {
 };
 
 export const gitMayFail = (root: string, ...args: string[]) =>
-  Bun.spawnSync(['git', ...args], {
+  Bun.spawnSync(['git', ...gitIdentity, ...args], {
     cwd: root,
     env: gitEnvironment(),
     stderr: 'pipe',

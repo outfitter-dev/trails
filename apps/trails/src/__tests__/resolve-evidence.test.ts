@@ -416,12 +416,24 @@ describe('readResolveLockEvidence', () => {
       '-m',
       'modify'
     );
-    const merge = Bun.spawnSync(['git', 'merge', '--no-edit', 'delete-lock'], {
-      cwd: root,
-      env: gitEnvironment(),
-      stderr: 'pipe',
-      stdout: 'pipe',
-    });
+    const merge = Bun.spawnSync(
+      [
+        'git',
+        '-c',
+        'user.name=Trails Test',
+        '-c',
+        'user.email=trails-test@example.invalid',
+        'merge',
+        '--no-edit',
+        'delete-lock',
+      ],
+      {
+        cwd: root,
+        env: gitEnvironment(),
+        stderr: 'pipe',
+        stdout: 'pipe',
+      }
+    );
     expect(merge.exitCode).not.toBe(0);
 
     const result = await readResolveLockEvidence(lockPath);

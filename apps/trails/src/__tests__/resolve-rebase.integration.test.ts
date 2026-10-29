@@ -56,20 +56,31 @@ afterEach(() => {
 });
 
 const continueRebase = (root: string): void => {
-  const result = Bun.spawnSync(['git', 'rebase', '--continue'], {
-    cwd: root,
-    env: {
-      ...Object.fromEntries(
-        Object.entries(process.env).filter(
-          (entry): entry is [string, string] =>
-            entry[1] !== undefined && !entry[0].startsWith('GIT_')
-        )
-      ),
-      GIT_EDITOR: 'true',
-    },
-    stderr: 'pipe',
-    stdout: 'pipe',
-  });
+  const result = Bun.spawnSync(
+    [
+      'git',
+      '-c',
+      'user.name=Trails Test',
+      '-c',
+      'user.email=trails-test@example.invalid',
+      'rebase',
+      '--continue',
+    ],
+    {
+      cwd: root,
+      env: {
+        ...Object.fromEntries(
+          Object.entries(process.env).filter(
+            (entry): entry is [string, string] =>
+              entry[1] !== undefined && !entry[0].startsWith('GIT_')
+          )
+        ),
+        GIT_EDITOR: 'true',
+      },
+      stderr: 'pipe',
+      stdout: 'pipe',
+    }
+  );
   if (result.exitCode !== 0) {
     throw new Error(Buffer.from(result.stderr).toString('utf8'));
   }
