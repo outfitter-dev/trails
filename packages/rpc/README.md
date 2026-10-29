@@ -62,4 +62,4 @@ Close codes cover connection-level failures only; trail failures stay JSON-RPC e
 | 1011 | Internal failure in the connection kernel |
 | 1013 | Buffered outbound bytes past `backpressureHardLimitBytes` (default 16 MiB) |
 
-`close()` on the surface result drains every socket before stopping the server. Progress notifications are pushed through the socket; subscriptions, `trails.auth` refresh and the soft backpressure threshold wait for the durable subscription work.
+`close()` on the surface result drains every socket and waits (up to one second by default) for the close handshakes before stopping the server, so clients receive `trails.draining` and 1001 rather than an abnormal close. `resolvePermit` runs for every upgrade: answer `null` for credential absence so anonymous clients keep public trails, and return an error only for a presented credential that fails verification. Progress notifications are pushed through the socket; subscriptions, `trails.auth` refresh and the soft backpressure threshold wait for the durable subscription work.

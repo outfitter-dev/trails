@@ -53,7 +53,15 @@ export type ResolveRpcPermit = (
 export interface RpcWebSocketOptions extends CreateRpcHandlerOptions {
   /** Request path that accepts upgrades. Defaults to `/rpc`. */
   readonly path?: string | undefined;
-  /** Resolve the connection permit from the upgrade request. */
+  /**
+   * Resolve the connection permit from the upgrade request.
+   *
+   * Runs for every upgrade, with or without credentials, because the trail a
+   * connection will call is unknown at upgrade time. Answer `null` for genuine
+   * credential absence (the connection proceeds anonymous and public trails
+   * stay reachable); return an error only for a presented credential that
+   * fails verification, which closes the socket 1008.
+   */
   readonly resolvePermit?: ResolveRpcPermit | undefined;
   /** Largest accepted text frame in bytes. Defaults to 1 MiB. */
   readonly maxFrameBytes?: number | undefined;
@@ -82,8 +90,12 @@ export interface RpcWebSocketHost {
   ): Promise<Response | undefined>;
   /** The Bun `websocket` handler to spread into `Bun.serve`. */
   readonly websocket: Bun.WebSocketHandler<RpcSocketData>;
-  /** Announce `trails.draining` to every open socket and close them 1001. */
-  drain(): void;
+  /**
+   * Announce `trails.draining` to every open socket and close them 1001.
+   * Resolves once every socket has closed or `timeoutMs` has elapsed, so a
+   * host can stop its server without cutting the notices off.
+   */
+  drain(timeoutMs?: number): Promise<void>;
 }
 
 export interface SurfaceRpcWebSocketOptions extends RpcWebSocketOptions {
@@ -282,12 +294,20 @@ export const createRpcWebSocketHost = (
     },
   };
 
-  const drain: RpcWebSocketHost['drain'] = () => {
-    for (const ws of sockets) {
+  const drain: RpcWebSocketHost['drain'] = async (timeoutMs = 1000) => {
+    const closing = [...sockets];
+    for (const ws of closing) {
       send(ws, drainingNotification());
       ws.close(RPC_CLOSE_CODES.draining, 'server draining');
     }
     sockets.clear();
+    const deadline = Date.now() + timeoutMs;
+    while (
+      closing.some((ws) => ws.readyState !== WebSocket.CLOSED) &&
+      Date.now() < deadline
+    ) {
+      await Bun.sleep(10);
+    }
   };
 
   return Result.ok({ drain, handler, upgrade, websocket });
@@ -322,7 +342,7 @@ export const surface = async (
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return {
     close: async () => {
-      host.drain();
+      await host.drain();
       await server.stop(true);
     },
     url: String(url),
