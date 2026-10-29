@@ -57,6 +57,12 @@ export interface RpcConformanceServer {
 
 export interface RpcConformanceHost {
   readonly name: string;
+  /**
+   * Whether the host can push server-to-client notifications. Defaults to
+   * true. A host that cannot push still runs the suite: the progress case
+   * then asserts that no `trails.progress` notification arrives.
+   */
+  readonly pushes?: boolean | undefined;
   start(
     graph: Topo,
     options?: RpcConformanceHostOptions
@@ -104,11 +110,13 @@ const reporting = trail('report', {
 
 const waiting = trail('wait', {
   implementation: async (_input, ctx) => {
-    const aborted = Promise.withResolvers<undefined>();
-    ctx.abortSignal.addEventListener('abort', () => aborted.resolve(), {
-      once: true,
-    });
-    await aborted.promise;
+    if (!ctx.abortSignal.aborted) {
+      const aborted = Promise.withResolvers<undefined>();
+      ctx.abortSignal.addEventListener('abort', () => aborted.resolve(), {
+        once: true,
+      });
+      await aborted.promise;
+    }
     return Result.err(new CancelledError('cancelled by client'));
   },
   input: z.object({}),
@@ -269,8 +277,11 @@ const discoverCase = (host: RpcConformanceHost): Promise<void> =>
     });
     expect(open).toMatchObject({
       result: {
-        capabilities: { progress: true },
-        methods: ['trails.discover', 'trails.cancel', 'trails.progress'],
+        capabilities: { progress: host.pushes !== false },
+        methods:
+          host.pushes === false
+            ? ['trails.discover', 'trails.cancel']
+            : ['trails.discover', 'trails.cancel', 'trails.progress'],
         protocol: RPC_SUBPROTOCOL,
       },
     });
@@ -331,6 +342,15 @@ const progressCase = (host: RpcConformanceHost): Promise<void> =>
     connection.send(
       JSON.stringify({ id: 'p', jsonrpc: '2.0', method: 'report', params: {} })
     );
+    if (host.pushes === false) {
+      // A host without push support answers directly and never advertises
+      // or emits progress.
+      expect(await connection.next()).toMatchObject({
+        id: 'p',
+        result: { ok: true },
+      });
+      return;
+    }
     expect(await connection.next()).toEqual({
       jsonrpc: '2.0',
       method: 'trails.progress',
@@ -374,6 +394,13 @@ const closeCodesCase = (host: RpcConformanceHost): Promise<void> =>
     expect(await closeCode(draining)).toBe(1001);
   });
 
+/**
+ * Kernel-level case: a host's wake path is host-specific (Durable Object
+ * alarms, process restarts), so the suite proves the kernel contract every
+ * host must call into (`admit` records ids, `recover` answers them with
+ * `data.outcome: 'unknown'` and never re-runs). A host adds its own wake test
+ * on top; the Bun host keeps state in memory and has no wake.
+ */
 const recoveryCase = async (): Promise<void> => {
   const handler = createRpcHandler(createRpcConformanceTopo()).unwrap();
   let runs = 0;
@@ -463,7 +490,7 @@ export const createRpcConformanceCases = (): readonly RpcConformanceCase[] => [
   },
   {
     check: recoveryCase,
-    name: 'answers in-flight ids after a wake with outcome unknown and never re-runs',
+    name: 'kernel: answers in-flight ids after a wake with outcome unknown and never re-runs',
   },
 ];
 
