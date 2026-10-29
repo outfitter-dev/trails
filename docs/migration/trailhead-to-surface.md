@@ -87,6 +87,8 @@ Update saved dashboards, alerting rules, metric processors, log pipelines, and a
 
 ## Dev Store
 
+<!-- fix ::: Include --no-dry-run and a dev:write permit in both reset instructions; dev-reset defaults dryRun to true, so --yes alone does not remove state. #bug -->
+
 The tracing dev-store schema now uses a `surface` column. Existing local dev stores are transient and are not migrated in framework code.
 
 Reset local Trails state before upgrading:

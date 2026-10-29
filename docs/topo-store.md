@@ -67,6 +67,8 @@ Use before major refactors, deployments, or release boundaries.
 
 ### `trails topo unpin`
 
+<!-- fix ::: Include --no-dry-run and a topo:write permit for actual pin removal; --yes alone still previews because topo-unpin defaults dryRun to true. #bug -->
+
 Remove a pin. Requires `--yes` to confirm (dry-run by default). The underlying save becomes eligible for pruning.
 
 ```bash
