@@ -188,6 +188,7 @@ describe('trail version execution', () => {
     });
   });
 
+  // fix ::: Exercise fork validation through a supported public or explicit internal seam; validationSchema in this and neighboring tests is absent from public ExecuteTrailOptions and fails test typechecking. #coverage #drift
   test('runs fork entries with their own implementation, resources, composes, and detours', async () => {
     const result = await executeTrail(
       versionedTrail,

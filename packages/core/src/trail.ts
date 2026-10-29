@@ -1172,6 +1172,8 @@ const normalizeCollections = <
 /**
  * Create a trail definition.
  *
+ * fix ::: Make the two authoring forms independently runnable: this fenced example redeclares const show and uses an undefined entity. #stale #coverage
+ *
  * Returns a frozen object with `kind: "trail"` and all spec fields.
  * The trail is inert until handed to a runner.
  *
