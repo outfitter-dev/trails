@@ -25,7 +25,7 @@ test('resource scaffold writes a definition and runnable tests with safe identif
     for (const id of ['db.main', 'class', 'resource', 'z', '_draft.db.main']) {
       const result = await executeTrail(
         addResource,
-        { description: 'Editable in-memory starter', id },
+        { description: '  Editable in-memory starter  ', id },
         {
           ctx: {
             cwd: dir,
@@ -47,6 +47,7 @@ test('resource scaffold writes a definition and runnable tests with safe identif
       expect(source).toContain(
         `export const ${id.replaceAll('.', '_')}Resource`
       );
+      expect(source).toContain('description: "Editable in-memory starter"');
     }
     for (const args of [
       ['test'],
@@ -116,6 +117,33 @@ test('resource scaffolding requires project write permission', async () => {
     expect(existsSync(join(dir, 'src'))).toBe(false);
   } finally {
     rmSync(dir, { force: true, recursive: true });
+  }
+});
+
+test('resource scaffolding rejects empty or whitespace-only descriptions before writing', async () => {
+  for (const description of ['', '   ', '\t\n']) {
+    const dir = createResourceProject();
+    try {
+      const result = await executeTrail(
+        addResource,
+        { description, id: 'db.main' },
+        {
+          ctx: {
+            cwd: dir,
+            permit: { id: 'scaffold-test', scopes: ['project:write'] },
+          },
+        }
+      );
+      expect(result.isErr()).toBe(true);
+      if (result.isOk()) {
+        throw new Error('Expected meaningful-description validation');
+      }
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(existsSync(join(dir, 'src'))).toBe(false);
+      expect(existsSync(join(dir, '__tests__'))).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   }
 });
 

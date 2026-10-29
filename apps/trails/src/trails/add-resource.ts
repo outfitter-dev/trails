@@ -100,7 +100,7 @@ export const addResource = trail('add.resource', {
     return Result.ok({ created: [...files.keys()] });
   },
   input: z.object({
-    description: z.string().min(1).describe('Resource description'),
+    description: z.string().trim().min(1).describe('Resource description'),
     id: z
       .string()
       .regex(TRAIL_ID_PATTERN, idMessage)
