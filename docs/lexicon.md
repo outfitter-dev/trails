@@ -443,6 +443,8 @@ A framework-derived, content-addressed contract identifier. Authors do not write
 
 ### `forces`
 
+<!-- fix ::: Describe force audit recording as shipped compile behavior (apps/trails/src/trails/compile.ts; packages/topography/src/forces.ts). #stale -->
+
 Compiler-managed graph audit records for future `--force` compile behavior. `forces:` appears only in the resolved graph, not in source, and is not a version entry.
 
 ### `graph`

@@ -97,6 +97,8 @@ The result: implementations stay pure (input in, `Result` out), infrastructure i
 
 <!-- fix ::: Qualify the Result eliminates-throw/catch claims here and below; return typing does not reject thrown exceptions, while Warden enforces the authored prohibition. #stale -->
 
+<!-- fix ::: Distinguish shipped opt-in trace recording from future aggregation and behavioral inference in Observed below (packages/core/src/execute.ts; ADR-0041). #stale -->
+
 Every piece of information in a Trails app has a clear ownership model. Six categories, from what you write to what the system learns. (See [Architecture](./architecture.md#information-architecture) for the full reference tables.)
 
 - **Authored:** New information only you know — Zod schemas, intent and metadata, examples, the implementation, trail IDs. Everything else flows from these.
@@ -105,6 +107,8 @@ Every piece of information in a Trails app has a clear ownership model. Six cate
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail composes (from `ctx.compose()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
 - **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracing system. Observations close the loop between declared intent and actual behavior.
 - **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the TopoGraph. If you're overriding everything, the derivation rules are wrong.
+
+<!-- todo ::: Qualify the any-derived-value override promise above against supported controls and the fixed taxonomy map (packages/core/src/transport-error-map.ts). #verify -->
 
 The design heuristic: if the developer has to author information the framework already has, that's a framework bug. Derive it. If it can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.
 

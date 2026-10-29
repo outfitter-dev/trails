@@ -17,6 +17,8 @@
 - **[Beta 15](./releases/beta15.md)** — Beta 15 release-prep notes and known CLI follow-up work
 - **[Beta 15 to Beta 19](./releases/beta15-to-beta19.md)** — Downstream operator guide: package install, surface decisions, `cross`→`compose` rename, trail versioning, adapter authoring, Topography adoption, validation checklist
 
+<!-- fix ::: Qualify the every-public-export API reference claim or add omitted public packages such as @ontrails/library (packages/library/package.json). #coverage -->
+
 ## Building something?
 
 <!-- fix ::: Consolidate the duplicate observability guide entries now that production sinks and dev tooling share one package; see packages/observability/README.md. #drift -->

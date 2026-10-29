@@ -22,6 +22,8 @@ These are the foundational beliefs of the framework. Every feature, ADR, and API
 
 A trail definition is the source of truth. Surfaces (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
 
+<!-- fix ::: Describe versioning, permits, and activation sources as current trail capabilities rather than future maturity (packages/core/src/trail.ts and execute.ts). #stale -->
+
 The trail is the unit of everything. Testing targets the trail. Governance targets the trail. Composition follows the trail. As the framework matures, versioning, permissions, and activation sources will target the trail too. The trail is where capability lives.
 
 ### One schema, one Result, one error taxonomy

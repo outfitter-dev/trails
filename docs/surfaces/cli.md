@@ -259,6 +259,8 @@ The `<TOPO>` prefix is derived from the topo name: uppercased, with non-alphanum
 
 ## Error Handling
 
+<!-- fix ::: Include the shift category and CLI exit code 10 from packages/core/src/errors.ts in this authored table. #drift -->
+
 When a trail returns `Result.err()`, the Commander adapter maps the error category to an exit code:
 
 | Category     | Exit code |
@@ -329,9 +331,13 @@ The CLI surface derives previously layer-shaped behavior directly from trail sch
 
 ### Auto-iterate (paginated trails)
 
+<!-- fix ::: State that --all requires an input cursor and declared output nextCursor; iteration follows returned cursor values (packages/cli/src/build.ts and pagination.ts). #stale -->
+
 For trails with paginated output (matching the pagination pattern from `@ontrails/core/patterns`), the CLI command exposes an `--all` flag. When set, the surface runs the trail with incrementing cursors and collects every page into a single result.
 
 ### Date shortcut expansion
+
+<!-- fix ::: Describe all detected date-typed fields and single start-of-day shortcut values with Date/date/datetime formatting, not date ranges (packages/cli/src/date-shortcuts.ts). #stale -->
 
 For trails with `since`/`until` date fields, the CLI surface expands shortcut strings into ISO 8601 dates before validation:
 

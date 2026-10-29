@@ -2,6 +2,8 @@
 
 Trailheads start with MCP because MCP pays the tool-count and schema-context cost first. CLI and HTTP remain peer surfaces, but peer-ness does not mean every surface gets the same rendering at the same time.
 
+<!-- todo ::: Reconcile this parity evaluation with shipped CLI list bindings that create member-identity command groups (packages/cli/src/build.ts; ADR-0052). #verify -->
+
 ## Current Verdict
 
 CLI and HTTP trailhead parity are deferred. The MCP implementation should not be weakened to make other surfaces easier, and no CLI or HTTP trailhead behavior ships with this decision.

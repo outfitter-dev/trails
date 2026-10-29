@@ -177,6 +177,8 @@ Namespace resource IDs with dots for packs and multi-resource apps: `db.primary`
 
 ## Governance
 
+<!-- fix ::: Include resource-mock-coverage, resource-id-grammar, and static-resource-accessor-preference in this overview (packages/warden/src/rules). #drift -->
+
 The warden provides two resource-related rules:
 
 **`resource-declarations`** -- validates that `db.from(ctx)` and `ctx.resource(...)` calls inside the implementation match the declared `resources: [...]` array. Undeclared usage is an error. Unused declarations are a warning.

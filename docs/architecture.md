@@ -2,6 +2,8 @@
 
 Trails uses a hexagonal architecture. Core defines ports. Everything on the edges is an adapter.
 
+<!-- fix ::: Align this diagram and the dependency graph below with @ontrails/observability and its /dev ownership, including the testing peer (packages/observability/package.json; packages/testing/package.json). #drift -->
+
 ## The Hexagonal Model
 
 ```text
@@ -123,6 +125,8 @@ Intrinsic tracing in `@ontrails/core` captures what actually happens at runtime:
 
 ### Overridden — when derivation doesn't fit
 
+<!-- todo ::: Bound the override promise against actual supported controls; taxonomy surface codes use the fixed owner map (packages/core/src/transport-error-map.ts). #verify -->
+
 Any derived value can be overridden when the default is wrong for your case:
 
 | Override | When you'd use it |
@@ -142,6 +146,8 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 
 ### Foundation
 
+<!-- fix ::: Describe zod as core's sole external peer; other packages also depend on external libraries (adapters/commander/package.json; packages/mcp/package.json). #drift -->
+
 `@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error rendering, `entity()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topography` per ADR-0042.
 
 **The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
@@ -157,6 +163,8 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
 | `@ontrails/library` | Plain TypeScript library rendering, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
+
+<!-- fix ::: Describe permit enforcement and execution tracing as intrinsic stages rather than auth/telemetry layers here and in the execution flow below (ADR-0043). #stale -->
 
 ### Infrastructure Adapters (right side)
 
