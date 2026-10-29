@@ -59,3 +59,8 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
 
 - [Addressable Facts, Dynamic Queries](20260829-wayfinder-mcp-graph-as-resources.md)
   - depends on [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md), [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md), [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md), [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md), [ADR-0052: Overlays Are the Lock's One Extension Mechanism](../0052-overlays-one-extension-mechanism.md), [Wayfinding](20260503-wayfinding.md)
+
+## 2026-10
+
+- [Merge-Friendly Lock v6](20261028-merge-friendly-lock-v6.md)
+  - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md), [ADR-0052: Overlays Are the Lock's One Extension Mechanism](../0052-overlays-one-extension-mechanism.md), [ADR-0054: Project Substrate Names Its Truth](../0054-project-substrate-names-its-truth.md)

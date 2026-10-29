@@ -336,6 +336,19 @@
       "superseded_by": null,
       "title": "Addressable Facts, Dynamic Queries",
       "updated": "2026-08-29"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["17", "46", "52", "54"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md",
+      "slug": "merge-friendly-lock-v6",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Merge-Friendly Lock v6",
+      "updated": "2026-10-28"
     }
   ],
   "version": 1
