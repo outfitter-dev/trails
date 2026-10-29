@@ -66,9 +66,32 @@ const removedInHistory = (
   ])
     .trim()
     .split('\n')
-    .filter(Boolean);
-  for (const record of commits) {
-    const [commit, ...parents] = record.split(' ');
+    .filter(Boolean)
+    .map((record) => {
+      const [commit, ...parents] = record.split(' ');
+      return { commit, parents };
+    });
+  const trees = new Map<string, GitTree>();
+  const treeAt = (commit: string): GitTree => {
+    const cached = trees.get(commit);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const tree = readGitTree(root, commit);
+    trees.set(commit, tree);
+    return tree;
+  };
+  // A workspace README stays in the migration population for the whole
+  // window, even after its manifest disappeared in an earlier commit.
+  const knownWorkspaces = new Set(treeAt(before).workspaces);
+  for (const { parents } of commits) {
+    for (const parent of parents) {
+      for (const workspace of treeAt(parent).workspaces) {
+        knownWorkspaces.add(workspace);
+      }
+    }
+  }
+  for (const { commit, parents } of commits) {
     for (const parent of parents) {
       const changes = readGitChanges(root, parent, commit).filter(
         (change) =>
@@ -79,14 +102,18 @@ const removedInHistory = (
       if (changes.length === 0) {
         continue;
       }
-      const oldTree = readGitTree(root, parent);
-      const tree = readGitTree(root, commit);
+      const oldTree = treeAt(parent);
+      const ownership: GitTree = {
+        ...oldTree,
+        workspaces: [...knownWorkspaces],
+      };
+      const tree = treeAt(commit);
       for (const change of changes) {
         if (
           (change.status !== 'T' ||
             !regularFile(tree.files.get(change.from))) &&
           regularFile(oldTree.files.get(change.from)) &&
-          documentationPath(change.from, oldTree)
+          documentationPath(change.from, ownership)
         ) {
           removed.add(change.from);
         }
