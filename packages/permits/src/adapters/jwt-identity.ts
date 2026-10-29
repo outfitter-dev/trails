@@ -54,7 +54,9 @@ export const deriveJwtIdentity = (
         id: current['sub'],
         issuer: current['iss'],
         kind: current['kind'] === undefined ? 'unknown' : current['kind'],
-        // Signature provenance owns this value; act.verified is never trusted.
+        // `verified` means the token issuer attested this link by signing the
+        // `act` chain (RFC 8693 §4.1). It is issuer-vouched evidence, not an
+        // independent verification of the actor; act.verified is never trusted.
         verified: true,
       });
       if (!actor.success) {

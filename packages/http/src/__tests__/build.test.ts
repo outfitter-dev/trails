@@ -1531,6 +1531,37 @@ describe('deriveHttpRoutes', () => {
       expect(resolveCalled).toBe(true);
     });
 
+    test('record-form headers reach the resolver as Headers', async () => {
+      let observed: { apiKey?: string; headers?: unknown } | undefined;
+      const app = topo('permit-http', { echoTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: ({ apiKey, headers }) => {
+          observed = { apiKey, headers };
+          return Result.ok({ actors: [], id: 'user-1', scopes: [] });
+        },
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute(
+        { message: 'hello' },
+        'req-1',
+        undefined,
+        {
+          headers: { 'x-api-key': 'trusted', 'x-tenant-id': ['a', 'b'] },
+        }
+      );
+
+      expect(result?.isOk()).toBe(true);
+      expect(observed?.apiKey).toBe('trusted');
+      expect(observed?.headers).toBeInstanceOf(Headers);
+      const headers = observed?.headers as Headers;
+      expect(headers.get('x-tenant-id')).toBe('a, b');
+    });
+
     test('Bearer Authorization without a resolver still lets protected routes fail at the permit gate', async () => {
       const protectedTrail = trail('permit.no-resolver', {
         implementation: () => Result.ok({ ok: true }),

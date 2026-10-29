@@ -226,6 +226,29 @@ const parseBearerAuthorization = (
   return Result.ok(token);
 };
 
+/** Permit resolvers always see `Headers`, whichever header source the route received. */
+const toHeaders = (
+  source: HttpHeaderSource | undefined
+): Headers | undefined => {
+  if (source === undefined || source instanceof Headers) {
+    return source;
+  }
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value === 'string') {
+      headers.set(key, value);
+    } else {
+      for (const item of value) {
+        headers.append(key, item);
+      }
+    }
+  }
+  return headers;
+};
+
 const resolveHttpPermit = async (
   options: DeriveHttpRoutesOptions,
   request: HttpExecutionContext | undefined,
@@ -251,7 +274,7 @@ const resolveHttpPermit = async (
     authToken: readHeader(request?.headers, 'x-auth-token'),
     authorization,
     bearerToken: token.isOk() ? token.value : undefined,
-    headers: request?.headers,
+    headers: toHeaders(request?.headers),
     requestId,
   });
   if (resolved.isErr()) {
