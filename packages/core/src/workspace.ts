@@ -112,6 +112,8 @@ const workspaceDirsForPattern = (
 /**
  * List package directories matched by workspace patterns.
  *
+ * fix ::: Document exact directories and trailing one-level /* as the supported patterns; workspaceDirsForPattern treats other globs, including **, as literal paths. #stale
+ *
  * Only directories containing `package.json` are returned.
  *
  * @example

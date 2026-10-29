@@ -55,6 +55,8 @@ const keepDerivationBlockingIssues = (
 /**
  * Validate that a topo is ready for established outputs.
  *
+ * fix ::: Describe the selected derivation-blocking diagnostics rather than requiring all structural checks to pass; keepDerivationBlockingIssues intentionally filters validateTopo results. #stale
+ *
  * Established surfaces still require the authored graph to be structurally
  * valid, and they must also reject any remaining draft state.
  */

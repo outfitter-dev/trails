@@ -474,6 +474,7 @@ export const retryableMap: Record<ErrorCategory, boolean> = {
 export const isTrailsError = (error?: unknown): error is TrailsError =>
   error instanceof TrailsError;
 
+// fix ::: Describe the instance retryable flag rather than category alone; RetryExhaustedError inherits a category but forces retryable false. #stale
 /** Returns true if the error is retryable (TrailsError with retryable category). */
 export const isRetryable = (error: Error): boolean => {
   if (isTrailsError(error)) {

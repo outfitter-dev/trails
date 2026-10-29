@@ -14,6 +14,7 @@ export type SurfaceConfigValues = Readonly<
 export interface SurfaceSelectionOptions {
   /** Glob patterns that remove matching trail IDs. */
   readonly exclude?: readonly string[] | undefined;
+  // fix ::: Explain that empty include leaves selection unrestricted and exact IDs can opt internal trails in; see surface-filter.ts. #stale
   /** Glob patterns that keep only matching trail IDs when provided. */
   readonly include?: readonly string[] | undefined;
   /** Allowed intents for exposed surfaces. Empty arrays act as no filter. */

@@ -41,6 +41,8 @@ const onboard = trail('entity.onboard', {
 
 ### Trail primitives
 
+<!-- fix ::: Qualify validateTopo coverage below: invalid input is allowed for expected ValidationError examples, and output schema presence is checked when an example declares expected output. See checkOneExample. #stale -->
+
 | Export | What it does |
 | --- | --- |
 | `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `composes` for composition |
