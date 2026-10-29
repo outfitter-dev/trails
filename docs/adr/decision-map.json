@@ -2509,6 +2509,11 @@
           "context": "| `fires` | **keep** | The plural declaration `fires: [...]` mirrors the runtime verb `ctx.fire(...)` and pairs with consumer-side `on: [...]`; the [lexicon](../lexicon.md#fires) teaches that producer",
           "from": "v1-vocabulary-reset",
           "fromPath": "docs/releases/v1-vocabulary-reset.md"
+        },
+        {
+          "context": "`testAll(app)` can check producer examples with `signals` assertions. A firing assertion observes emission; awaiting `ctx.fire()` is not a completion barrier for every consumer. See [Typed Signal Emis",
+          "from": "signals",
+          "fromPath": "docs/signals.md"
         }
       ],
       "number": "0038",
@@ -2553,6 +2558,11 @@
           "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- activation sources and WebSocket subscriptions would both consume typed signal contracts",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "`testAll(app)` can check producer examples with `signals` assertions. A firing assertion observes emission; awaiting `ctx.fire()` is not a completion barrier for every consumer. See [Typed Signal Emis",
+          "from": "signals",
+          "fromPath": "docs/signals.md"
         }
       ],
       "number": "0039",

@@ -10,4 +10,4 @@ File-producing scaffold inputs may use a narrower ID subset than the correspondi
 
 Public operator additions need an output schema, intentional CLI/MCP exposure, branch-local release intent, affected lock regeneration, and the distribution checks in `AGENTS.md`.
 
-`add resource` closes the resource gap. Signal scaffolding remains tracked separately in [TRL-1243](https://linear.app/outfitter/issue/TRL-1243/add-signal-scaffold); this resource change does not complete the whole add family.
+`add resource` and `add signal` cover resource and signal definitions. They share the operator's private safe file-creation owner; they do not form a new template engine. For signal scaffolds, prove a real producer and consumer integration, and retain coaching for an intentionally unwired declaration. These commands do not imply that every possible add-family capability is implemented.

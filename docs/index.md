@@ -24,6 +24,7 @@
 - **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to surface
 - **[API Reference](./api-reference.md)** — Every public export across all packages
 - **[Resources Guide](./resources.md)** — Define resources, declare them on trails, test with mock factories
+- **[Signals Guide](./signals.md)** — Scaffold typed signals and wire producer and consumer relationships
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
 - **[KV Guide](../packages/kv/README.md)** — Provider-neutral key-value resources, isolated memory mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
 - **[Blob Guide](../packages/blob/README.md)** — Provider-neutral blob resources, byte/stream bodies, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
