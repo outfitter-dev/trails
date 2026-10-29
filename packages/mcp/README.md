@@ -50,6 +50,8 @@ for (const tool of result.value) {
 
 ## API
 
+<!-- fix ::: Document createMcpProgressCallback with its McpExtra argument, not a server; see packages/mcp/src/progress.ts. #stale -->
+
 | Export | What it does |
 | --- | --- |
 | `surface(graph, options?)` | Start an MCP server with all trails as tools |

@@ -344,6 +344,8 @@ const buildInfo = (
 /**
  * Derive an OpenAPI 3.1 specification from a Topo.
  *
+ * <!-- fix ::: Describe the exact-ID internal inclusion exception forwarded by collectPaths to filterSurfaceTrails. #stale -->
+ *
  * Iterates all trails, skipping signals and internal trails, and produces
  * paths, operations, parameters, and response schemas derived from
  * the trail contract.
