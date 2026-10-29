@@ -101,6 +101,14 @@ const renameTarget = (layerName: string, fieldName: string): string => {
     : `${layerName}${head.toUpperCase()}${rest.join('')}`;
 };
 
+/**
+ * Render one typed layer's input fields into `params` properties.
+ *
+ * Mirrors the MCP rendering in `packages/mcp/src/build.ts` (`renderMcpLayerInput`,
+ * lines 577-632 at 00cb0249c): same JSON Schema walk, same camelCase rename
+ * target and the shared `renderLayerFieldName` collision policy, so a layer
+ * field keeps one name across MCP and RPC. Change both when the policy moves.
+ */
 const renderLayerInput = (
   layer: Layer,
   claimedNames: Set<string>

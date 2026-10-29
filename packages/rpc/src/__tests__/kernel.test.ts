@@ -74,6 +74,15 @@ const batch = (frames: readonly JsonRpcFrame[]): readonly JsonRpcResponse[] => {
   return first.filter(isResponse);
 };
 
+const isConnectionState = (
+  value: unknown
+): value is ReturnType<RpcHandler['createState']> =>
+  typeof value === 'object' &&
+  value !== null &&
+  'protocol' in value &&
+  'inFlight' in value &&
+  Array.isArray(value.inFlight);
+
 const handlerFor = (
   options?: Parameters<typeof createRpcHandler>[1]
 ): RpcHandler =>
@@ -338,16 +347,80 @@ describe('createRpcHandler', () => {
     expect(batch(ran.frames).map((entry) => entry.id)).toEqual(['a']);
   });
 
-  test('state round-trips through JSON', async () => {
+  test('state round-trips through JSON text', async () => {
     const handler = handlerFor();
-    const state = handler.createState({
-      permit: { id: 'u1', scopes: ['record:write'] },
-    });
-    const revived = structuredClone(state);
+    const admitted = handler.admit(
+      handler.createState({ permit: { id: 'u1', scopes: ['record:write'] } }),
+      frame({
+        id: 'r1',
+        jsonrpc: '2.0',
+        method: 'greet',
+        params: { name: 'Ada' },
+      })
+    );
+    const text = JSON.stringify(admitted.state);
+    const parsed: unknown = JSON.parse(text);
+    if (!isConnectionState(parsed)) {
+      throw new Error('expected a connection state');
+    }
+    expect(parsed).toEqual(admitted.state);
+    expect(handler.recover(parsed).frames).toHaveLength(1);
     const step = await handler.handle(
-      revived,
+      parsed,
       frame({ id: 1, jsonrpc: '2.0', method: 'record.update', params: {} })
     );
     expect(single(step.frames)).toMatchObject({ result: { ok: true } });
+  });
+
+  test('a present _meta.version that is not a version reference is invalid params', async () => {
+    const handler = handlerFor();
+    for (const version of [true, { v: 1 }, null]) {
+      const step = await handler.handle(
+        handler.createState(),
+        frame({
+          id: 1,
+          jsonrpc: '2.0',
+          method: 'greet',
+          params: { _meta: { version }, name: 'Ada' },
+        })
+      );
+      const response = single(step.frames);
+      if (!('error' in response)) {
+        throw new Error('expected a failure');
+      }
+      expect(response.error.code).toBe(JSON_RPC_INVALID_PARAMS);
+    }
+    const badMeta = await handler.handle(
+      handler.createState(),
+      frame({
+        id: 2,
+        jsonrpc: '2.0',
+        method: 'greet',
+        params: { _meta: 'x', name: 'Ada' },
+      })
+    );
+    const response = single(badMeta.frames);
+    expect('error' in response && response.error.code).toBe(
+      JSON_RPC_INVALID_PARAMS
+    );
+  });
+
+  test('a null request id is rejected instead of tracked', async () => {
+    const handler = handlerFor();
+    const step = await handler.handle(
+      handler.createState(),
+      frame({
+        id: null,
+        jsonrpc: '2.0',
+        method: 'greet',
+        params: { name: 'Ada' },
+      })
+    );
+    const response = single(step.frames);
+    expect(response.id).toBeNull();
+    expect('error' in response && response.error.code).toBe(
+      JSON_RPC_INVALID_REQUEST
+    );
+    expect(step.state.inFlight).toEqual([]);
   });
 });

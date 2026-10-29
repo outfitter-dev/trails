@@ -180,16 +180,42 @@ interface SplitParams {
   readonly version: TrailVersionReference | undefined;
 }
 
+type SplitParamsResult =
+  | { readonly kind: 'split'; readonly params: SplitParams }
+  | { readonly kind: 'invalid'; readonly message: string };
+
+/** Read `_meta.version`; a present value that is not a version reference is invalid, never ignored. */
+const readMetaVersion = (
+  meta: unknown
+): SplitParamsResult | TrailVersionReference | undefined => {
+  if (meta === undefined) {
+    return undefined;
+  }
+  if (!isObject(meta)) {
+    return { kind: 'invalid', message: `${RPC_META_PARAM} must be an object` };
+  }
+  const rawVersion = meta['version'];
+  if (rawVersion === undefined) {
+    return undefined;
+  }
+  if (typeof rawVersion === 'string' || typeof rawVersion === 'number') {
+    return rawVersion;
+  }
+  return {
+    kind: 'invalid',
+    message: `${RPC_META_PARAM}.version must be a string or number`,
+  };
+};
+
 const splitParams = (
   params: Record<string, unknown>,
   renderings: readonly RpcLayerInputRendering[]
-): SplitParams => {
+): SplitParamsResult => {
   const { [RPC_META_PARAM]: meta, ...rest } = params;
-  const rawVersion = isObject(meta) ? meta['version'] : undefined;
-  const version =
-    typeof rawVersion === 'string' || typeof rawVersion === 'number'
-      ? rawVersion
-      : undefined;
+  const version = readMetaVersion(meta);
+  if (isObject(version)) {
+    return version;
+  }
   const claimed = new Set<string>();
   const layerInputs: Record<string, unknown> = {};
   for (const rendering of renderings) {
@@ -214,7 +240,7 @@ const splitParams = (
       trailInput[key] = value;
     }
   }
-  return { layerInputs, trailInput, version };
+  return { kind: 'split', params: { layerInputs, trailInput, version } };
 };
 
 /** A batch answers with an array; a single request answers with one message; no responses means no frame. */
@@ -321,10 +347,11 @@ export const createRpcHandler = (
     if (trail === undefined) {
       return { kind: 'method-missing' };
     }
-    const { layerInputs, trailInput, version } = splitParams(
-      params,
-      entry.layerRenderings
-    );
+    const split = splitParams(params, entry.layerRenderings);
+    if (split.kind === 'invalid') {
+      return { kind: 'invalid-params', message: split.message };
+    }
+    const { layerInputs, trailInput, version } = split.params;
     const result = await executeTrail(trail, trailInput, {
       configValues: options.configValues,
       createContext: options.createContext,

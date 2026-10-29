@@ -130,7 +130,19 @@ const validateRequest = (value: unknown): ParsedJsonRpcRequest => {
       response: jsonRpcFailure(
         null,
         JSON_RPC_INVALID_REQUEST,
-        'Invalid Request: id must be a string, number, or null'
+        'Invalid Request: id must be a string or number'
+      ),
+    };
+  }
+  // A null id cannot be tracked in flight or answered after a wake, and the
+  // specification reserves it for responses to unparseable requests.
+  if ('id' in value && value['id'] === null) {
+    return {
+      kind: 'invalid',
+      response: jsonRpcFailure(
+        null,
+        JSON_RPC_INVALID_REQUEST,
+        'Invalid Request: id must not be null; omit it for a notification'
       ),
     };
   }
