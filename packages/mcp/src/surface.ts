@@ -2,8 +2,9 @@
  * Surface helpers for exposing a topo over MCP.
  */
 
-import { ProtocolError, Server } from '@modelcontextprotocol/server';
-import { NotFoundError, renderJsonRpcError } from '@ontrails/core';
+import { Server } from '@modelcontextprotocol/server';
+import type { ServerContext } from '@modelcontextprotocol/server';
+import { NotFoundError, PermissionError, Result } from '@ontrails/core';
 import type {
   BaseSurfaceOptions,
   Layer,
@@ -15,10 +16,16 @@ import type {
 
 import type {
   McpSurfaceTrailheadMap,
+  McpExtra,
   McpToolDefinition,
   ResolveMcpPermit,
 } from './build.js';
 import { deriveMcpTools } from './build.js';
+import {
+  resolveMcpResourcePermit,
+  runMcpResourceRequest,
+} from './resource-access.js';
+import type { AuthorizeMcpResourceRead } from './resource-access.js';
 import { buildMcpResources } from './resources.js';
 import type { BuiltMcpResources, McpResourcesConfig } from './resources.js';
 import { connectStdio } from './stdio.js';
@@ -28,6 +35,8 @@ import { connectStdio } from './stdio.js';
 // ---------------------------------------------------------------------------
 
 export interface CreateServerOptions extends BaseSurfaceOptions {
+  /** Optional read policy; permission denials also omit URIs from resource lists. */
+  readonly authorizeResourceRead?: AuthorizeMcpResourceRead | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -61,6 +70,16 @@ export interface SurfaceMcpResult {
 // Internal: create MCP server with tool handlers
 // ---------------------------------------------------------------------------
 
+const requestCredentials = (
+  context: ServerContext
+): Pick<McpExtra, '_meta' | 'authorization'> => {
+  const token = context.http?.authInfo?.token;
+  return {
+    _meta: context.mcpReq._meta,
+    ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
+  };
+};
+
 /**
  * Create an MCP Server instance and register all tools.
  *
@@ -75,7 +94,8 @@ const createMcpServer = (
     readonly version: string;
     readonly description?: string | undefined;
   },
-  mcpResources?: BuiltMcpResources | undefined
+  mcpResources: BuiltMcpResources | undefined,
+  options: CreateServerOptions
 ): Server => {
   const server = new Server(
     { name: info.name, version: info.version },
@@ -129,7 +149,6 @@ const createMcpServer = (
 
     const args = (request.params.arguments ?? {}) as Record<string, unknown>;
     const progressToken = requestExtra.mcpReq._meta?.progressToken;
-    const authorizationToken = requestExtra.http?.authInfo?.token;
 
     const sendProgress =
       progressToken === undefined
@@ -142,11 +161,8 @@ const createMcpServer = (
           };
 
     const extra = {
-      _meta: requestExtra.mcpReq._meta,
+      ...requestCredentials(requestExtra),
       abortSignal: requestExtra.mcpReq.signal,
-      ...(authorizationToken === undefined
-        ? {}
-        : { authorization: `Bearer ${authorizationToken}` }),
       progressToken,
       sendProgress,
     };
@@ -160,30 +176,75 @@ const createMcpServer = (
   });
 
   if (mcpResources !== undefined) {
-    // oxlint-disable-next-line require-await -- MCP SDK requires async handler
-    server.setRequestHandler('resources/list', async () => ({
-      resources: mcpResources.list.map((resource) => ({
-        description: resource.description,
-        mimeType: resource.mimeType,
-        name: resource.name,
-        uri: resource.uri,
-      })),
-    }));
-
-    server.setRequestHandler('resources/read', async (request) => {
-      const content = mcpResources.read(request.params.uri);
-      if (content === undefined) {
-        const error = renderJsonRpcError(
-          'mcp',
-          new NotFoundError(`Resource ${request.params.uri} not found`),
-          'resources/read'
+    server.setRequestHandler('resources/list', (_request, requestExtra) =>
+      runMcpResourceRequest(undefined, async () => {
+        const permit = await resolveMcpResourcePermit(
+          options,
+          requestCredentials(requestExtra)
         );
-        throw new ProtocolError(error.code, error.message, error.data);
-      }
-      return {
-        contents: [content],
-      };
-    });
+        if (permit.isErr()) {
+          return permit;
+        }
+        const resources = [];
+        for (const resource of mcpResources.list) {
+          if (options.authorizeResourceRead !== undefined) {
+            const allowed = await options.authorizeResourceRead({
+              permit: permit.value,
+              resource,
+            });
+            if (allowed.isErr()) {
+              if (allowed.error instanceof PermissionError) {
+                continue;
+              }
+              return allowed;
+            }
+          }
+          resources.push({
+            description: resource.description,
+            mimeType: resource.mimeType,
+            name: resource.name,
+            uri: resource.uri,
+          });
+        }
+        return Result.ok({ resources });
+      })
+    );
+
+    server.setRequestHandler('resources/read', (request, requestExtra) =>
+      runMcpResourceRequest('resources/read', async () => {
+        const permit = await resolveMcpResourcePermit(
+          options,
+          requestCredentials(requestExtra)
+        );
+        if (permit.isErr()) {
+          return permit;
+        }
+        const resource = mcpResources.list.find(
+          (entry) => entry.uri === request.params.uri
+        );
+        if (resource === undefined) {
+          return Result.err(
+            new NotFoundError(`Resource ${request.params.uri} not found`)
+          );
+        }
+        if (options.authorizeResourceRead !== undefined) {
+          const allowed = await options.authorizeResourceRead({
+            permit: permit.value,
+            resource,
+          });
+          if (allowed.isErr()) {
+            return allowed;
+          }
+        }
+        const content = mcpResources.read(resource.uri);
+        if (content === undefined) {
+          return Result.err(
+            new NotFoundError(`Resource ${resource.uri} not found`)
+          );
+        }
+        return Result.ok({ contents: [content] });
+      })
+    );
   }
 
   return server;
@@ -228,7 +289,8 @@ const createServerFactory = (
         name: options.name ?? graph.name,
         version: options.version ?? graph.version ?? '0.1.0',
       },
-      mcpResources
+      mcpResources,
+      options
     );
 };
 

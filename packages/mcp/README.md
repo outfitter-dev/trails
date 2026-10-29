@@ -69,7 +69,9 @@ Return `Result.ok(null)` or `undefined` only when no accepted credential was sel
 
 Explicit host-provided `extra.permit` keeps its existing precedence. When the configured resolver returns absence, trusted `createContext` permit configuration remains available, including local stdio use; a resolver error cannot use that fallback. An unconfigured resolver retains the existing Authorization parser behavior. This preserves host configuration without granting protocol-session authority.
 
-Tool invocation uses one internal request permit-resolution seam that resource adapters can also consume. Resource policy and its host-context fallback remain owned by the resource adapter; verification is not duplicated. This change does not establish Fetch hosting, query credentials, application-cookie policy or header extraction for a future host.
+Tool invocation and resource list/read requests share one internal request permit-resolution seam. Resource requests resolve once, then evaluate optional `authorizeResourceRead({ permit, resource })` policy against canonical catalog descriptors. Return `Result.ok()` to allow a URI or a `PermissionError` to deny it. Listing omits permission-denied URIs; direct reads reject them, and other errors fail the request. The descriptor carries a real `trailId` for trail-specific resources and none for aggregates. Without explicit read policy, the authored static resource population remains public.
+
+Resolvers now receive resource requests even without bearer credentials. Every read rechecks; prior lists and other callers grant no authority. Trusted `createContext` permits are available only after request-credential absence, never after verification failure. Resource policy does not alter static tool discovery or redact the surface-map aggregate; deny unsafe aggregates when private member-level discovery is required. See [resource read policy](../../docs/surfaces/mcp.md#resource-read-policy) for configuration and migration guidance. This change does not establish Fetch hosting, query credentials, application-cookie policy or header extraction for a future host.
 
 ## Annotations
 

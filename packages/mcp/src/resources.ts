@@ -52,6 +52,8 @@ export interface McpResourceDefinition {
   readonly mimeType: string;
   readonly name: string;
   readonly description?: string | undefined;
+  /** Authored trail identity for trail-specific resources; absent for aggregates. */
+  readonly trailId?: string | undefined;
 }
 
 export interface McpResourceContent {
@@ -176,6 +178,7 @@ const buildExampleResource = (
       description: `Structured examples for trail "${trailItem.id}".`,
       mimeType: 'application/json',
       name: `Trail examples: ${trailItem.id}`,
+      trailId: trailItem.id,
       uri,
     },
   };
@@ -244,6 +247,7 @@ const buildTrailGraphResource = (
       description: `MCP-visible graph facts for trail "${trailItem.id}".`,
       mimeType: 'application/json',
       name: `Trail graph fact: ${trailItem.id}`,
+      trailId: trailItem.id,
       uri,
     },
   };
