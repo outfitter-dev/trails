@@ -67,6 +67,7 @@ const restoreSink = (previous: TraceSink): void => {
 };
 
 /**
+ * fix ::: Make overlapping sessions safe or serialize their callers; finalizing A then B after installing A then B leaks A instead of restoring baseline. Reconcile run-watch.ts per-invocation safety claim and add concurrency coverage. #bug #coverage
  * Register a fresh {@link MemoryTraceSink} as the active trace sink and
  * return a handle that can later restore the previous sink.
  */
