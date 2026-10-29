@@ -11,7 +11,7 @@ await local.send({ id: 'job-1' }, { delaySeconds: 0 });
 local.messages(); // [{ body: { id: 'job-1' }, delaySeconds: 0 }]
 ```
 
-Trails declare `resources: [jobs]` and use `jobs.from(ctx)`. Existing resource override maps supply a client under the resource ID. Role identity is live-inspectable only; this package adds no deploy profile resolution, lock projection, provisioning, or consumer registration.
+Trails declare `resources: [jobs]` and use `jobs.from(ctx)`. Existing resource override maps supply a client under the resource ID. Role identity is live-inspectable only; this package adds no deploy profile resolution, lock derivation, provisioning, or consumer registration.
 
 ## Producer contract
 

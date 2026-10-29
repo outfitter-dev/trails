@@ -14,7 +14,7 @@ const info = await local.head('notes/hello');
 // { key: 'notes/hello', size: 5, mimeType: 'text/plain' }
 ```
 
-Trails declare `resources: [uploads]` and use `uploads.from(ctx)`. The ordinary resource override map supplies a client under the resource ID. The live resource carries a frozen `role: 'blob'`; this package does not add core role resolution, deploy profile selection, lock projection, or provider provisioning.
+Trails declare `resources: [uploads]` and use `uploads.from(ctx)`. The ordinary resource override map supplies a client under the resource ID. The live resource carries a frozen `role: 'blob'`; this package does not add core role resolution, deploy profile selection, lock derivation, or provider provisioning.
 
 ## Contract
 

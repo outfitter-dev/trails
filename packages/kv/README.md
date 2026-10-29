@@ -57,6 +57,6 @@ Each case creates an isolated subject and disposes it even on failure. The suite
 
 This infrastructure role coexists with schema-derived persistence through `store()`; it does not replace or narrow that model. Core owns `resource()`, `BlobRef`, and queue consumer activation. The dedicated role packages own their runtime contracts; providers own bindings. See [ADR-0051](../../docs/adr/0051-package-ownership-follows-natural-altitude.md).
 
-The role field is inspectable on the live declaration and topo. It is not currently projected into `trails.lock` or its hash; later deploy overlay work owns that capture and drift coverage. No deployment portability is proved here.
+The role field is inspectable on the live declaration and topo. It is not currently included in `trails.lock` or its hash; later deploy overlay work owns that capture and drift coverage. No deployment portability is proved here.
 
 [TRL-1519](https://linear.app/outfitter/issue/TRL-1519) owns Cloudflare rebinding, the same conformance suite under Miniflare, and migration guidance. Existing `cloudflareKv` resources keep their provider-specific API. This source package does not claim that binding, migration, registry publication, or live deployment is complete. The first package release needs normal pack validation and separate publication authority.
