@@ -1,4 +1,6 @@
 /**
+ * <!-- fix ::: Resolve a launch-time session permit for stdio authentication; surface.ts only obtains request tokens from transport authInfo, and junction/src/mcp.ts shows the session path. #bug -->
+ *
  * MCP entry point for stash — the hero surface.
  *
  * Usage:

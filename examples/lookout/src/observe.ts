@@ -1,6 +1,8 @@
 /**
  * Observe wiring: one in-memory trace store plus a console log sink.
  *
+ * <!-- fix ::: Document process-local trace storage or persist it across dev and MCP processes; each launch creates its own createDevStore instance. #drift -->
+ *
  * The dev store doubles as the memory trace sink for the topo and the
  * queryable backend behind `tracing.query`, so the MCP surface can answer
  * "what ran last night and why did it fail" from the same records the
