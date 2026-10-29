@@ -13,12 +13,9 @@ import type {
   TrailContextInit,
 } from '@ontrails/core';
 
-import type {
-  McpSurfaceTrailheadMap,
-  McpToolDefinition,
-  ResolveMcpPermit,
-} from './build.js';
-import { deriveMcpTools } from './build.js';
+import type { McpSurfaceTrailheadMap, ResolveMcpPermit } from './build.js';
+import { deriveMcpToolRecords } from './build.js';
+import type { McpToolRecord } from './output-rendering.js';
 import { buildMcpResources } from './resources.js';
 import type { BuiltMcpResources, McpResourcesConfig } from './resources.js';
 import { connectStdio } from './stdio.js';
@@ -69,13 +66,15 @@ export interface SurfaceMcpResult {
  * "optional instructions describing how to use the server and its features."
  */
 const createMcpServer = (
-  tools: McpToolDefinition[],
+  tools: McpToolRecord[],
   info: {
     readonly name: string;
     readonly version: string;
     readonly description?: string | undefined;
   },
-  mcpResources?: BuiltMcpResources | undefined
+  mcpResources?:
+    | { readonly legacy: BuiltMcpResources; readonly modern: BuiltMcpResources }
+    | undefined
 ): Server => {
   const server = new Server(
     { name: info.name, version: info.version },
@@ -91,31 +90,35 @@ const createMcpServer = (
   );
 
   // Build a lookup map for tool dispatch
-  const toolMap = new Map<string, McpToolDefinition>();
+  const toolMap = new Map<string, McpToolRecord>();
   for (const tool of tools) {
-    toolMap.set(tool.name, tool);
+    toolMap.set(tool.legacy.name, tool);
   }
+
+  const protocolView = (): keyof McpToolRecord =>
+    server.getNegotiatedProtocolVersion() === '2026-07-28'
+      ? 'modern'
+      : 'legacy';
 
   // Register tools/list handler
   // oxlint-disable-next-line require-await -- MCP SDK requires async handler
   server.setRequestHandler('tools/list', async () => ({
-    tools: tools.map((t) => ({
-      _meta: t._meta,
-      annotations: t.annotations,
-      description: t.description,
-      inputSchema: { ...t.inputSchema, type: 'object' as const },
-      name: t.name,
-      outputSchema:
-        t.outputSchema === undefined
-          ? undefined
-          : { ...t.outputSchema, type: 'object' as const },
-    })),
+    tools: tools
+      .map((record) => record[protocolView()])
+      .map((t) => ({
+        _meta: t._meta,
+        annotations: t.annotations,
+        description: t.description,
+        inputSchema: { ...t.inputSchema, type: 'object' as const },
+        name: t.name,
+        outputSchema: t.outputSchema,
+      })),
   }));
 
   // Register tools/call handler
   server.setRequestHandler('tools/call', async (request, requestExtra) => {
-    const tool = toolMap.get(request.params.name);
-    if (tool === undefined) {
+    const record = toolMap.get(request.params.name);
+    if (record === undefined) {
       return {
         content: [
           {
@@ -127,6 +130,7 @@ const createMcpServer = (
       };
     }
 
+    const tool = record[protocolView()];
     const args = (request.params.arguments ?? {}) as Record<string, unknown>;
     const progressToken = requestExtra.mcpReq._meta?.progressToken;
     const authorizationToken = requestExtra.http?.authInfo?.token;
@@ -164,7 +168,7 @@ const createMcpServer = (
   if (mcpResources !== undefined) {
     // oxlint-disable-next-line require-await -- MCP SDK requires async handler
     server.setRequestHandler('resources/list', async () => ({
-      resources: mcpResources.list.map((resource) => ({
+      resources: mcpResources[protocolView()].list.map((resource) => ({
         description: resource.description,
         mimeType: resource.mimeType,
         name: resource.name,
@@ -173,7 +177,7 @@ const createMcpServer = (
     }));
 
     server.setRequestHandler('resources/read', async (request) => {
-      const content = mcpResources.read(request.params.uri);
+      const content = mcpResources[protocolView()].read(request.params.uri);
       if (content === undefined) {
         const error = renderJsonRpcError(
           'mcp',
@@ -199,7 +203,7 @@ const createServerFactory = (
   graph: Topo,
   options: CreateServerOptions = {}
 ): (() => Server) => {
-  const toolsResult = deriveMcpTools(graph, {
+  const toolsResult = deriveMcpToolRecords(graph, {
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
@@ -220,7 +224,18 @@ const createServerFactory = (
   const mcpResources =
     options.mcpResources === false
       ? undefined
-      : buildMcpResources(graph, toolsResult.value, options.mcpResources);
+      : {
+          legacy: buildMcpResources(
+            graph,
+            toolsResult.value.map((record) => record.legacy),
+            options.mcpResources
+          ),
+          modern: buildMcpResources(
+            graph,
+            toolsResult.value.map((record) => record.modern),
+            options.mcpResources
+          ),
+        };
 
   return () =>
     createMcpServer(

@@ -11,6 +11,9 @@ import {
 } from './build.js';
 import type { McpToolDefinition } from './build.js';
 
+// Resource rendering consumes contract facts, never the invocation callback.
+type McpResourceTool = Omit<McpToolDefinition, 'handler'>;
+
 /**
  * Resource URI used for the resolved MCP surface map.
  *
@@ -107,7 +110,7 @@ interface McpTrailResource {
 const asJson = (value: unknown): string =>
   `${JSON.stringify(value, null, 2)}\n`;
 
-const renderSurfaceMapTool = (tool: McpToolDefinition): McpSurfaceMapTool => ({
+const renderSurfaceMapTool = (tool: McpResourceTool): McpSurfaceMapTool => ({
   annotations: tool.annotations,
   description: tool.description,
   inputSchema: tool.inputSchema,
@@ -126,15 +129,13 @@ const renderSurfaceMapTool = (tool: McpToolDefinition): McpSurfaceMapTool => ({
     : {}),
 });
 
-const buildSurfaceMap = (
-  tools: readonly McpToolDefinition[]
-): McpSurfaceMap => ({
+const buildSurfaceMap = (tools: readonly McpResourceTool[]): McpSurfaceMap => ({
   surface: 'mcp',
   tools: tools.map(renderSurfaceMapTool),
 });
 
 const exposedTrailIds = (
-  tools: readonly McpToolDefinition[]
+  tools: readonly McpResourceTool[]
 ): ReadonlySet<string> =>
   new Set(
     tools.flatMap((tool) => [
@@ -183,7 +184,7 @@ const buildExampleResource = (
 
 const buildExampleResources = (
   graph: Topo,
-  tools: readonly McpToolDefinition[]
+  tools: readonly McpResourceTool[]
 ): readonly {
   readonly content: McpResourceContent;
   readonly listing: McpResourceDefinition;
@@ -204,7 +205,7 @@ const resourceId = (
 
 const buildTrailGraphResource = (
   trailItem: Trail<unknown, unknown, unknown>,
-  tools: readonly McpToolDefinition[]
+  tools: readonly McpResourceTool[]
 ): {
   readonly content: McpResourceContent;
   readonly listing: McpResourceDefinition;
@@ -251,7 +252,7 @@ const buildTrailGraphResource = (
 
 const buildTrailGraphResources = (
   graph: Topo,
-  tools: readonly McpToolDefinition[]
+  tools: readonly McpResourceTool[]
 ): readonly {
   readonly content: McpResourceContent;
   readonly listing: McpResourceDefinition;
@@ -281,7 +282,7 @@ const buildTrailGraphResources = (
  */
 export const buildMcpResources = (
   graph: Topo,
-  tools: readonly McpToolDefinition[],
+  tools: readonly McpResourceTool[],
   config: McpResourcesConfig = {}
 ): BuiltMcpResources => {
   const listings: McpResourceDefinition[] = [];
