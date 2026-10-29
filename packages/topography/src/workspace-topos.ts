@@ -235,6 +235,7 @@ const expandWorkspaceMembers = async (
       members.push(join(cwd, match));
     }
   }
+  // fix ::: Describe deterministic collision reporting; resolveOwners excludes colliding IDs instead of choosing the last writer. #stale
   // Sort for deterministic discovery order. Collision resolution depends on
   // a stable order so that "last-write-wins" is reproducible across runs.
   return [...members].toSorted();
