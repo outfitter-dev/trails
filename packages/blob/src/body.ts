@@ -29,6 +29,13 @@ export const snapshotBody = async (
         chunks.push(new Uint8Array(chunk.value));
         size += chunk.value.byteLength;
       }
+    } catch (error) {
+      try {
+        await reader.cancel(error);
+      } catch {
+        // Cancellation cleanup must not replace the original read or validation failure.
+      }
+      throw error;
     } finally {
       reader.releaseLock();
     }

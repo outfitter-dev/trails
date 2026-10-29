@@ -40,6 +40,41 @@ describe('memory body ownership', () => {
     const stored = await client.get('key');
     expect(stored?.data).toEqual(new Uint8Array([1]));
   });
+  test('invalid chunks cancel the producer and preserve the original failure if cancellation rejects', async () => {
+    for (const rejectCancel of [false, true]) {
+      const client = createBlobMock();
+      await client.put('key', new Uint8Array([1]));
+      let cancelled = 0;
+      let cancelReason: unknown;
+      let lockedDuringCancel = false;
+      const data = new ReadableStream<Uint8Array>({
+        cancel(reason: unknown) {
+          cancelled += 1;
+          cancelReason = reason;
+          lockedDuringCancel = data.locked;
+          if (rejectCancel) {
+            throw new Error('Cancellation cleanup failed');
+          }
+        },
+        start(controller) {
+          controller.enqueue('invalid' as never);
+        },
+      });
+      let failure: unknown;
+      try {
+        await client.put('key', data);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeInstanceOf(ValidationError);
+      expect(cancelled).toBe(1);
+      expect(cancelReason).toBe(failure);
+      expect(lockedDuringCancel).toBe(true);
+      expect(data.locked).toBe(false);
+      const stored = await client.get('key');
+      expect(stored?.data).toEqual(new Uint8Array([1]));
+    }
+  });
   test('locked and non-byte streams reject as typed errors', async () => {
     const client = createBlobMock();
     const locked = new ReadableStream<Uint8Array>();
