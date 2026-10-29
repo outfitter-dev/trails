@@ -441,7 +441,7 @@ describe('surface API (Hono adapter)', () => {
     expect(loggedErrors).toHaveLength(0);
   });
 
-  test('malformed Authorization fails as 401 through Hono permit resolution', async () => {
+  test('malformed Authorization fails as 401 without a custom Hono permit policy', async () => {
     let invoked = false;
     const protectedTrail = trail('permit.malformed', {
       implementation: () => {
@@ -454,10 +454,7 @@ describe('surface API (Hono adapter)', () => {
       permit: { scopes: ['thing:read'] },
     });
     const graph = topo('surface-api', { protectedTrail });
-    const app = createApp(graph, {
-      resolvePermit: () =>
-        Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] }),
-    });
+    const app = createApp(graph);
 
     const response = await app.request('/permit/malformed', {
       headers: { Authorization: 'Basic nope' },
@@ -473,6 +470,37 @@ describe('surface API (Hono adapter)', () => {
       },
     });
     expect(invoked).toBe(false);
+  });
+
+  test('malformed Authorization reaches the configured Hono permit policy', async () => {
+    // Bearer parsing is a candidate projection, not an authentication gate:
+    // the configured policy owns scheme decisions and sees the raw header.
+    let observed: { authorization?: string; bearerToken?: string } | undefined;
+    const protectedTrail = trail('permit.malformed', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['thing:read'] },
+    });
+    const graph = topo('surface-api', { protectedTrail });
+    const app = createApp(graph, {
+      resolvePermit: ({ authorization, bearerToken }) => {
+        observed = { authorization, bearerToken };
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
+      },
+    });
+
+    const response = await app.request('/permit/malformed', {
+      headers: { Authorization: 'Basic nope' },
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(200);
+    expect(observed).toEqual({
+      authorization: 'Basic nope',
+      bearerToken: undefined,
+    });
   });
 
   test('non-Bearer Authorization does not reject public Hono routes', async () => {
