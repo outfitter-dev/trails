@@ -24,7 +24,7 @@ const scanSourceEntries = (srcDir: string): string[] =>
     return priority;
   });
 
-// fix ::: Verify an actual topo declaration/export using source analysis; a notes file containing only a topo( comment is currently returned as the app import. #bug #coverage
+// <!-- fix ::: Verify an actual topo declaration/export using source analysis; a notes file containing only a topo( comment is currently returned as the app import. #bug #coverage -->
 /** Resolve an entry to an app import if it contains topo(). */
 const toTopoImport = async (
   srcDir: string,

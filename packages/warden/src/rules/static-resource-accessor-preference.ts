@@ -1,7 +1,7 @@
 /**
  * Prefers static resource definition helpers over dynamic context lookups.
  *
- * fix ::: Include imported external-client construction in this overview and the rule description; that diagnostic also fires without an existing resource declaration, as the PrismaClient test shows. #stale
+ * <!-- fix ::: Include imported external-client construction in this overview and the rule description; that diagnostic also fires without an existing resource declaration, as the PrismaClient test shows. #stale -->
  *
  * The rule intentionally stays advisory and narrow: it only warns when the
  * trail already has a statically declared resource definition in `resources`.

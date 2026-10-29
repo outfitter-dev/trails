@@ -103,7 +103,7 @@ const isObserveConfigShape = (value: unknown): value is ObserveConfig => {
 };
 
 /**
- * fix ::: Align guard and normalization: { log: 42 } passes this guard but throws, while a capability-tagged log sink normalizes successfully but fails the guard. Add both parity cases. #bug #drift
+ * <!-- fix ::: Align guard and normalization: { log: 42 } passes this guard but throws, while a capability-tagged log sink normalizes successfully but fails the guard. Add both parity cases. #bug #drift -->
  * Type guard for the `ObserveInput` union. Returns `true` only for shapes
  * that {@link normalizeObserve} will accept without throwing — i.e. a
  * `Logger`, an explicit `ObserveConfig`, or a `TraceSink`. Capability-only

@@ -1,7 +1,7 @@
 /**
  * Redactor — strips sensitive data from strings and objects.
  *
- * fix ::: Correct the string example to [REDACTED]; sequential default patterns also redact the token key/value pair. #stale
+ * <!-- fix ::: Correct the string example to [REDACTED]; sequential default patterns also redact the token key/value pair. #stale -->
  *
  * @example
  * ```ts
@@ -84,7 +84,7 @@ const mapObjectValues = (
   return result;
 };
 
-// fix ::: Preserve repeated acyclic references while guarding actual cycles; this shared seen set replaces the second sibling reference with [Circular]. Add shared-reference coverage. #bug #coverage
+// <!-- fix ::: Preserve repeated acyclic references while guarding actual cycles; this shared seen set replaces the second sibling reference with [Circular]. Add shared-reference coverage. #bug #coverage -->
 /** Track and guard against circular references in object graphs. */
 const trackOrCircular = (
   value: object,

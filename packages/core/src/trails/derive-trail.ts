@@ -358,7 +358,7 @@ const formatExampleName = (
 /**
  * Derive a single trail example from a entity fixture.
  *
- * fix ::: Replace the list remarks with actual deriveExamples behavior: one empty-filter example expects all fixtures and bypasses this per-fixture path. #stale
+ * <!-- fix ::: Replace the list remarks with actual deriveExamples behavior: one empty-filter example expects all fixtures and bypasses this per-fixture path. #stale -->
  *
  * @remarks
  * For `list` operations, each derived example wraps a single fixture in an
@@ -600,7 +600,7 @@ const stripGeneratedFields = (
 };
 
 /**
- * fix ::: Describe stripping declared generated fields except identity, not any version field; stripGeneratedFields preserves ordinary user-authored version values. #stale
+ * <!-- fix ::: Describe stripping declared generated fields except identity, not any version field; stripGeneratedFields preserves ordinary user-authored version values. #stale -->
  * Fallback for accessors that lack a native `update`: read the current
  * entity, merge the patch, strip any `version` field so versioned tables
  * keep `update`'s "does not participate in optimistic concurrency" semantic,

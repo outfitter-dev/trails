@@ -644,7 +644,7 @@ export const connectJsonFile = async <TStore extends AnyStoreDefinition>(
 /**
  * Create a JSON-file-backed store resource.
  *
- * fix ::: Bind JSON store mutations to ctx.fire through from(ctx), as Drizzle does; this resource registers change signals but an upsert emits none despite the store README promise. Cover create/update/remove. #bug #coverage
+ * <!-- fix ::: Bind JSON store mutations to ctx.fire through from(ctx), as Drizzle does; this resource registers change signals but an upsert emits none despite the store README promise. Cover create/update/remove. #bug #coverage -->
  *
  * Returns a `Resource` that can be registered in a topo and resolved from
  * trail context via `db.from(ctx)`.

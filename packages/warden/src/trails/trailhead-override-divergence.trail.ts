@@ -40,7 +40,7 @@ export const trailheadOverrideDivergenceTrail = wrapRule({
   },
 };`,
       },
-      // todo ::: Add an expected diagnostic to this contract example; input alone receives schema-only validation and does not prove divergent selectors are flagged. #coverage
+      // <!-- todo ::: Add an expected diagnostic to this contract example; input alone receives schema-only validation and does not prove divergent selectors are flagged. #coverage -->
       name: 'Diverging member selectors are flagged',
     },
   ],

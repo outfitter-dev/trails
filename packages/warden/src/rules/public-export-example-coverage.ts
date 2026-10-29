@@ -380,7 +380,7 @@ const declarationNameMatches = (
   return false;
 };
 
-// todo ::: Reconcile the promised TSDoc example requirement with tag-only matching in any leading parser comment; add coverage for plain comments and empty example tags before claiming stronger enforcement. #coverage #verify
+// <!-- todo ::: Reconcile the promised TSDoc example requirement with tag-only matching in any leading parser comment; add coverage for plain comments and empty example tags before claiming stronger enforcement. #coverage #verify -->
 const EXAMPLE_TAG_PATTERN = /@example\b/;
 const LINE_TERMINATOR_PATTERN = /[\n\r\u2028\u2029]/u;
 

@@ -152,7 +152,7 @@ export const validateOutput = <T>(
 // ---------------------------------------------------------------------------
 
 /**
- * fix ::: Update the detection explanation to include the delayed third read and clock-offset fourth probe; equal samples are a heuristic, not proof that a default factory is static. #stale
+ * <!-- fix ::: Update the detection explanation to include the delayed third read and clock-offset fourth probe; equal samples are a heuristic, not proof that a default factory is static. #stale -->
  * Sentinel indicating a dynamic default that should be omitted from schema
  * exports. Zod v4 wraps all defaults in getters; dynamic ones (functions)
  * produce new values on each access. We detect this by reading the getter

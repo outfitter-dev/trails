@@ -18,7 +18,7 @@ const nodePath = () => loadRuntimeBuiltin('node:path');
 // ---------------------------------------------------------------------------
 
 /** Returns true when `target` is equal to or a descendant of `base`. */
-// fix ::: Distinguish a parent segment from an inside name such as ..foo; securePath currently rejects that legitimate descendant. #bug #coverage
+// <!-- fix ::: Distinguish a parent segment from an inside name such as ..foo; securePath currently rejects that legitimate descendant. #bug #coverage -->
 const isWithin = (base: string, target: string): boolean => {
   const { isAbsolute, relative } = nodePath();
   const rel = relative(base, target);

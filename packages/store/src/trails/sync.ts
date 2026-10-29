@@ -154,7 +154,7 @@ const deriveExamples = <
       return [];
     }
 
-    // fix ::: Do not infer transformed sync output from a same-ID target fixture; a transform can produce different fields. Execute derived examples in regression coverage. #bug #coverage
+    // <!-- fix ::: Do not infer transformed sync output from a same-ID target fixture; a transform can produce different fields. Execute derived examples in regression coverage. #bug #coverage -->
     const targetFixture =
       targetById.get(id as unknown as StoreIdentifierOf<TTargetTable>) ??
       (transform === undefined && targetTable.schema.safeParse(fixture).success

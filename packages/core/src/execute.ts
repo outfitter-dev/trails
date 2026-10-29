@@ -134,7 +134,7 @@ export interface ExecuteTrailOptions {
   readonly configValues?:
     | Readonly<Record<string, Record<string, unknown>>>
     | undefined;
-  // fix ::: Qualify this requirement to framework-backed signal dispatch; bindFireToCtx preserves caller-supplied ctx.fire without a topo. #stale
+  // <!-- fix ::: Qualify this requirement to framework-backed signal dispatch; bindFireToCtx preserves caller-supplied ctx.fire without a topo. #stale -->
   /** Topo used for signal-driven activation; required for `ctx.fire()` to work. */
   readonly topo?: Topo | undefined;
   /**
@@ -477,7 +477,7 @@ const extractPermit = (
  * ...))`) produces siblings under `a`'s parent, not children of `a`. For
  * true child nesting, callers should compose into another trail (which gets
  * its own root record parented by this one) — full compose-trail parenting
- * fix ::: Remove the future-phase qualification; buildTracedContext already parents composed-trail records to caller context. Direct nested ctx.trace sibling behavior remains distinct. #stale
+ * <!-- fix ::: Remove the future-phase qualification; buildTracedContext already parents composed-trail records to caller context. Direct nested ctx.trace sibling behavior remains distinct. #stale -->
  * is implemented in a later phase. For Phase 1, sibling spans under the
  * trail's root are the supported shape.
  */

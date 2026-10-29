@@ -1,7 +1,7 @@
 /**
  * Shared helpers for `ctx.compose([...])` batch execution.
  *
- * fix ::: Limit shared ownership to validation/result/index helpers; worker loops remain separately implemented in execute.ts and testing/scenario.ts, so this module does not prevent strategy drift. #stale
+ * <!-- fix ::: Limit shared ownership to validation/result/index helpers; worker loops remain separately implemented in execute.ts and testing/scenario.ts, so this module does not prevent strategy drift. #stale -->
  *
  * These helpers normalize batch options, produce validation results, and
  * implement the unlimited/limited worker-pool execution strategies used by

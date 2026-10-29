@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 /**
- * todo ::: Qualify the airtight claim or extend detection to eager require and dynamic import expressions; these regexes cover static import/export syntax only. #coverage #verify
+ * <!-- todo ::: Qualify the airtight claim or extend detection to eager require and dynamic import expressions; these regexes cover static import/export syntax only. #coverage #verify -->
  * Structural portability gate (TRL-1198): the core barrel must carry no
  * eager `bun:`/`node:` builtin value imports. The Cloudflare adapter's
  * miniflare lane proves the bundled execution path boots under workerd,

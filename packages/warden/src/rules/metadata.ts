@@ -191,7 +191,7 @@ const builtinWardenRuleMetadataInput = {
       docs: [
         {
           label: 'CLI command routes ADR',
-          // todo ::: Replace draft anchors here and in library/trailhead guidance with durable accepted or source anchors, or document the same-stack promotion exception required by code-standards.md. #drift #verify
+          // <!-- todo ::: Replace draft anchors here and in library/trailhead guidance with durable accepted or source anchors, or document the same-stack promotion exception required by code-standards.md. #drift #verify -->
           path: 'docs/adr/drafts/20260613-cli-command-routes.md',
         },
       ],
@@ -292,7 +292,7 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Registered surface error mappers cover every error category.',
     tier: 'source-static',
   },
-  // fix ::: Describe best-effort entity-example validation, not trail examples; example-valid.ts scans entity definitions and skips unsupported static expressions. Regenerate the guide from corrected metadata. #drift
+  // <!-- fix ::: Describe best-effort entity-example validation, not trail examples; example-valid.ts scans entity definitions and skips unsupported static expressions. Regenerate the guide from corrected metadata. #drift -->
   'example-valid': {
     ...durableExternal,
     guidance: {
@@ -369,7 +369,7 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Standard CRUD operations expose the expected accessor shape.',
     tier: 'topo-aware',
   },
-  // fix ::: Remove the versioned-only qualifier below; incomplete-crud also warns on unversioned entity factory coverage, as its tests demonstrate. #stale
+  // <!-- fix ::: Remove the versioned-only qualifier below; incomplete-crud also warns on unversioned entity factory coverage, as its tests demonstrate. #stale -->
   'incomplete-crud': {
     ...durableExternal,
     invariant: 'Versioned CRUD entities expose complete operation coverage.',
@@ -582,7 +582,7 @@ const builtinWardenRuleMetadataInput = {
       summary:
         'Let schemas remain the owner for field metadata unless an override adds new information.',
     },
-    // fix ::: Describe inference of field metadata from authored schemas; prefer-schema-inference checks redundant field overrides, not schema inference. #drift
+    // <!-- fix ::: Describe inference of field metadata from authored schemas; prefer-schema-inference checks redundant field overrides, not schema inference. #drift -->
     invariant: 'Trail schemas should be inferred unless overrides add meaning.',
     lifecycle: { state: 'durable' },
     scope: 'advisory',
@@ -822,7 +822,7 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Specific detours are not shadowed by earlier broader detours.',
     tier: 'source-static',
   },
-  // fix ::: Narrow the invariant to @see trail IDs in schema descriptions; valid-describe-refs.ts does not validate arbitrary Trails concepts. #drift
+  // <!-- fix ::: Narrow the invariant to @see trail IDs in schema descriptions; valid-describe-refs.ts does not validate arbitrary Trails concepts. #drift -->
   'valid-describe-refs': {
     invariant: 'Describe references point at known Trails concepts.',
     lifecycle: { state: 'durable' },

@@ -691,7 +691,7 @@ const MIRROR_SKIP_DIRECTORIES = new Set([
  * artifacts.
  */
 /**
- * fix ::: Protect live leases across processes before age-based cleanup; process-local active sets let a second loader delete an old but still-live first-process mirror. Add a two-process retention regression. #bug #coverage
+ * <!-- fix ::: Protect live leases across processes before age-based cleanup; process-local active sets let a second loader delete an old but still-live first-process mirror. Add a two-process retention regression. #bug #coverage -->
  * Age threshold (ms) above which a mirror entry in `.trails-tmp/` is
  * considered stale and safe to remove opportunistically.
  *

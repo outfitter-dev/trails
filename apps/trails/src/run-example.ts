@@ -48,7 +48,7 @@ const formatJson = (value: unknown): string => {
   }
 };
 
-// fix ::: Render mode none as unasserted and expose the actual outcome; input-only error examples currently print OK and actual matches expected despite having no expectation. #bug #coverage
+// <!-- fix ::: Render mode none as unasserted and expose the actual outcome; input-only error examples currently print OK and actual matches expected despite having no expectation. #bug #coverage -->
 const formatMatchText = (envelope: RunExampleComparison): string =>
   [
     `OK  ${envelope.trailId} :: ${envelope.exampleName}`,

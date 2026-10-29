@@ -1,7 +1,7 @@
 /**
  * Structural validation for a Topo graph.
  *
- * fix ::: Qualify example/output checks here and on validateTopo: checkOneExample permits expected ValidationError input failures and requires output only for examples with expected output. #stale
+ * <!-- fix ::: Qualify example/output checks here and on validateTopo: checkOneExample permits expected ValidationError input failures and requires output only for examples with expected output. #stale -->
  *
  * Checks trail composing references, example input validity, signal origin
  * references, activation source kinds, and output schema completeness. Returns

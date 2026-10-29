@@ -1,7 +1,7 @@
 /**
  * Shared Zod schemas for warden rule trails.
  *
- * fix ::: Describe source, project-aware, and topo-aware input families instead of one universal source-file input; see the separate schema declarations below. #stale
+ * <!-- fix ::: Describe source, project-aware, and topo-aware input families instead of one universal source-file input; see the separate schema declarations below. #stale -->
  *
  * Every rule trail shares the same input (source file) and output
  * (array of diagnostics) shape.
@@ -105,7 +105,7 @@ export const exportedSymbolDefinitionSchema = z.object({
 });
 
 /**
- * fix ::: Move this project-aware input documentation to projectAwareRuleInput; the next declaration describes MCP binding sets. Use cross-file for file context, reserving compose for trail invocation. #stale
+ * <!-- fix ::: Move this project-aware input documentation to projectAwareRuleInput; the next declaration describes MCP binding sets. Use cross-file for file context, reserving compose for trail invocation. #stale -->
  * Extended input for project-aware warden rule trails.
  *
  * Adds `knownTrailIds` so the caller can supply compose-file context and avoid
