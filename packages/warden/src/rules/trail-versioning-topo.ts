@@ -1,4 +1,7 @@
-import { deriveTopoGraph } from '@ontrails/topography';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphForceIdentity,
+} from '@ontrails/topography';
 import type {
   TopoGraph,
   TopoGraphEntry,
@@ -48,22 +51,19 @@ const graphFor = (
   context: Parameters<TopoAwareWardenRule['checkTopo']>[1]
 ): TopoGraph => context?.graph ?? deriveTopoGraph(topo);
 
-const forceKey = (force: TopoGraphForceEntry): string =>
-  JSON.stringify([
-    force.kind,
-    force.id,
-    force.change,
-    force.detail,
-    force.reason,
-    force.severity,
-    force.source,
-  ]);
+const FORCE_KIND_LABELS: Readonly<Record<TopoGraphForceEntry['kind'], string>> =
+  {
+    entity: 'Entity',
+    resource: 'Resource',
+    signal: 'Signal',
+    trail: 'Trail',
+  };
 
 const pendingForceDiagnostic = (force: TopoGraphForceEntry): WardenDiagnostic =>
   topoDiagnostic(
     'pending-force',
     'warn',
-    `Trail "${force.id}" has a pending forced topo break (${force.change}: ${force.detail}). Resolve or document the force event before release.`
+    `${FORCE_KIND_LABELS[force.kind]} "${force.id}" has a pending forced topo break (${force.change}: ${force.detail}). Resolve or document the force event before release.`
   );
 
 export const deprecationWithoutGuidance: TopoAwareWardenRule = {
@@ -155,18 +155,24 @@ export const pendingForce: TopoAwareWardenRule = {
   checkTopo(topo, context) {
     const graph = graphFor(topo, context);
     const diagnostics = new Map<string, WardenDiagnostic>();
-    for (const entry of trailEntries(graph)) {
+    for (const entry of graph.entries) {
       for (const force of entry.forces ?? []) {
-        diagnostics.set(forceKey(force), pendingForceDiagnostic(force));
+        diagnostics.set(
+          deriveTopoGraphForceIdentity(force),
+          pendingForceDiagnostic(force)
+        );
       }
     }
     for (const force of graph.forces ?? []) {
-      diagnostics.set(forceKey(force), pendingForceDiagnostic(force));
+      diagnostics.set(
+        deriveTopoGraphForceIdentity(force),
+        pendingForceDiagnostic(force)
+      );
     }
     return [...diagnostics.values()];
   },
   description:
-    'Warn when graph-only force audit events remain attached to trail entries or the topo graph.',
+    'Warn when force audit events remain attached to topo entries or the topo graph.',
   name: 'pending-force',
   severity: 'warn',
 };

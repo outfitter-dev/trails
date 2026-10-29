@@ -243,6 +243,10 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 <!-- warden-guide:end -->
 
+## Generated Lock Recovery
+
+During a rebase, resolve authored conflicts before generated locks. With a Skillset version that supports it, run `skillset resolve --yes`, then `trails resolve` with the existing `topo:write` permit, review and stage explicit generated paths, and only then run `git rebase --continue`. This checkout's Skillset 0.27 still requires its documented base-lock regeneration workflow. See [Trails Lock Recovery](docs/contributing/trails-lock-recovery.md) for evidence requirements, app selection, verification, abort/restore, and stale rerere. Neither lock uses a `.gitattributes` merge driver or `merge=union` here.
+
 ## Draft State
 
 - `_draft.` is the reserved marker for draft IDs.
