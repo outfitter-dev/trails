@@ -4,6 +4,8 @@ import type {
   Trail,
 } from '@ontrails/core';
 
+import { composeScopeCoverage } from './compose-scopes.js';
+
 // ---------------------------------------------------------------------------
 // Diagnostic type
 // ---------------------------------------------------------------------------
@@ -176,6 +178,7 @@ const allRules: readonly Rule[] = [
   writeWithoutPermit,
   scopeNamingConsistency,
   orphanScopeDetection,
+  composeScopeCoverage,
 ];
 
 /**

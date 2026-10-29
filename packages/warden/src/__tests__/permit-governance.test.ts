@@ -10,6 +10,35 @@ import { runWarden } from '../cli.js';
 import { permitGovernance } from '../rules/permit-governance.js';
 
 describe('permitGovernance', () => {
+  test('renders composed-scope findings through the existing topo rule', async () => {
+    const child = trail('entity.remove', {
+      implementation: () => Result.ok({}),
+      input: z.object({}),
+      intent: 'read',
+      permit: { scopes: ['entity:remove'] },
+    });
+    const parent = trail('entity.archive', {
+      composes: [child],
+      implementation: () => Result.ok({}),
+      input: z.object({}),
+      intent: 'read',
+      permit: 'public',
+    });
+
+    const diagnostics = await permitGovernance.checkTopo(
+      topo('compose-scope-test', { child, parent })
+    );
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        filePath: '<topo>',
+        message: expect.stringContaining('entity:remove'),
+        rule: 'permit.composeScopeCoverage',
+        severity: 'warn',
+      }),
+    ]);
+  });
+
   test('emits permit diagnostics from the compiled topo', async () => {
     const destroyTrail = trail('entity.delete', {
       implementation: () => Result.ok({ ok: true }),
