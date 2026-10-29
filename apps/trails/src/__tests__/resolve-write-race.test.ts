@@ -163,9 +163,21 @@ for (const changed of [false, true]) {
       }
       chmodSync(lockPath, 0o444);
       const descriptors = new Set<number>();
+      let deniedWrites = 0;
       const originalOpen = fs.openSync;
       const originalClose = fs.closeSync;
       openSpy = spyOn(fs, 'openSync').mockImplementation((...args) => {
+        // Root can bypass chmod, so model this lock's write denial explicitly.
+        const writes =
+          typeof args[1] === 'number' &&
+          // eslint-disable-next-line no-bitwise -- POSIX access mode is a bit mask.
+          (args[1] & (fs.constants.O_WRONLY | fs.constants.O_RDWR)) !== 0;
+        if (args[0] === lockPath && writes) {
+          deniedWrites += 1;
+          throw Object.assign(new Error('Read-only lock permission denied'), {
+            code: 'EACCES',
+          });
+        }
         const descriptor = Reflect.apply(originalOpen, fs, args);
         if (args[0] === lockPath) {
           descriptors.add(descriptor);
@@ -180,6 +192,7 @@ for (const changed of [false, true]) {
         { module: './app.ts', rootDir: root },
         root
       );
+      expect(deniedWrites).toBe(changed ? 1 : 0);
       expect(descriptors.size).toBe(0);
       expect(result.isOk()).toBe(!changed);
       if (result.isErr()) {
