@@ -178,6 +178,25 @@ describe('Result.fromFetch — network errors', () => {
     );
   });
 
+  test('live connection failures preserve the native TypeError as the NetworkError cause', async () => {
+    const server = Bun.serve({
+      fetch: () => new Response('ok'),
+      hostname: '127.0.0.1',
+      port: 0,
+    });
+    const { url } = server;
+    await server.stop(true);
+
+    const result = await Result.fromFetch(url);
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      return;
+    }
+    expect(result.error).toBeInstanceOf(NetworkError);
+    expect(result.error.cause).toBeInstanceOf(TypeError);
+  });
+
   test('AbortError → CancelledError', async () => {
     mockFetch(async () => {
       throw new DOMException('The operation was aborted', 'AbortError');

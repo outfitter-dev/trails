@@ -115,6 +115,27 @@ describe('surface API (Hono adapter)', () => {
     expect(await response.json()).toEqual({ data: { reply: 'hello' } });
   });
 
+  test('createApp serves HEAD through the implicit GET route without a body', async () => {
+    let executions = 0;
+    const countedTrail = trail('counted', {
+      implementation: () => {
+        executions += 1;
+        return Result.ok({ executions });
+      },
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ executions: z.number() }),
+    });
+    const app = createApp(topo('surface-head', { countedTrail }));
+
+    const response = await app.request('/counted', { method: 'HEAD' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toBeNull();
+    expect(await response.text()).toBe('');
+    expect(executions).toBe(1);
+  });
+
   test('surface starts a Bun server and returns a close handle', async () => {
     const graph = topo('surface-api', { echoTrail });
     const handle = await surface(graph, { port: 0 });
