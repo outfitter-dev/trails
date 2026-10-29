@@ -130,8 +130,17 @@ export type {
   Logger,
   ResourceLookup,
 } from './types.js';
-export { basePermitSchema, permitActorSchema } from './permits.js';
-export type { BasePermit, PermitActor } from './permits.js';
+export {
+  basePermitSchema,
+  permitActorSchema,
+  permitAdmissionSchema,
+} from './permits.js';
+export type {
+  BasePermit,
+  PermitActor,
+  PermitAdmission,
+  PermitAdmissionKind,
+} from './permits.js';
 export {
   LAYER_INPUTS_KEY,
   SURFACE_KEY,

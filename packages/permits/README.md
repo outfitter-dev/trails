@@ -157,8 +157,14 @@ interface PermitActor {
   readonly verified: boolean;
 }
 
+interface PermitAdmission {
+  readonly by: string;
+  readonly kind: 'verified' | 'asserted' | 'synthetic';
+}
+
 interface Permit {
   readonly actors: readonly PermitActor[];
+  readonly admission?: PermitAdmission;
   readonly expiresAt?: number;
   readonly issuer?: string;
   readonly id: string;
@@ -192,6 +198,33 @@ const myTrail = trail('do.something', {
 ```
 
 Scopes follow the `entity:action` convention: `user:read`, `gist:write`, etc.
+
+## One door: reconciling credential candidates
+
+A permit enters the pipeline only through a surface's credential input. Each surface extracts what it found (an inline permit, a request for the synthetic development permit, a presented credential), names its posture, and hands the candidates to `reconcilePermit`. The reconciliation is the CLI's `--permit` / `--token` / `--dev-permit` logic lifted into this package so every surface shares one set of rules:
+
+```typescript
+import { reconcilePermit, resolvePermitFromInput } from '@ontrails/permits';
+
+const result = await reconcilePermit({
+  candidates: { credential: { bearerToken: token, label: '--token' } },
+  graph,
+  posture: 'in-process', // or 'network' for HTTP, Streamable HTTP MCP, WebSocket
+  requestId,
+  surface: 'cli',
+  verifierName: 'auth',
+  verify: (input) => resolvePermitFromInput({ ...input, graph }),
+});
+```
+
+The outcomes are fixed:
+
+- No candidate: `Result.ok(undefined)`. The surface decides what absence means. An in-process host keeps its seed; a network surface is anonymous.
+- More than one candidate: `ValidationError` naming the labels (`--permit, --token are mutually exclusive; pass only one.`).
+- A presented credential with no verifier: `ValidationError` in process, `AuthError` with `code: 'no_permit_resolver'` on the network. A verifier that returns `null` selected no credential, which is absence.
+- `inline` and `synthetic` are asserted kinds. They are refused on the network posture (`asserted_kind_refused`) and admitted in process only under host policy. The policy is derived from the topo when the surface passes none: allowed while the app declares no `auth` resource, denied once one exists (`asserted_kind_disabled`). An explicit `AssertedKindsPolicy` from app config (never argv) can re-enable them with a `maxScopes` ceiling. The CLI exposes it as `assertedKinds` on `deriveCliCommands`.
+
+Whatever the reconciliation admits carries `admission`: `verified` with the verifier's name, `asserted` or `synthetic` with the policy's name. Asserted kinds never carry a verified actor: an authored chain is downgraded to `verified: false`, and a host-supplied `actor` (the launching client) is recorded the same way, so ceilings and step-up see local agents without trusting the label. Only this reconciliation constructs `admission`; network surfaces accept only permits produced by their own resolver path, so the serialized value feeds tracing, ceilings and Warden rather than acting as a trust signal on its own.
 
 ## The auth.verify trail
 

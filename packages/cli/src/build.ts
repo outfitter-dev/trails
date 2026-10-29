@@ -34,6 +34,8 @@ import {
   validateSurfaceTopo,
   withSurfaceLayerNames,
 } from '@ontrails/core';
+import { reconcilePermit } from '@ontrails/permits';
+import type { AssertedKindsPolicy } from '@ontrails/permits';
 
 import type {
   AnyTrail,
@@ -120,6 +122,13 @@ export interface DeriveCliCommandsOptions extends BaseSurfaceOptions {
   resources?: ResourceOverrideMap | undefined;
   resolvePermitFromToken?: ResolveCliPermitFromToken | undefined;
   resolveInput?: InputResolver | undefined;
+  /**
+   * Host policy for the asserted credential kinds (`--permit`, `--dev-permit`).
+   * Derived from the topo when omitted: allowed while the app declares no
+   * `auth` resource, denied once one exists. Set it from app config, never
+   * from argv.
+   */
+  assertedKinds?: AssertedKindsPolicy | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -708,13 +717,6 @@ const runPaginatedIteration = async (
 };
 
 /**
- * Synthetic permit identifier injected by `--dev-permit`. Distinctive on
- * purpose so accidental production use shows up clearly in trace records
- * and audit logs.
- */
-const DEV_PERMIT_ID = 'dev-permit';
-
-/**
  * Read the `--dev-permit` boolean flag, accepting either the kebab-case
  * (`'dev-permit'`) or camelCase (`'devPermit'`) form so callers don't
  * have to normalize.
@@ -723,56 +725,17 @@ const readDevPermitFlag = (parsedFlags: Record<string, unknown>): boolean =>
   parsedFlags['devPermit'] === true || parsedFlags['dev-permit'] === true;
 
 /**
- * Collect every scope declared by any trail on the resolved topo.
- *
- * The synthetic dev permit needs to satisfy every permit-protected trail
- * the user might invoke. Because `findMissingScopes` does literal string
- * matching (no wildcard recognition), the synthetic permit's `scopes`
- * array enumerates the union of declared scopes across the topo.
- */
-const collectAllDeclaredScopes = (graph: Topo): readonly string[] => {
-  const scopes = new Set<string>();
-  for (const trail of graph.list()) {
-    const requirement = trail.permit;
-    if (requirement === undefined || requirement === 'public') {
-      continue;
-    }
-    for (const scope of requirement.scopes) {
-      scopes.add(scope);
-    }
-  }
-  return [...scopes];
-};
-
-/**
- * Build the synthetic full-access permit injected by `--dev-permit`.
- *
- * Returns a `BasePermit` whose `scopes` enumerate every scope declared
- * across the topo. The id is the literal string `'dev-permit'` so trace
- * records and audit logs make accidental production use obvious.
- *
- * @remarks Scope coverage is bounded by `topo.list()`. Trails on a child or
- * mounted topo (Phase 7) won't contribute scopes here; that case will need
- * to walk the mounted hierarchy when compose-app composition lands. Trails
- * filtered out of `topo.list()` (e.g. by a future tier filter) are likewise
- * not represented in the synthesized permit.
- */
-const synthesizeDevPermit = (graph: Topo): BasePermit => ({
-  actors: [],
-  id: DEV_PERMIT_ID,
-  scopes: collectAllDeclaredScopes(graph),
-});
-
-/**
  * Reconcile `--permit`, `--token`, and `--dev-permit` into a single
  * `BasePermit | undefined` for the execution pipeline.
  *
- * The three flags are pairwise mutually exclusive: passing any
- * combination surfaces a `ValidationError` (exit 1). When only `--token`
- * is supplied the auth adapter resolves it into a permit; failures map
- * to `AuthError` (exit 9). When `--dev-permit` is supplied, a synthetic
- * permit covering every scope declared on the topo is injected. When
- * none of the three registered meta flags are supplied the call returns
+ * The CLI parses its flags into candidates and hands them to the shared
+ * reconciliation in `@ontrails/permits` on the `in-process` posture: the
+ * three flags are mutually exclusive (`ValidationError`, exit 1), `--token`
+ * is verified through `resolvePermitFromToken` (failures map to `AuthError`,
+ * exit 9), and `--permit` / `--dev-permit` are asserted kinds admitted under
+ * the host policy (`assertedKinds`, derived from the topo when omitted) with
+ * `asserted` or `synthetic` admission stamped on the permit. When none of the
+ * three registered meta flags are supplied the call returns
  * `Result.ok(undefined)` so callers preserve any inherited permit. Parsed
  * values with the same names are ignored when the command did not render the
  * corresponding meta flag, allowing trails to own fields such as `token`.
@@ -797,45 +760,39 @@ const resolvePermitForExecution = async (
   }
   const devPermit =
     metaFlagNames.has('devPermit') && readDevPermitFlag(parsedFlags);
-
-  const conflicts: string[] = [];
-  if (permitParsed.value !== undefined) {
-    conflicts.push('--permit');
-  }
-  if (tokenParsed.value !== undefined) {
-    conflicts.push('--token');
-  }
-  if (devPermit) {
-    conflicts.push('--dev-permit');
-  }
-  if (conflicts.length > 1) {
-    return Result.err(
-      new ValidationError(
-        `${conflicts.join(', ')} are mutually exclusive; pass only one.`
-      )
-    );
-  }
-
-  if (devPermit) {
-    return Result.ok(synthesizeDevPermit(graph));
-  }
-  if (tokenParsed.value === undefined) {
-    return Result.ok(permitParsed.value);
-  }
-  if (options?.resolvePermitFromToken === undefined) {
-    return Result.err(
-      new ValidationError(
-        '--token requires a CLI permit resolver supplied via resolvePermitFromToken.'
-      )
-    );
-  }
   const requestId = Bun.randomUUIDv7();
-  return await options.resolvePermitFromToken({
-    configValues: options.configValues,
+  const resolveFromToken = options?.resolvePermitFromToken;
+  return await reconcilePermit({
+    candidates: {
+      ...(permitParsed.value === undefined
+        ? {}
+        : { inline: { label: '--permit', permit: permitParsed.value } }),
+      ...(tokenParsed.value === undefined
+        ? {}
+        : {
+            credential: { bearerToken: tokenParsed.value, label: '--token' },
+          }),
+      ...(devPermit ? { synthetic: { label: '--dev-permit' } } : {}),
+    },
     graph,
+    missingVerifierMessage:
+      '--token requires a CLI permit resolver supplied via resolvePermitFromToken.',
+    policy: options?.assertedKinds,
+    posture: 'in-process',
     requestId,
-    resources: options.resources,
-    token: tokenParsed.value,
+    surface: 'cli',
+    verifierName: 'resolvePermitFromToken',
+    verify:
+      resolveFromToken === undefined
+        ? undefined
+        : async (input) =>
+            await resolveFromToken({
+              configValues: options?.configValues,
+              graph,
+              requestId: input.requestId,
+              resources: options?.resources,
+              token: input.bearerToken ?? '',
+            }),
   });
 };
 

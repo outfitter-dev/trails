@@ -313,6 +313,7 @@
       "version": "0.2.5",
       "dependencies": {
         "@ontrails/core": "workspace:^",
+        "@ontrails/permits": "workspace:^",
       },
       "peerDependencies": {
         "zod": "catalog:",

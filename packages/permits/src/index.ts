@@ -32,6 +32,20 @@ export {
   type PermitExtractionInput,
 } from './extraction.js';
 export { type Permit, getPermit, permitSchema } from './permit.js';
+export {
+  SYNTHETIC_PERMIT_ID,
+  collectDeclaredScopes,
+  deriveAssertedKindsPolicy,
+  reconcilePermit,
+  type AssertedKindsPolicy,
+  type CredentialCandidate,
+  type InlinePermitCandidate,
+  type PermitCandidates,
+  type PermitVerifier,
+  type ReconcilePermitOptions,
+  type SurfacePosture,
+  type SyntheticPermitCandidate,
+} from './reconcile.js';
 export type { PermitActor } from '@ontrails/core';
 export { derivePermitIdentityKey } from './identity.js';
 export {
