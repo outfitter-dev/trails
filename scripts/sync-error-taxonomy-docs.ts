@@ -80,6 +80,7 @@ const signalBehaviorForCategory = (category: ErrorCategory): string => {
   return 'drop + dead-event';
 };
 
+// <!-- fix ::: Render queue/signal outcomes consistently with RetryExhaustedError retryable=false; inheriting a wrapped retryable category must not imply redelivery in the generated ADR-0026 table. #drift -->
 const renderDynamicBehaviorRows = (): readonly string[] =>
   dynamicEntries.map(
     (entry) =>

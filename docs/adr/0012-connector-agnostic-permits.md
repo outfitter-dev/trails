@@ -108,11 +108,15 @@ The port is deliberately narrow. No session management, no token refresh, no use
 
 ### Auth layer re-checks on every invocation including composes
 
+<!-- todo ::: Reconcile auth-layer and static parent-scope guarantees with ADR-0043 intrinsic permit enforcement and actual Warden coverage; executeTrail checks each invocation, but that does not prove static scope-superset enforcement. #drift #verify -->
+
 `ctx.compose()` doesn't bypass auth. If a parent trail composes a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
 
 The warden statically validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, the parent must hold both. This is a compile-time guarantee, not a runtime hope.
 
 ### Warden governance
+
+<!-- todo ::: Reconcile destroy-without-permit error severity with current permit-governance warn severity; preserve the decision until its intended enforcement is resolved. #drift #verify -->
 
 New rules by intent:
 

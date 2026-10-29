@@ -40,6 +40,8 @@ ADR-0009 gives us the resource primitive. But it doesn't prescribe how infrastru
 
 ### The resource + layer + trails trifecta
 
+<!-- todo ::: Reconcile the all-three-every-time infrastructure rule with later intrinsic permit enforcement in ADR-0043; authLayer is removed. Preserve the historical trifecta rationale. #drift #verify -->
+
 Every infrastructure package ships three kinds of primitives:
 
 | Primitive | Purpose | Config example | Permits example | Tracing example |
@@ -88,6 +90,8 @@ The solution is two phases:
 Bootstrap is pure resolution — no side effects, no trail execution, no layers. It runs once at startup. Everything after bootstrap goes through `executeTrail`.
 
 ### The workspace directory
+
+<!-- fix ::: Add current-law qualification from ADR-0054: root trails.lock and per-user topo storage supersede this two-file/project-local layout; preserve the original diagram as history. #stale -->
 
 Trails establishes `.trails/` as the workspace directory for framework state:
 
