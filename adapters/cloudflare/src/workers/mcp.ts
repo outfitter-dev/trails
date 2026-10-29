@@ -8,7 +8,6 @@ import type {
 import { deriveHttpRoutes } from '@ontrails/http';
 
 import type { WorkersEnv } from '../env.js';
-import { workersHostConfigSchema } from './host.js';
 import type { WorkersHostConfig } from './host.js';
 
 /** Shared env-resolved inputs; per-request auth remains inside the MCP handler. */
@@ -77,13 +76,7 @@ export const createWorkersMcpHost = (
       readonly handlerFor: (env: WorkersEnv | undefined) => WorkersMcpHandler;
     }
   | undefined => {
-  const parsed = workersHostConfigSchema.safeParse(options.host ?? {});
-  if (!parsed.success) {
-    throw new ValidationError('Invalid Worker host configuration', {
-      cause: parsed.error,
-    });
-  }
-  const endpoint = parsed.data.mcp;
+  const endpoint = options.host?.mcp;
   const factory = options.mcp;
   if (factory !== undefined && typeof factory !== 'function') {
     throw new ValidationError('MCP handler factory must be a function');
