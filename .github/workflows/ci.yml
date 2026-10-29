@@ -116,6 +116,9 @@ jobs:
       - name: ADR check
         run: bun scripts/adr.ts check
 
+      - name: Install ripgrep for the hard-wrap owner check
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+
       - name: Documentation migration fixtures
         run: bun test scripts/__tests__/docs-migrations.test.ts scripts/__tests__/docs-ci.test.ts
 
