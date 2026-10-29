@@ -117,6 +117,7 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 | `deriveDeclaredTrailActivation(entry)` | Trail-local activation report from a resolved TopoGraph entry |
 | `deriveSignalActivationRelations(topoGraph)` | Signal-local activation relations for source and consumer navigation |
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
+| `deriveTopoGraphEntryHash(entry)` | Stable hash of one complete entry; normalizes object key order and preserves array order |
 | `deriveWorkspaceView(options)` | Config-fed app-partitioned saved graph view with separate observation evidence |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
 | `writeTrailsLock(lock, { dir: appRoot })` | Write the selected app's v5 `trails.lock`; omitted options retain `.trails/` |

@@ -287,6 +287,7 @@ These are programmatic Topography APIs for deriving, hashing, diffing, reading, 
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
+deriveTopoGraphEntryHash(entry) // stable hash of one TopoGraph entry
 deriveTopoGraphForceIdentity(force) // every persisted event fact, including timestamp and optional reason
 carryForwardTopoGraphForces(previous, next) // stable union; orphan history stays at graph level
 deriveWorkspaceView({ identity, selectedAppIds?, currentAppGraphHashes?, lockScope? })

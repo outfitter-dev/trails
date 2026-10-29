@@ -28,6 +28,7 @@ import type { FSWatcher } from 'node:fs';
 import { dirname, extname } from 'node:path';
 
 import type { TopoGraphEntry } from '@ontrails/topography';
+import { deriveTopoGraphEntryHash } from '@ontrails/topography';
 
 export { readRunTrailId } from './run-argv.js';
 
@@ -105,25 +106,8 @@ const isRelevantFilename = (filename: string | null): boolean => {
   return WATCHED_EXTENSIONS.has(extname(filename));
 };
 
-const canonicalize = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value.map(canonicalize);
-  }
-  if (value !== null && typeof value === 'object') {
-    const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(value).toSorted()) {
-      sorted[key] = canonicalize((value as Record<string, unknown>)[key]);
-    }
-    return sorted;
-  }
-  return value;
-};
-
-export const hashTopoGraphEntry = (entry: TopoGraphEntry): string => {
-  const hasher = new Bun.CryptoHasher('sha256');
-  hasher.update(JSON.stringify(canonicalize(entry)));
-  return hasher.digest('hex');
-};
+export const hashTopoGraphEntry = (entry: TopoGraphEntry): string =>
+  deriveTopoGraphEntryHash(entry);
 
 export type ReadTopoGraphEntryHash = () =>
   | Promise<string | null>

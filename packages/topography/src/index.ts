@@ -19,6 +19,14 @@ export type {
   TrailActivationReport,
 } from './activation-report.js';
 export { deriveTopoGraphHash } from './hash.js';
+/**
+ * @example
+ * ```ts
+ * import { deriveTopoGraphEntryHash } from '@ontrails/topography';
+ * const hash = deriveTopoGraphEntryHash(entry);
+ * ```
+ */
+export { deriveTopoGraphEntryHash } from './hash.js';
 export {
   deriveWorkspaceView,
   WORKSPACE_VIEW_SCHEMA_VERSION,
