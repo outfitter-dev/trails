@@ -48,7 +48,7 @@ A tombstone becomes eligible for removal only after positive evidence that the o
 
 Evidence must bind app identity, released source or contract, and the particular removal occurrence. A previous release cannot authorize pruning a later removal after reintroduction. A version field, version commit, tag alone, prepared release, or unrelated app or package release does not establish that evidence.
 
-Current inspected v5 force paths use ID-based carry-forward across clean compiles, but do not retain entry history when its container disappears; [TRL-1418](https://linear.app/outfitter/issue/TRL-1418) owns that pending correction. Their force-stripping helpers support comparisons and hashes; they do not implement publication-based pruning. Existing framework package-publication machinery is narrower than a portable owning-app removal checkpoint.
+Before [TRL-1418](https://linear.app/outfitter/issue/TRL-1418), the inspected v5 paths used ID-based carry-forward and lost entry history when its container disappeared. The v5 correction authored in that change shares kind-aware, complete-fact retention between ordinary compile and `trails resolve`, moving orphaned entry events to graph-level history without rewriting timestamps or reasons. Force-stripping helpers support comparisons and hashes. This retention correction does not supply the proposed v6 publication checkpoint or pruning policy; existing framework package-publication machinery remains narrower than a portable owning-app removal checkpoint.
 
 ### Force disposition
 
