@@ -189,6 +189,30 @@ describe('documentation migration accounting', () => {
     expect(checkDocumentationMigrations(root, base).failures).toEqual([]);
   });
 
+  test('accounts for a workspace README deleted after its manifest disappeared', () => {
+    const { root } = fixture();
+    write(root, 'examples/demo/package.json', JSON.stringify({ name: 'demo' }));
+    write(root, 'examples/demo/README.md', '# Demo\n');
+    const start = commit(root);
+    rmSync(join(root, 'examples/demo/package.json'));
+    commit(root);
+    rmSync(join(root, 'examples/demo/README.md'));
+    commit(root);
+    expect(checkDocumentationMigrations(root, start).failures).toContain(
+      'examples/demo/README.md: missing migration entry in docs/migration-map.json'
+    );
+    ledger(root, [
+      {
+        disposition: 'deleted',
+        from: 'examples/demo/README.md',
+        reason: 'demo workspace retired',
+        to: [],
+      },
+    ]);
+    commit(root);
+    expect(checkDocumentationMigrations(root, start).failures).toEqual([]);
+  });
+
   test('rejects an unrecorded fixed-root deletion even when the root is restored', () => {
     const { root, base } = fixture();
     rmSync(join(root, 'docs/index.md'));
