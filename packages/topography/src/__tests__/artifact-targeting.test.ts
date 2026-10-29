@@ -77,18 +77,19 @@ const force = (
 
 const prepareApp = async (
   appRoot: string,
-  entry = 'src/app.ts'
+  entry = 'src/app.ts',
+  appId = 'alpha'
 ): Promise<void> => {
   await mkdir(join(appRoot, 'src'), { recursive: true });
   await Bun.write(
     join(appRoot, entry),
     `import { Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
-const read = trail('alpha.read', {
+const read = trail('${appId}.read', {
   input: z.object({}), output: z.object({ ok: z.boolean() }),
   implementation: () => Result.ok({ ok: true }),
 });
-export default topo('alpha', { read });\n`
+export default topo('${appId}', { read });\n`
   );
 };
 
@@ -108,6 +109,7 @@ const prepareRecoveryCase = async (mode: RecoveryMode) => {
         workspace: {
           apps: {
             alpha: { entry, root: 'apps/alpha' },
+            ...(mode === 'workspace' ? { beta: { root: 'apps/beta' } } : {}),
           },
         },
       })
@@ -117,19 +119,54 @@ const prepareRecoveryCase = async (mode: RecoveryMode) => {
     mode === 'workspace'
       ? ['--root-dir', root, '--app', 'alpha']
       : ['--root-dir', appRoot, '--module', entry];
-  return { appRoot, configPath, configured, entry, selection };
+  if (mode === 'workspace') {
+    await prepareApp(join(root, 'apps/beta'), 'src/app.ts', 'beta');
+    compileOrValidate('compile', ['--root-dir', root, '--app', 'beta']);
+  }
+  const siblingPath = join(root, 'apps/beta/trails.lock');
+  const siblingBefore =
+    mode === 'workspace'
+      ? await Bun.file(siblingPath).text()
+      : 'sibling must remain untouched\n';
+  if (mode !== 'workspace') {
+    await Bun.write(siblingPath, siblingBefore);
+  }
+  return {
+    appRoot,
+    configPath,
+    configured,
+    entry,
+    selection,
+    siblingBefore,
+    siblingPath,
+  };
 };
 
 describe('explicit app-lock targeting', () => {
   test.each(['standalone', 'workspace', 'custom-config'] as const)(
     'documented recovery targets the %s app and preserves audit',
     async (mode) => {
-      const { configured, appRoot, entry, configPath, selection } =
-        await prepareRecoveryCase(mode);
+      const {
+        configured,
+        appRoot,
+        entry,
+        configPath,
+        selection,
+        siblingPath,
+        siblingBefore,
+      } = await prepareRecoveryCase(mode);
       // App-root bootstrap is not proof that CLI selected the custom declaration.
       expect(compileOrValidate('compile', selection)).toMatchObject({
         lockPath: join(appRoot, 'trails.lock'),
       });
+      if (mode === 'workspace') {
+        expect(
+          compileOrValidate('validate', ['--root-dir', root])
+        ).toMatchObject({
+          project: { configuredAppIds: ['alpha', 'beta'] },
+          selectedExtent: 'workspace',
+        });
+      }
       const recovered = await readTrailsLock({ dir: appRoot });
       if (!recovered) {
         throw new Error('Initial compile did not write the selected app');
@@ -148,8 +185,6 @@ describe('explicit app-lock targeting', () => {
       const candidatePath = join(root, 'verified-candidate.json');
       await Bun.write(candidatePath, JSON.stringify(candidate));
       const rootSentinel = 'workspace root must remain untouched\n';
-      const siblingPath = join(root, 'apps/beta/trails.lock');
-      await Bun.write(siblingPath, 'sibling must remain untouched\n');
       if (mode === 'custom-config') {
         await Bun.write(join(root, 'trails.lock'), rootSentinel);
       }
@@ -206,9 +241,7 @@ describe('explicit app-lock targeting', () => {
           candidate.topoGraph.entries[0]?.forces
         );
       }
-      expect(await Bun.file(siblingPath).text()).toBe(
-        'sibling must remain untouched\n'
-      );
+      expect(await Bun.file(siblingPath).text()).toBe(siblingBefore);
       if (mode === 'custom-config') {
         expect(await Bun.file(join(root, 'trails.lock')).text()).toBe(
           rootSentinel
