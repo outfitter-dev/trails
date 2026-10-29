@@ -195,6 +195,7 @@ const isNonJsonLeaf = (value: unknown): boolean => {
   );
 };
 
+// fix ::: Distinguish shared acyclic references from cycles; the never-unwound seen set rejects JSON-serializable input containing the same object in two fields. #bug #coverage
 const containsNonSerializableLeaf = (
   value: unknown,
   seen: WeakSet<object>

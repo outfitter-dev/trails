@@ -223,6 +223,7 @@ export const findWorkspaceRoot = async (
 /**
  * Returns `true` if `filePath` is inside `workspaceRoot`.
  */
+// fix ::: Test complete parent segments rather than a two-dot prefix; /project/..foo/file.ts is inside /project but is rejected. #bug #coverage
 export const isInsideWorkspace = (
   filePath: string,
   workspaceRoot: string
