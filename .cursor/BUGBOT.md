@@ -53,6 +53,8 @@ did not fully inspect.
 
 Documentation correctness is `P2` by default. Reserve `P3` for style-only wording.
 
+<!-- fix ::: Treat derive/render v1 vocabulary as live in review guidance, aligned with root AGENTS.md. #stale -->
+
 ## Trails Review Focus
 
 - Prefer repo scripts and hooks over one-off commands. For environment bootstrap, favor reproducible installs (`bun install --frozen-lockfile`) unless the change intentionally refreshes dependency metadata.

@@ -84,6 +84,8 @@ return Result.ok(await resp.value.json());
 ### After
 
 ```typescript
+// <!-- fix ::: Show write intent deriving POST rather than PUT (packages/http/src/method.ts). #stale -->
+
 // One field, three values, no ambiguity
 { intent: 'read' }    // GET, readOnlyHint: true
 { intent: 'write' }   // POST/PUT, default

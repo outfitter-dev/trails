@@ -2,6 +2,8 @@
 
 ## 1. Throwing in implementations
 
+<!-- fix ::: Describe implementation throws as converted to InternalError by executeTrail, while retaining the explicit Result authoring contract (packages/core/src/execute.ts). #stale -->
+
 **Symptom:** Unhandled exception crashes the surface adapter. Stack trace instead of structured error.
 
 **Why it's wrong:** Implementations must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.

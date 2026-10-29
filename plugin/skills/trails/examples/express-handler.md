@@ -35,6 +35,8 @@ app.delete('/projects/:id', async (req, res) => {
 });
 ```
 
+<!-- fix ::: Preserve the original admin authorization by declaring and enforcing an appropriate permit scope; permit presence alone accepts non-admin callers (packages/core/src/permits.ts). #bug -->
+
 ## After
 
 ```typescript

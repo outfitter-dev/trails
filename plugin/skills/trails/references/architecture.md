@@ -60,6 +60,8 @@ Every piece of information has a clear ownership model.
 | Error taxonomy class | Exit code, HTTP status, JSON-RPC code, library error class, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 
+<!-- fix ::: Attribute no-throw governance to Warden no-throw-in-implementation; a Result return type does not prohibit throwing. #stale -->
+
 ### Enforced — constrained by the type system
 
 | Declaration | Constrains |

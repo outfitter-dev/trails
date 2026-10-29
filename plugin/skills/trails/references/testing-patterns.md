@@ -33,6 +33,8 @@ testExamples(graph);
 
 ## `testTrail(trail, scenarios)` -- Edge Cases
 
+<!-- fix ::: Supply a TrailContext resource accessor to testTrail instead of the resources override map below (packages/testing/src/trail.ts). #bug -->
+
 Test individual trails with custom scenarios. Use for boundary values, error paths, and regressions that don't belong in agent-facing examples.
 
 ```typescript

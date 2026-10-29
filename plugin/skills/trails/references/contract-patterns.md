@@ -106,6 +106,8 @@ examples: [
 | `intent` | `'destroy'` | Deletes, irreversible mutations. CLI adds `--dry-run`. |
 | `idempotent` | `true` | Safe to retry. Upserts, PUT-style operations. |
 
+<!-- fix ::: Align surface effects with write/destroy CLI dry-run flags, HTTP destroy DELETE, and MCP hints rather than a guaranteed client confirmation policy (packages/http/src/method.ts; packages/cli/src/build.ts; packages/mcp/src/build.ts). #stale -->
+
 Omitting `intent` means "has side effects but not destructive" — typical for create/update. Surface effects: CLI adds `--dry-run` for `intent: 'destroy'`; MCP skips confirmation for `intent: 'read'`; HTTP maps `'read'` to GET, others to POST.
 
 ## Detours
