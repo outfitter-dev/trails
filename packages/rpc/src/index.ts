@@ -56,6 +56,7 @@ export type {
   RpcHandler,
   RpcHostCapabilities,
   RpcInFlightId,
+  RpcRunHost,
   RpcStepResult,
 } from './kernel.js';
 /**

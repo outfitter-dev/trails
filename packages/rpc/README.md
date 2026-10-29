@@ -36,7 +36,11 @@ Full JSON-RPC 2.0: batches, notifications, request and response correlation, and
 
 Per-request framework fields ride in `params._meta`: `version` selects a trail version, `idempotencyKey` is reserved for the retry-safe write path. Typed layer inputs ride in `params` under their rendered field names, using the same collision policy as the MCP rendering.
 
-`trails.discover` returns the protocol version, the host capabilities the kernel was created with, the implemented `trails.*` methods, the trails the connection permit allows (schemas, examples, intent) and the topo's signal ids. Subscription, progress, input and auth methods are not advertised until a host implements them.
+`trails.discover` returns the protocol version, the host capabilities the kernel was created with, the implemented `trails.*` methods, the trails the connection permit allows (schemas, examples, intent) and the topo's signal ids. Subscription, input and auth methods are not advertised until a host implements them.
+
+`trails.cancel` (`{ id }`) aborts an in-flight request on the same connection through `ctx.abortSignal`; cancellation handles live only in the host process, so after a wake there is nothing to cancel and `recover` has already answered the id.
+
+`trails.progress` is a server-to-client notification `{ id, event }` bridged from `ctx.progress`. It is emitted only when the host declared `capabilities.progress` and passed a `send` seam to `run` or `handle`; a host that cannot push omits both and the method is not advertised.
 
 ## State and effects
 

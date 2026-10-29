@@ -55,7 +55,10 @@ export interface RpcTrailMethod {
   readonly layerRenderings: readonly RpcLayerInputRendering[];
 }
 
-export type RpcFrameworkMethodName = 'trails.discover';
+export type RpcFrameworkMethodName =
+  | 'trails.discover'
+  | 'trails.cancel'
+  | 'trails.progress';
 
 /** A `trails.*` method the kernel implements and advertises. */
 export interface RpcFrameworkMethod {
@@ -63,6 +66,8 @@ export interface RpcFrameworkMethod {
   readonly method: RpcFrameworkMethodName;
   readonly direction: 'client-to-server' | 'server-to-client';
   readonly messageKind: 'request' | 'notification';
+  /** Advertised only when the mounting host declares this capability. */
+  readonly capability?: 'progress' | undefined;
 }
 
 export interface RpcSignalChannel {
@@ -86,6 +91,19 @@ export const RPC_FRAMEWORK_METHODS: readonly RpcFrameworkMethod[] = [
     kind: 'framework',
     messageKind: 'request',
     method: 'trails.discover',
+  },
+  {
+    direction: 'client-to-server',
+    kind: 'framework',
+    messageKind: 'notification',
+    method: 'trails.cancel',
+  },
+  {
+    capability: 'progress',
+    direction: 'server-to-client',
+    kind: 'framework',
+    messageKind: 'notification',
+    method: 'trails.progress',
   },
 ];
 

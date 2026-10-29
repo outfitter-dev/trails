@@ -8,6 +8,7 @@ import type {
   BasePermit,
   Layer,
   PermitRequirement,
+  ProgressCallback,
   ResourceOverrideMap,
   Topo,
   TrailContextInit,
@@ -49,6 +50,8 @@ export type RpcInFlightId = Exclude<JsonRpcId, null>;
  */
 export interface RpcConnectionState {
   readonly protocol: typeof RPC_SUBPROTOCOL;
+  /** Host-unique connection identity; scopes in-flight work and cancellation. */
+  readonly connectionId: string;
   /** The permit the host resolved before upgrade; absent for anonymous connections. */
   readonly permit?: BasePermit | undefined;
   /** Request ids admitted but not yet answered. */
@@ -90,6 +93,16 @@ export interface RpcHostCapabilities {
   readonly input: boolean;
 }
 
+/**
+ * What a host offers the kernel while work runs.
+ *
+ * `send` pushes a server-to-client notification mid-flight (progress today).
+ * A host that cannot push omits it and must not advertise `progress`.
+ */
+export interface RpcRunHost {
+  readonly send?: ((frame: JsonRpcFrame) => void) | undefined;
+}
+
 export interface CreateRpcHandlerOptions extends DeriveRpcMethodsOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
@@ -125,13 +138,22 @@ export interface RpcHandler {
   /** Build the initial state for a connection the host has already authenticated. */
   createState(init?: {
     readonly permit?: BasePermit | undefined;
+    readonly connectionId?: string | undefined;
   }): RpcConnectionState;
   /** Parse and validate one inbound frame; records request ids as in flight. */
   admit(state: RpcConnectionState, frame: string): RpcAdmission;
   /** Run admitted work and settle every in-flight id it covers. */
-  run(state: RpcConnectionState, work: RpcAdmittedWork): Promise<RpcStepResult>;
+  run(
+    state: RpcConnectionState,
+    work: RpcAdmittedWork,
+    host?: RpcRunHost
+  ): Promise<RpcStepResult>;
   /** `admit` followed by `run` for hosts that keep state in memory. */
-  handle(state: RpcConnectionState, frame: string): Promise<RpcStepResult>;
+  handle(
+    state: RpcConnectionState,
+    frame: string,
+    host?: RpcRunHost
+  ): Promise<RpcStepResult>;
   /**
    * Answer every id still in flight after a wake with `data.outcome: 'unknown'`.
    * Never re-runs the trail.
@@ -261,6 +283,33 @@ type RouteOutcome =
   | { readonly kind: 'invalid-params'; readonly message: string }
   | { readonly kind: 'result'; readonly result: Result<unknown, Error> };
 
+const inFlightKey = (connectionId: string, id: RpcInFlightId): string =>
+  `${connectionId}\u0000${typeof id === 'number' ? `n:${id}` : `s:${id}`}`;
+
+const cancelTargetId = (params: unknown): RpcInFlightId | undefined => {
+  if (!isObject(params)) {
+    return undefined;
+  }
+  const { id } = params;
+  return typeof id === 'string' || typeof id === 'number' ? id : undefined;
+};
+
+const progressNotification = (
+  id: RpcInFlightId,
+  event: Parameters<ProgressCallback>[0]
+): JsonRpcRequest => ({
+  jsonrpc: '2.0',
+  method: 'trails.progress',
+  params: { event, id },
+});
+
+const createConnectionId = (): string => {
+  const randomUUID = globalThis.crypto?.randomUUID;
+  return typeof randomUUID === 'function'
+    ? randomUUID.call(globalThis.crypto)
+    : `rpc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+};
+
 const unknownOutcome = (id: RpcInFlightId): JsonRpcResponse =>
   jsonRpcFailure(
     id,
@@ -314,9 +363,18 @@ export const createRpcHandler = (
     ...options.capabilities,
   };
 
+  // Runtime cancellation handles live only in the host process; after a
+  // wake there is nothing to cancel and `recover` already answered the id.
+  const aborts = new Map<string, AbortController>();
+
   const discover = (state: RpcConnectionState): RpcDiscoverResult => ({
     capabilities,
-    methods: methods.framework.map((entry) => entry.method),
+    methods: methods.framework
+      .filter(
+        (entry) =>
+          entry.capability === undefined || capabilities[entry.capability]
+      )
+      .map((entry) => entry.method),
     protocol: RPC_SUBPROTOCOL,
     signals: methods.signals,
     trails: methods.trails
@@ -334,7 +392,8 @@ export const createRpcHandler = (
   const invokeTrail = async (
     state: RpcConnectionState,
     entry: RpcTrailMethod,
-    request: JsonRpcRequest
+    request: JsonRpcRequest,
+    host: RpcRunHost | undefined
   ): Promise<RouteOutcome> => {
     const params = request.params ?? {};
     if (!isObject(params)) {
@@ -352,18 +411,44 @@ export const createRpcHandler = (
       return { kind: 'invalid-params', message: split.message };
     }
     const { layerInputs, trailInput, version } = split.params;
-    const result = await executeTrail(trail, trailInput, {
-      configValues: options.configValues,
-      createContext: options.createContext,
-      ctx: withSurfaceLayerNames('jsonRpc', layers),
-      ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
-      ...(state.permit === undefined ? {} : { permit: state.permit }),
-      resources: options.resources,
-      surfaceLayers: layers,
-      topo: graph,
-      ...(version === undefined ? {} : { version }),
-    });
-    return { kind: 'result', result };
+    const id =
+      request.id === undefined || request.id === null ? undefined : request.id;
+    const send = host?.send;
+    const progress: ProgressCallback | undefined =
+      id === undefined || send === undefined || !capabilities.progress
+        ? undefined
+        : (event) => {
+            send(progressNotification(id, event));
+          };
+    const controller = new AbortController();
+    const key =
+      id === undefined ? undefined : inFlightKey(state.connectionId, id);
+    if (key !== undefined) {
+      aborts.set(key, controller);
+    }
+    try {
+      const result = await executeTrail(trail, trailInput, {
+        abortSignal: controller.signal,
+        configValues: options.configValues,
+        createContext: options.createContext,
+        ctx: withSurfaceLayerNames(
+          'jsonRpc',
+          layers,
+          progress === undefined ? {} : { progress }
+        ),
+        ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
+        ...(state.permit === undefined ? {} : { permit: state.permit }),
+        resources: options.resources,
+        surfaceLayers: layers,
+        topo: graph,
+        ...(version === undefined ? {} : { version }),
+      });
+      return { kind: 'result', result };
+    } finally {
+      if (key !== undefined) {
+        aborts.delete(key);
+      }
+    }
   };
 
   const respond = (
@@ -406,9 +491,29 @@ export const createRpcHandler = (
     }
   };
 
-  const route = async (
+  const cancel = (
     state: RpcConnectionState,
     request: JsonRpcRequest
+  ): RouteOutcome => {
+    const target = cancelTargetId(request.params);
+    if (target === undefined) {
+      return {
+        kind: 'invalid-params',
+        message: 'trails.cancel expects { id } naming an in-flight request',
+      };
+    }
+    const controller = aborts.get(inFlightKey(state.connectionId, target));
+    controller?.abort();
+    return {
+      kind: 'result',
+      result: Result.ok({ cancelled: controller !== undefined, id: target }),
+    };
+  };
+
+  const route = async (
+    state: RpcConnectionState,
+    request: JsonRpcRequest,
+    host: RpcRunHost | undefined
   ): Promise<JsonRpcResponse | undefined> => {
     if (request.method === 'trails.discover') {
       return respond(request, {
@@ -416,16 +521,20 @@ export const createRpcHandler = (
         result: Result.ok(discover(state)),
       });
     }
+    if (request.method === 'trails.cancel') {
+      return respond(request, cancel(state, request));
+    }
     const entry = isReservedRpcMethod(request.method)
       ? undefined
       : byMethod.get(request.method);
     if (entry === undefined) {
       return respond(request, { kind: 'method-missing' });
     }
-    return respond(request, await invokeTrail(state, entry, request));
+    return respond(request, await invokeTrail(state, entry, request, host));
   };
 
   const createState: RpcHandler['createState'] = (init) => ({
+    connectionId: init?.connectionId ?? createConnectionId(),
     inFlight: [],
     permit: init?.permit,
     protocol: RPC_SUBPROTOCOL,
@@ -462,10 +571,10 @@ export const createRpcHandler = (
     };
   };
 
-  const run: RpcHandler['run'] = async (state, work) => {
+  const run: RpcHandler['run'] = async (state, work, host) => {
     const responses = [...work.settled];
     for (const request of work.requests) {
-      const response = await route(state, request);
+      const response = await route(state, request, host);
       if (response !== undefined) {
         responses.push(response);
       }
@@ -477,12 +586,12 @@ export const createRpcHandler = (
     };
   };
 
-  const handle: RpcHandler['handle'] = async (state, frame) => {
+  const handle: RpcHandler['handle'] = async (state, frame, host) => {
     const admitted = admit(state, frame);
     if (admitted.work === undefined) {
       return { effects: [], frames: admitted.frames, state: admitted.state };
     }
-    return await run(admitted.state, admitted.work);
+    return await run(admitted.state, admitted.work, host);
   };
 
   const recover: RpcHandler['recover'] = (state) => ({
