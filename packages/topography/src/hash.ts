@@ -33,6 +33,8 @@ const canonicalize = (value: unknown): unknown => {
 // ---------------------------------------------------------------------------
 
 /**
+ * <!-- fix ::: Move the generatedAt exclusion claim to deriveTopoGraphHash; deriveStableHash hashes every supplied field. #stale -->
+ *
  * Compute a SHA-256 hash of a topo graph.
  *
  * The `generatedAt` field is excluded so that identical topos always
