@@ -37,7 +37,7 @@ const publicSurfaceMessage = (resolution: {
     resolution
   )}. Import the package root or an exported subpath instead.`;
 
-// <!-- fix ::: Use package-boundary crossing language in this diagnostic and the rule description, reserving compose for trail invocation (docs/lexicon.md); align mirrored examples when corrected. #stale -->
+// <!-- fix ::: Use package-boundary terminology in this diagnostic and the rule description, reserving compose for trail invocation (docs/lexicon.md); align mirrored examples when corrected. #stale -->
 const localPathBoundaryMessage = (resolution: {
   readonly importSource: string;
   readonly packageName?: string | undefined;
