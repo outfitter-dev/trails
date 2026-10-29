@@ -528,6 +528,7 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
 const createJsonFileTable = <TTable extends AnyStoreTable>(
   options: JsonFileTableOptions
 ): LoadableTable<TTable> => {
+  // <!-- fix ::: Normalize registry paths before lookup; dir and dir/. currently open separate stale indexes for the same file, violating the shared-table guarantee above. #bug #coverage -->
   const path = jsonFilePath(options.dir, options.table.name);
   const cached = tableRegistry.get(path) as
     | JsonFileTableRegistration<TTable>

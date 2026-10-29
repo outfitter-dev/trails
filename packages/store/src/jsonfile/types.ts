@@ -32,6 +32,8 @@ export interface JsonFileStoreOptions<
    * that same reference in from every connection, rather than recreating
    * the function inline at each site.
    *
+   * <!-- fix ::: Describe the stable shared default generator reference; deriveTableReuseConfig normalizes only non-generated identities to undefined. #stale -->
+   *
    * The conflict check only fires for custom generators. When no custom
    * generator is provided for an auto-generated-identity store,
    * `deriveTableReuseConfig` normalizes `generateIdentity` to `undefined`
