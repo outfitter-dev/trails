@@ -32,7 +32,7 @@ const createApp = () => {
 
 const withClient = async (
   options: CreateServerOptions,
-  run: (client: Client) => Promise<void>,
+  exercise: (client: Client) => Promise<void>,
   fixture: { bearerToken?: string; modern?: boolean } = {}
 ) => {
   const factory = () => createServer(createApp(), options);
@@ -64,7 +64,7 @@ const withClient = async (
       client.connect(clientTransport),
       server?.connect(serverTransport),
     ]);
-    await run(client);
+    await exercise(client);
   } finally {
     await Promise.allSettled([
       client.close(),
