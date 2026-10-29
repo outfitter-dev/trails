@@ -12,7 +12,7 @@ bun run docs:generate
 
 Error taxonomy owns its existing delimited tables. The Warden manifest owns the generated guide block in root `AGENTS.md`. The canonical ADR implementation owns its numbered index, accepted map, draft map and draft index. ADR artifacts render last because their inbound-reference facts consume other documentation. The umbrella calls those owners without re-deriving their facts.
 
-Scaffold-version TypeScript generation and Skillset source/projection remain with their separate owners and checks. The currently manual API and topo-store reference pages do not become generated through this command. Their exact-reference work belongs to TRL-1285. A generator must preserve authored content outside its owned region.
+Scaffold-version TypeScript generation and Skillset source and generated outputs remain with their separate owners and checks. The currently manual API and topo-store reference pages do not become generated through this command. Their exact-reference work belongs to TRL-1285. A generator must preserve authored content outside its owned region.
 
 ## Check a committed candidate
 
