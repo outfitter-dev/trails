@@ -168,6 +168,18 @@ describe('zodToJsonSchema', () => {
       expect(zodToJsonSchema(z.boolean())).toEqual({ type: 'boolean' });
     });
 
+    test('converts z.null() without widening its contract', () => {
+      expect(zodToJsonSchema(z.null())).toEqual({ type: 'null' });
+      expect(zodToJsonSchema(z.object({ value: z.null() }))).toEqual({
+        properties: { value: { type: 'null' } },
+        required: ['value'],
+        type: 'object',
+      });
+      expect(zodToJsonSchema(z.union([z.string(), z.null()]))).toEqual({
+        anyOf: [{ type: 'string' }, { type: 'null' }],
+      });
+    });
+
     test('converts z.literal()', () => {
       expect(zodToJsonSchema(z.literal('hello'))).toEqual({ const: 'hello' });
       expect(zodToJsonSchema(z.literal(42))).toEqual({ const: 42 });
