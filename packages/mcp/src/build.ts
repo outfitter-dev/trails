@@ -899,10 +899,22 @@ const createHandler =
       return mcpError(permitResolution.error);
     }
     const permit = permitResolution.value;
+    // A configured resolver owns request identity. When it yields no permit,
+    // a factory-seeded permit must not stand in for the missing credential.
+    const factory = options.createContext;
+    const createContext =
+      permit === undefined &&
+      options.resolvePermit !== undefined &&
+      factory !== undefined
+        ? async () => {
+            const { permit: _factoryPermit, ...seed } = await factory();
+            return seed;
+          }
+        : factory;
     const result = await executeTrail(t, trailInput, {
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
-      createContext: options.createContext,
+      createContext,
       ctx: withMcpSurface(progressCb, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),

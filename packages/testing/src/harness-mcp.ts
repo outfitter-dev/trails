@@ -79,6 +79,7 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
       }
 
       const result = await tool.handler(args, {
+        _meta: extra?._meta,
         abortSignal: extra?.abortSignal,
         authorization: extra?.authorization,
         permit: extra?.permit,
