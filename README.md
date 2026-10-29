@@ -141,6 +141,8 @@ $ myapp greet --name World
 
 ## Packages
 
+<!-- fix ::: Remove the retired auth-layer claim and consolidate the duplicate observability rows; see packages/permits/README.md and packages/observability/src/index.ts. #stale #drift -->
+
 | Package | What it does |
 |---------|-------------|
 | [`@ontrails/core`](./packages/core) | Result, errors, trail/signal/entity/topo, validation, schema derivation |

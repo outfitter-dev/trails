@@ -26,6 +26,8 @@
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance
+<!-- fix ::: Consolidate the duplicate observability guide entries now that production sinks and dev tooling share one package; see packages/observability/README.md. #drift -->
+
 - **[Observability Guide](../packages/observability/README.md)** — Log/trace sink contracts, built-in sinks, sink composition
 - **[Observability Guide](../packages/observability/README.md)** — Sinks, developer-state tooling, sampling, and OTel export
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
