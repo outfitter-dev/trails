@@ -29,6 +29,7 @@
 - **[KV Guide](../packages/kv/README.md)** — Provider-neutral key-value resources, isolated memory mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
 - **[Blob Guide](../packages/blob/README.md)** — Provider-neutral blob resources, byte/stream bodies, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
 - **[Queue Producer Guide](../packages/queue/README.md)** — Provider-neutral queue producers, recorder mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
+- **[Cloudflare Deployment Bindings](./surfaces/cloudflare.md)** — Native role binding, migration, stream budgets and consumer verification
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance

@@ -744,3 +744,13 @@ export const createQueueHandler = (
     }
   };
 };
+
+/**
+ * Bind portable JSON producers to native Cloudflare Queues.
+ * @example
+ * ```ts
+ * const client = createCloudflareQueueBinding(env['JOBS']);
+ * await client.send({ id: 'job-1' });
+ * ```
+ */
+export { createCloudflareQueueBinding } from './binding.js';
