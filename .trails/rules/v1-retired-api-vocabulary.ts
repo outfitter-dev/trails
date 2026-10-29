@@ -111,7 +111,7 @@ const RETIRED_API_PATTERNS: readonly RetiredApiPattern[] = [
     excludePathSuffixes: ['/packages/core/src/__tests__/execute.test.ts'],
     message:
       'Retired TrailContext signal: AbortSignal field remains; use abortSignal instead.',
-    pattern: /\bsignal\s*:\s*AbortSignal|readonly signal: AbortSignal/g,
+    pattern: /\bsignal\s*:\s*AbortSignal\b(?!\s*\.)/g,
   },
 ];
 

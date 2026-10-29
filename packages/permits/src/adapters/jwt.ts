@@ -1,22 +1,23 @@
-import { Result } from '@ontrails/core';
+import { Result, isPlainObject } from '@ontrails/core';
 
 import type { AuthAdapter, AuthError } from './adapter.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
+import { verifyIssuerSignature } from './jwt-jwks.js';
 
 /** Configuration for the JWT auth adapter. */
 export interface JwtAdapterOptions {
-  /** Accepted JWT header algorithms (default: ['HS256']). */
+  /** Accepted algorithms (defaults: HS256 with secret; RS256/ES256/EdDSA with issuer). */
   readonly allowedAlgorithms?: readonly JwtAlgorithm[];
   /** Clock skew tolerated for exp/nbf checks, in seconds (default: 60). */
   readonly clockSkewSeconds?: number;
   /** HMAC secret for HS256 verification. */
   readonly secret?: string;
-  /** Whether accepted tokens must include exp (default: true). */
+  /** Require exp in secret mode (default: true); issuer mode always requires it. */
   readonly requireExpiration?: boolean;
-  /** JWKS endpoint for RS256/ES256 (not yet implemented). */
+  /** Explicit trusted JWKS endpoint; otherwise discovered from issuer metadata. */
   readonly jwksUrl?: string;
-  /** Expected issuer claim. */
+  /** Expected issuer; without a secret, enables OIDC/JWKS verification. */
   readonly issuer?: string;
   /** Expected audience claim. */
   readonly audience?: string;
@@ -27,11 +28,14 @@ export interface JwtAdapterOptions {
 }
 
 /** JWT algorithms this adapter can verify today. */
-export type JwtAlgorithm = 'HS256';
+export type JwtAlgorithm = 'HS256' | 'RS256' | 'ES256' | 'EdDSA';
 
 interface JwtHeader {
   readonly alg?: unknown;
   readonly typ?: unknown;
+  readonly kid?: unknown;
+  readonly crit?: unknown;
+  readonly b64?: unknown;
   readonly [key: string]: unknown;
 }
 
@@ -54,6 +58,9 @@ const DEFAULT_ALLOWED_ALGORITHMS = [
 ] as const satisfies readonly JwtAlgorithm[];
 const SUPPORTED_JWT_ALGORITHMS = [
   'HS256',
+  'RS256',
+  'ES256',
+  'EdDSA',
 ] as const satisfies readonly JwtAlgorithm[];
 const DEFAULT_CLOCK_SKEW_SECONDS = 60;
 
@@ -63,7 +70,7 @@ const authErr = (
 ): Result<never, AuthError> => Result.err({ code, message });
 
 /** Base64url-decode a string to bytes. */
-const base64urlDecode = (input: string): Uint8Array => {
+const base64urlDecode = (input: string): Uint8Array<ArrayBuffer> => {
   const padded = input
     .replaceAll('-', '+')
     .replaceAll('_', '/')
@@ -89,7 +96,8 @@ const splitToken = (
 const decodeJsonPart = <T>(part: string): T | undefined => {
   try {
     const json = new TextDecoder().decode(base64urlDecode(part));
-    return JSON.parse(json) as T;
+    const value: unknown = JSON.parse(json);
+    return isPlainObject(value) ? (value as T) : undefined;
   } catch {
     return undefined;
   }
@@ -106,7 +114,8 @@ const normalizeClockSkewSeconds = (options: JwtAdapterOptions): number => {
 const allowedAlgorithms = (
   options: JwtAdapterOptions
 ): readonly JwtAlgorithm[] =>
-  options.allowedAlgorithms ?? DEFAULT_ALLOWED_ALGORITHMS;
+  options.allowedAlgorithms ??
+  (options.secret ? DEFAULT_ALLOWED_ALGORITHMS : ['RS256', 'ES256', 'EdDSA']);
 
 const isSupportedJwtAlgorithm = (
   algorithm: string
@@ -117,11 +126,33 @@ const validateHeader = (
   header: JwtHeader,
   options: JwtAdapterOptions
 ): Result<JwtAlgorithm, AuthError> => {
+  if (
+    header.crit !== undefined ||
+    header.b64 !== undefined ||
+    header.typ === 'dpop+jwt'
+  ) {
+    return authErr(
+      'invalid_token',
+      'Unsupported JWT header extension or DPoP proof'
+    );
+  }
+  if (header.kid !== undefined && typeof header.kid !== 'string') {
+    return authErr('invalid_token', 'Invalid JWT kid header');
+  }
   if (typeof header.alg !== 'string') {
     return authErr('invalid_token', 'Missing JWT alg header');
   }
   if (!isSupportedJwtAlgorithm(header.alg)) {
     return authErr('invalid_token', 'Unsupported JWT alg header');
+  }
+  if (
+    (options.secret && header.alg !== 'HS256') ||
+    (!options.secret && header.alg === 'HS256')
+  ) {
+    return authErr(
+      'invalid_token',
+      'JWT algorithm does not match verification mode'
+    );
   }
   const configuredAlgorithms = allowedAlgorithms(options);
   if (configuredAlgorithms.length === 0) {
@@ -168,24 +199,6 @@ const verifyHmacSignature = (
   );
 };
 
-const verifyJwtSignature = async (
-  token: string,
-  secret: string,
-  algorithm: JwtAlgorithm
-): Promise<boolean> => {
-  switch (algorithm) {
-    case 'HS256': {
-      const key = await importHmacKey(secret);
-      return await verifyHmacSignature(token, key);
-    }
-    default: {
-      const exhaustive: never = algorithm;
-      void exhaustive;
-      return false;
-    }
-  }
-};
-
 /** Validate standard claims (exp, iss, aud). */
 const validateClaims = (
   payload: JwtPayload,
@@ -194,7 +207,10 @@ const validateClaims = (
   const now = Math.floor(Date.now() / 1000);
   const skew = normalizeClockSkewSeconds(options);
   const hasExpirationClaim = payload.exp !== undefined && payload.exp !== null;
-  if (!hasExpirationClaim && options.requireExpiration !== false) {
+  if (
+    !hasExpirationClaim &&
+    (!options.secret || options.requireExpiration !== false)
+  ) {
     return { code: 'invalid_token', message: 'Missing expiration claim (exp)' };
   }
   if (
@@ -206,7 +222,7 @@ const validateClaims = (
   if (
     payload.exp !== undefined &&
     payload.exp !== null &&
-    payload.exp < now - skew
+    payload.exp <= now - skew
   ) {
     return { code: 'expired_token', message: 'Token has expired' };
   }
@@ -270,7 +286,7 @@ const buildPermit = (
   payload: JwtPayload,
   options: JwtAdapterOptions
 ): Result<Permit, AuthError> => {
-  if (!payload.sub) {
+  if (typeof payload.sub !== 'string' || !payload.sub) {
     return authErr('invalid_token', 'Missing subject claim (sub)');
   }
   const roles = extractRoles(payload, options.rolesClaim ?? 'roles');
@@ -284,7 +300,6 @@ const buildPermit = (
 /** Verify the signature and return the decoded payload, or an error. */
 const decodeAndVerify = async (
   token: string,
-  secret: string,
   options: JwtAdapterOptions
 ): Promise<Result<JwtPayload, AuthError>> => {
   const parts = splitToken(token);
@@ -305,12 +320,29 @@ const decodeAndVerify = async (
     return authErr('invalid_token', 'Malformed JWT');
   }
   try {
-    const valid = await verifyJwtSignature(token, secret, headerResult.value);
+    const algorithm = headerResult.value;
+    const valid =
+      algorithm === 'HS256'
+        ? await verifyHmacSignature(
+            token,
+            await importHmacKey(options.secret ?? '')
+          )
+        : await verifyIssuerSignature(
+            options.issuer ?? '',
+            options.jwksUrl,
+            algorithm,
+            typeof header.kid === 'string' ? header.kid : undefined,
+            new TextEncoder().encode(token.slice(0, token.lastIndexOf('.'))),
+            base64urlDecode(parts[2])
+          );
     return valid
       ? Result.ok(payload)
       : authErr('invalid_token', 'Invalid signature');
   } catch {
-    return authErr('invalid_token', 'Malformed token signature');
+    return authErr(
+      'invalid_token',
+      'Unable to verify token signature or issuer keys'
+    );
   }
 };
 
@@ -319,6 +351,12 @@ const payloadToPermit = (
   payload: JwtPayload,
   options: JwtAdapterOptions
 ): Result<Permit, AuthError> => {
+  if (Object.hasOwn(payload, 'cnf')) {
+    return authErr(
+      'invalid_token',
+      'Sender-constrained tokens require proof verification'
+    );
+  }
   const claimError = validateClaims(payload, options);
   if (claimError) {
     return Result.err(claimError);
@@ -331,11 +369,18 @@ const payloadToPermit = (
 // ---------------------------------------------------------------------------
 
 /**
- * Create a JWT auth adapter using Bun's native crypto.
+ * Create a JWT auth adapter using native WebCrypto.
  *
- * Verifies HS256-signed JWTs, extracts claims into a Permit, and checks
- * issuer/audience when configured. Returns `Result.ok(null)` when no
- * credentials are provided.
+ * A secret selects HS256 with optional issuer/audience checks. Without a
+ * secret, issuer and audience are required for RS256/ES256/EdDSA verification.
+ * Discovery and public keys are cached across adapter instances for five minutes;
+ * unknown key IDs can refresh keys once per 30 seconds. No credentials returns
+ * `Result.ok(null)`. Sender-constrained tokens require a different adapter.
+ *
+ * @example
+ * ```typescript
+ * const adapter = createJwtAdapter({ issuer: 'https://auth.example', audience: 'my-api' });
+ * ```
  */
 export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
   const authenticate = async (
@@ -344,14 +389,13 @@ export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
     if (!input.bearerToken) {
       return Result.ok(null);
     }
-    if (!options.secret) {
-      return authErr('invalid_token', 'No secret configured');
+    if (!options.secret && (!options.issuer || !options.audience)) {
+      return authErr(
+        'invalid_token',
+        'Configure a secret or an issuer and expected audience'
+      );
     }
-    const decoded = await decodeAndVerify(
-      input.bearerToken,
-      options.secret,
-      options
-    );
+    const decoded = await decodeAndVerify(input.bearerToken, options);
     return decoded.isErr() ? decoded : payloadToPermit(decoded.value, options);
   };
 

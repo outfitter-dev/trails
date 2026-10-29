@@ -14,16 +14,28 @@ const authNoneConfigSchema = z
 const authJwtConfigSchema = z
   .object({
     adapter: z.literal('jwt'),
-    allowedAlgorithms: z.array(z.literal('HS256')).readonly().optional(),
+    allowedAlgorithms: z
+      .array(z.enum(['HS256', 'RS256', 'ES256', 'EdDSA']))
+      .readonly()
+      .optional(),
     audience: z.string().optional(),
     clockSkewSeconds: z.number().int().nonnegative().optional(),
     issuer: z.string().optional(),
+    jwksUrl: z.string().optional(),
     requireExpiration: z.boolean().optional(),
     rolesClaim: z.string().min(1).optional(),
     scopesClaim: z.string().min(1).optional(),
-    secret: z.string().min(1),
+    secret: z.string().min(1).optional(),
   })
   .strict()
+  .refine(
+    (config) =>
+      config.secret !== undefined ||
+      (Boolean(config.issuer) && Boolean(config.audience)),
+    {
+      message: 'JWT requires a secret or an issuer and expected audience',
+    }
+  )
   .readonly();
 
 export const authResourceConfigSchema = z
@@ -61,7 +73,8 @@ const createAdapter = (config: AuthResourceConfig): AuthAdapter => {
         ...(config.scopesClaim === undefined
           ? {}
           : { scopesClaim: config.scopesClaim }),
-        secret: config.secret,
+        ...(config.secret === undefined ? {} : { secret: config.secret }),
+        ...(config.jwksUrl === undefined ? {} : { jwksUrl: config.jwksUrl }),
       };
       return createJwtAdapter(jwtOptions);
     }
