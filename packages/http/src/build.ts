@@ -266,7 +266,7 @@ const resolveHttpPermit = async (
     }
     return Result.ok();
   }
-  // Bearer parsing is a candidate projection, not an authentication gate.
+  // Bearer parsing derives a credential candidate; it is not an authentication gate.
   // Preserve raw Authorization so the selected adapter owns its scheme policy.
   const token = parseBearerAuthorization(authorization);
   const resolved = await options.resolvePermit({

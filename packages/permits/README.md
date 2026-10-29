@@ -122,7 +122,7 @@ Static API keys are supported as a fallback. Prefer exchanging them for short-li
 
 For surface integration, `resolvePermitFromInput` uses the existing auth resource lookup, materialization and runtime permit validation, returning `BasePermit | null`. `resolvePermitFromBearerToken` retains its strict contract: an adapter's null outcome is a missing-credentials error. Register the callback adapter through the existing auth resource override or an app-owned resource factory; function callbacks are not serialized into resource config or a lock.
 
-Resource config uses the existing Config `env`/`secret` annotations for actual secret fields. Keep secret names in declaration metadata and values out of committed artifacts; do not add an API-key pepper unless the chosen lookup uses one. Profile projection and deployment rendering remain owned by their deploy integration and are not provided by the callback helper.
+Resource config uses the existing Config `env`/`secret` annotations for actual secret fields. Keep secret names in declaration metadata and values out of committed artifacts; do not add an API-key pepper unless the chosen lookup uses one. Profile derivation and deployment rendering remain owned by their deploy integration and are not provided by the callback helper.
 
 ### Custom adapters
 

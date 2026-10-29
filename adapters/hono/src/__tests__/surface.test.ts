@@ -473,7 +473,7 @@ describe('surface API (Hono adapter)', () => {
   });
 
   test('malformed Authorization reaches the configured Hono permit policy', async () => {
-    // Bearer parsing is a candidate projection, not an authentication gate:
+    // Bearer parsing derives a credential candidate; it is not an authentication gate:
     // the configured policy owns scheme decisions and sees the raw header.
     let observed: { authorization?: string; bearerToken?: string } | undefined;
     const protectedTrail = trail('permit.malformed', {
