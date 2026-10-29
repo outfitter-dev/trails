@@ -2,6 +2,7 @@
 slug: documentation-structure
 title: Documentation structure
 status: draft
+superseded_by: [62]
 created: 2026-04-06
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
@@ -16,6 +17,8 @@ impl_status: partial
 ---
 
 # ADR: Documentation structure
+
+> Superseded proposal: [ADR-0062](../0062-documentation-architecture.md) owns the documentation architecture. The draft body and its original implementation-era metadata remain here as historical proposal context until TRL-995/reset disposition. Its mandatory taxonomy, filename and navigation prescriptions do not govern current work. This pointer authorizes no archive or file movement.
 
 ## Context
 
