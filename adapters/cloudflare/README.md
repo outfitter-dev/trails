@@ -32,6 +32,44 @@ export default createWorkersHandler(graph, {
 });
 ```
 
+### MCP host slot
+
+Author the endpoint path once in a pure module, without constructing a surface in the topo module:
+
+```ts
+// src/host.ts
+import type { WorkersHostConfig } from '@ontrails/cloudflare/workers';
+
+export const workerHost = {
+  mcp: { path: '/mcp' },
+} satisfies WorkersHostConfig;
+```
+
+The Worker entry supplies that value and a separate structural factory. This example is a host test double, not an MCP protocol implementation:
+
+```ts
+// src/worker.ts
+import { createWorkersHandler } from '@ontrails/cloudflare/workers';
+import { graph } from './app.js';
+import { workerHost } from './host.js';
+
+export default createWorkersHandler(graph, {
+  host: workerHost,
+  mcp: (context) => async (request) => Response.json({
+    path: new URL(request.url).pathname,
+    resourceIds: Object.keys(context.resources),
+  }),
+});
+```
+
+The factory receives the same shared config/context hooks and selection options as the HTTP host, plus a `ResourceOverrideMap` resolved through the existing env bridge. It must honor those selections when building its surface. Explicit resource overrides retain precedence. MCP selects surface trails and their composition closure; webhook-only and queue-only resources are not required. A new env identity creates a fresh MCP materialization; the same identity reuses it. Keep request-specific credentials and permit checks inside the returned handler, not in the cached factory.
+
+`host.mcp.path` and `mcp` must be configured together. The MCP path is absolute and independent of the HTTP `basePath`. The host uses an exact, case-sensitive serialized URL pathname: `/mcp`, `/mcp/`, and `/mcp-other` are different paths, and query strings do not affect matching. The schema rejects relative/noncanonical paths, queries, fragments, backslashes and globs. Every method on that exact path goes to the supplied handler, which owns protocol/method policy. Its responses and errors never fall through to HTTP or assets. A conflicting HTTP route, including a parameterized route or `basePath`, fails explicitly instead of hiding a trail.
+
+`workersHostConfigSchema` is the pure data validator shared with future adapter fact derivation. The config contains no SDK object, runtime function or native env. It is an ordinary importable value, not a new compiler-recognized export name. Existing `trailsOverlays` remains the only overlay registration. [TRL-1452](https://linear.app/outfitter/issue/TRL-1452) owns actual saved MCP-path facts and the namespace migration; [TRL-1469](https://linear.app/outfitter/issue/TRL-1469) owns later config rendering. The current constant `cloudflareOverlay` still records bindings only.
+
+The real SDK-v2 fetch handler, both protocol eras, authentication/challenges and client reachability remain [TRL-1340](https://linear.app/outfitter/issue/TRL-1340). This slot proves host plumbing with a test double; it does not claim that transport or static-assets routing is implemented. Apps without MCP configuration keep their existing HTTP/queue behavior.
+
 ### The env bridge
 
 Worker bindings (KV, D1, R2, queues) live on `env`, which arrives per request — they cannot be captured at module init. The bridge closes that gap once, for every subpath in this collection:

@@ -10,7 +10,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 +-----------------------+
                 |  CLI (commander)      |
                 |  MCP (sdk)            |
-                |  HTTP (hono)          |
+                |  HTTP (hono/workers)  |
                 |  WebSocket (planned)  |
                 +---------+-------------+
                           |
@@ -156,6 +156,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
+| `@ontrails/cloudflare/workers` | Worker HTTP/queue host and structural MCP factory slot with pure host data; real MCP transport integration is separate | `@ontrails/http`, core; `zod` peer |
 | `@ontrails/library` | Plain TypeScript library rendering, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
@@ -215,6 +216,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
+@ontrails/cloudflare (core; http/store/zod peers)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (observability, @logtape/logtape)
 @ontrails/pino (observability, pino)

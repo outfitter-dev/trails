@@ -155,6 +155,7 @@ $ myapp greet --name World
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, Web Fetch kernel, Bun-native subpath |
 | [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface using the shared kernel |
+| [`@ontrails/cloudflare`](./adapters/cloudflare) | Workers HTTP/queue host, typed MCP factory slot, env bridge, and Cloudflare resources |
 | [`@ontrails/vite`](./adapters/vite) | Vite adapter for opening Trails surfaces inside Vite projects |
 | [`@ontrails/config`](./packages/config) | Config resolution, profiles, resource config schemas, diagnostics |
 | [`@ontrails/permits`](./packages/permits) | Auth layer, permit model, JWT adapter, scope enforcement |

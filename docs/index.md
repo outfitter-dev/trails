@@ -42,6 +42,7 @@
 - **[Surface Accommodations](./surfaces/surface-accommodations.md)** — How aliases, input mappings, trailheads, and trail forks keep surfaces honest
 - **[Trailheads](./surfaces/surface-trailheads.md)** — MCP shaping for dense topos without adding a new core primitive
 - **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
+- **[Cloudflare Workers Host](../adapters/cloudflare/README.md)** — HTTP/queue hosting, env resources, and the structural MCP factory slot; real MCP transport integration remains a separate gate
 - **[Trailhead Parity](./surfaces/surface-trailhead-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped rendering
 - **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
 
