@@ -30,6 +30,8 @@ import { buildEnvResourceOverrides } from '../env.js';
 import type { WorkersEnv } from '../env.js';
 import { createQueueHandler } from '../queues/index.js';
 import type { CloudflareQueueBatch } from '../queues/index.js';
+import { createScheduledHandler } from '../schedules/index.js';
+import type { CloudflareScheduledController } from '../schedules/index.js';
 
 export {
   buildEnvResourceOverrides,
@@ -96,6 +98,11 @@ export interface CloudflareWorker {
     env?: WorkersEnv | undefined,
     executionCtx?: WorkersExecutionContext | undefined
   ): Promise<void>;
+  scheduled(
+    controller: CloudflareScheduledController,
+    env?: WorkersEnv | undefined,
+    executionCtx?: WorkersExecutionContext | undefined
+  ): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +155,7 @@ const resolveResourceOverrides = (
   graph: Topo,
   env: WorkersEnv,
   options: CreateWorkersHandlerOptions,
-  entrypoint: 'fetch' | 'queue',
+  entrypoint: 'fetch' | 'queue' | 'scheduled',
   queueName?: string
 ): ResourceOverrideMap => {
   // Explicit overrides are the documented escape hatch, so they resolve
@@ -176,6 +183,11 @@ const resolveResourceOverrides = (
 interface MaterializedHandler {
   readonly env: WorkersEnv | undefined;
   readonly handle: (request: Request) => Promise<Response>;
+}
+
+interface MaterializedScheduledHandler {
+  readonly env: WorkersEnv | undefined;
+  readonly handle: (controller: CloudflareScheduledController) => Promise<void>;
 }
 
 interface MaterializedQueueHandler {
@@ -206,6 +218,7 @@ export const createWorkersHandler = (
 ): CloudflareWorker => {
   let materialized: MaterializedHandler | undefined;
   let materializedQueue: MaterializedQueueHandler | undefined;
+  let materializedScheduled: MaterializedScheduledHandler | undefined;
 
   const handlerFor = (
     env: WorkersEnv | undefined
@@ -261,6 +274,34 @@ export const createWorkersHandler = (
     return handle;
   };
 
+  const scheduledHandlerFor = (
+    env: WorkersEnv | undefined
+  ): ((controller: CloudflareScheduledController) => Promise<void>) => {
+    if (
+      materializedScheduled !== undefined &&
+      materializedScheduled.env === env
+    ) {
+      return materializedScheduled.handle;
+    }
+    const handle = createScheduledHandler(graph, {
+      configValues: options.configValues,
+      createContext: options.createContext,
+      exclude: options.exclude,
+      include: options.include,
+      intent: options.intent,
+      layers: options.layers,
+      resources: resolveResourceOverrides(
+        graph,
+        env ?? {},
+        options,
+        'scheduled'
+      ),
+      validate: options.validate,
+    });
+    materializedScheduled = { env, handle };
+    return handle;
+  };
+
   return {
     fetch: async (request, env, _executionCtx) => {
       try {
@@ -274,6 +315,21 @@ export const createWorkersHandler = (
         await queueHandlerFor(env, batch.queue)(batch);
       } catch (error: unknown) {
         mapCaughtQueueError(error, batch);
+      }
+    },
+    scheduled: async (controller, env, _executionCtx) => {
+      // A schedule that cannot materialize (non-UTC timezone, env bridge
+      // failure) must fail the invocation loudly; Cron Triggers have no
+      // response body to carry a rendered error.
+      try {
+        await scheduledHandlerFor(env)(controller);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error(
+          '[ontrails:cloudflare/workers] Scheduled invocation failed',
+          renderErrorDiagnostics(err)
+        );
+        throw err;
       }
     },
   };

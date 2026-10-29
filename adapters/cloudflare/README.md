@@ -8,13 +8,14 @@ The Cloudflare adapter collection for Trails. One package, one subpath per Cloud
 | `@ontrails/cloudflare/kv` | Key-value resource | ✅ |
 | `@ontrails/cloudflare/d1` | D1-backed store resource | ✅ |
 | `@ontrails/cloudflare/queues` | Queue producer resource + consumer materializer | ✅ |
+| `@ontrails/cloudflare/schedules` | Cron Triggers materializer for core `schedule()` sources (UTC only) | ✅ |
 | `@ontrails/cloudflare/r2` | R2 blob/object resource | ✅ |
 
 Adapter composition doctrine applies throughout: subpaths take primitive-authored declarations (a resource definition, a surface config) and never shadow authoring verbs. Bindings arrive ambiently on the Worker `env`, so runtime dependencies are near-zero.
 
 ## `/workers` — the Worker materializer
 
-`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error rendering, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer.
+`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error rendering, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer, and its `scheduled(controller, env, ctx)` member fires core `schedule()` sources whose cron matches the triggering Cron Trigger through the `/schedules` materializer.
 
 ```ts
 // src/worker.ts
@@ -267,3 +268,29 @@ export const trailsOverlays = [cloudflareOverlay];
 ```
 
 `trails compile` validates the derived facts against the schema and embeds them as `overlays.cloudflare`; `trails wayfind --overlay cloudflare` reads them back. Toolchains that predate an overlay's namespace preserve it byte-for-byte — adding a new fact family never edits the lock schema or graph type.
+
+## `/schedules` — Cron Triggers for core `schedule()` sources
+
+`createWorkersHandler` materializes every eligible `schedule()` activation source on the Worker's `scheduled()` entrypoint. Declare the cron in `wrangler.jsonc` (`triggers.crons`) with the same expression the trail declares; the handler normalizes whitespace on both sides before matching, runs every matching trail through the shared pipeline with activation provenance, and resolves env-bound resources through the same bridge the `fetch` and `queue` entrypoints use.
+
+```ts
+import { schedule, trail, topo, Result } from '@ontrails/core';
+import { z } from 'zod';
+
+const heartbeat = schedule('heartbeat', { cron: '*/5 * * * *' });
+
+const recordHeartbeat = trail('heartbeat.record', {
+  implementation: async (_input, ctx) => {
+    await flags.from(ctx).put('heartbeat', new Date().toISOString());
+    return Result.ok({ beat: true });
+  },
+  input: z.object({}),
+  on: [heartbeat],
+  output: z.object({ beat: z.boolean() }),
+  resources: [flags],
+});
+```
+
+Cloudflare realizes crons in UTC only. A `schedule()` that declares any other `timezone` fails at materialization with a `ValidationError` whose context carries `code: 'cloudflare_cron_utc_only'`, the source id, the trail id and the offending timezone; the invocation is logged and rethrown rather than running on the wrong clock. An unmatched cron is a no-op. Trail failures rethrow as one `InternalError` so the invocation reports failure, and `controller.noRetry()` is called when every failure is non-retryable.
+
+`createScheduledHandler(graph, options)` from `@ontrails/cloudflare/schedules` builds the same handler for a hand-assembled Worker export.
