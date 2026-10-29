@@ -113,7 +113,7 @@ export interface BuildEnvResourceOverridesOptions extends Pick<
   /** Resource IDs already provided explicitly; env resolution skips them. */
   readonly except?: readonly string[] | undefined;
   /** Worker entrypoint whose reachable resources should be materialized. */
-  readonly entrypoint?: 'fetch' | 'queue' | undefined;
+  readonly entrypoint?: 'fetch' | 'queue' | 'scheduled' | undefined;
   /** Physical queue delivered to the current queue entrypoint. */
   readonly queue?: string | undefined;
 }
@@ -139,6 +139,22 @@ const passesIncludeFilter = (
   include.length === 0 ||
   matchesAnyPattern(trailId, include);
 
+const activationKindFor = (
+  entrypoint: 'fetch' | 'queue' | 'scheduled'
+): 'queue' | 'schedule' | 'webhook' => {
+  switch (entrypoint) {
+    case 'queue': {
+      return 'queue';
+    }
+    case 'scheduled': {
+      return 'schedule';
+    }
+    default: {
+      return 'webhook';
+    }
+  }
+};
+
 /**
  * Mirror of Worker activation eligibility for one entrypoint. Activation
  * consumers are skipped by `filterSurfaceTrails`, so the bridge selects them
@@ -148,8 +164,7 @@ const isEligibleWorkerActivationTrail = (
   graphTrail: Trail<unknown, unknown, unknown>,
   options: BuildEnvResourceOverridesOptions
 ): boolean => {
-  const activationKind =
-    (options.entrypoint ?? 'fetch') === 'queue' ? 'queue' : 'webhook';
+  const activationKind = activationKindFor(options.entrypoint ?? 'fetch');
   const hasWorkerActivationSource = graphTrail.activationSources.some(
     (activation) =>
       activation.source.kind === activationKind &&
