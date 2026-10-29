@@ -22,6 +22,7 @@ describe('release.smoke surface', () => {
     expect(releaseSmokeCheckValues).toEqual([
       'all',
       'lock-roundtrip',
+      'mcp-http',
       'packed-artifacts',
       'wayfinder-dogfood',
     ]);

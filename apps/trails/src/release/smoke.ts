@@ -1,4 +1,6 @@
 import { runLockRoundtripSmoke } from './lock-roundtrip-smoke.js';
+import { runMcpHttpSmoke } from './mcp-http-smoke.js';
+import type { McpHttpSmokeResult } from './mcp-http-smoke.js';
 import type { LockRoundtripSmokeResult } from './lock-roundtrip-smoke.js';
 import { runPackedArtifactsSmoke } from './packed-artifacts-smoke.js';
 import type { PackedArtifactsSmokeResult } from './packed-artifacts-smoke.js';
@@ -8,6 +10,7 @@ import type { WayfinderDogfoodSmokeResult } from './wayfinder-dogfood-smoke.js';
 export const releaseSmokeCheckValues = [
   'all',
   'lock-roundtrip',
+  'mcp-http',
   'packed-artifacts',
   'wayfinder-dogfood',
 ] as const;
@@ -15,6 +18,7 @@ export type ReleaseSmokeCheck = (typeof releaseSmokeCheckValues)[number];
 
 export type ReleaseSmokeCheckResult =
   | LockRoundtripSmokeResult
+  | McpHttpSmokeResult
   | PackedArtifactsSmokeResult
   | WayfinderDogfoodSmokeResult;
 
@@ -28,7 +32,7 @@ const checksForInput = (
   check: ReleaseSmokeCheck
 ): readonly Exclude<ReleaseSmokeCheck, 'all'>[] =>
   check === 'all'
-    ? ['lock-roundtrip', 'packed-artifacts', 'wayfinder-dogfood']
+    ? ['lock-roundtrip', 'mcp-http', 'packed-artifacts', 'wayfinder-dogfood']
     : [check];
 
 export const runReleaseSmoke = async (
@@ -39,6 +43,10 @@ export const runReleaseSmoke = async (
   for (const selectedCheck of checksForInput(check)) {
     if (selectedCheck === 'lock-roundtrip') {
       results.push(await runLockRoundtripSmoke());
+      continue;
+    }
+    if (selectedCheck === 'mcp-http') {
+      results.push(await runMcpHttpSmoke());
       continue;
     }
     if (selectedCheck === 'packed-artifacts') {

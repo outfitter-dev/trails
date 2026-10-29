@@ -140,6 +140,9 @@ jobs:
       - name: Lock round-trip
         run: bun run lock:roundtrip
 
+      - name: MCP over HTTP smoke
+        run: bun run mcp:http-smoke
+
   changeset:
     name: Changeset
     if: github.event_name == 'pull_request'
