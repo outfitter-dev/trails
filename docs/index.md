@@ -25,6 +25,9 @@
 - **[API Reference](./api-reference.md)** — Every public export across all packages
 - **[Resources Guide](./resources.md)** — Define resources, declare them on trails, test with mock factories
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
+- **[KV Guide](../packages/kv/README.md)** — Provider-neutral key-value resources, isolated memory mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
+- **[Blob Guide](../packages/blob/README.md)** — Provider-neutral blob resources, byte/stream bodies, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
+- **[Queue Producer Guide](../packages/queue/README.md)** — Provider-neutral queue producers, recorder mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance
