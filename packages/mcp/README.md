@@ -76,7 +76,7 @@ No manual annotation definitions. The contract is the source of truth.
 
 ## Schemas and Examples
 
-MCP tool definitions include the trail's input schema, and trails with an `output` schema also render that schema into MCP `outputSchema`. Non-object trail outputs are wrapped in a `{ data: ... }` object because MCP structured tool results are object-shaped.
+MCP tool definitions include the trail's input schema, and trails with an `output` schema also render that schema into MCP `outputSchema`. Modern `2026-07-28` connections preserve the raw authored output value and its derived schema, including scalars, arrays, unions, and null. Legacy connections and the standalone `deriveMcpTools()` API wrap non-object schemas and values in `{ data: ... }`. Trailheads keep `{ trail, output }` in both eras, with the member output rendered for the negotiated protocol.
 
 Trail examples are rendered as structured metadata under `_meta["ontrails/examples"]`. Each rendered example preserves its input, expected output or error, a success/error kind, and provenance pointing back to the authored `trail.examples` field.
 
