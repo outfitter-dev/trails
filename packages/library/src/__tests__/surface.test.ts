@@ -12,7 +12,7 @@ import { fixtureApp } from './fixtures/app.js';
 // The fixture's write trail declares a permit; the in-memory surface owns the
 // runtime context, so parity runs with a permit covering the fixture's scopes.
 const surfaceOptions = {
-  ctx: { permit: { id: 'test-permit', scopes: ['widget:write'] } },
+  ctx: { permit: { actors: [], id: 'test-permit', scopes: ['widget:write'] } },
 };
 
 const requireMethod = (lib: LibraryClient, name: string): LibraryMethod => {

@@ -9,7 +9,6 @@ import {
   AuthError,
   Result,
   ValidationError,
-  basePermitSchema,
   resolveResourceConfig,
 } from '@ontrails/core';
 
@@ -17,6 +16,7 @@ import type { AuthAdapter } from './adapters/adapter.js';
 import { authAdapterSchema, authErrorSchema } from './adapters/adapter.js';
 import type { PermitExtractionInput } from './extraction.js';
 import { permitExtractionInputSchema } from './extraction.js';
+import { permitSchema } from './permit.js';
 
 /** Resource id of the auth adapter resource provided by `@ontrails/permits`. */
 export const AUTH_RESOURCE_ID = 'auth';
@@ -218,7 +218,7 @@ const resolveCredentialPermit = async (
   if (authResult.value === null) {
     return Result.ok(null);
   }
-  const permit = basePermitSchema.safeParse(authResult.value);
+  const permit = permitSchema.safeParse(authResult.value);
   if (!permit.success) {
     return Result.err(
       new AuthError('Auth adapter returned a malformed permit', {

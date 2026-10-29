@@ -31,7 +31,7 @@ testSurfaceParity(graph, {
     ]),
     'demo.notification-store': createNotificationStore(),
   }),
-  ctx: { permit: { id: 'test-permit', scopes: ['entity:write'] } },
+  ctx: { permit: { actors: [], id: 'test-permit', scopes: ['entity:write'] } },
   exclusions: [
     {
       example: 'Add a new entity',

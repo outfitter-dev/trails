@@ -235,7 +235,7 @@ const parsePermitFlag = (
   if (!validated.success) {
     return Result.err(
       new ValidationError(
-        `--permit JSON does not match the BasePermit shape ({ id: string; scopes: string[] }): ${validated.error.message}`
+        `--permit JSON does not match the BasePermit shape ({ actors: PermitActor[]; id: string; scopes: string[] }): ${validated.error.message}`
       )
     );
   }
@@ -751,6 +751,7 @@ const collectAllDeclaredScopes = (graph: Topo): readonly string[] => {
  * not represented in the synthesized permit.
  */
 const synthesizeDevPermit = (graph: Topo): BasePermit => ({
+  actors: [],
   id: DEV_PERMIT_ID,
   scopes: collectAllDeclaredScopes(graph),
 });

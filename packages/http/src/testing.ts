@@ -270,7 +270,7 @@ const requestContextCase = async (
   const observedTenants: (string | undefined)[] = [];
   const resolvePermit: ResolveHttpPermit = ({ headers }) => {
     observedTenants.push(readHeader(headers, 'x-tenant-id') ?? undefined);
-    return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+    return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
   };
   const graph = topo('http-conformance-context', {
     abortingTrail,

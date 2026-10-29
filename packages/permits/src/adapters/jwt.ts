@@ -3,6 +3,7 @@ import { Result, isPlainObject } from '@ontrails/core';
 import type { AuthAdapter, AuthError } from './adapter.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
+import { deriveJwtIdentity } from './jwt-identity.js';
 import { verifyIssuerSignature } from './jwt-jwks.js';
 
 /** Configuration for the JWT auth adapter. */
@@ -289,8 +290,13 @@ const buildPermit = (
   if (typeof payload.sub !== 'string' || !payload.sub) {
     return authErr('invalid_token', 'Missing subject claim (sub)');
   }
+  const identity = deriveJwtIdentity(payload);
+  if (identity.isErr()) {
+    return identity;
+  }
   const roles = extractRoles(payload, options.rolesClaim ?? 'roles');
   return Result.ok({
+    ...identity.value,
     id: payload.sub,
     scopes: extractScopes(payload, options.scopesClaim ?? 'scope'),
     ...(roles ? { roles } : {}),

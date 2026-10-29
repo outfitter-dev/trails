@@ -31,7 +31,9 @@ export {
   permitExtractionInputSchema,
   type PermitExtractionInput,
 } from './extraction.js';
-export { type Permit, getPermit } from './permit.js';
+export { type Permit, getPermit, permitSchema } from './permit.js';
+export type { PermitActor } from '@ontrails/core';
+export { derivePermitIdentityKey } from './identity.js';
 export {
   validatePermits,
   type PermitDiagnostic,

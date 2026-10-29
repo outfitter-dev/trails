@@ -250,7 +250,7 @@ describe('@ontrails/http/bun', () => {
             ? (headers.get('x-tenant-id') ?? undefined)
             : undefined
         );
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     });
     const permitHandler = app.routes['/permit/scope']?.GET;

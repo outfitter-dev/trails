@@ -141,7 +141,7 @@ for (const exampleName of [
         exampleName,
         '--json',
         '--permit',
-        '{"id":"example-test","scopes":["trails:run"]}',
+        '{"actors":[],"id":"example-test","scopes":["trails:run"]}',
       ],
       operatorAppDir
     );
@@ -177,7 +177,7 @@ for (const [trailId, exampleName, scopes] of [
         'trails',
         '--json',
         '--permit',
-        JSON.stringify({ id: 'workspace-example-test', scopes }),
+        JSON.stringify({ actors: [], id: 'workspace-example-test', scopes }),
       ],
       repoRoot
     );
@@ -256,6 +256,7 @@ test('compile > isolated workspace-root --app example: Compile the current topo 
         '--json',
         '--permit',
         JSON.stringify({
+          actors: [],
           id: 'workspace-example-test',
           scopes: ['topo:write', 'trails:run'],
         }),

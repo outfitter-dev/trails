@@ -341,7 +341,7 @@ const expectGeneratedStandaloneCompile = (dir: string): void => {
     'run',
     'compile',
     '--permit',
-    '{"id":"local-dev","scopes":["topo:write"]}',
+    '{"actors":[],"id":"local-dev","scopes":["topo:write"]}',
   ];
   const proc = Bun.spawnSync({
     cmd: command,
@@ -615,7 +615,7 @@ const assertReadme = (
     `# ${basename(dir)}`,
     'A Trails project.',
     'bun install',
-    `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'`,
+    `bun run compile --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'`,
     'bun run warden',
     'bun run survey',
     'bun run guide',
@@ -964,7 +964,7 @@ describe('trails create', () => {
         expect(result.dryRun).toBe(false);
         expect(result.layout).toBe('standalone');
         expect(result.guidance[0]).toBe(
-          'Install dependencies, then run `bun run compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\'` from the app root to derive trails.lock.'
+          'Install dependencies, then run `bun run compile --permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\'` from the app root to derive trails.lock.'
         );
         expectCreatedPaths(result.created, [
           'AGENTS.md',
@@ -1047,7 +1047,7 @@ describe('trails create', () => {
           "namespace: 'scaffold'",
         ]);
         expectContainsAll(readText(dir, 'README.md'), [
-          `bunx trails compile --app ${name} --permit '{"id":"local-dev","scopes":["topo:write"]}'`,
+          `bunx trails compile --app ${name} --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'`,
           `bunx trails validate --app ${name}`,
           `bunx trails run hello --app ${name}`,
           `bunx trails warden --app ${name}`,
@@ -1247,7 +1247,7 @@ describe('trails create', () => {
               '--root-dir',
               dir,
               '--permit',
-              '{"id":"test","scopes":["topo:write"]}',
+              '{"actors":[],"id":"test","scopes":["topo:write"]}',
             ],
             cwd: dir,
             env: {
@@ -2235,7 +2235,7 @@ const changed = new Map();
           ])
         );
         expect(result.guidance[0]).toBe(
-          `Install dependencies, then run \`bunx trails compile --app ${name} --permit '{"id":"local-dev","scopes":["topo:write"]}'\` from the workspace root to derive apps/${name}/trails.lock.`
+          `Install dependencies, then run \`bunx trails compile --app ${name} --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'\` from the workspace root to derive apps/${name}/trails.lock.`
         );
         expect(result.guidance.join('\n')).toContain('no root aggregate lock');
         expect(existsSync(dir)).toBe(false);
@@ -2651,11 +2651,11 @@ const changed = new Map();
 
     test('teaches scoped local permits only for protected CLI starters', async () => {
       const permit =
-        '--permit \'{"id":"local-dev","scopes":["entity:write"]}\'';
+        '--permit \'{"actors":[],"id":"local-dev","scopes":["entity:write"]}\'';
       const runPermit =
-        '--permit \'{"id":"local-dev","scopes":["trails:run"]}\'';
+        '--permit \'{"actors":[],"id":"local-dev","scopes":["trails:run"]}\'';
       const compilePermit =
-        '--permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+        '--permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\'';
       const forbiddenShortcut = `--dev${'-permit'}`;
 
       await withTempProject(async (dir) => {
@@ -2679,7 +2679,7 @@ const changed = new Map();
             '--name',
             'New',
             '--permit',
-            '{"id":"local-dev","scopes":["entity:write"]}',
+            '{"actors":[],"id":"local-dev","scopes":["entity:write"]}',
           ],
           cwd: dir,
           env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
@@ -2732,7 +2732,7 @@ await surface(app);
             'entity',
             'add',
             '--permit',
-            '{"id":"local-dev","scopes":["entity:write"]}',
+            '{"actors":[],"id":"local-dev","scopes":["entity:write"]}',
           ],
           cwd: dir,
           env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,

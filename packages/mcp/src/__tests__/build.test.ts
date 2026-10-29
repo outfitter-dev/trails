@@ -1177,11 +1177,15 @@ describe('deriveMcpTools', () => {
 
       const result = await tool.handler(
         {},
-        { permit: { id: 'user-1', scopes: ['thing:read'] } }
+        { permit: { actors: [], id: 'user-1', scopes: ['thing:read'] } }
       );
 
       expect(result.isError ?? false).toBe(false);
-      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+      expect(observedPermit).toEqual({
+        actors: [],
+        id: 'user-1',
+        scopes: ['thing:read'],
+      });
     });
 
     test('MCP Bearer credentials resolve through the configured permit resolver', async () => {
@@ -1202,8 +1206,8 @@ describe('deriveMcpTools', () => {
             seenMetadata = _meta;
             return Result.ok(
               bearerToken === 'good'
-                ? { id: 'user-1', scopes: ['thing:read'] }
-                : { id: 'user-1', scopes: [] }
+                ? { actors: [], id: 'user-1', scopes: ['thing:read'] }
+                : { actors: [], id: 'user-1', scopes: [] }
             );
           },
         })
@@ -1216,7 +1220,11 @@ describe('deriveMcpTools', () => {
 
       expect(result.isError ?? false).toBe(false);
       expect(seenMetadata).toEqual({ credential: 'fixture' });
-      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+      expect(observedPermit).toEqual({
+        actors: [],
+        id: 'user-1',
+        scopes: ['thing:read'],
+      });
     });
 
     test('MCP Bearer credentials without a resolver do not block public tools', async () => {
@@ -1270,7 +1278,11 @@ describe('deriveMcpTools', () => {
       const tool = requireOnlyTool(
         buildTools(topo('myapp', { protectedTrail }), {
           resolvePermit: () =>
-            Result.ok({ id: 'resolver-user', scopes: ['thing:read'] }),
+            Result.ok({
+              actors: [],
+              id: 'resolver-user',
+              scopes: ['thing:read'],
+            }),
         })
       );
 
@@ -1278,12 +1290,13 @@ describe('deriveMcpTools', () => {
         {},
         {
           authorization: 'Bearer request-token',
-          permit: { id: 'override-user', scopes: ['thing:read'] },
+          permit: { actors: [], id: 'override-user', scopes: ['thing:read'] },
         }
       );
 
       expect(result.isError ?? false).toBe(false);
       expect(observedPermit).toEqual({
+        actors: [],
         id: 'override-user',
         scopes: ['thing:read'],
       });
@@ -1336,7 +1349,8 @@ describe('deriveMcpTools', () => {
       });
       const tool = requireOnlyTool(
         buildTools(topo('myapp', { protectedTrail }), {
-          resolvePermit: () => Result.ok({ id: 'user-1', scopes: [] }),
+          resolvePermit: () =>
+            Result.ok({ actors: [], id: 'user-1', scopes: [] }),
         })
       );
 

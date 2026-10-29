@@ -9,7 +9,7 @@ import { createTokenCallbackAdapter } from '../adapters/token-callback.js';
 import type { PermitExtractionInput } from '../extraction.js';
 
 const graph = topo('credential-boundary');
-const permit = { id: 'org-42', scopes: ['org:read'] };
+const permit = { actors: [], id: 'org-42', scopes: ['org:read'] };
 const options = { graph, requestId: 'req-key', surface: 'http' as const };
 
 describe('normalized credential boundary', () => {
@@ -89,7 +89,7 @@ describe('normalized credential boundary', () => {
         code: 'invalid_token',
         message: 'Selected credential rejected',
       }),
-      Result.ok({ id: 'bad', scopes: 'invalid' }),
+      Result.ok({ actors: [], id: 'bad', scopes: 'invalid' }),
     ]) {
       const result = await resolvePermitFromInput({
         ...options,

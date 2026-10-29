@@ -95,7 +95,7 @@ const adapter = createJwtAdapter({
 
 `@ontrails/permits/jwt` is the canonical built-in JWT adapter subpath. The root package intentionally keeps convenience re-exports for interactive discovery, but generated code, docs, and adapter-specific examples should import JWT names from the subpath.
 
-The same options work in `authResource` configuration with `adapter: 'jwt'`. Existing apps using `secret` need no migration. `requireExpiration: false` remains available for secret-backed tokens; issuer mode always requires expiration. The default clock tolerance for `exp` and `nbf` remains 60 seconds in both modes. Tokens are expired when `exp` equals the current time minus the tolerance; this corrects the previous HS256 boundary accepting equality. This addition keeps the existing `Permit` fields and does not provide sign-in, token minting, or DPoP verification.
+The same options work in `authResource` configuration with `adapter: 'jwt'`. Existing `secret` configuration remains valid; custom permit producers still need the actor-shape migration described below. `requireExpiration: false` remains available for secret-backed tokens; issuer mode always requires expiration. The default clock tolerance for `exp` and `nbf` remains 60 seconds in both modes. Tokens are expired when `exp` equals the current time minus the tolerance; this corrects the previous HS256 boundary accepting equality. Issuer verification does not provide sign-in, token minting, or DPoP verification.
 
 The JWT adapter accepts Bearer credentials only. A raw Authorization value with a Bearer scheme is selected before the normalized `bearerToken` candidate; malformed presented Bearer and selected empty tokens fail authentication rather than becoming anonymous access. An invalid selected Bearer is never rescued by an alternate API key or token. Other Authorization schemes are not JWT credentials. Existing normalized Bearer callers remain supported.
 
@@ -135,6 +135,7 @@ const myAdapter: AuthAdapter = {
   authenticate: async (input: PermitExtractionInput) => {
     if (!input.bearerToken) return Result.ok(null);
     const permit: Permit = {
+      actors: [],
       id: 'user-42',
       scopes: ['user:read', 'user:write'],
       roles: ['admin'],
@@ -149,7 +150,17 @@ const myAdapter: AuthAdapter = {
 A `Permit` is the resolved identity and scopes from successful authentication:
 
 ```typescript
+interface PermitActor {
+  readonly id: string;
+  readonly issuer?: string;
+  readonly kind: string;
+  readonly verified: boolean;
+}
+
 interface Permit {
+  readonly actors: readonly PermitActor[];
+  readonly expiresAt?: number;
+  readonly issuer?: string;
   readonly id: string;
   readonly scopes: readonly string[];
   readonly roles?: readonly string[];
@@ -157,6 +168,14 @@ interface Permit {
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 ```
+
+Every execution permit requires an explicit `actors` array. `[]` means the trusted author has no known acting-party evidence; validation never fills it in. `issuer` identifies the permit attester, while each actor's optional `issuer` identifies that actor's namespace. Preserve exact strings and leave unknown namespaces absent. `expiresAt` is a finite Unix epoch timestamp in milliseconds; absence means unknown. Core validates the permit shape before execution, including public trails, but does not enforce this deadline or actor policy.
+
+The stock JWT adapter retains validated `iss` and converts `exp` from seconds to milliseconds once, without adding clock tolerance. It maps an `act` chain current-first, then nearest-to-oldest history. An actor needs nonempty `sub`; explicit `iss` and `kind` are retained, and absent `kind` becomes `unknown`. `kind` is a Trails/provider extension. Every mapped actor has `verified: true` from credential validation; an `act.verified` claim never supplies provenance. Historical actors are audit evidence.
+
+Without `act`, nonempty `client_id` or `azp` produces one `client` actor. When both appear they must match exactly. With `act`, valid client aliases do not replace or append to the acting-party chain. Malformed recognized client claim types are rejected in either case. The stock mapper leaves client actor issuer absent because a token attester alone does not establish the client's identity namespace. Custom adapters own their explicit evidence mapping.
+
+Use `derivePermitIdentityKey(permit)` when subject identity crosses issuer boundaries. It returns `Result<string, ValidationError>` and encodes the exact tuple `[issuer, id, tenantId ?? null]`. Issuerless permits remain valid for local execution, but this helper rejects them. Do not substitute bare subjects, email addresses, or invented local issuers in global routing or shared persistence. Actor identities are separate from this subject key. See the [migration guide](../../docs/migration/permit-identity.md) for custom adapters and stored trace compatibility.
 
 Access the permit in your implementation:
 
@@ -181,7 +200,7 @@ An infrastructure trail that verifies bearer tokens and returns permits:
 ```typescript
 import { authVerify } from '@ontrails/permits';
 
-// Returns { valid: true, permit: { id, scopes, roles } }
+// Returns { valid: true, permit: { actors, id, scopes, roles, ... } }
 // or { valid: false, error: 'Token has expired', errorCode: 'expired_token' }
 ```
 
@@ -203,7 +222,7 @@ const permit = createTestPermit({
 
 // Create a permit matching a trail's requirements
 const trailPermit = createPermitForTrail(myTrail);
-// { id: 'test-...', scopes: ['gist:write'] }
+// { actors: [], id: 'test-...', scopes: ['gist:write'] }
 ```
 
 ## Permit governance

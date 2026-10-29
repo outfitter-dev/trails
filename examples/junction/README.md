@@ -95,7 +95,7 @@ One error class hierarchy maps deterministically onto every surface. The rows ju
 
 ## Governance artifacts
 
-- [`trails.lock`](trails.lock) — committed resolved topo (23 trails, 16 signals, 3 resources). Regenerate with `bun ../../apps/trails/bin/trails.ts compile --root-dir . --permit '{"id":"junction-dev","scopes":["topo:write"]}'`.
+- [`trails.lock`](trails.lock) — committed resolved topo (23 trails, 16 signals, 3 resources). Regenerate with `bun ../../apps/trails/bin/trails.ts compile --root-dir . --permit '{"actors":[],"id":"junction-dev","scopes":["topo:write"]}'`.
 - Warden: `bun ../../packages/warden/bin/warden.ts --root-dir .` — passes with 0 errors.
 - [`openapi.json`](openapi.json) — committed OpenAPI 3.1 rendering of the management API.
 

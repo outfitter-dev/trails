@@ -12,7 +12,7 @@ const input: PermitExtractionInput = {
   requestId: 'req',
   surface: 'http',
 };
-const permit: Permit = { id: 'org-42', scopes: ['org:read'] };
+const permit: Permit = { actors: [], id: 'org-42', scopes: ['org:read'] };
 
 describe('token callback adapter', () => {
   test('distinguishes absence from a selected empty credential without lookup', async () => {

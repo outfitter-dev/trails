@@ -26,7 +26,7 @@ const authResourceDef = resource<{
   create: () =>
     Result.ok({
       authenticate: async () =>
-        Result.ok({ id: 'created-user', scopes: ['created:read'] }),
+        Result.ok({ actors: [], id: 'created-user', scopes: ['created:read'] }),
     }),
 });
 
@@ -46,7 +46,11 @@ describe('resolvePermitFromBearerToken', () => {
         auth: {
           authenticate: async (input: PermitExtractionInput) => {
             observed = input;
-            return Result.ok({ id: 'override-user', scopes: ['entity:read'] });
+            return Result.ok({
+              actors: [],
+              id: 'override-user',
+              scopes: ['entity:read'],
+            });
           },
         },
       },
@@ -54,6 +58,7 @@ describe('resolvePermitFromBearerToken', () => {
     });
 
     expect(result.unwrap()).toEqual({
+      actors: [],
       id: 'override-user',
       scopes: ['entity:read'],
     });
@@ -73,6 +78,7 @@ describe('resolvePermitFromBearerToken', () => {
     });
 
     expect(result.unwrap()).toEqual({
+      actors: [],
       id: 'created-user',
       scopes: ['created:read'],
     });
@@ -96,6 +102,8 @@ describe('resolvePermitFromBearerToken', () => {
     });
 
     expect(result.unwrap()).toEqual({
+      actors: [],
+      expiresAt: (now + 3600) * 1000,
       id: 'configured-user',
       scopes: ['read', 'write'],
     });
@@ -171,7 +179,7 @@ describe('resolvePermitFromBearerToken', () => {
       resources: {
         auth: {
           authenticate: async () =>
-            Result.ok({ id: 'unused', scopes: ['unused:read'] }),
+            Result.ok({ actors: [], id: 'unused', scopes: ['unused:read'] }),
         },
       },
       surface: 'smtp' as never,

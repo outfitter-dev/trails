@@ -1013,7 +1013,7 @@ describe('@ontrails/http/fetch', () => {
             ? (headers.get('x-tenant-id') ?? undefined)
             : undefined
         );
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     });
     const controller = new AbortController();

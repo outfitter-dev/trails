@@ -455,7 +455,8 @@ describe('surface API (Hono adapter)', () => {
     });
     const graph = topo('surface-api', { protectedTrail });
     const app = createApp(graph, {
-      resolvePermit: () => Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
+      resolvePermit: () =>
+        Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] }),
     });
 
     const response = await app.request('/permit/malformed', {
@@ -502,7 +503,7 @@ describe('surface API (Hono adapter)', () => {
       resolvePermit: ({ bearerToken, headers }) => {
         observedBearerToken = bearerToken;
         observedHeaders = headers instanceof Headers ? headers : undefined;
-        return Result.ok({ id: 'user-1', scopes: [] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: [] });
       },
     });
 

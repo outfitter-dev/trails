@@ -6,7 +6,7 @@ import { deriveHttpRoutes } from '../build.js';
 import type { ResolveHttpPermitInput } from '../build.js';
 import { createFetchHandler } from '../fetch.js';
 
-const permit = { id: 'org-42', scopes: ['records:read'] };
+const permit = { actors: [], id: 'org-42', scopes: ['records:read'] };
 
 const fixture = (protectedTrail = false) => {
   const calls: string[] = [];

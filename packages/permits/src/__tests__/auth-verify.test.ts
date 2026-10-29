@@ -171,6 +171,8 @@ describe('auth.verify trail', () => {
       const value = result.unwrap();
       expect(value.valid).toBe(true);
       expect(value.permit).toEqual({
+        actors: [],
+        expiresAt: (now + 3600) * 1000,
         id: 'user-42',
         scopes: ['read', 'write'],
       });
@@ -196,16 +198,14 @@ describe('auth.verify trail', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toMatchObject({
-        permit: {
-          id: 'user-42',
-          scopes: ['read', 'write'],
-        },
+        permit: { actors: [], id: 'user-42', scopes: ['read', 'write'] },
         valid: true,
       });
     });
 
     test('returns the full permit payload from the adapter', async () => {
       const permit: Permit = {
+        actors: [],
         id: 'user-42',
         metadata: { plan: 'pro' },
         roles: ['admin'],
@@ -221,6 +221,7 @@ describe('auth.verify trail', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().permit).toEqual({
+        actors: [],
         id: 'user-42',
         metadata: { plan: 'pro' },
         roles: ['admin'],
@@ -235,10 +236,7 @@ describe('auth.verify trail', () => {
         // oxlint-disable-next-line require-await -- captures adapter input
         authenticate: async (input) => {
           seenSurface = input.surface;
-          return Result.ok({
-            id: 'user-42',
-            scopes: ['read'],
-          });
+          return Result.ok({ actors: [], id: 'user-42', scopes: ['read'] });
         },
       };
 

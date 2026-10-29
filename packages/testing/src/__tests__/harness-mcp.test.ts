@@ -54,8 +54,8 @@ describe('createMcpHarness', () => {
         resolvePermit: ({ bearerToken }) =>
           Result.ok(
             bearerToken === 'admin-token'
-              ? { id: 'admin', scopes: ['thing:read'] }
-              : { id: 'guest', scopes: [] }
+              ? { actors: [], id: 'admin', scopes: ['thing:read'] }
+              : { actors: [], id: 'guest', scopes: [] }
           ),
       });
     const toolName = deriveToolName(graph.name, protectedTrail.id);
@@ -84,7 +84,7 @@ describe('createMcpHarness', () => {
     });
     const graph = topo('test-app', { protectedTrail });
     const harness = createMcpHarness({
-      extra: { permit: { id: 'direct', scopes: ['thing:read'] } },
+      extra: { permit: { actors: [], id: 'direct', scopes: ['thing:read'] } },
       graph,
     });
 

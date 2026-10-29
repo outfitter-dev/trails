@@ -1428,8 +1428,8 @@ describe('deriveHttpRoutes', () => {
         resolvePermit: ({ bearerToken }) =>
           Result.ok(
             bearerToken === 'good'
-              ? { id: 'user-1', scopes: ['thing:read'] }
-              : { id: 'user-1', scopes: [] }
+              ? { actors: [], id: 'user-1', scopes: ['thing:read'] }
+              : { actors: [], id: 'user-1', scopes: [] }
           ),
       });
 
@@ -1443,7 +1443,11 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(result?.isOk()).toBe(true);
-      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+      expect(observedPermit).toEqual({
+        actors: [],
+        id: 'user-1',
+        scopes: ['thing:read'],
+      });
     });
 
     test('missing Authorization on a protected route falls through to PermitError', async () => {
@@ -1502,7 +1506,7 @@ describe('deriveHttpRoutes', () => {
       const buildResult = deriveHttpRoutes(app, {
         resolvePermit: () => {
           resolveCalled = true;
-          return Result.ok({ id: 'user-1', scopes: [] });
+          return Result.ok({ actors: [], id: 'user-1', scopes: [] });
         },
       });
 
@@ -1595,7 +1599,8 @@ describe('deriveHttpRoutes', () => {
       });
       const app = topo('permit-http', { protectedTrail });
       const buildResult = deriveHttpRoutes(app, {
-        resolvePermit: () => Result.ok({ id: 'user-1', scopes: [] }),
+        resolvePermit: () =>
+          Result.ok({ actors: [], id: 'user-1', scopes: [] }),
       });
 
       expect(buildResult.isOk()).toBe(true);

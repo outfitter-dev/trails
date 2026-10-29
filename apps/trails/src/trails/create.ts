@@ -277,12 +277,12 @@ const collectCreateOperations = (
 const createGuidance = (input: CreateInput): string[] =>
   input.workspace
     ? [
-        `Install dependencies, then run \`bunx trails compile --app ${input.name} --permit '{"id":"local-dev","scopes":["topo:write"]}'\` from the workspace root to derive apps/${input.name}/trails.lock.`,
+        `Install dependencies, then run \`bunx trails compile --app ${input.name} --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'\` from the workspace root to derive apps/${input.name}/trails.lock.`,
         'The workspace view derives from the literal workspace.apps catalog and app-owned locks; no root aggregate lock is created.',
         'Disposable cache and observed state stay in the global per-user Trails cache and state homes.',
       ]
     : [
-        'Install dependencies, then run `bun run compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\'` from the app root to derive trails.lock.',
+        'Install dependencies, then run `bun run compile --permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\'` from the app root to derive trails.lock.',
         'Disposable cache and observed state stay in the global per-user Trails cache and state homes.',
       ];
 
@@ -348,7 +348,7 @@ const generateReadme = (
   const workspaceRunCommand =
     !input.workspace || !ownsStarterContract
       ? ''
-      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name} --permit '{"id":"local-dev","scopes":["trails:run"]}'\n`;
+      : `bunx trails run ${input.starter === 'hello' ? 'hello' : 'entity.list'} --app ${input.name} --permit '{"actors":[],"id":"local-dev","scopes":["trails:run"]}'\n`;
   const cliEntryFile = surfaceEntryFiles.get('cli');
   const localPermitGuidance =
     input.starter === 'entity' &&
@@ -360,18 +360,18 @@ const generateReadme = (
 Protected starter writes require an explicit scoped permit. For local exploration, run the generated CLI with the narrow starter scope:
 
 \`\`\`bash
-bun ${appPrefix}${cliEntryFile} entity add --name New --permit '{"id":"local-dev","scopes":["entity:write"]}'
+bun ${appPrefix}${cliEntryFile} entity add --name New --permit '{"actors":[],"id":"local-dev","scopes":["entity:write"]}'
 \`\`\`
 
 `
       : '';
 
   const compileCommands = input.workspace
-    ? `bunx trails compile --app ${input.name} --permit '{"id":"local-dev","scopes":["topo:write"]}'
+    ? `bunx trails compile --app ${input.name} --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'
 bunx trails validate --app ${input.name}
 ${workspaceRunCommand}bunx trails warden --app ${input.name}
 bunx trails wayfind --overview --app ${input.name}`
-    : `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'
+    : `bun run compile --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'
 bun run validate
 bun run warden
 bun run survey

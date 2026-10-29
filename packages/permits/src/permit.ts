@@ -1,18 +1,30 @@
+import { basePermitSchema } from '@ontrails/core';
 import type { BasePermit } from '@ontrails/core';
+import { z } from 'zod';
 
 /** The resolved identity and scopes from a successful authentication. */
 export interface Permit extends BasePermit {
-  readonly roles?: readonly string[];
-  readonly tenantId?: string;
-  readonly metadata?: Readonly<Record<string, unknown>>;
+  readonly roles?: readonly string[] | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
+
+/**
+ * Validate the full adapter-owned permit without dropping identity evidence.
+ *
+ * @example
+ * const permit = permitSchema.parse({ actors: [], id: 'subject', scopes: [] });
+ */
+export const permitSchema = basePermitSchema.extend({
+  metadata: z.record(z.string(), z.unknown()).readonly().optional(),
+  roles: z.array(z.string()).readonly().optional(),
+}) satisfies z.ZodType<Permit>;
 
 /**
  * Type-safe accessor for `ctx.permit` with a downcast to `Permit`.
  *
- * `TrailContext.permit` is typed as `BasePermit` (id + scopes). This accessor
- * returns the full `Permit` when the auth layer has set one. Safe because
- * the auth layer is the only writer and always sets a full `Permit`.
+ * `TrailContext.permit` carries the shared identity and scope evidence. The
+ * validated auth boundary retains optional adapter annotations; trusted hosts
+ * may supply only the base fields, in which case those annotations are absent.
  *
  * @example
  * ```typescript

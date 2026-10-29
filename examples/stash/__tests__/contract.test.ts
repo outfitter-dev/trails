@@ -11,6 +11,7 @@ import { graph } from '../src/app.js';
 testAllEstablished(graph, {
   ctx: {
     permit: {
+      actors: [],
       id: 'usr_alice',
       scopes: [
         'snippet:write',

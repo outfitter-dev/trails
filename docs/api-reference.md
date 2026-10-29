@@ -815,7 +815,10 @@ authResource                         // resource for auth adapter lifecycle
 
 // Permits
 getPermit(ctx)                       // extract the resolved permit from context
-Permit                               // { id, scopes, roles?, tenantId?, metadata? }
+Permit                               // { actors, id, scopes, issuer?, expiresAt?, roles?, tenantId?, metadata? }
+PermitActor                          // { id, issuer?, kind, verified } (Core-owned)
+permitSchema                         // complete permit validation derived from Core
+derivePermitIdentityKey(permit)      // Result of exact [issuer, id, tenantId ?? null] key; requires issuer
 PermitExtractionInput                // surface-agnostic auth input
 
 // Adapters

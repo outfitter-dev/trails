@@ -6,6 +6,7 @@ import { getPermit, permitExtractionInputSchema } from '../index';
 describe('Permit type', () => {
   test('accepts a valid permit with required fields only', () => {
     const permit: Permit = {
+      actors: [],
       id: 'usr_abc123',
       scopes: ['user:read', 'user:write'],
     };
@@ -15,6 +16,7 @@ describe('Permit type', () => {
 
   test('accepts a permit with all optional fields', () => {
     const permit: Permit = {
+      actors: [],
       id: 'usr_full',
       metadata: { plan: 'pro', provider: 'clerk' },
       roles: ['admin', 'editor'],
@@ -28,6 +30,7 @@ describe('Permit type', () => {
 
   test('scopes and roles arrays are readonly', () => {
     const permit: Permit = {
+      actors: [],
       id: 'usr_ro',
       roles: ['viewer'],
       scopes: ['read'],
@@ -42,7 +45,7 @@ describe('Permit type', () => {
 
 describe('getPermit()', () => {
   test('returns Permit from a context with a permit', () => {
-    const permit: Permit = { id: 'usr_1', scopes: ['user:read'] };
+    const permit: Permit = { actors: [], id: 'usr_1', scopes: ['user:read'] };
     const ctx = { permit, requestId: 'req-1' };
     const result = getPermit(ctx);
     expect(result).toEqual(permit);
@@ -63,6 +66,7 @@ describe('getPermit()', () => {
   test('preserves extended permit fields from the auth layer', () => {
     const ctx = {
       permit: {
+        actors: [],
         id: 'usr_2',
         metadata: { plan: 'pro' },
         roles: ['admin'],

@@ -56,7 +56,7 @@ describe('opaque and Bearer HTTP auth boundary', () => {
 
   test('portable key lookup propagates organization identity and fails selected misses without fallback', async () => {
     const keys = new Map<string, BasePermit>([
-      ['trusted-key', { id: 'org-42', scopes: ['record:read'] }],
+      ['trusted-key', { actors: [], id: 'org-42', scopes: ['record:read'] }],
     ]);
     const adapter = createTokenCallbackAdapter({
       extractToken: (input) => input.apiKey,

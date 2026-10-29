@@ -130,8 +130,8 @@ export type {
   Logger,
   ResourceLookup,
 } from './types.js';
-export { basePermitSchema } from './permits.js';
-export type { BasePermit } from './permits.js';
+export { basePermitSchema, permitActorSchema } from './permits.js';
+export type { BasePermit, PermitActor } from './permits.js';
 export {
   LAYER_INPUTS_KEY,
   SURFACE_KEY,
@@ -594,6 +594,7 @@ export {
   registerTraceSink,
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
+  tracePermitSchema,
   writeActivationTraceRecord,
   writeSignalTraceRecord,
 } from './tracing.js';
