@@ -58,7 +58,7 @@ export const closeResolvedLock = (
   }
 };
 
-/** Open without truncation and pin the preflight file against inode reuse. */
+/** Pin a readable file without demanding write access for a no-op recovery. */
 export const openResolvedLock = (
   path: string
 ): Result<OpenResolvedLock, TrailsError> => {
@@ -85,7 +85,7 @@ export const openResolvedLock = (
     descriptor = fs.openSync(
       path,
       // eslint-disable-next-line no-bitwise -- POSIX open flags are combined as a bit mask.
-      fs.constants.O_RDWR | (fs.constants.O_NOFOLLOW ?? 0)
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0)
     );
     const actual = fs.fstatSync(descriptor, { bigint: true });
     if (
@@ -126,11 +126,10 @@ const selectedPathStillMatches = (file: OpenResolvedLock): boolean => {
 };
 
 /**
- * Write through the descriptor acquired before evidence/source preflight.
+ * Acquire write access only for changed bytes, while the read pin stays open.
  *
- * project-writes.ts:120 reopens a contained pathname. Resolve deliberately
- * writes this pinned descriptor instead: a later symlink or directory swap
- * cannot redirect the write, even after the final pathname check.
+ * Unlike the pathname write in project-writes.ts, verify the writable descriptor
+ * against the preflight pin before writing. Later path swaps cannot redirect it.
  */
 export const writeResolvedLock = (
   file: OpenResolvedLock,
@@ -149,29 +148,48 @@ export const writeResolvedLock = (
         ? Result.ok()
         : Result.err(changedLock(file.path));
     }
-    const bytes = Buffer.from(content);
-    let written = 0;
-    while (written < bytes.length) {
-      const count = fs.writeSync(
-        file.descriptor,
-        bytes,
-        written,
-        bytes.length - written,
-        written
-      );
-      if (count === 0) {
-        return Result.err(
-          new InternalError(
-            `Unable to complete the selected lock write: ${file.path}.`
-          )
-        );
+    const descriptor = fs.openSync(
+      file.path,
+      // eslint-disable-next-line no-bitwise -- POSIX open flags are combined as a bit mask.
+      fs.constants.O_RDWR | (fs.constants.O_NOFOLLOW ?? 0)
+    );
+    try {
+      const writable = fs.fstatSync(descriptor, { bigint: true });
+      if (
+        !writable.isFile() ||
+        writable.dev !== file.device ||
+        writable.ino !== file.inode ||
+        !selectedPathStillMatches(file) ||
+        fs.readFileSync(descriptor, 'utf8') !== originalContent
+      ) {
+        return Result.err(changedLock(file.path));
       }
-      written += count;
+      const bytes = Buffer.from(content);
+      let written = 0;
+      while (written < bytes.length) {
+        const count = fs.writeSync(
+          descriptor,
+          bytes,
+          written,
+          bytes.length - written,
+          written
+        );
+        if (count === 0) {
+          return Result.err(
+            new InternalError(
+              `Unable to complete the selected lock write: ${file.path}.`
+            )
+          );
+        }
+        written += count;
+      }
+      fs.ftruncateSync(descriptor, bytes.length);
+      return selectedPathStillMatches(file)
+        ? Result.ok()
+        : Result.err(changedLock(file.path));
+    } finally {
+      fs.closeSync(descriptor);
     }
-    fs.ftruncateSync(file.descriptor, bytes.length);
-    return selectedPathStillMatches(file)
-      ? Result.ok()
-      : Result.err(changedLock(file.path));
   } catch (error) {
     return Result.err(writeFailure(error, file.path));
   }

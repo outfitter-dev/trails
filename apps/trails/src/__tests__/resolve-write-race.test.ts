@@ -1,8 +1,11 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
 import fs, {
+  chmodSync,
+  statSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   unlinkSync,
@@ -11,7 +14,7 @@ import fs, {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { ConflictError } from '@ontrails/core';
+import { ConflictError, InternalError } from '@ontrails/core';
 
 import { resolveProjectLocks } from '../trails/resolve.js';
 import {
@@ -53,7 +56,8 @@ test('a swap after the last pathname check still cannot redirect a descriptor wr
   const originalWrite = fs.writeSync;
   let swapped = false;
   const writeSpy = spyOn(fs, 'writeSync').mockImplementation((...args) => {
-    if (args[0] === opened.value.descriptor && !swapped) {
+    if (!swapped) {
+      expect(args[0]).not.toBe(opened.value.descriptor);
       unlinkSync(path);
       symlinkSync(outside, path);
       swapped = true;
@@ -136,5 +140,111 @@ test('a symlink swap after the final byte read cannot redirect the lock write', 
     } else {
       process.env.TRAILS_STATE_HOME = previousState;
     }
+  }
+});
+
+for (const changed of [false, true]) {
+  test(`a read-only lock ${changed ? 'rejects changed recovery without modifying bytes' : 'allows byte-identical recovery'}`, async () => {
+    const root = temporaryDirectory();
+    const previousState = process.env.TRAILS_STATE_HOME;
+    process.env.TRAILS_STATE_HOME = temporaryDirectory();
+    const lockPath = join(root, 'trails.lock');
+    let openSpy: ReturnType<typeof spyOn> | undefined;
+    let closeSpy: ReturnType<typeof spyOn> | undefined;
+    try {
+      writeStandaloneApp(root);
+      await compile(root);
+      const original = readFileSync(lockPath, 'utf8');
+      if (changed) {
+        writeFileSync(
+          join(root, 'alpha.ts'),
+          trailSource('alpha', 'changed description')
+        );
+      }
+      chmodSync(lockPath, 0o444);
+      const descriptors = new Set<number>();
+      const originalOpen = fs.openSync;
+      const originalClose = fs.closeSync;
+      openSpy = spyOn(fs, 'openSync').mockImplementation((...args) => {
+        const descriptor = Reflect.apply(originalOpen, fs, args);
+        if (args[0] === lockPath) {
+          descriptors.add(descriptor);
+        }
+        return descriptor;
+      });
+      closeSpy = spyOn(fs, 'closeSync').mockImplementation((descriptor) => {
+        originalClose(descriptor);
+        descriptors.delete(descriptor);
+      });
+      const result = await resolveProjectLocks(
+        { module: './app.ts', rootDir: root },
+        root
+      );
+      expect(descriptors.size).toBe(0);
+      expect(result.isOk()).toBe(!changed);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(InternalError);
+        expect(result.error).toMatchObject({ cause: { code: 'EACCES' } });
+      }
+      expect(readFileSync(lockPath, 'utf8')).toBe(original);
+      expect(statSync(lockPath).mode.toString(8).endsWith('444')).toBe(true);
+    } finally {
+      openSpy?.mockRestore();
+      closeSpy?.mockRestore();
+      chmodSync(lockPath, 0o644);
+      if (previousState === undefined) {
+        delete process.env.TRAILS_STATE_HOME;
+      } else {
+        process.env.TRAILS_STATE_HOME = previousState;
+      }
+    }
+  });
+}
+
+test('a replacement during writable open fails identity verification without writing it', () => {
+  const root = temporaryDirectory();
+  const path = join(root, 'trails.lock');
+  const replacement = join(root, 'replacement.lock');
+  const original = '{"before":true}\n';
+  const replacementBytes = original;
+  writeFileSync(path, original);
+  writeFileSync(replacement, replacementBytes);
+  const opened = openResolvedLock(path);
+  expect(opened.isOk()).toBe(true);
+  if (opened.isErr()) {
+    throw opened.error;
+  }
+  const originalOpen = fs.openSync;
+  let swapped = false;
+  let writable: number | undefined;
+  const openSpy = spyOn(fs, 'openSync').mockImplementation((...args) => {
+    if (args[0] === path && !swapped) {
+      renameSync(replacement, path);
+      swapped = true;
+    }
+    writable = Reflect.apply(originalOpen, fs, args);
+    return writable;
+  });
+  try {
+    const result = writeResolvedLock(
+      opened.value,
+      original,
+      '{"after":true}\n'
+    );
+    expect(swapped).toBe(true);
+    expect(readFileSync(path, 'utf8')).toBe(replacementBytes);
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(ConflictError);
+    }
+    expect(writable).toBeDefined();
+    if (writable === undefined) {
+      throw new Error('Writable descriptor was not acquired');
+    }
+    const closedDescriptor = writable;
+    expect(() => fs.fstatSync(closedDescriptor)).toThrow();
+  } finally {
+    openSpy.mockRestore();
+    expect(closeResolvedLock(opened.value).isOk()).toBe(true);
   }
 });
