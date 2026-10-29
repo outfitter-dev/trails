@@ -18,6 +18,8 @@ Run `trails warden` and `trails survey brief` to get the current state. Do not r
 
 ### 2. Architectural Alignment
 
+<!-- fix ::: Use resource terminology for declared infrastructure dependencies below (docs/lexicon.md and references/calibrate.md). #stale -->
+
 Does the implementation honor the hexagonal model?
 
 - Implementations are pure. No surface-specific types in trail logic.
