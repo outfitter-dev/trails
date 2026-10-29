@@ -140,6 +140,8 @@ Nested or overlapping Trails workspace declarations fail closed in v1. A configu
 
 ### Commands share one selection contract
 
+`trails resolve` names generated-artifact recovery from resolved authored sources and verified parent lock evidence. It preserves each selected app's force audit history and root artifact ownership. It does not mean runtime resource resolution or Git stack management. Missing or invalid evidence fails before artifact writes; genuine breaking changes retain the existing explicit force and permit governance.
+
 Every operator command derives the same project context: collection boundary, workspace and app roots, selected extent, selection provenance, configured app identity, and binding or completeness status.
 
 For every app-aware command, `--app <configured-id>` is the shared public selection input. It is not a `run`-only accommodation or a command-specific alias. Command schemas, help, completions, structured results, and diagnostics must give it the same meaning wherever one app can be selected.

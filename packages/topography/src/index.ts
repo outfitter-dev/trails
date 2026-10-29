@@ -44,6 +44,7 @@ export {
   annotateTopoGraphForces,
   carryForwardTopoGraphForces,
   deriveTopoGraphForceEntries,
+  deriveTopoGraphForceIdentity,
   stripTopoGraphForces,
 } from './forces.js';
 export type { TopoGraphForceOptions } from './forces.js';

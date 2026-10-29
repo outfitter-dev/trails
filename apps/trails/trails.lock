@@ -6,7 +6,7 @@
     "entities": 0,
     "resources": 0,
     "signals": 0,
-    "trails": 70
+    "trails": 71
   },
   "topoGraph": {
     "activationGraph": {
@@ -11052,6 +11052,236 @@
           "type": "object"
         },
         "permit": "public",
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "resolve"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "resolve"
+              ],
+              "source": "derived",
+              "target": "resolve"
+            }
+          ]
+        },
+        "description": "Recover generated trails.lock files from resolved sources and verified audit evidence",
+        "exampleCount": 1,
+        "examples": [
+          {
+            "input": {
+              "rootDir": "."
+            },
+            "kind": "success",
+            "name": "Recover selected project locks",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "resolve",
+        "input": {
+          "properties": {
+            "app": {
+              "description": "Configured workspace app ID",
+              "type": "string"
+            },
+            "configPath": {
+              "description": "Explicit project config path",
+              "type": "string"
+            },
+            "force": {
+              "description": "Record genuine breaking changes using existing force governance",
+              "type": "boolean"
+            },
+            "module": {
+              "description": "Path to the app module",
+              "type": "string"
+            },
+            "rootDir": {
+              "description": "App or workspace root directory",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "artifacts": {
+              "items": {
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "lockPath": {
+                    "type": "string"
+                  },
+                  "project": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "appId": {
+                            "type": "string"
+                          },
+                          "appRoot": {
+                            "type": "string"
+                          },
+                          "artifactPath": {
+                            "type": "string"
+                          },
+                          "completeness": {
+                            "const": "complete"
+                          },
+                          "configuredAppIds": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "modulePath": {
+                            "type": "string"
+                          },
+                          "moduleSource": {
+                            "enum": [
+                              "config",
+                              "convention",
+                              "module"
+                            ],
+                            "type": "string"
+                          },
+                          "projectRoot": {
+                            "type": "string"
+                          },
+                          "selectedExtent": {
+                            "const": "configured-app"
+                          },
+                          "selectionProvenance": {
+                            "enum": [
+                              "app",
+                              "config-path",
+                              "cwd",
+                              "root-dir"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configuredAppIds",
+                          "projectRoot",
+                          "selectionProvenance",
+                          "appRoot",
+                          "artifactPath",
+                          "modulePath",
+                          "moduleSource",
+                          "appId",
+                          "completeness",
+                          "selectedExtent"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "appId": {
+                            "type": "string"
+                          },
+                          "appRoot": {
+                            "type": "string"
+                          },
+                          "artifactPath": {
+                            "type": "string"
+                          },
+                          "completeness": {
+                            "const": "complete"
+                          },
+                          "configuredAppIds": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "modulePath": {
+                            "type": "string"
+                          },
+                          "moduleSource": {
+                            "enum": [
+                              "config",
+                              "convention",
+                              "module"
+                            ],
+                            "type": "string"
+                          },
+                          "projectRoot": {
+                            "type": "string"
+                          },
+                          "selectedExtent": {
+                            "const": "standalone-app"
+                          },
+                          "selectionProvenance": {
+                            "enum": [
+                              "app",
+                              "config-path",
+                              "cwd",
+                              "root-dir"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configuredAppIds",
+                          "projectRoot",
+                          "selectionProvenance",
+                          "appRoot",
+                          "artifactPath",
+                          "modulePath",
+                          "moduleSource",
+                          "appId",
+                          "completeness",
+                          "selectedExtent"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "sources": {
+                    "items": {
+                      "enum": [
+                        "ours",
+                        "theirs",
+                        "base",
+                        "worktree"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "hash",
+                  "lockPath",
+                  "project",
+                  "sources"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "artifacts"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "topo:write"
+          ]
+        },
         "surfaces": []
       },
       {
@@ -36770,6 +37000,205 @@
           "trailId": "release.smoke"
         },
         {
+          "description": "Recover generated trails.lock files from resolved sources and verified audit evidence",
+          "exportName": "resolve",
+          "input": {
+            "properties": {
+              "app": {
+                "description": "Configured workspace app ID",
+                "type": "string"
+              },
+              "configPath": {
+                "description": "Explicit project config path",
+                "type": "string"
+              },
+              "force": {
+                "description": "Record genuine breaking changes using existing force governance",
+                "type": "boolean"
+              },
+              "module": {
+                "description": "Path to the app module",
+                "type": "string"
+              },
+              "rootDir": {
+                "description": "App or workspace root directory",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "artifacts": {
+                "items": {
+                  "properties": {
+                    "hash": {
+                      "type": "string"
+                    },
+                    "lockPath": {
+                      "type": "string"
+                    },
+                    "project": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "appId": {
+                              "type": "string"
+                            },
+                            "appRoot": {
+                              "type": "string"
+                            },
+                            "artifactPath": {
+                              "type": "string"
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            },
+                            "configuredAppIds": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "modulePath": {
+                              "type": "string"
+                            },
+                            "moduleSource": {
+                              "enum": [
+                                "config",
+                                "convention",
+                                "module"
+                              ],
+                              "type": "string"
+                            },
+                            "projectRoot": {
+                              "type": "string"
+                            },
+                            "selectedExtent": {
+                              "const": "configured-app"
+                            },
+                            "selectionProvenance": {
+                              "enum": [
+                                "app",
+                                "config-path",
+                                "cwd",
+                                "root-dir"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "configuredAppIds",
+                            "projectRoot",
+                            "selectionProvenance",
+                            "appRoot",
+                            "artifactPath",
+                            "modulePath",
+                            "moduleSource",
+                            "appId",
+                            "completeness",
+                            "selectedExtent"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "appId": {
+                              "type": "string"
+                            },
+                            "appRoot": {
+                              "type": "string"
+                            },
+                            "artifactPath": {
+                              "type": "string"
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            },
+                            "configuredAppIds": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "modulePath": {
+                              "type": "string"
+                            },
+                            "moduleSource": {
+                              "enum": [
+                                "config",
+                                "convention",
+                                "module"
+                              ],
+                              "type": "string"
+                            },
+                            "projectRoot": {
+                              "type": "string"
+                            },
+                            "selectedExtent": {
+                              "const": "standalone-app"
+                            },
+                            "selectionProvenance": {
+                              "enum": [
+                                "app",
+                                "config-path",
+                                "cwd",
+                                "root-dir"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "configuredAppIds",
+                            "projectRoot",
+                            "selectionProvenance",
+                            "appRoot",
+                            "artifactPath",
+                            "modulePath",
+                            "moduleSource",
+                            "appId",
+                            "completeness",
+                            "selectedExtent"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "sources": {
+                      "items": {
+                        "enum": [
+                          "ours",
+                          "theirs",
+                          "base",
+                          "worktree"
+                        ],
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "hash",
+                    "lockPath",
+                    "project",
+                    "sources"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "artifacts"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "resolve"
+        },
+        {
           "description": "Scaffold the next trail version entry",
           "exportName": "revise",
           "input": {
@@ -42738,6 +43167,6 @@
       }
     ]
   },
-  "topoGraphHash": "8b0532835eeeefb9a8737121c4306f67874788c0463e0d415d74188668a740ba",
+  "topoGraphHash": "21f2fb442ca23616505a7ec2c924f582cc9ba2a149972038b41083966d9915ed",
   "version": 5
 }

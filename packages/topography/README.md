@@ -39,6 +39,8 @@ This is not a private helper package. The Trails operator app consumes Topograph
 
 ## Usage
 
+Force audit retention uses complete serialized event facts through `deriveTopoGraphForceIdentity(force)`. `carryForwardTopoGraphForces(previous, next)` preserves the next graph's event order and appends unseen parent events by `(kind, id)`. Orphan events move unchanged to graph-level history; an identical graph copy takes precedence over an entry copy. A mismatched event container raises `ValidationError` before union. These helpers retain evidence rather than granting authorization or resolving pending obligations. For generated-lock conflicts, use [Trails Lock Recovery](../../docs/contributing/trails-lock-recovery.md).
+
 ```typescript
 import {
   deriveTopoGraph,
