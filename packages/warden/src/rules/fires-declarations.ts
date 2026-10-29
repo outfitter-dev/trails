@@ -392,6 +392,7 @@ const getCtxDestructurePattern = (
  * `const { fire } = ctx` inside a nested helper should not cause an outer
  * bare `fire('x')` to be treated as a ctx-bound call.
  *
+ * fix ::: Remove the runtime-enforcement assurances here and on CalledFires below; a registered signal fired by a producer with fires: [] still dispatches. Cover the declaration blind spot before promising enforcement. #bug #coverage
  * Tradeoff: nested-scope destructures lose tracking entirely. Calls inside
  * nested functions that rely on their own destructure will not be analyzed.
  * This is a conservative precision loss; a full scope walker is a follow-up.

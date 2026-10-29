@@ -948,6 +948,7 @@ const maybeRecordDetection = (
 };
 
 /**
+ * fix ::: Preserve source-parameter tracking when a same-name var initializer may not execute; var shares the parameter binding and an unentered conditional leaves the original source intact. Cover the conditional false branch. #bug #coverage
  * Resolve the effective source-param name for a function scope. A hoisted
  * `var` with the same name as the source param overwrites the param's slot
  * in the function's VariableEnvironment, so the enclosing identifier no
