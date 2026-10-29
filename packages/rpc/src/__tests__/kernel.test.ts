@@ -559,4 +559,66 @@ describe('createRpcHandler', () => {
     }
     expect(response.error.code).toBe(JSON_RPC_INVALID_PARAMS);
   });
+
+  test('a failing progress push never replaces the trail result', async () => {
+    const reporting = trail('report', {
+      implementation: (_input, ctx) => {
+        ctx.progress?.({ current: 1, total: 1, ts: 't', type: 'progress' });
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createRpcHandler(topo('app', { reporting }), {
+      capabilities: { progress: true },
+    }).unwrap();
+    const step = await handler.handle(
+      handler.createState(),
+      frame({ id: 1, jsonrpc: '2.0', method: 'report', params: {} }),
+      {
+        send: () => {
+          throw new Error('socket closed');
+        },
+      }
+    );
+    expect(single(step.frames)).toEqual({
+      id: 1,
+      jsonrpc: '2.0',
+      result: { ok: true },
+    });
+  });
+
+  test('a batch can cancel a waiting member that precedes it', async () => {
+    const waiting = trail('wait', {
+      implementation: async (_input, ctx) => {
+        if (!ctx.abortSignal.aborted) {
+          const aborted = Promise.withResolvers<undefined>();
+          ctx.abortSignal.addEventListener('abort', () => aborted.resolve(), {
+            once: true,
+          });
+          await aborted.promise;
+        }
+        return Result.err(new CancelledError('cancelled by client'));
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createRpcHandler(topo('app', { waiting })).unwrap();
+    const step = await handler.handle(
+      handler.createState(),
+      frame([
+        { id: 'w', jsonrpc: '2.0', method: 'wait', params: {} },
+        { jsonrpc: '2.0', method: 'trails.cancel', params: { id: 'w' } },
+      ])
+    );
+    expect(batch(step.frames)).toEqual([
+      expect.objectContaining({
+        error: expect.objectContaining({
+          data: expect.objectContaining({ name: 'CancelledError' }),
+        }),
+        id: 'w',
+      }),
+    ]);
+    expect(step.state.inFlight).toEqual([]);
+  });
 });

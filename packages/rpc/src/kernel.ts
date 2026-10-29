@@ -418,7 +418,13 @@ export const createRpcHandler = (
       id === undefined || send === undefined || !capabilities.progress
         ? undefined
         : (event) => {
-            send(progressNotification(id, event));
+            // Progress is best effort: a failing push must not replace the
+            // trail's own result with an internal error.
+            try {
+              send(progressNotification(id, event));
+            } catch {
+              // The host owns transport failures; the trail keeps running.
+            }
           };
     const controller = new AbortController();
     const key =
@@ -572,13 +578,17 @@ export const createRpcHandler = (
   };
 
   const run: RpcHandler['run'] = async (state, work, host) => {
-    const responses = [...work.settled];
-    for (const request of work.requests) {
-      const response = await route(state, request, host);
-      if (response !== undefined) {
-        responses.push(response);
-      }
-    }
+    // Batch members run concurrently: JSON-RPC allows any processing order,
+    // and a trails.cancel that follows a waiting trail must still reach it.
+    const routed = await Promise.all(
+      work.requests.map((request) => route(state, request, host))
+    );
+    const responses = [
+      ...work.settled,
+      ...routed.filter(
+        (response): response is JsonRpcResponse => response !== undefined
+      ),
+    ];
     return {
       effects: [],
       frames: frameFor(work.batch, responses),
