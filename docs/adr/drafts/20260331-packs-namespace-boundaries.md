@@ -330,6 +330,8 @@ Packs:
   firewatch.inbox      1 resource,  3 trails (3 public), requires: github.pull-requests
 ```
 
+<!-- todo ::: Resolve whether required packs may compose internal members; the SDK example above does so while the proposed rule below forbids it. #drift #verify -->
+
 The warden enforces pack boundaries:
 
 - **Cross-pack internal access.** A trail outside `github.core` composes an internal `github.core` trail. Error. Internal trails are internal to their pack.

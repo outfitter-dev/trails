@@ -45,6 +45,8 @@ These patterns inform the design but don't constrain it. The Trails version can 
 
 ## Decision
 
+<!-- todo ::: Reconcile this proposed WebSocket API with the surface/derive/create grammar of ADR-0035 before implementation or ratification. #drift #verify -->
+
 ### WebSocket follows the trailhead pattern
 
 WebSocket is a trailhead. It has a `trailhead()` one-liner, a `build*` escape hatch, and it renders the topo's trails and signals for its transport.
