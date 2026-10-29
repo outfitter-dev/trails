@@ -87,6 +87,7 @@ const resourceExports = (
 const factoryName = (rendering: LibraryRenderingPlan): string =>
   `create${pascalCase(rendering.app)}`;
 
+// <!-- todo ::: Verify the emitted default dependency range against the supported prerelease/stable release policy, or derive/require a compatible range rather than retaining an independent version literal (package.json; docs/releases/beta-channel-policy.md). #hardcoded #verify -->
 const DEFAULT_LIBRARY_DEPENDENCY = '^1.0.0';
 const DEFAULT_ZOD_DEPENDENCY = '^4.3.5';
 
