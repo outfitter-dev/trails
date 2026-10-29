@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { AuthError, Result, trail, topo } from '@ontrails/core';
+import {
+  AuthError,
+  Result,
+  createTrailContext,
+  trail,
+  topo,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveMcpTools } from '../build.js';
@@ -101,7 +107,7 @@ describe('shared MCP permit resolution', () => {
     const tools = deriveMcpTools(topo('mcp-credentials', { read }), {
       createContext: () => {
         contexts += 1;
-        return { permit };
+        return createTrailContext({ permit });
       },
       resolvePermit: () =>
         Result.err(new AuthError('Selected credential rejected')),
@@ -131,7 +137,9 @@ describe('shared MCP permit resolution', () => {
       const tools = deriveMcpTools(topo('mcp-credentials', { read }), {
         createContext: () => {
           contexts += 1;
-          return { permit: { id: 'local-host', scopes: ['record:read'] } };
+          return createTrailContext({
+            permit: { id: 'local-host', scopes: ['record:read'] },
+          });
         },
         resolvePermit: () => {
           resolutions += 1;
