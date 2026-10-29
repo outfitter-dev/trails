@@ -9,7 +9,7 @@ import {
   trailIdToExportName,
   trailIdToModuleName,
 } from '../project-writes.js';
-import { writeResourceScaffoldFiles } from '../resource-scaffold-files.js';
+import { writeNewProjectFiles } from '../new-project-files.js';
 
 const idMessage =
   'Resource scaffold IDs must use lowercase dotted segments, optionally prefixed with "_draft."; each segment starts with a letter and contains only letters or digits.';
@@ -93,7 +93,7 @@ export const addResource = trail('add.resource', {
       [`src/resources/${module}.ts`, generateResource(id, description)],
       [`__tests__/${module}.test.ts`, generateTests(id)],
     ]);
-    const written = writeResourceScaffoldFiles(resolve(ctx.cwd ?? '.'), files);
+    const written = writeNewProjectFiles(resolve(ctx.cwd ?? '.'), files);
     if (written.isErr()) {
       return written;
     }

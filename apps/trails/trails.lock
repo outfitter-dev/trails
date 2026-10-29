@@ -6,7 +6,7 @@
     "entities": 0,
     "resources": 0,
     "signals": 0,
-    "trails": 72
+    "trails": 73
   },
   "topoGraph": {
     "activationGraph": {
@@ -282,6 +282,66 @@
             },
             "id": {
               "description": "Resource scaffold ID (e.g. db.main); lowercase dotted segments with optional _draft. prefix",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "id"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "created": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "created"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "project:write"
+          ]
+        },
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "add",
+            "signal"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "add",
+                "signal"
+              ],
+              "source": "derived",
+              "target": "add.signal"
+            }
+          ]
+        },
+        "description": "Scaffold a typed signal declaration with payload tests",
+        "exampleCount": 0,
+        "id": "add.signal",
+        "input": {
+          "properties": {
+            "description": {
+              "description": "Signal description",
+              "type": "string"
+            },
+            "id": {
+              "description": "Signal scaffold ID (e.g. entity.updated); lowercase dotted segments with optional _draft. prefix",
               "type": "string"
             }
           },
@@ -27194,6 +27254,45 @@
           "trailId": "add.resource"
         },
         {
+          "description": "Scaffold a typed signal declaration with payload tests",
+          "exportName": "addSignal",
+          "input": {
+            "properties": {
+              "description": {
+                "description": "Signal description",
+                "type": "string"
+              },
+              "id": {
+                "description": "Signal scaffold ID (e.g. entity.updated); lowercase dotted segments with optional _draft. prefix",
+                "type": "string"
+              }
+            },
+            "required": [
+              "description",
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "created": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "created"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "add.signal"
+        },
+        {
           "description": "Add a surface to an existing project",
           "exportName": "addSurface",
           "input": {
@@ -43266,6 +43365,6 @@
       }
     ]
   },
-  "topoGraphHash": "3dc5390c40397069ca31786743817ba01dc8be14c4d5bc437dc718539393506b",
+  "topoGraphHash": "4f39ef2a82f68da91d099aa3571c174b8df07eae59d09f42130874fc2430cda3",
   "version": 5
 }

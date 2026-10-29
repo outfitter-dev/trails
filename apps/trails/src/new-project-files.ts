@@ -8,7 +8,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, relative } from 'node:path';
 
 import {
   ConflictError,
@@ -19,12 +19,39 @@ import {
 
 import { resolveProjectPath } from './project-writes.js';
 
-const preflightResourceFiles = (
+const plannedParents = (
+  cwd: string,
+  files: ReadonlyMap<string, string>
+): Result<readonly string[], Error> => {
+  const parents = new Set<string>();
+  for (const name of files.keys()) {
+    const path = resolveProjectPath(cwd, name);
+    if (path.isErr()) {
+      return path;
+    }
+    const chain: string[] = [];
+    let parent = dirname(relative(cwd, path.value));
+    while (parent !== '.') {
+      chain.push(parent);
+      parent = dirname(parent);
+    }
+    for (const item of chain.toReversed()) {
+      parents.add(item);
+    }
+  }
+  return Result.ok([...parents]);
+};
+
+const preflightNewFiles = (
   cwd: string,
   files: ReadonlyMap<string, string>
 ): Result<Map<string, string>, Error> => {
   try {
-    for (const parent of ['src', 'src/resources', '__tests__']) {
+    const parents = plannedParents(cwd, files);
+    if (parents.isErr()) {
+      return parents;
+    }
+    for (const parent of parents.value) {
       const path = resolveProjectPath(cwd, parent);
       if (path.isErr()) {
         return path;
@@ -33,15 +60,13 @@ const preflightResourceFiles = (
       if (entry?.isSymbolicLink()) {
         return Result.err(
           new ValidationError(
-            `Resource scaffold parent "${parent}" must not be a symbolic link.`
+            `Scaffold parent "${parent}" must not be a symbolic link.`
           )
         );
       }
       if (entry !== undefined && !entry.isDirectory()) {
         return Result.err(
-          new ConflictError(
-            `Resource scaffold parent "${parent}" is not a directory.`
-          )
+          new ConflictError(`Scaffold parent "${parent}" is not a directory.`)
         );
       }
     }
@@ -53,7 +78,7 @@ const preflightResourceFiles = (
       }
       if (lstatSync(path.value, { throwIfNoEntry: false }) !== undefined) {
         return Result.err(
-          new ConflictError(`Resource scaffold file "${name}" already exists.`)
+          new ConflictError(`Scaffold file "${name}" already exists.`)
         );
       }
       targets.set(path.value, content);
@@ -61,7 +86,7 @@ const preflightResourceFiles = (
     return Result.ok(targets);
   } catch (error) {
     return Result.err(
-      new InternalError('Failed to inspect resource scaffold paths.', {
+      new InternalError('Failed to inspect scaffold paths.', {
         cause: error instanceof Error ? error : new Error(String(error)),
       })
     );
@@ -69,11 +94,11 @@ const preflightResourceFiles = (
 };
 
 /**
- * Unlike independent writes in project-writes.ts:95, this resource pair must
+ * Unlike independent writes in project-writes.ts:95, these planned files must
  * create exclusively and remove only invocation-owned files on failure.
  * Path and identity checks are best-effort; they are not filesystem transactions.
  */
-const writeResourceFiles = (
+const writeNewFiles = (
   files: ReadonlyMap<string, string>
 ): Result<void, Error> => {
   const owned: { path: string; dev: number; ino: number }[] = [];
@@ -109,7 +134,7 @@ const writeResourceFiles = (
     if (remaining.length > 0) {
       return Result.err(
         new InternalError(
-          'Resource scaffold failed and some created files could not be removed.',
+          'Scaffold failed and some created files could not be removed.',
           {
             cause: error instanceof Error ? error : new Error(String(error)),
             context: { remaining },
@@ -119,22 +144,21 @@ const writeResourceFiles = (
     }
     return Result.err(
       error instanceof Error && 'code' in error && error.code === 'EEXIST'
-        ? new ConflictError(
-            'A resource scaffold target appeared during creation.',
-            { cause: error }
-          )
-        : new InternalError('Failed to create resource scaffold files.', {
+        ? new ConflictError('A scaffold target appeared during creation.', {
+            cause: error,
+          })
+        : new InternalError('Failed to create scaffold files.', {
             cause: error instanceof Error ? error : new Error(String(error)),
           })
     );
   }
 };
 
-/** Create the resource definition/test pair with preflight, exclusive creation, and bounded rollback. */
-export const writeResourceScaffoldFiles = (
+/** Create the planned file set with preflight, exclusive creation, and bounded rollback. */
+export const writeNewProjectFiles = (
   cwd: string,
   files: ReadonlyMap<string, string>
 ): Result<void, Error> => {
-  const targets = preflightResourceFiles(cwd, files);
-  return targets.isErr() ? targets : writeResourceFiles(targets.value);
+  const targets = preflightNewFiles(cwd, files);
+  return targets.isErr() ? targets : writeNewFiles(targets.value);
 };
