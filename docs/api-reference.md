@@ -275,6 +275,19 @@ RpcWebSocketOptions, SurfaceRpcWebSocketOptions, SurfaceRpcWebSocketResult
 RpcWebSocketHost, RpcSocketData, ResolveRpcPermit, ResolveRpcPermitInput, RpcCloseCode
 ```
 
+### `@ontrails/rpc/testing`
+
+```typescript
+createRpcConformanceCases()           // cases with name/check; every RPC host runs them
+runRpcConformance(host, cases?)       // registers the cases as a bun:test suite
+createRpcConformanceTopo()            // the topo the cases run against
+
+RpcConformanceHost, RpcConformanceServer, RpcConformanceConnection
+RpcConformanceHostOptions, RpcConformanceConnectInit, RpcConformanceCase
+```
+
+The testing entrypoint uses Bun's test runner.
+
 ## `@ontrails/http`
 
 ```typescript

@@ -18,6 +18,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./testing": "./src/testing.ts",
     "./websocket": "./src/websocket.ts",
     "./package.json": "./package.json"
   },

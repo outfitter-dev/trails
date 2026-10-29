@@ -63,3 +63,7 @@ Close codes cover connection-level failures only; trail failures stay JSON-RPC e
 | 1013 | Buffered outbound bytes past `backpressureHardLimitBytes` (default 16 MiB) |
 
 `close()` on the surface result drains every socket and waits (up to one second by default) for the close handshakes before stopping the server, so clients receive `trails.draining` and 1001 rather than an abnormal close. `resolvePermit` runs for every upgrade: answer `null` for credential absence so anonymous clients keep public trails, and return an error only for a presented credential that fails verification. Progress notifications are pushed through the socket; subscriptions, `trails.auth` refresh and the soft backpressure threshold wait for the durable subscription work.
+
+## Conformance
+
+`@ontrails/rpc/testing` exports `createRpcConformanceCases()` and `runRpcConformance(host)`, mirroring the HTTP adapter conformance precedent. A host implements `RpcConformanceHost` (start a server for a topo, open a connection, drain, close) and every host runs the same cases: trail invocation with the same error facts as HTTP, batches and the reserved `rpc.` prefix, permit-scoped discovery, identity before upgrade, cancel, progress, the close-code map, reserved-prefix rejection, and in-flight recovery. The Bun WebSocket host runs the suite in this package; the Cloudflare host imports the same cases without Bun-specific assumptions. Subscription cases extend the suite when durable subscriptions land.
