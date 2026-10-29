@@ -1,5 +1,7 @@
 # MCP Surface
 
+<!-- fix ::: Qualify every-trail tool claims: surface-filter.ts filters internal and activation trails, and trailhead groups can gather several eligible trails into one tool. #stale -->
+
 The MCP surface adapter turns every trail into an MCP tool. Annotations are auto-derived from trail intent, idempotency, and description. Progress callbacks bridge to MCP notifications. One `surface()` call starts a server.
 
 ## Setup
@@ -168,6 +170,8 @@ const annotations = deriveAnnotations(showTrail);
 // { readOnlyHint: true, title: "Show entity details" }
 ```
 
+<!-- fix ::: Explain that trail intent defaults to write and title/idempotent annotations are added independently; omitted authored intent does not guarantee empty annotations. #stale -->
+
 Trails without intent produce empty annotations (MCP SDK defaults apply).
 
 ## Result Mapping
@@ -265,6 +269,8 @@ Do not document or expose deferred Wayfinder ideas as if they exist. V0 has no s
 Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Trailhead Field Notes](surface-trailhead-field-notes.md). Read it before generalizing trailhead behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.
 
 ## Server Configuration
+
+<!-- fix ::: Remove the unsupported transport option from this example; CreateServerOptions has no transport field and surface connects stdio directly. #bug -->
 
 ```typescript
 await surface(graph, {

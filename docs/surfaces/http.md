@@ -373,6 +373,8 @@ const longTask = trail('report.generate', {
 
 ## Example: Full HTTP Entry Point
 
+<!-- fix ::: Replace createTrailContext({ store }) with a declared resource and surface resources override; TrailContextInit has no store field. #bug -->
+
 ```typescript
 import { createTrailContext } from '@ontrails/core';
 import { surface } from '@ontrails/hono';

@@ -40,6 +40,8 @@ Trailheads have two authoring channels that share one implementation:
 
 ### Overlay Default
 
+<!-- fix ::: Export trailsOverlays from the app module and import it at the surface; resolveTrailsOverlays reads that exact export, so this surface-local appOverlays declaration is invisible to compile. #bug -->
+
 ```typescript
 import { surfaceOverlay } from '@ontrails/core';
 import { surface } from '@ontrails/mcp';
@@ -129,6 +131,8 @@ That envelope is intentional. A trailhead can contain trails with different outp
 Trail visibility remains authoritative. A trailhead may narrow the rendering, but it cannot make an internal trail public. If a public trailhead selector matches an internal trail, runtime rendering omits that internal member.
 
 Trailhead selector overlap is treated as drift. Narrow the selectors instead of adding an escape hatch. The rejected shape is `overlapsWith`; it would let a map silence ambiguity without clarifying ownership.
+
+<!-- fix ::: Include descriptionStableThrough review metadata with visibilityWideningAccepted; surface-trailhead-coherence requires both. #drift -->
 
 When a trailhead intentionally spans visibility tiers, record the acknowledgement:
 

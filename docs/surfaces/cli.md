@@ -1,5 +1,7 @@
 # CLI Surface
 
+<!-- fix ::: Qualify both every-trail claims below: surface-filter.ts excludes internal trails by default and filters activation trails. #stale -->
+
 The CLI surface adapter turns every trail into a command. Flags are derived from faithfully representable Zod schema fields, and structured JSON channels are available when the input shape is richer than flags can express honestly. Output formatting, error handling, and exit codes are handled automatically.
 
 ## Setup
