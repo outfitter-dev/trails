@@ -247,6 +247,23 @@ McpFetchHandler
 
 See [MCP Over HTTP](surfaces/mcp-http.md) for validation and remaining auth and client follow-ups.
 
+## `@ontrails/rpc`
+
+Host-agnostic JSON-RPC 2.0 kernel. Trail ids are method names, `params` is the trail input, and failures carry core's JSON-RPC codes with `data.category`, `data.retryable`, `data.name`. See the [RPC Guide](../packages/rpc/README.md).
+
+```typescript
+deriveRpcMethods(graph, options?)      // derivation: Result-returning method and channel table
+createRpcHandler(graph, options?)      // kernel: createState, admit, run, handle, recover
+parseJsonRpcFrame(text)                // one frame → validated requests or a single error response
+isReservedRpcMethod(method)            // trails.* and rpc.* are never trail ids
+RPC_SUBPROTOCOL                        // 'trails.v1'
+
+DeriveRpcMethodsOptions, CreateRpcHandlerOptions, RpcMethodTable, RpcTrailMethod
+RpcHandler, RpcConnectionState, RpcAdmission, RpcAdmittedWork, RpcStepResult, RpcEffect
+RpcDiscoverResult, RpcHostCapabilities
+JsonRpcRequest, JsonRpcResponse, JsonRpcFrame, JsonRpcId
+```
+
 ## `@ontrails/http`
 
 ```typescript
