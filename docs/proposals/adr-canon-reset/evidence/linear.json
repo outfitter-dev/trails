@@ -1,0 +1,125 @@
+{
+  "capturedOn": "2026-10-29",
+  "note": "Curated discovery metadata; substantive interpretations are in outline.md and history.md. Not a full issue export or current status claim.",
+  "issues": [
+    {
+      "id": "TRL-1166",
+      "title": "Draft ADR: RPC surface hosted on WebSocket (`@ontrails/rpc`, JSON-RPC 2.0, `trails.v1`)",
+      "url": "https://linear.app/outfitter/issue/TRL-1166/draft-adr-rpc-surface-hosted-on-websocket-ontrailsrpc-json-rpc-20",
+      "status": "In Progress",
+      "updatedAt": "2026-10-28T22:35:48.327Z"
+    },
+    {
+      "id": "TRL-1338",
+      "title": "ADR: Skills are a served guidance surface (SEP-2640 binding for `skill://`)",
+      "url": "https://linear.app/outfitter/issue/TRL-1338/adr-skills-are-a-served-guidance-surface-sep-2640-binding-for-skill",
+      "status": "In Progress",
+      "updatedAt": "2026-10-29T00:00:29.411Z"
+    },
+    {
+      "id": "TRL-1424",
+      "title": "Draft ADR: merge-friendly trails.lock schema v6 (per-entry hashes, derived aggregates, tombstones)",
+      "url": "https://linear.app/outfitter/issue/TRL-1424/draft-adr-merge-friendly-trailslock-schema-v6-per-entry-hashes-derived",
+      "status": "Done",
+      "updatedAt": "2026-10-29T03:04:16.293Z"
+    },
+    {
+      "id": "TRL-1429",
+      "title": "ADR: Permits as an OAuth resource server (amends ADR-0012)",
+      "url": "https://linear.app/outfitter/issue/TRL-1429/adr-permits-as-an-oauth-resource-server-amends-adr-0012",
+      "status": "In Progress",
+      "updatedAt": "2026-10-28T22:24:33.133Z"
+    },
+    {
+      "id": "TRL-1432",
+      "title": "ADR: Auth adapter packaging (provider adapters as their own packages)",
+      "url": "https://linear.app/outfitter/issue/TRL-1432/adr-auth-adapter-packaging-provider-adapters-as-their-own-packages",
+      "status": "In Progress",
+      "updatedAt": "2026-10-28T21:51:25.987Z"
+    },
+    {
+      "id": "TRL-1438",
+      "title": "ADR: Deploy derives from the topo (accept, and amend ADR-0000's out-of-scope line)",
+      "url": "https://linear.app/outfitter/issue/TRL-1438/adr-deploy-derives-from-the-topo-accept-and-amend-adr-0000s-out-of",
+      "status": "In Progress",
+      "updatedAt": "2026-10-28T20:52:17.713Z"
+    },
+    {
+      "id": "TRL-1496",
+      "title": "ADR: CLI credentials and app login (amends ADR-0012's bearer-only stance)",
+      "url": "https://linear.app/outfitter/issue/TRL-1496/adr-cli-credentials-and-app-login-amends-adr-0012s-bearer-only-stance",
+      "status": "In Progress",
+      "updatedAt": "2026-10-28T22:35:50.572Z"
+    },
+    {
+      "id": "TRL-1497",
+      "title": "ADR: Durable subscriptions over signals (at-least-once with replay)",
+      "url": "https://linear.app/outfitter/issue/TRL-1497/adr-durable-subscriptions-over-signals-at-least-once-with-replay",
+      "status": "In Progress",
+      "updatedAt": "2026-10-29T17:29:44.885Z"
+    },
+    {
+      "id": "TRL-884",
+      "title": "Make trail typing schema-owned across caller and blaze entry points",
+      "url": "https://linear.app/outfitter/issue/TRL-884/make-trail-typing-schema-owned-across-caller-and-blaze-entry-points",
+      "status": "Done",
+      "updatedAt": "2026-06-03T21:20:35.529Z"
+    },
+    {
+      "id": "TRL-983",
+      "title": "Define the v1 ADR reset mechanics",
+      "url": "https://linear.app/outfitter/issue/TRL-983/define-the-v1-adr-reset-mechanics",
+      "status": "Done",
+      "updatedAt": "2026-10-28T22:19:51.395Z"
+    },
+    {
+      "id": "TRL-985",
+      "title": "Seed the new active ADR canon with the reset ADR",
+      "url": "https://linear.app/outfitter/issue/TRL-985/seed-the-new-active-adr-canon-with-the-reset-adr",
+      "status": "Backlog",
+      "updatedAt": "2026-10-28T17:03:17.721Z"
+    },
+    {
+      "id": "TRL-987",
+      "title": "Author the v1 core premise ADR",
+      "url": "https://linear.app/outfitter/issue/TRL-987/author-the-v1-core-premise-adr",
+      "status": "Backlog",
+      "updatedAt": "2026-10-28T17:03:16.365Z"
+    },
+    {
+      "id": "TRL-988",
+      "title": "Author the v1 language and naming ADR",
+      "url": "https://linear.app/outfitter/issue/TRL-988/author-the-v1-language-and-naming-adr",
+      "status": "Backlog",
+      "updatedAt": "2026-10-28T17:03:14.460Z"
+    },
+    {
+      "id": "TRL-989",
+      "title": "Author the v1 surface rendering ADR",
+      "url": "https://linear.app/outfitter/issue/TRL-989/author-the-v1-surface-rendering-adr",
+      "status": "Backlog",
+      "updatedAt": "2026-10-28T17:03:07.818Z"
+    },
+    {
+      "id": "TRL-993",
+      "title": "Run fresh-agent readthrough and merge-readiness gate for the ADR reset",
+      "url": "https://linear.app/outfitter/issue/TRL-993/run-fresh-agent-readthrough-and-merge-readiness-gate-for-the-adr-reset",
+      "status": "Backlog",
+      "updatedAt": "2026-10-28T17:03:26.734Z"
+    },
+    {
+      "id": "TRL-994",
+      "title": "Prepare the ADR reset implementation packet before worktree execution",
+      "url": "https://linear.app/outfitter/issue/TRL-994/prepare-the-adr-reset-implementation-packet-before-worktree-execution",
+      "status": "Done",
+      "updatedAt": "2026-10-28T21:45:36.061Z"
+    },
+    {
+      "id": "TRL-995",
+      "title": "Refactor outstanding ADR drafts into the v1 draft layer",
+      "url": "https://linear.app/outfitter/issue/TRL-995/refactor-outstanding-adr-drafts-into-the-v1-draft-layer",
+      "status": "Backlog",
+      "updatedAt": "2026-10-28T17:02:57.662Z"
+    }
+  ]
+}

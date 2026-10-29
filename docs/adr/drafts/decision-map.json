@@ -3,7 +3,13 @@
     {
       "created": "2026-03-31",
       "depends_on": ["17"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260331-direct-invocation.md](../../../docs/adr/drafts/20260331-direct-invocation.md) | N06, N17 | absorb-active-canon, replace-with-thinner-draft | Fold verified full-pipeline invocation; retain ",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260331-direct-invocation.md",
@@ -16,7 +22,13 @@
     {
       "created": "2026-03-31",
       "depends_on": ["packs-namespace-boundaries"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260331-external-trailheads-as-trails.md](../../../docs/adr/drafts/20260331-external-trailheads-as-trails.md) | Future/policy only | keep-active-future-draft | Rewrite rig/external integration fac",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260331-external-trailheads-as-trails.md",
@@ -29,7 +41,13 @@
     {
       "created": "2026-03-31",
       "depends_on": ["packs-namespace-boundaries"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260331-pack-resources.md](../../../docs/adr/drafts/20260331-pack-resources.md) | Future/policy only | keep-active-future-draft | TRL-995 retains this as a future draft depending on rewritten pack",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260331-pack-resources.md",
@@ -57,6 +75,11 @@
           "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
+        },
+        {
+          "context": "| [20260331-packs-namespace-boundaries.md](../../../docs/adr/drafts/20260331-packs-namespace-boundaries.md) | Future/policy only | keep-active-future-draft | TRL-995 keeps pack as an intentional worki",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": null,
@@ -76,6 +99,11 @@
           "context": "- [ADR: WebSocket Trailhead](drafts/20260331-websocket-trailhead.md) (draft) -",
           "from": "0038",
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
+          "context": "| [20260331-websocket-trailhead.md](../../../docs/adr/drafts/20260331-websocket-trailhead.md) | Future/policy only | keep-active-future-draft | TRL-1166 replaces custom envelope/process-local replay w",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": null,
@@ -90,7 +118,13 @@
     {
       "created": "2026-04-01",
       "depends_on": ["16", "9"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260401-declarative-search.md](../../../docs/adr/drafts/20260401-declarative-search.md) | Future/policy only | keep-active-future-draft | Keep search proposal; refresh store/role/adapter boundarie",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260401-declarative-search.md",
@@ -103,7 +137,13 @@
     {
       "created": "2026-04-06",
       "depends_on": ["documentation-structure"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260406-documentation-freshness.md](../../../docs/adr/drafts/20260406-documentation-freshness.md) | Future/policy only | keep-active-future-draft | TRL-995 reframes this as documentation-as-a-serv",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260406-documentation-freshness.md",
@@ -121,6 +161,11 @@
           "context": "- docs/adr/drafts/20260406-documentation-structure.md",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
+        },
+        {
+          "context": "| [20260406-documentation-structure.md](../../../docs/adr/drafts/20260406-documentation-structure.md) | Future/policy only | needs-decision | Preserve enough for a docs-structure baseline ADR or issue",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": null,
@@ -166,6 +211,11 @@
           "context": "- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for pack and connector resources; packs distribute bundles",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
+        },
+        {
+          "context": "| [20260409-resource-bundles.md](../../../docs/adr/drafts/20260409-resource-bundles.md) | N07 | replace-with-thinner-draft | Keep a future grouped resource defaults/overrides stub per TRL-995. Factory",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": null,
@@ -187,6 +237,11 @@
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
         {
+          "context": "| [20260503-wayfinding.md](../../../docs/adr/drafts/20260503-wayfinding.md) | N14 | absorb-active-canon | Current Wayfinder ownership/query model feeds N14; speculative residue stays explicit, old dra",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        },
+        {
           "context": "| `survey` | **keep the standing ruling** | This does not preserve `survey` as a peer command. The standing decision remains that its useful live-introspection behavior moves under Wayfinder and the t",
           "from": "v1-vocabulary-reset",
           "fromPath": "docs/releases/v1-vocabulary-reset.md"
@@ -204,7 +259,13 @@
     {
       "created": "2026-05-24",
       "depends_on": ["10", "47", "48", "52", "54"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260524-scaffold-forward-compatibility.md](../../../docs/adr/drafts/20260524-scaffold-forward-compatibility.md) | N16, N24 | absorb-active-canon, replace-with-thinner-draft | Carry verified pin/pr",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md",
@@ -217,7 +278,13 @@
     {
       "created": "2026-05-28",
       "depends_on": ["29"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260528-adapter-authoring-as-a-paved-path.md](../../../docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md) | N13, N23 | absorb-active-canon, keep-active-future-draft | Owner-export/conf",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md",
@@ -230,7 +297,13 @@
     {
       "created": "2026-05-30",
       "depends_on": ["0", "7", "36", "37", "43"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260530-fixes-are-warden-diagnostic-metadata.md](../../../docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md) | N19, N22 | absorb-active-canon | Current Warden fix metadata and Regra",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md",
@@ -243,7 +316,13 @@
     {
       "created": "2026-06-03",
       "depends_on": ["0", "6", "20", "24", "48"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260603-one-schema-trail-input.md](../../../docs/adr/drafts/20260603-one-schema-trail-input.md) | N04 | absorb-active-canon | TRL-884 Done plus 851a2a3cb/current source support schema-owned caller",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260603-one-schema-trail-input.md",
@@ -261,6 +340,11 @@
           "context": "- [Surface Trailheads draft](20260603-surface-trailheads-shape-dense-topos.md)",
           "from": "20260613",
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        },
+        {
+          "context": "| [20260603-surface-trailheads-shape-dense-topos.md](../../../docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md) | N17 | absorb-active-canon | Preserve identity/visibility; retire stand",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
         }
       ],
       "number": null,
@@ -275,7 +359,13 @@
     {
       "created": "2026-06-08",
       "depends_on": ["47", "48"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260608-release-provenance-as-lifecycle-derivation.md](../../../docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md) | N24 | absorb-active-canon | Facts/rules/intent/output dist",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md",
@@ -288,7 +378,13 @@
     {
       "created": "2026-06-13",
       "depends_on": ["0", "6", "8", "9", "26", "46"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260612-library-surface-and-compiler.md](../../../docs/adr/drafts/20260612-library-surface-and-compiler.md) | N17 | absorb-active-canon, replace-with-thinner-draft | Runtime library surface and sh",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260612-library-surface-and-compiler.md",
@@ -301,7 +397,13 @@
     {
       "created": "2026-06-12",
       "depends_on": ["0", "26"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260612-verdicts-run-on-stable-ground.md](../../../docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md) | N05, N19 | absorb-active-canon, replace-with-thinner-draft | shift error and repo tr",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md",
@@ -314,7 +416,13 @@
     {
       "created": "2026-06-13",
       "depends_on": ["8", "19", "35", "47", "50"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260613-cli-command-routes.md](../../../docs/adr/drafts/20260613-cli-command-routes.md) | N17 | absorb-active-canon | Same-contract route normalization survives; current overlay carrier replaces p",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260613-cli-command-routes.md",
@@ -327,7 +435,13 @@
     {
       "created": "2026-08-29",
       "depends_on": ["27", "35", "42", "50", "52", "wayfinding"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20260829-wayfinder-mcp-graph-as-resources.md](../../../docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md) | N14, N25 | keep-active-future-draft | Shared query ownership feeds canon; MCP ",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md",
@@ -340,7 +454,13 @@
     {
       "created": "2026-10-28",
       "depends_on": ["17", "46", "52", "54"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "| [20261028-merge-friendly-lock-v6.md](../../../docs/adr/drafts/20261028-merge-friendly-lock-v6.md) | Future/policy only | keep-active-future-draft | TRL-1424 Done for drafting only; retain lossless s",
+          "from": "coverage",
+          "fromPath": "docs/proposals/adr-canon-reset/coverage.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md",

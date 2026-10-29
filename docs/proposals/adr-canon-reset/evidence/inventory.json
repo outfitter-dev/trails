@@ -1,0 +1,546 @@
+{
+  "baseline": "3cb861758b897562c7e32d9ad01a6d6f217d780d",
+  "resetCutoff": null,
+  "capturedAt": "2026-10-29T18:41:48.927111+00:00",
+  "records": [
+    {
+      "path": "docs/adr/0000-core-premise.md",
+      "title": "ADR-0000: Core Premise \u2014 Contract-First, Surface-Agnostic Design",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "ba04d54431f030eddaeff81e1b3e23da0fbd33369b686eabb19f5159dbc35a92"
+    },
+    {
+      "path": "docs/adr/0001-naming-conventions.md",
+      "title": "ADR-0001: Naming Conventions \u2014 Guessable API Through Structural Rules",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "de6adf7e6bebabc507cc791e86e26c91a8c8aa3a6ecc1189dcb904ac1c64a83c"
+    },
+    {
+      "path": "docs/adr/0002-built-in-result-type.md",
+      "title": "ADR-0002: Built-In Result Type",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "d48089d6fd224c5b3a112a995e395c510f339cc5c4b3c800aa12318bfdf0fc02"
+    },
+    {
+      "path": "docs/adr/0003-unified-trail-primitive.md",
+      "title": "ADR-0003: Unified Trail Primitive",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "84b5e8a86be0ee183a21a0a9cb94cc2e59322349b50d37acf0729b5e07a73852"
+    },
+    {
+      "path": "docs/adr/0004-intent-as-first-class-property.md",
+      "title": "ADR-0004: Intent as a First-Class Property",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "abff99d85b0db38dd3161ec275f5bb30a7d9fa9f5f77af810efae8a739869e7a"
+    },
+    {
+      "path": "docs/adr/0005-framework-agnostic-http-route-model.md",
+      "title": "ADR-0005: Framework-Agnostic HTTP Route Model",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "efe2dede408627aa39a70d185dc97e7224ae3518dfe1a22add7045eb4fb8c6a9"
+    },
+    {
+      "path": "docs/adr/0006-shared-execution-pipeline.md",
+      "title": "ADR-0006: Shared Execution Pipeline with Result-Returning Builders",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "7d78e5d78ba81e68ca7635f28b5182b90a40480be47f76173c84fc52963673c5"
+    },
+    {
+      "path": "docs/adr/0007-governance-as-trails.md",
+      "title": "ADR-0007: Governance as Trails with AST-Based Analysis",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "a6dbfd2fff3b504fd837d59a36a7ad597260e082f9f040eb6a762118af459937"
+    },
+    {
+      "path": "docs/adr/0008-deterministic-trailhead-derivation.md",
+      "title": "ADR-0008: Deterministic Surface Derivation",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "886e1cf8bbe348ddacf6a4b70ba45dfe75dda3a7bafaba069d8468a2cd2b3b25"
+    },
+    {
+      "path": "docs/adr/0009-first-class-resources.md",
+      "title": "ADR-0009: First-Class Resources",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "4197384e3f99959ac1ec31a3b071110c70ff329a01f94f3d63aa4025d9d1e168"
+    },
+    {
+      "path": "docs/adr/0010-native-infrastructure.md",
+      "title": "ADR-0010: Trails-Native Infrastructure Pattern",
+      "status": "partially-superseded",
+      "kind": "numbered",
+      "sha256": "7b9c0a0ead01ab227f3e52c1e4c55f1a8e26a42d645d89db63fe52d8f5728486"
+    },
+    {
+      "path": "docs/adr/0011-schema-driven-config.md",
+      "title": "ADR-0011: Schema-Driven Config",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "ec61a56c12e9a052bd79e16aa4fa4b8ed06f6c54e3873d005284c731ba8da9f6"
+    },
+    {
+      "path": "docs/adr/0012-connector-agnostic-permits.md",
+      "title": "ADR-0012: Adapter-Agnostic Permits",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "b22b775e432c515de520d0284a8a2b3e26c9ae2c8bc163cc3c2798b4a4f82c68"
+    },
+    {
+      "path": "docs/adr/0013-tracing.md",
+      "title": "ADR-0013: Tracing \u2014 Runtime Recording Primitive",
+      "status": "partially-superseded",
+      "kind": "numbered",
+      "sha256": "973d55b4c152b87393f9aef87a669a5a6ff3864ae17fd78e7f9647fc85432d21"
+    },
+    {
+      "path": "docs/adr/0014-core-database-primitive.md",
+      "title": "ADR-0014: Core Database Primitive",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "094ff272702684e1f033d2e96e1c355a6f3069b8e72a07e1b601af995bae8b9d"
+    },
+    {
+      "path": "docs/adr/0015-topo-store.md",
+      "title": "ADR-0015: Topo Store",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "b094f273011770e0f1dbd35993a27c11f82f7d0e3b4bb8c4d3e24f86bbc881de"
+    },
+    {
+      "path": "docs/adr/0016-schema-derived-persistence.md",
+      "title": "ADR-0016: Schema-Derived Persistence",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "2bf898dee7902be275b03c1eca0a2178b9b00c7c5577721036b2e2a271905116"
+    },
+    {
+      "path": "docs/adr/0017-serialized-topo-graph.md",
+      "title": "ADR-0017: The Serialized Topo Graph",
+      "status": "partially-superseded",
+      "kind": "numbered",
+      "sha256": "9e29d52d3f58e4118dcd6076df9bf8c8601ec34b63b3662a2599e44f97c6781a"
+    },
+    {
+      "path": "docs/adr/0018-signal-driven-governance.md",
+      "title": "ADR-0018: Signal-Driven Governance",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "d54802e3c005ba0d5fac516aea5a97cc948e76838c75e17f7a8baa40d3fc14c3"
+    },
+    {
+      "path": "docs/adr/0019-hierarchical-command-trees-from-trail-ids.md",
+      "title": "ADR-0019: Hierarchical Command Trees from Trail IDs",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "2e5cb4f9e802df78ea7c4fc45f05a16232d36af716d6408eb10dfc4019ab55c4"
+    },
+    {
+      "path": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md",
+      "title": "ADR-0020: Flags for Fields, Structured Input on the CLI",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "4dacedc105ead8434725eb90ba8892f2bb673cd4d46694313b4137510090ba49"
+    },
+    {
+      "path": "docs/adr/0021-draft-state-stays-out-of-the-resolved-graph.md",
+      "title": "ADR-0021: Draft State Stays Out of the Resolved Graph",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "1fb3500ab65a69b701f23c1773d76d527006cbc6474cc1021c3e07b8b7df3c35"
+    },
+    {
+      "path": "docs/adr/0022-drizzle-store-connector.md",
+      "title": "ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "ecde89a6339cfaa9e99aed6d2d59874bc03466839d63dfb83097fdbea176e576"
+    },
+    {
+      "path": "docs/adr/0023-simplifying-the-trails-lexicon.md",
+      "title": "ADR-0023: Simplifying the Trails Lexicon",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "2b96c186e7095a488f4120aa94f4b6a35223c7c970573e7cd2bb6baf4b98b7f1"
+    },
+    {
+      "path": "docs/adr/0024-typed-trail-composition.md",
+      "title": "ADR-0024: Typed Trail Composition",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "d74892a6c3b111fdfdbd18435cceb389c1f16b2a1c2852bf04b2503fd9d67fc0"
+    },
+    {
+      "path": "docs/adr/0025-composition-testing.md",
+      "title": "ADR-0025: Composition Testing",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "f446cb52e3fb3916daf6bae608dd21f88c0b8c2e0115678d6ec30d429a23b50d"
+    },
+    {
+      "path": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md",
+      "title": "ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "1c50d6461f661d111ff0fce0d69b1e7ba1d08642a52ac65ff4daa5caf1f81ddf"
+    },
+    {
+      "path": "docs/adr/0027-visibility-and-filtering.md",
+      "title": "ADR-0027: Trail Visibility and Surface Filtering",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "741cd4da9a43bc7ffd2bf06b5a1593487661517d0b221dbb3cfb72bcc76dcb1b"
+    },
+    {
+      "path": "docs/adr/0028-concurrent-crossing.md",
+      "title": "ADR-0028: Concurrent Trail Composition",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "32fd7a53be540c40baa5bc0cfa285e4c64bc08bcc37556aa1cedbd3dadf2f712"
+    },
+    {
+      "path": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md",
+      "title": "ADR-0029: Adapter Extraction and Composition Around Core Contracts",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "722943c3e112fae7dbfa423c1dc6cf492aa4ca803eef12069b17f712d067f378"
+    },
+    {
+      "path": "docs/adr/0030-contours-as-first-class-domain-objects.md",
+      "title": "ADR-0030: Contours as First-Class Domain Objects",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "4bb9f0503f55cb642c48310c2e180da6ff6788f4bd6d5173022b0ac10780c481"
+    },
+    {
+      "path": "docs/adr/0031-backend-agnostic-store-schemas.md",
+      "title": "ADR-0031: Backend-Agnostic Store Schemas",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "a3f4c36160cb2441d626d9546ec6dc1a6527921e7e8e305d6270ae3f87917c63"
+    },
+    {
+      "path": "docs/adr/0032-derivetrail-and-trail-factories.md",
+      "title": "ADR-0032: deriveTrail() and Trail Factories",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "5836f89cbb931ffba40884b6a8be5c88bd7042b21cb2fc81c53786fb74815cba"
+    },
+    {
+      "path": "docs/adr/0033-detour-execution-for-recovery.md",
+      "title": "ADR-0033: Detour Execution for Recovery",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "ed21411fe5114570d6b61b528698a01e77a59fb88342b40bbee1bbf96b642b98"
+    },
+    {
+      "path": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md",
+      "title": "ADR-0034: Store Accessor Contract Refinement: Lessons from Two Backends",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "505f9428663b5472a34102b25deb8b76ff6b9519f8b62ede3500ed83f18ec7ec"
+    },
+    {
+      "path": "docs/adr/0035-surface-apis-render-the-graph.md",
+      "title": "ADR-0035: Surface APIs Render the Graph",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "23912628c16cdbbd56677581e98abfcf31a9baab20713401c606969a972e7458"
+    },
+    {
+      "path": "docs/adr/0036-warden-rules-ship-only-as-trails.md",
+      "title": "ADR-0036: Warden rules ship only as trails",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "12d6cc7405d10e9bda81627fdf5fd05c60a3328c8a3aeda56ffd4f5178737e8e"
+    },
+    {
+      "path": "docs/adr/0037-owner-first-authority.md",
+      "title": "ADR-0037: Owner-First Authority",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "778085f6f01a192da39b08213e4899ebad94f48fc83fb55db9f88621eff852e7"
+    },
+    {
+      "path": "docs/adr/0038-typed-signal-emission.md",
+      "title": "ADR-0038: Typed Signal Emission",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "138f7d314f7e1bcc550983869c52d1a805277ad9baf282a272ebac3556cb2c1b"
+    },
+    {
+      "path": "docs/adr/0039-reactive-trail-activation.md",
+      "title": "ADR-0039: Reactive Trail Activation",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "0fc82674c985f52d1179372d31600da2d8fef886b213748564fea36092f93aec"
+    },
+    {
+      "path": "docs/adr/0040-resource-scoped-store-signal-identity.md",
+      "title": "ADR-0040: Resource-Scoped Store Signal Identity",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "86b7c4104dfdc5364c2181748fe87e0b515dc0a86412fcce6c93e82ac44d5dc2"
+    },
+    {
+      "path": "docs/adr/0041-unified-observability.md",
+      "title": "ADR-0041: Unified Observability",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "5ddd56d559985bc8e6a93d9ac9e9715bdf5ec9807a7000c6939f79d6d2834228"
+    },
+    {
+      "path": "docs/adr/0042-core-topography-boundary-doctrine.md",
+      "title": "ADR-0042: Core/Topography Boundary Doctrine",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "4a09aaabd79eaea681dd2da825fc9a68a0ba64c2cbf7ddf4aef9b327186639b1"
+    },
+    {
+      "path": "docs/adr/0043-layer-evolution.md",
+      "title": "ADR-0043: Layer Evolution",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "f1172c3a8ebd69f81e15596c72d8084b1b5b4b958d65bb487ffc693b72de5fd0"
+    },
+    {
+      "path": "docs/adr/0044-trail-versioning.md",
+      "title": "ADR-0044: Trail Versioning",
+      "status": "superseded",
+      "kind": "numbered",
+      "sha256": "0633171cf541f1e4311ee7aef59ef01b0c51a06768211875f152a16f1d820812"
+    },
+    {
+      "path": "docs/adr/0045-v1-resolved-graph-error-scope.md",
+      "title": "ADR-0045: v1 Resolved Graph Error Scope",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "3cd412e1779609844b2cdb235b272d87d30c29eecfdd531736523ae2a65634f8"
+    },
+    {
+      "path": "docs/adr/0046-lock-v3-artifact-family.md",
+      "title": "ADR-0046: Lock v3 Artifact Family",
+      "status": "superseded",
+      "kind": "numbered",
+      "sha256": "4e849152a940333e57da5717ffed797459534b616e8609b800f99a951a02ec99"
+    },
+    {
+      "path": "docs/adr/0047-stable-release-line-discipline.md",
+      "title": "ADR-0047: Stable Release Line Discipline",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "5efbec6aeb8601f1bb6d6e7b913dd0408b87896b34614cd14fae464c69b682a9"
+    },
+    {
+      "path": "docs/adr/0048-trail-versioning-v3.md",
+      "title": "ADR-0048: Trail Versioning v3",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "4a223816cb3fc929565522e074d261cb96d2f89ca37db664dbc09cc2347a4717"
+    },
+    {
+      "path": "docs/adr/0049-composition-is-compose-not-cross.md",
+      "title": "ADR-0049: Composition is `compose`, not `cross`",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "971892cadf24b9b8212ce4bfb343b68c9f764440ab73eae15a13d527dc0cba1c"
+    },
+    {
+      "path": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md",
+      "title": "ADR-0050: Surface Accommodations Preserve Trail Identity",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "897e2140ad606f2e9db830e2b0173a1ac405197b9846eaf7ca73cda34da5589c"
+    },
+    {
+      "path": "docs/adr/0051-package-ownership-follows-natural-altitude.md",
+      "title": "ADR-0051: Package Ownership Follows Natural Altitude",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "8349c1b06d413092d0432d1f0bbf9f05a26181321e2eee385fe10c89da26273a"
+    },
+    {
+      "path": "docs/adr/0052-overlays-one-extension-mechanism.md",
+      "title": "ADR-0052: Overlays Are the Lock's One Extension Mechanism",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "4b8eccb6d1f5a2c1ef6c5956f570a6ab131335aa7fbec0d89f9f9c1d07802b72"
+    },
+    {
+      "path": "docs/adr/0053-regrade-moves-governed-contract-change.md",
+      "title": "ADR-0053: Regrade Moves Governed Contract Change",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "d29a4c528a33fe86278723e903f1d7fbc82c762e3e4933fbeb57844cbebc02c0"
+    },
+    {
+      "path": "docs/adr/0054-project-substrate-names-its-truth.md",
+      "title": "ADR-0054: Project Substrate Names Its Truth",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "a35b369bd33cf1073d02680893466bf50c60a1cc2257bcc0234555f4e44cc170"
+    },
+    {
+      "path": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md",
+      "title": "ADR-0055: MCP Targets the Stateless Core on SDK v2",
+      "status": "accepted",
+      "kind": "numbered",
+      "sha256": "2fac4ad859bec966f9262bf1539f99a3bd6199897646046e94be0f51240323cf"
+    },
+    {
+      "path": "docs/adr/drafts/20260331-direct-invocation.md",
+      "title": "ADR: Direct Trail Invocation (`trails run`)",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "b34200d996ebc13873f87efc1d5878fc005669a51602e99fcb3f14f9cdab48bd"
+    },
+    {
+      "path": "docs/adr/drafts/20260331-external-trailheads-as-trails.md",
+      "title": "ADR: External Trailheads as Trails",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "e82f3e58773cd71286ecf3bce29739ce740611ef4e6b728b7c126d980e56753d"
+    },
+    {
+      "path": "docs/adr/drafts/20260331-pack-resources.md",
+      "title": "ADR: Pack Resources",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "6014a21e8eddb66e7f6efa43b2ce73aeb415144486ea0fbe7fec5cc662a2a997"
+    },
+    {
+      "path": "docs/adr/drafts/20260331-packs-namespace-boundaries.md",
+      "title": "ADR: Packs as Namespace Boundaries",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "8f963bc80cc48cce8c4685981e0ef6bb627802cf9f15a7722278e98d349cebef"
+    },
+    {
+      "path": "docs/adr/drafts/20260331-websocket-trailhead.md",
+      "title": "ADR: WebSocket Trailhead",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "ce7c4b13a49d201865643752e156d687f6bd8941623d09206791c876d78e76a3"
+    },
+    {
+      "path": "docs/adr/drafts/20260401-declarative-search.md",
+      "title": "ADR: Declarative Search",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "63a885c9122cd50b53ce798ad231132e20dd6db55e2a644e62ee420b36f25486"
+    },
+    {
+      "path": "docs/adr/drafts/20260406-documentation-freshness.md",
+      "title": "ADR: Documentation freshness SLAs",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "291a3d015e9149fa6d327d399d309a46f20c3d4faae4dca6dc6103f4560940f8"
+    },
+    {
+      "path": "docs/adr/drafts/20260406-documentation-structure.md",
+      "title": "ADR: Documentation structure",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "e3f37aa1a4ec852a8f7ec3209fa194ecf8e34d242dfb9835cdfedb00fc886fc1"
+    },
+    {
+      "path": "docs/adr/drafts/20260409-resource-bundles.md",
+      "title": "ADR: Resource Bundles",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "97523a7ff829527eb1a48033f04cbd9d20ac523946ad9a3e197a036f73837b2c"
+    },
+    {
+      "path": "docs/adr/drafts/20260503-wayfinding.md",
+      "title": "ADR: Wayfinding",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "68ec903dcd517702a480058bd81c0376f01d158be4eaf5777c5432463df0aa5b"
+    },
+    {
+      "path": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md",
+      "title": "ADR: Scaffold Forward Compatibility",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "8d64393c7675442c0cd6f85c89eac2c98728ed59e79b1d93914efa606c29c9f5"
+    },
+    {
+      "path": "docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md",
+      "title": "ADR: Adapter authoring as a paved path",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "6e68d44e192fc5eafc2380cd693e5fea497ae2331475fe7fb011f19cf2a32126"
+    },
+    {
+      "path": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md",
+      "title": "ADR: Fixes are Warden diagnostic metadata",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "ef191fc2dfb54eeb2a471fe2c8a32d1bb8db08f8e897d755688efbaa31cba392"
+    },
+    {
+      "path": "docs/adr/drafts/20260603-one-schema-trail-input.md",
+      "title": "ADR: One-Schema Trail Input",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "71106459299028573da299ed24f477c814820b8602809585c17074855dab13b9"
+    },
+    {
+      "path": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md",
+      "title": "ADR: Surface Trailheads Shape Dense Topos",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "6b064d3c1239e6cc502d54ad0a8ef4b480341f4747d4d4b9dc984fe12173db14"
+    },
+    {
+      "path": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-derivation.md",
+      "title": "ADR: Release Provenance as Lifecycle Derivation",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "23f120e9ae22756df9c8986c1d5c5aef45b18b93fec734e59eab33353fcafa01"
+    },
+    {
+      "path": "docs/adr/drafts/20260612-library-surface-and-compiler.md",
+      "title": "ADR: Library Surface and Compiler",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "5d25f473364b0901d1c09715e2f9639a6f7e2e56a8704de00c162e309c4b670a"
+    },
+    {
+      "path": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md",
+      "title": "ADR: Verdicts Run on Stable Ground",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "4823614d1799b1903ae85906f617c18f0938942b4656a2a2a3a49ff30918eadb"
+    },
+    {
+      "path": "docs/adr/drafts/20260613-cli-command-routes.md",
+      "title": "ADR: CLI Command Routes Normalize Into Trail Contracts",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "ee6d9a9468b8f06ff2e66c55fa7fd1924a6f04d23840058652b5e385f7fcad6c"
+    },
+    {
+      "path": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md",
+      "title": "ADR: Addressable Facts, Dynamic Queries",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "c1e2098b8179eff7503c0dcc50675ac17b0b94eb15e377998c8abf5490952bba"
+    },
+    {
+      "path": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md",
+      "title": "ADR: Merge-Friendly Lock v6",
+      "status": "draft",
+      "kind": "draft",
+      "sha256": "56df97089c14f1bab5fb86edff9b5fbdb4ad50982b0e07b417fd173e1d1b9291"
+    }
+  ]
+}
