@@ -92,6 +92,8 @@ These are deterministic transformations from authored information. If the input 
 
 ### Enforced — constrained by the type system
 
+<!-- fix ::: Distinguish Result return typing from the no-throw policy: TypeScript allows a Result-returning function to throw; Warden no-throw-in-implementation and executeTrail runtime handling provide the additional safeguards. #stale -->
+
 These are boundaries the compiler enforces on the implementation at development time.
 
 | Declaration | What it constrains |

@@ -217,6 +217,8 @@ Recovery paths when the trail is blocked or fails. A runnable trail proceeds thr
 
 ### `compose` / `composes`
 
+<!-- fix ::: Compose typed trail objects in this example before reading created.value.id; the ComposeFn string-ID overload returns unknown output by default. #bug -->
+
 Trail-to-trail composition. `composes` is the declaration on the trail spec. `ctx.compose()` is the runtime call.
 
 ```typescript

@@ -32,6 +32,8 @@ Drift across surfaces is structurally harder than alignment. You cannot have dif
 
 ### Schema always exists
 
+<!-- todo ::: Reconcile the output-schema-always-exists promise here and above with optional output authoring under Progressive disclosure and current TrailSpec; clarify intended enforcement before choosing a docs or implementation change. #verify -->
+
 There is no untyped state. If a trail accepts input, the input has a schema. If a trail returns output, the output has a schema. If a developer fires a signal, the payload has a type. If a resource has config, the config has a shape.
 
 The question is never "does a schema exist?" but "where is the schema authored?" The framework captures the schema at the earliest possible point and makes it available to every consumer.
@@ -81,6 +83,8 @@ Six categories describe how information flows through the system. Understanding 
 **Authored.** New information only the developer knows. Schemas, intent, meta, examples, the `implementation` that establishes how the trail runs, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
 
 **Derived.** Mechanically produced from authored information, guaranteed correct. MCP tool names from trail IDs. CLI flags from schema fields. Exit codes from error classes. HTTP verbs from intent. If the authored input exists, the derived fact is unambiguous. `derive` produces those facts; `render` presents them through a surface or format.
+
+<!-- todo ::: Clarify whether Result eliminates throw/catch describes the authored policy or a compiler guarantee; TypeScript permits throws, and Warden enforces the authored prohibition. #verify -->
 
 **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the implementation can access. The compiler rejects non-compliance.
 
