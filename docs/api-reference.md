@@ -362,6 +362,72 @@ pruneUnpinnedSnapshots(db, options?)
 StoredTopoExport
 ```
 
+## `@ontrails/kv`
+
+Provider-neutral string storage through ordinary resource overrides and isolated test mocks. See the [KV Guide](../packages/kv/README.md) for TTL, cursor, and failure semantics.
+
+```typescript
+kv(id, options?)                  // declare a resource with fixed role: 'kv'
+createKvMock(options?)             // isolated memory client; optional millisecond clock
+kvPutOptionsSchema, kvListOptionsSchema, kvListPageSchema
+
+Kv, KvResource, KvResourceOptions, CreateKvMockOptions
+KvPutOptions, KvListOptions, KvListPage
+```
+
+### `@ontrails/kv/testing`
+
+```typescript
+createKvContractCases(options)     // cases with name/check; fixtures own clock and cleanup
+KvContractSubject, KvContractOptions, KvContractCase
+```
+
+The testing entrypoint uses Bun's test runner. A mock passing these cases does not prove a provider binding conforms.
+
+## `@ontrails/blob`
+
+Provider-neutral object storage reuses core `BlobRef` for reads and byte/stream bodies. See the [Blob Guide](../packages/blob/README.md) for actual size, MIME, cursor, and ownership guarantees.
+
+```typescript
+blob(id, options?)                // declare a resource with fixed role: 'blob'
+createBlobMock()                   // isolated memory storage with independent reads
+blobInfoSchema, blobPutOptionsSchema, blobListOptionsSchema, blobListPageSchema
+
+BlobStorage, BlobResource, BlobResourceOptions
+BlobInfo, BlobPutOptions, BlobListOptions, BlobListPage
+```
+
+### `@ontrails/blob/testing`
+
+```typescript
+createBlobContractCases(options)   // cases with name/check; fixtures own binding isolation and cleanup
+BlobContractSubject, BlobContractOptions, BlobContractCase
+```
+
+The testing entrypoint uses Bun's test runner. Shared cases qualify each binding, including prefix/binding cursor rejection; mock success alone is not provider proof.
+
+## `@ontrails/queue`
+
+Provider-neutral producers remain separate from core `queue()` consumer activation. See the [Queue Producer Guide](../packages/queue/README.md) for the JSON wire domain, batch validation, delays, and acceptance limits.
+
+```typescript
+queueProducer<Body>(id, options?)  // declare a resource with fixed role: 'queue'
+createQueueMock<Body>()            // isolated producer recorder, not a broker
+queueBodySchema, queueSendOptionsSchema, queueMessageSchema, queueBatchSchema
+
+QueueProducer, QueueMock, QueueProducerOptions, QueueProducerResource
+QueueBody, QueueSendOptions, QueueMessage
+```
+
+### `@ontrails/queue/testing`
+
+```typescript
+createQueueContractCases(options)  // cases with name/check; fixtures observe acceptance and native attempts
+QueueContractSubject, QueueContractOptions, QueueContractCase
+```
+
+The testing entrypoint uses Bun's test runner. Native provider attempts are counted before calls, including rejections; accepted-message logs do not prove pre-I/O validation or consumer processing on their own. Actual provider conformance and core consumer integration remain separate proofs.
+
 ## `@ontrails/store`
 
 ```typescript

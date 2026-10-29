@@ -31,6 +31,9 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  Config (config)      |
                 |  Permits (permits)    |
                 |  Store (store/drizzle)|
+                |  KV (kv)              |
+                |  Blob (blob)          |
+                |  Producer (queue)     |
                 |  Observe (observe)    |
                 |  Tracing (tracing)    |
                 |  LogTape (logtape)    |
@@ -163,6 +166,9 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/config` | Config resolution, profiles, static workspace app identity, resource config schemas, diagnostics | `@ontrails/source` for non-executing TypeScript identity parsing; `yaml` for source-preserving YAML identity validation |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
+| `@ontrails/kv` | Provider-neutral key-value resources, isolated memory mocks, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
+| `@ontrails/blob` | Provider-neutral blob resources, byte/stream bodies, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
+| `@ontrails/queue` | Provider-neutral queue producers, recorder mocks, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observability` | Production log and trace sink contracts, composition, built-in sinks, `/dev` developer-state tooling, and `/otel` OTel export | None beyond core |
 | `@ontrails/logtape` | Extracted LogTape adapter for Trails log records | `@logtape/logtape` |
@@ -196,6 +202,9 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/config (core, source, yaml)
 @ontrails/permits (core)
 @ontrails/store (core)
+@ontrails/kv (core, zod peer; /testing uses bun:test)
+@ontrails/blob (core, zod peer; /testing uses bun:test)
+@ontrails/queue (core, zod peer; /testing uses bun:test)
 @ontrails/drizzle (store, drizzle-orm)
 @ontrails/observability (core)
 @ontrails/testing (core, cli, mcp, observe)

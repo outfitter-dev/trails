@@ -159,6 +159,9 @@ $ myapp greet --name World
 | [`@ontrails/config`](./packages/config) | Config resolution, profiles, resource config schemas, diagnostics |
 | [`@ontrails/permits`](./packages/permits) | Auth layer, permit model, JWT adapter, scope enforcement |
 | [`@ontrails/store`](./packages/store) | Backend-agnostic store definitions, typed accessors, adapter-support helpers |
+| [`@ontrails/kv`](./packages/kv) | Provider-neutral key-value resources, isolated memory mocks, and binding conformance |
+| [`@ontrails/blob`](./packages/blob) | Provider-neutral blob resources, byte/stream bodies, and binding conformance |
+| [`@ontrails/queue`](./packages/queue) | Provider-neutral queue producers, recorder mocks, and binding conformance |
 | [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testComposes()`, contract testing, surface harnesses |
 | [`@ontrails/topography`](./packages/topography) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence, Wayfind graph-read query APIs |

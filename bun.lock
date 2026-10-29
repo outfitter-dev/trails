@@ -280,6 +280,19 @@
         "zod": "catalog:",
       },
     },
+    "packages/blob": {
+      "name": "@ontrails/blob",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/cli": {
       "name": "@ontrails/cli",
       "version": "0.2.5",
@@ -314,6 +327,19 @@
       "version": "0.2.5",
       "dependencies": {
         "@ontrails/core": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
+    "packages/kv": {
+      "name": "@ontrails/kv",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
       },
       "peerDependencies": {
         "zod": "catalog:",
@@ -363,6 +389,19 @@
       "version": "0.2.5",
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
+    "packages/queue": {
+      "name": "@ontrails/queue",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+      "peerDependencies": {
         "zod": "catalog:",
       },
     },
@@ -623,6 +662,8 @@
 
     "@ontrails/adapter-kit": ["@ontrails/adapter-kit@workspace:packages/adapter-kit"],
 
+    "@ontrails/blob": ["@ontrails/blob@workspace:packages/blob"],
+
     "@ontrails/cli": ["@ontrails/cli@workspace:packages/cli"],
 
     "@ontrails/cloudflare": ["@ontrails/cloudflare@workspace:adapters/cloudflare"],
@@ -639,6 +680,8 @@
 
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
 
+    "@ontrails/kv": ["@ontrails/kv@workspace:packages/kv"],
+
     "@ontrails/library": ["@ontrails/library@workspace:packages/library"],
 
     "@ontrails/logtape": ["@ontrails/logtape@workspace:adapters/logtape"],
@@ -652,6 +695,8 @@
     "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
 
     "@ontrails/pino": ["@ontrails/pino@workspace:adapters/pino"],
+
+    "@ontrails/queue": ["@ontrails/queue@workspace:packages/queue"],
 
     "@ontrails/regrade": ["@ontrails/regrade@workspace:packages/regrade"],
 
