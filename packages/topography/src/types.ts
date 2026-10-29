@@ -739,11 +739,11 @@ export interface DiffResult {
 // ---------------------------------------------------------------------------
 
 export interface WriteOptions {
-  /** Directory to write to. Defaults to ".trails/" */
+  /** Artifact directory; use the selected app root for current locks. Defaults to ".trails/". */
   readonly dir?: string | undefined;
 }
 
 export interface ReadOptions {
-  /** Directory to read from. Defaults to ".trails/" */
+  /** Artifact directory; use the same selected app root as the current-lock write. Defaults to ".trails/". */
   readonly dir?: string | undefined;
 }

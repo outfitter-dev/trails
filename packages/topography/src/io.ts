@@ -208,7 +208,10 @@ export const writeLockManifest = async (
 };
 
 /**
- * Write a v4 Trails lock envelope to `<dir>/trails.lock`.
+ * Write a v5 Trails lock envelope to `<dir>/trails.lock`.
+ *
+ * Pass `{ dir: appRoot }` for the selected lock-owning app, as CLI compile does.
+ * Omitting options retains the low-level `.trails/` compatibility default.
  */
 export const writeTrailsLock = async (
   trailsLock: TrailsLock,
@@ -244,7 +247,10 @@ export const readLockManifest = async (
 };
 
 /**
- * Read a v4 Trails lock envelope from `<dir>/trails.lock`.
+ * Read a v5 Trails lock envelope from `<dir>/trails.lock`.
+ *
+ * Use the same explicit `{ dir: appRoot }` as the write. Omitting options reads
+ * from the low-level `.trails/` compatibility directory, not the app root.
  */
 export const readTrailsLock = async (
   options?: ReadOptions

@@ -9,11 +9,11 @@ For the full SQLite schema and programmatic query API, see the [Topo Store Refer
 Current v1 builds write one committed resolved-truth file per lock-owning app:
 
 ```text
-<app-root>/trails.lock      # Trails lock v4 envelope (git-tracked)
+<app-root>/trails.lock      # Trails lock v5 envelope (git-tracked)
 <project-root>/.trails/     # committed Trails control directory
 ```
 
-- **`trails.lock`** — Committed lock v4 envelope at a standalone or configured app root. It embeds the serialized TopoGraph plus the hash, summary, and scope facts needed for drift checks and graph reads. A configured workspace names its lock-owning apps through static `workspace.apps`; it never owns an aggregate workspace-root lock. A root `trails.lock` is app-owned only when `root: '.'` explicitly assigns that root to one app.
+- **`trails.lock`** — Committed lock v5 envelope at a standalone or configured app root. It embeds the serialized TopoGraph plus the hash, summary, and scope facts needed for drift checks and graph reads. A configured workspace names its lock-owning apps through static `workspace.apps`; it never owns an aggregate workspace-root lock. A root `trails.lock` is app-owned only when `root: '.'` explicitly assigns that root to one app.
 - **`.trails/`** — Committed Trails control directory. Project-local Warden rules and scaffold/control metadata live here; cache, generated lock fragments, and SQLite state do not.
 - **`trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. It is local state under the per-user Trails state store, not a repo file.
 
@@ -115,6 +115,58 @@ An existing `trails.lock` is compilation input, including force audit history th
 Preserve the conflicting versions, finish the source merge, and restore a verified lock from Git before compiling again. For example, use `git restore --source=HEAD -- trails.lock` only after verifying that `HEAD` contains the audit history you need to retain; select the appropriate revision and app-relative path otherwise. Do not delete or hand-merge an audit-bearing lock to make compilation pass. Recovery that combines different histories requires preserving both sides rather than choosing one blindly.
 
 For an older schema, follow the documented migration for that schema while retaining the original artifact. Compile does not repair a corrupt file or perform an unsupported schema migration. The same preservation rule applies to committed legacy `topo.lock` artifacts.
+
+### Programmatic lock recovery
+
+Low-level Topography I/O retains `.trails/` when `dir` is omitted. It does not select a project or app. Pass the selected app root explicitly to both the write and read; writing a legacy path cannot repair a conflicted root lock.
+
+The following script writes an already verified v5 candidate, including its complete force and provenance history. It does not combine histories or reconstruct missing audit records. Preserve the original files and verify the candidate before running it. Save the example as `recover-lock.ts` in a project with Trails installed:
+
+```typescript
+import { deepStrictEqual } from 'node:assert';
+import { resolve } from 'node:path';
+import { readTrailsProjectIdentity } from '@ontrails/config';
+import {
+  deriveTopoGraphHash,
+  readTrailsLock,
+  trailsLockSchema,
+  writeTrailsLock,
+} from '@ontrails/topography';
+
+const projectRoot = resolve(process.argv[2] ?? '.');
+const candidatePath = process.argv[3];
+const appId = process.argv[4];
+const configPath = process.argv[5];
+if (!candidatePath) {
+  throw new Error('Usage: recover-lock.ts <project-root> <candidate> [app-id] [config-path]');
+}
+const identity = await readTrailsProjectIdentity({
+  boundaryDir: projectRoot,
+  startDir: projectRoot,
+  ...(configPath === undefined ? {} : { configPath }),
+});
+const selectedApp = identity.apps.find((app) => app.id === appId);
+const appRoot = identity.workspace ? selectedApp?.rootDir : identity.rootDir;
+if (!appRoot) {
+  throw new Error('Select a configured app ID before writing its lock.');
+}
+const recovered = trailsLockSchema.parse(await Bun.file(candidatePath).json());
+if (selectedApp && recovered.scope.app !== selectedApp.id) {
+  throw new Error('The verified candidate belongs to a different app.');
+}
+const candidate = {
+  ...recovered,
+  topoGraphHash: deriveTopoGraphHash(recovered.topoGraph),
+};
+const artifactOptions = { dir: appRoot };
+await writeTrailsLock(candidate, artifactOptions);
+const saved = await readTrailsLock(artifactOptions);
+deepStrictEqual(saved, candidate);
+```
+
+For a standalone app, run `bun recover-lock.ts /path/to/app /safe/verified-candidate.json`, then run `trails compile` and `trails validate` from that app root. For a configured workspace, pass the explicit app ID, for example `bun recover-lock.ts /path/to/workspace /safe/verified-candidate.json api`, then run `trails compile --app api` and `trails validate --app api` from the same workspace. These CLI steps require conventionally discoverable project config. A custom config path is the optional final script argument and is resolved from the explicit project root; Config's programmatic identity reader can select its app directory for the read/write. Current `compile` and `validate` contracts do not expose that explicit custom-config selection, so this programmatic case does not qualify their custom workspace binding or other settings. That CLI limitation is separate work. Config's static app identity owns the selected `rootDir`; the workspace root and sibling app locks are not recovery targets.
+
+The recomputed hash proves the candidate's internal graph consistency, not that missing history was recovered. Read-back equality checks that the same selected artifact retained the supplied candidate, including its audit facts. Normal compile and validate still prove source and app binding.
 
 ### `trails diff`
 
