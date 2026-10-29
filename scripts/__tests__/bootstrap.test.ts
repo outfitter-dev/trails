@@ -31,7 +31,7 @@ const expectedWorkspaces = Array.isArray(packageJson.workspaces)
 const makeRepoRoot = (): string => {
   const root = mkdtempSync(join(tmpdir(), 'bootstrap-root-'));
   writeFileSync(join(root, 'package.json'), '{"workspaces":[]}\n');
-  writeFileSync(join(root, '.bun-version'), '1.4.2\n');
+  writeFileSync(join(root, '.bun-version'), '1.4.4\n');
   return root;
 };
 
@@ -116,8 +116,10 @@ describe('bootstrap shell runtime', () => {
     ['1.3.99', 'repo', true],
     ['1.4.0', 'repo', true],
     ['1.4.1', 'repo', true],
-    ['1.4.2', 'repo', false],
-    ['1.4.3', 'repo', false],
+    ['1.4.2', 'repo', true],
+    ['1.4.3', 'repo', true],
+    ['1.4.4', 'repo', false],
+    ['1.4.5', 'repo', false],
     ['1.4.0', 'doctor', false],
   ] as const)(
     'Bun %s entering %s repairs=%s before dispatch',
@@ -163,22 +165,22 @@ describe('bootstrap shell runtime', () => {
             stdout: 'pipe',
           });
           const allowed =
-            actual === '1.4.2' ||
-            (policy === 'compatible' && actual === '1.4.3');
+            actual === '1.4.4' ||
+            (policy === 'compatible' && actual === '1.4.5');
 
           expect(check.exitCode).toBe(0);
           expect(JSON.parse(check.stdout.toString())).toEqual({
             actual,
             ok: allowed,
-            pinned: '1.4.2',
+            pinned: '1.4.4',
             policy,
             ...(allowed
               ? {}
               : {
                   reason:
                     policy === 'strict'
-                      ? `Expected Bun 1.4.2, found ${actual}`
-                      : `Expected Bun 1.4.2 or newer compatible patch, found ${actual}`,
+                      ? `Expected Bun 1.4.4, found ${actual}`
+                      : `Expected Bun 1.4.4 or newer compatible patch, found ${actual}`,
                 }),
           });
         }
@@ -193,9 +195,9 @@ describe('bootstrap shell runtime', () => {
 
         expect(proc.exitCode).toBe(0);
         expect(proc.stdout.toString().trim()).toBe(
-          `dispatch:${repairs ? '1.4.2' : actual}:${command}`
+          `dispatch:${repairs ? '1.4.4' : actual}:${command}`
         );
-        expect(proc.stderr.toString().includes('Installing Bun 1.4.2')).toBe(
+        expect(proc.stderr.toString().includes('Installing Bun 1.4.4')).toBe(
           repairs
         );
       } finally {
@@ -217,18 +219,20 @@ describe('bootstrap repo policy', () => {
     ['1.3.99', false, false],
     ['1.4.0', false, false],
     ['1.4.1', false, false],
-    ['1.4.2', true, true],
-    ['1.4.2-canary.1', true, false],
-    ['1.4.3', true, false],
+    ['1.4.2', false, false],
+    ['1.4.3', false, false],
+    ['1.4.4', true, true],
+    ['1.4.4-canary.1', true, false],
+    ['1.4.5', true, false],
     ['1.5.0', false, false],
     ['2.0.0', false, false],
   ] as const)(
-    'Bun %s follows compatible=%s and strict=%s against the 1.4.2 checkout pin',
+    'Bun %s follows compatible=%s and strict=%s against the 1.4.4 checkout pin',
     (actual, compatible, strict) => {
-      expect(isBunVersionAllowed(actual, '1.4.2', 'compatible')).toBe(
+      expect(isBunVersionAllowed(actual, '1.4.4', 'compatible')).toBe(
         compatible
       );
-      expect(isBunVersionAllowed(actual, '1.4.2', 'strict')).toBe(strict);
+      expect(isBunVersionAllowed(actual, '1.4.4', 'strict')).toBe(strict);
     }
   );
 
@@ -257,15 +261,15 @@ describe('bootstrap repo policy', () => {
               ? {
                   actual: '1.4.0',
                   ok: false,
-                  pinned: '1.4.2',
+                  pinned: '1.4.4',
                   policy,
                   reason:
-                    'Expected Bun 1.4.2 or newer compatible patch, found 1.4.0',
+                    'Expected Bun 1.4.4 or newer compatible patch, found 1.4.0',
                 }
               : {
-                  actual: '1.4.2',
+                  actual: '1.4.4',
                   ok: true,
-                  pinned: '1.4.2',
+                  pinned: '1.4.4',
                   policy,
                 };
           },
