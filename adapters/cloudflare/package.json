@@ -36,6 +36,8 @@
   },
   "devDependencies": {
     "@ontrails/adapter-kit": "workspace:^",
+    "@ontrails/http": "workspace:^",
+    "@ontrails/store": "workspace:^",
     "@ontrails/testing": "workspace:^",
     "miniflare": "^4.20250617.4"
   },

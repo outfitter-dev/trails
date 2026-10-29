@@ -30,6 +30,9 @@
     "@ontrails/core": "workspace:^",
     "hono": "^4.13.13"
   },
+  "devDependencies": {
+    "@ontrails/http": "workspace:^"
+  },
   "peerDependencies": {
     "@ontrails/http": "workspace:^",
     "zod": "catalog:"

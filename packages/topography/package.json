@@ -33,6 +33,9 @@
     "@ontrails/config": "workspace:^",
     "@ontrails/source": "workspace:^"
   },
+  "devDependencies": {
+    "@ontrails/core": "workspace:^"
+  },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
     "zod": "catalog:"

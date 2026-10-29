@@ -84,7 +84,7 @@
     "markdownlint-cli2": "^0.22.1",
     "oxfmt": "0.47.0",
     "oxlint": "1.62.0",
-    "turbo": "^2.8.10",
+    "turbo": "^2.11.10",
     "typescript": "^5.9.3",
     "ultracite": "7.6.2",
     "zod": "catalog:"

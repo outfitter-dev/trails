@@ -42,7 +42,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ontrails/testing": "workspace:^"
+    "@ontrails/core": "workspace:^",
+    "@ontrails/testing": "workspace:^",
+    "@ontrails/topography": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",

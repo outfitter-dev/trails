@@ -30,6 +30,9 @@
     "@ontrails/core": "workspace:^",
     "drizzle-orm": "^0.45.4"
   },
+  "devDependencies": {
+    "@ontrails/store": "workspace:^"
+  },
   "peerDependencies": {
     "@ontrails/store": "workspace:^",
     "zod": "catalog:"

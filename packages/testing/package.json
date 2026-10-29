@@ -32,7 +32,12 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "devDependencies": {
+    "@ontrails/cli": "workspace:^",
+    "@ontrails/core": "workspace:^",
     "@ontrails/drizzle": "workspace:^",
+    "@ontrails/http": "workspace:^",
+    "@ontrails/mcp": "workspace:^",
+    "@ontrails/observability": "workspace:^",
     "@ontrails/store": "workspace:^"
   },
   "peerDependencies": {

@@ -29,6 +29,9 @@
   "dependencies": {
     "pino": "^10.4.0"
   },
+  "devDependencies": {
+    "@ontrails/observability": "workspace:^"
+  },
   "peerDependencies": {
     "@ontrails/observability": "workspace:^",
     "zod": "catalog:"
