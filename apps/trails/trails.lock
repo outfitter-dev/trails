@@ -11007,10 +11007,14 @@
                   "check": {
                     "enum": [
                       "lock-roundtrip",
+                      "mcp-http",
                       "packed-artifacts",
                       "wayfinder-dogfood"
                     ],
                     "type": "string"
+                  },
+                  "eras": {
+                    "type": "number"
                   },
                   "lockCount": {
                     "type": "number"
@@ -11023,6 +11027,9 @@
                   },
                   "passed": {
                     "const": true
+                  },
+                  "toolCount": {
+                    "type": "number"
                   },
                   "trailCount": {
                     "type": "number"
@@ -36952,10 +36959,14 @@
                     "check": {
                       "enum": [
                         "lock-roundtrip",
+                        "mcp-http",
                         "packed-artifacts",
                         "wayfinder-dogfood"
                       ],
                       "type": "string"
+                    },
+                    "eras": {
+                      "type": "number"
                     },
                     "lockCount": {
                       "type": "number"
@@ -36968,6 +36979,9 @@
                     },
                     "passed": {
                       "const": true
+                    },
+                    "toolCount": {
+                      "type": "number"
                     },
                     "trailCount": {
                       "type": "number"
@@ -43167,6 +43181,6 @@
       }
     ]
   },
-  "topoGraphHash": "21f2fb442ca23616505a7ec2c924f582cc9ba2a149972038b41083966d9915ed",
+  "topoGraphHash": "35fb9f4f60b20804c9050ebca109baa5204fda6b85998392cc583731d62afebe",
   "version": 5
 }
