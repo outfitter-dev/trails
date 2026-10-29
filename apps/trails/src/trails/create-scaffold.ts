@@ -175,7 +175,8 @@ const reconcileGeneratedScripts = (
  * prior generated pin so a rerun reconciles instead of hard-conflicting.
  * Anything else -- `workspace:*`, a caret range, a dist-tag, a URL -- is user
  * customization and still fails closed.
- * Node types accept only the known prior generated range, not arbitrary ranges.
+ * Node and Bun types accept only their known prior generated ranges, not
+ * arbitrary ranges.
  *
  * Unlike `reconcileGeneratedScripts`, which preserves the established command,
  * this reconciler upgrades the pin to the current range: the rerun installs
@@ -201,7 +202,10 @@ const upgradePriorGeneratedPins = (
         parseSemver(existingValue) !== undefined) ||
       (key === '@types/node' &&
         value === scaffoldDependencyVersions.nodeTypes &&
-        existingValue === '^25.5.0')
+        existingValue === '^25.5.0') ||
+      (key === '@types/bun' &&
+        value === scaffoldDependencyVersions.bunTypes &&
+        existingValue === '^1.4.3')
     );
   });
 
