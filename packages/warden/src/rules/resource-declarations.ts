@@ -424,6 +424,7 @@ const buildUndeclaredFromDiagnostic = (
   severity: 'error',
 });
 
+// fix ::: Recommend a resource definition object in resources, not an ID string; TrailSpec.resources accepts AnyResource[] and the emitted remediation is invalid TypeScript. #bug
 const buildUndeclaredLookupDiagnostic = (
   trailId: string,
   resourceId: string,
