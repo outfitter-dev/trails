@@ -7,8 +7,6 @@ import {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { writeContainedProjectPath } from '../project-writes.js';
-
 import { withFreshAppLease } from './operator-context.js';
 import {
   assertConfiguredAppBinding,
@@ -27,6 +25,12 @@ import {
 } from './project-context-output.js';
 import { deriveResolvedLock } from './resolve-current.js';
 import { readResolveLockEvidence } from './resolve-evidence.js';
+import {
+  closeResolvedLock,
+  openResolvedLock,
+  writeResolvedLock,
+} from './resolve-write.js';
+import type { OpenResolvedLock } from './resolve-write.js';
 
 const resolveInputSchema = z.object({
   app: z.string().optional().describe('Configured workspace app ID'),
@@ -56,9 +60,9 @@ type ResolvedArtifact = z.output<typeof resolvedArtifactSchema>;
 
 interface PreparedArtifact {
   readonly content: string;
+  readonly file: OpenResolvedLock;
   readonly originalContent: string;
   readonly report: ResolvedArtifact;
-  readonly rootDir: string;
 }
 
 const selectedApps = (
@@ -74,7 +78,8 @@ const selectedApps = (
 
 const prepareArtifact = async (
   context: OperatorAppProjectContext,
-  force: boolean | undefined
+  force: boolean | undefined,
+  opened: OpenResolvedLock[]
 ): Promise<Result<PreparedArtifact, Error>> => {
   const moduleContext = resolveOperatorAppModuleContext(context);
   if (moduleContext.isErr()) {
@@ -85,6 +90,11 @@ const prepareArtifact = async (
   if (safePath.isErr()) {
     return safePath;
   }
+  const file = openResolvedLock(safePath.value);
+  if (file.isErr()) {
+    return file;
+  }
+  opened.push(file.value);
   const evidence = await readResolveLockEvidence(safePath.value);
   if (evidence.isErr()) {
     return evidence;
@@ -124,6 +134,7 @@ const prepareArtifact = async (
         ? recovered
         : Result.ok({
             content: `${JSON.stringify(recovered.value, null, 2)}\n`,
+            file: file.value,
             originalContent: evidence.value.originalContent,
             report: {
               hash: recovered.value.topoGraphHash,
@@ -131,16 +142,16 @@ const prepareArtifact = async (
               project: appProjectSelection(selected, lease.app.name),
               sources: [...evidence.value.sources],
             },
-            rootDir: selected.app.rootDir,
           });
     }
   );
 };
 
 /** Recover only selected generated app locks; never stage or rewrite Git state. */
-export const resolveProjectLocks = async (
+const resolveSelectedProjectLocks = async (
   input: OperatorProjectContextInput & { readonly force?: boolean | undefined },
-  cwd?: string
+  cwd: string | undefined,
+  opened: OpenResolvedLock[]
 ): Promise<Result<z.output<typeof resolveOutputSchema>, Error>> => {
   try {
     const context = await resolveOperatorProjectContext(input, { cwd });
@@ -153,7 +164,7 @@ export const resolveProjectLocks = async (
     }
     const prepared: PreparedArtifact[] = [];
     for (const selected of selectedApps(context.value)) {
-      const artifact = await prepareArtifact(selected, input.force);
+      const artifact = await prepareArtifact(selected, input.force, opened);
       if (artifact.isErr()) {
         return artifact;
       }
@@ -171,12 +182,9 @@ export const resolveProjectLocks = async (
       }
     }
     for (const artifact of prepared) {
-      if (artifact.content === artifact.originalContent) {
-        continue;
-      }
-      const written = await writeContainedProjectPath(
-        artifact.rootDir,
-        'trails.lock',
+      const written = writeResolvedLock(
+        artifact.file,
+        artifact.originalContent,
         artifact.content
       );
       if (written.isErr()) {
@@ -195,6 +203,23 @@ export const resolveProjectLocks = async (
           })
     );
   }
+};
+
+/** Recover selected locks and release every pinned file on success or failure. */
+export const resolveProjectLocks = async (
+  input: OperatorProjectContextInput & { readonly force?: boolean | undefined },
+  cwd?: string
+): Promise<Result<z.output<typeof resolveOutputSchema>, Error>> => {
+  const opened: OpenResolvedLock[] = [];
+  const result = await resolveSelectedProjectLocks(input, cwd, opened);
+  let closeError: Error | undefined;
+  for (const file of opened) {
+    const closed = closeResolvedLock(file);
+    if (closed.isErr()) {
+      closeError ??= closed.error;
+    }
+  }
+  return closeError === undefined ? result : Result.err(closeError);
 };
 
 export const resolveTrail = trail('resolve', {
