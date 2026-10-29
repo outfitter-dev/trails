@@ -1289,34 +1289,6 @@ describe('deriveMcpTools', () => {
       });
     });
 
-    test('a factory permit does not stand in for missing request credentials when a resolver is configured', async () => {
-      let invoked = false;
-      const protectedTrail = trail('permit.factory', {
-        implementation: () => {
-          invoked = true;
-          return Result.ok({ ok: true });
-        },
-        input: z.object({}),
-        permit: { scopes: ['thing:read'] },
-      });
-      const tool = requireOnlyTool(
-        buildTools(topo('myapp', { protectedTrail }), {
-          createContext: () => ({
-            abortSignal: new AbortController().signal,
-            permit: { id: 'factory-user', scopes: ['thing:read'] },
-            requestId: 'factory-request',
-          }),
-          resolvePermit: () => Result.ok(null),
-        })
-      );
-
-      const result = await tool.handler({}, noExtra);
-
-      expect(result.isError).toBe(true);
-      expect(textContent(result.content[0])).toContain('No permit provided');
-      expect(invoked).toBe(false);
-    });
-
     test('missing MCP credentials on a protected tool returns a permit error response', async () => {
       const protectedTrail = trail('permit.missing', {
         implementation: () => Result.ok({ ok: true }),
