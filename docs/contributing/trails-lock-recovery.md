@@ -13,7 +13,9 @@ trails validate --root-dir .
 
 For a configured workspace, the root invocation prepares every declared app before writing any lock. Use `--app <id>` to select one member, or `--root-dir` from an app root. `--config-path <path>` selects an explicit nonstandard config; `--module <path>` supplies an explicit standalone app entry. The output reports each selected app, absolute artifact path, graph hash, and evidence sources. Review and stage those paths explicitly. The command writes only their root `trails.lock` files; it does not stage files, continue Git, or alter Skillset artifacts or persistent topo state.
 
-Workspace-wide preflight covers evidence, resolved sources, and force governance. Writes then proceed per app; there is no transaction across files. If a filesystem write fails, earlier selected locks may already be recovered. Inspect the app-root artifacts and retained Git evidence before retrying, and keep the index stages until every selected lock passes validation.
+Workspace-wide preflight covers evidence, resolved sources, and force governance. Writes then proceed per app; there is no transaction across files. If a filesystem write or file identity check fails, earlier selected locks may already be recovered. Inspect the app-root artifacts and retained Git evidence before retrying, and keep the index stages until every selected lock passes validation.
+
+Recovery pins each selected regular lock open through preflight and writes through that file descriptor. Replacing the lock path with a symlink cannot redirect the write; a changed file identity or changed original bytes fails recovery.
 
 A hash-only conflict adds no force event. Recovery retains complete graph and entry event facts, including their original timestamps and reasons. Exact copies collapse. Different timestamps or reasons remain distinct. Events whose original entry disappears move unchanged to graph-level audit history. Identical graph and entry copies remain at graph level, including when an ID later returns. Unchanged arrays keep their order; relocation and deduplication can change the affected arrays. Repeated recovery and ordinary compilation must converge.
 
