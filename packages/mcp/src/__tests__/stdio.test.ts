@@ -128,11 +128,30 @@ test('stdio keeps startup and invocation warnings off protocol stdout', async ()
     }
   );
   const [protocol, capture] = child.stdout.tee();
+  const [warningStream, warningCapture] = child.stderr.tee();
   const stdout = new Response(capture).text();
-  const stderr = new Response(child.stderr).text();
+  const stderr = new Response(warningCapture).text();
   const reader = protocol.getReader();
+  const warningReader = warningStream.getReader();
   const decoder = new TextDecoder();
   let pending = '';
+  let warningsSeen = '';
+
+  // process.emitWarning prints asynchronously, so the invocation warning can
+  // land after the protocol response. Wait for it before killing the child.
+  const awaitWarning = async (marker: string) => {
+    const deadline = Date.now() + 3000;
+    while (!warningsSeen.includes(marker)) {
+      if (Date.now() > deadline) {
+        throw new Error(`MCP subprocess never emitted ${marker}`);
+      }
+      const chunk = await warningReader.read();
+      if (chunk.done) {
+        throw new Error(`MCP subprocess closed stderr before ${marker}`);
+      }
+      warningsSeen += decoder.decode(chunk.value, { stream: true });
+    }
+  };
 
   const receive = async () => {
     while (!pending.includes('\n')) {
@@ -185,8 +204,10 @@ test('stdio keeps startup and invocation warnings off protocol stdout', async ()
     expect(JSON.parse(response.result.content[0].text)).toEqual({
       text: 'qualified',
     });
+    await awaitWarning('TRL1433_CALL');
   } finally {
     reader.releaseLock();
+    warningReader.releaseLock();
     child.kill();
     await child.exited;
   }
