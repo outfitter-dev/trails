@@ -54,6 +54,7 @@ describe('resource types', () => {
     expect(counterResourceSpec.meta).toEqual({ domain: 'data' });
   });
 
+  // fix ::: Remove the future-only framing; resource-config.ts already validates resource config and delivers it to factories. #stale
   test('ResourceSpec can reserve a config schema for future composition', () => {
     const config = z.object({ url: z.string().url() });
     const spec: ResourceSpec<number> = {

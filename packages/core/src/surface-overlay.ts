@@ -93,6 +93,7 @@ export type SurfaceBindingValue =
 export type SurfaceBindings = Readonly<Record<string, SurfaceBindingValue>>;
 
 /**
+ * todo ::: Distinguish accepted keys from implemented consumers: CLI and MCP expand bindings, HTTP has no binding consumer in its current implementation, and WebSocket remains planned. Reconcile the can-obey-today claim. #drift #verify
  * The full `surfaces` overlay payload: per-surface binding maps keyed by the
  * surfaces that can obey bindings today (`cli`, `http`, `mcp`, `ws`).
  *

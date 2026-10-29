@@ -50,6 +50,7 @@ export const chunk = <T>(array: readonly T[], size: number): T[][] => {
 };
 
 /**
+ * fix ::: Describe Set equality (SameValueZero), including deduplication of NaN, rather than strict equality. #stale
  * Remove duplicate items. When `key` is provided, uniqueness is determined
  * by the return value of the key function; otherwise strict equality is used.
  */
