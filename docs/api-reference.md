@@ -291,7 +291,7 @@ deriveWorkspaceView({ identity, selectedAppIds?, currentAppGraphHashes?, lockSco
 collectTopoGraphOverlays(topo, registrations) // namespaced overlays (adapter-contributed facts)
 deriveActivationGraph(topoGraph), deriveDeclaredTrailActivation(entry)
 deriveSignalActivationRelations(topoGraph)
-writeTrailsLock(lock, options?), readTrailsLock(options?)
+writeTrailsLock(lock, { dir: appRoot }), readTrailsLock({ dir: appRoot }) // v5 app lock; omitted dir retains legacy .trails/
 readTopoGraph(options?), readWorkspaceTrailIndex(options?)
 writeTopoGraph(topoGraph, options?), writeLockManifest(manifest, options?), readLockManifest(options?) // legacy beta artifact-family helpers
 

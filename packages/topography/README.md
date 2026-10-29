@@ -49,6 +49,7 @@ import {
 
 const topoGraph = deriveTopoGraph(graph);
 const hash = deriveTopoGraphHash(topoGraph);
+const artifactOptions = { dir: process.cwd() }; // Run from the owning app root.
 
 await writeTrailsLock({
   scope: { app: 'demo' },
@@ -56,7 +57,7 @@ await writeTrailsLock({
   topoGraph,
   topoGraphHash: hash,
   version: 5,
-});
+}, artifactOptions);
 
 // Later, after changes:
 const nextTopoGraph = deriveTopoGraph(graph);
@@ -103,7 +104,7 @@ The normal exported artifact is:
 
 `trails compile` writes it from the current topo. `trails validate` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
-Compatibility helpers still read the previous `.trails/trails.lock` plus `.trails/topo.lock` artifact family during the migration window. New writes should use `writeTrailsLock()`.
+Compatibility helpers still read the previous `.trails/trails.lock` plus `.trails/topo.lock` artifact family during the migration window. Current writes use `writeTrailsLock(lock, { dir: appRoot })`. All low-level I/O helpers retain `.trails/` when `dir` is omitted; they do not discover a project or select an app. Use the same explicit directory for reads and writes. For configured workspaces, choose the app by ID from Config's static identity and use its `rootDir`, never the workspace root unless it is itself the selected app. See [lock recovery](../../docs/topo-store.md#programmatic-lock-recovery) for an executable recipe.
 
 ## API
 
@@ -116,12 +117,12 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
 | `deriveWorkspaceView(options)` | Config-fed app-partitioned saved graph view with separate observation evidence |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeTrailsLock(lock, options?)` | Write an app-root `trails.lock` envelope |
-| `readTrailsLock(options?)` | Read an app-root `trails.lock` envelope |
-| `readTopoGraph(options?)` | Read a TopoGraph from v4 `trails.lock` or legacy `topo.lock` |
+| `writeTrailsLock(lock, { dir: appRoot })` | Write the selected app's v5 `trails.lock`; omitted options retain `.trails/` |
+| `readTrailsLock({ dir: appRoot })` | Read the same selected app's v5 `trails.lock`; omitted options retain `.trails/` |
+| `readTopoGraph(options?)` | Read a TopoGraph from v5 `trails.lock` or legacy `topo.lock` in the explicit directory |
 | `writeTopoGraph(topoGraph, options?)` | Write legacy `topo.lock` for explicit migration/testing paths |
-| `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v3 manifest |
-| `readLockManifest(options?)` | Read v3 manifests, deriving v4 locks back to v3 for compatibility |
+| `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v4 manifest |
+| `readLockManifest(options?)` | Read v4 manifests, deriving v5 locks back to v4 for compatibility |
 | `createTopoStore(options?)` | Read-only query interface over the persisted topo state in the Trails state-store `trails.db` |
 | `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
 | `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
@@ -210,7 +211,7 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 import { deriveTopoGraph, deriveTopoGraphHash, readTrailsLock } from '@ontrails/topography';
 
 const current = deriveTopoGraphHash(deriveTopoGraph(graph));
-const committed = await readTrailsLock();
+const committed = await readTrailsLock({ dir: process.cwd() }); // Owning app root.
 
 if (committed?.topoGraphHash !== current) {
   // lock file is stale -- topo has changed
