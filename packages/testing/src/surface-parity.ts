@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 
+import { outputModePreset } from '@ontrails/cli';
 import { deriveCliPath, filterSurfaceTrails } from '@ontrails/core';
 import type {
   ResourceOverrideMap,
@@ -96,7 +97,8 @@ const cliCommandForExample = (
   const inputJson = escapeWhitespaceForCliToken(
     JSON.stringify(example.input ?? {})
   );
-  return `${path} --input-json ${inputJson} --output json`;
+  const inputArgs = inputJson === '{}' ? '' : ` --input-json ${inputJson}`;
+  return `${path}${inputArgs} --output json`;
 };
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
@@ -240,10 +242,16 @@ const runCliExample = async (
 ): Promise<NormalizedSurfaceParityResult> => {
   const { ctx, resources } = await createInvocationContext(app, trail, options);
   const cliOptions = options.cli;
+  const presets = cliOptions?.presets ?? [];
+  const registered = new Set(presets.flat().map((flag) => flag.name));
   const harness = createCliHarness({
     graph: app,
     ...cliOptions,
     ctx: mergeSurfaceContext(ctx, cliOptions?.ctx),
+    presets: [
+      ...presets,
+      outputModePreset().filter((flag) => !registered.has(flag.name)),
+    ],
     resources,
   });
   return normalizeCliResult(

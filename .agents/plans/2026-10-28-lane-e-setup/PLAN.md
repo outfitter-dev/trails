@@ -1,0 +1,17 @@
+# TRL-1416 execution contract
+
+Horizon: draft PR after independent local review and applicable checks, then coordinator/stack-operator handoff toward the campaign merged horizon. Matt kickoff and exact TRL-1416 delegation received. Lane may edit assigned files, commit, push, create/update draft PR; readiness/merge/tracker/publication remain coordinator or separately assigned operations.
+
+Owner: this Lane E chat; coordinator 01a18425-89bd-79b2-8c5d-cb6676357b48. Worktree /Users/mg/.codex/worktrees/0b34/trails, branch trl-1416-make-createcliharness-honor-registered-cli-flags-and-reject from base 34d7f6e14b0367b51497b08110aabec6c147de6c. Initial tracked state clean.
+
+First issue TRL-1416. Acceptance: registered flags/presets match actual CLI; reject unknown/unregistered flags; output flags only when configured or use supported parity command; real subprocess/harness regressions with/without outputModePreset including arbitrary unknown; parity helper/docs/examples updated; verify Dispatch Next.
+
+Smallest proposed execution slice: regression-first coverage for default and explicit-output-preset harness/Commander behavior, then expose existing presets in CliHarnessOptions and validate against derived CliCommand.flags. Prefer existing CLI/Commander semantics over a second general parser. Remove unconditional output-flag injection from parity helper or explicitly configure it coherently. Settle alias/boolean/value behavior from shared flag declarations. Final implementation choice follows delegated scope and review.
+
+Proposed ownership: packages/testing/src/harness-cli.ts, packages/testing/src/surface-parity.ts, focused tests/fixtures, packages/testing/README.md, docs/testing.md, branch-local testing changeset. Read-only reference owners: packages/cli/src/build.ts and flags.ts, adapters/commander/src/to-commander.ts. Coordinate any needed changes to those shared owners first; Lane F owns broad docs work, so reserve the narrow testing sections.
+
+Linear issue branch once authorized: trl-1416-make-createcliharness-honor-registered-cli-flags-and-reject. No lane-wide stack. TRL-1417, TRL-1420, TRL-1320/1331 are following candidates, not assignments or verified-ready issues.
+
+Checks during execution: focused harness/parity/subprocess tests; bun run typecheck in packages/testing; applicable CLI/Commander tests if their source changes; root bun run lint and bun run format:check; bun run changeset:check; bun run publish:check. Wayfinder dogfood if framework surface behavior changes; lock-roundtrip if committed locks change. Independent acceptance-driven review, fixes, hosted CI and Devin review before landing. No fixed pass quota. Coordinator authorized isolated local Dispatch Next consumer proof using candidate sources; record source/package binding and isolated state paths. Published-registry qualification remains separate. Release/publish remains with existing release owner.
+
+Status: BLOCKED at required pre-push root test gate for TRL-1416 only; source/independent review/local consumer proof complete. Lane B owns shared baseline/runtime diagnosis and coordinator owns next verification assignment. Independent review and final current-head qualification precede draft PR submission; fresh-context acceptance review and hosted checks precede delegated landing. No encoded predecessor for TRL-1416; milestone calls harness/coaching independent of lock lane. TRL-1361 is related release smoke, not a prerequisite for this focused repair.
