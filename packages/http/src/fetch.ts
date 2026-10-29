@@ -20,8 +20,15 @@ export interface CreateRouteHandlerOptions {
   readonly maxJsonBodyBytes?: number | undefined;
 }
 
+/**
+ * Options for the Web Fetch kernel. It always builds on the `network`
+ * credential posture (see `DeriveHttpRoutesOptions.credentialPosture`); the
+ * posture is not configurable here.
+ */
 export interface CreateFetchHandlerOptions
-  extends DeriveHttpRoutesOptions, CreateRouteHandlerOptions {}
+  extends
+    Omit<DeriveHttpRoutesOptions, 'credentialPosture'>,
+    CreateRouteHandlerOptions {}
 
 interface RuntimeOptions {
   readonly maxJsonBodyBytes: number;
@@ -990,6 +997,7 @@ export const createFetchHandler = (
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
+    credentialPosture: 'network',
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
