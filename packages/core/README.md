@@ -23,6 +23,8 @@ const graph = topo('myapp', { greet });
 
 Trails compose other trails through `composes` and `ctx.compose()`:
 
+<!-- fix ::: Align the example declaration with its actual composition: entity.relate is never composed; see packages/warden/src/rules/composes-declarations.ts buildUnusedDiagnostic. #drift -->
+
 ```typescript
 const onboard = trail('entity.onboard', {
   composes: ['entity.add', 'entity.relate'],
@@ -96,6 +98,8 @@ Beyond the `trail(id, spec)` builder, `Topo` exposes these accessors:
 | `RunOptions` | Same shape as `ExecuteTrailOptions`; forwarded by `run` |
 
 ### Result
+
+<!-- fix ::: Show fromFetch accepting a URL or Request and returning a promise; see packages/core/src/result.ts Result.fromFetch. It does not convert an existing Response. #stale -->
 
 ```typescript
 Result.ok(value);            // Success

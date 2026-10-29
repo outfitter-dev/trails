@@ -209,6 +209,8 @@ const isVersionManagedField = <TTable extends AnyStoreTable>(
  * throws a `ValidationError` — the developer must either supply a value or
  * give the field a Zod default.
  *
+ * <!-- fix ::: Document unsupported generated kinds throwing and seed fixtures reaching materialization before Zod defaults; see generatedFallbackValue and insertFixtureRows. #stale -->
+ *
  * All other generated field types fall through to `undefined`, letting the
  * schema's Zod default (if any) apply during validation.
  */
@@ -875,6 +877,7 @@ const collectFixtures = <TStore extends AnyStoreDefinition>(
   return result;
 };
 
+// <!-- fix ::: Apply fixture defaults before generated-field materialization, as upsert does; a generated label with z.string().default fails here before its default runs. #bug #drift -->
 /** Insert fixture rows in topological order. */
 const insertFixtureRows = <TStore extends AnyStoreDefinition>(
   definition: TStore,
