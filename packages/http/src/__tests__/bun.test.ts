@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { request as nodeRequest } from 'node:http';
 
 import {
   PermissionError,
@@ -376,6 +377,123 @@ describe('@ontrails/http/bun', () => {
       expect(await response.json()).toEqual({
         data: { reply: 'served' },
       });
+    } finally {
+      await handle.close();
+    }
+  });
+
+  test('live HEAD requests select the explicit derived HEAD route', async () => {
+    let executions = 0;
+    let fallbackEntries = 0;
+    let getEntries = 0;
+    let headEntries = 0;
+    let implicitGetEntries = 0;
+    const countedTrail = trail('counted', {
+      implementation: () => {
+        executions += 1;
+        return Result.ok({ executions });
+      },
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ executions: z.number() }),
+    });
+    const app = createApp(topo('bun-head', { countedTrail }));
+    const getHandler = app.routes['/counted']?.GET;
+    const headHandler = app.routes['/counted']?.HEAD;
+
+    expect(getHandler).toBeDefined();
+    expect(headHandler).toBeDefined();
+    if (getHandler === undefined || headHandler === undefined) {
+      return;
+    }
+
+    const server = Bun.serve({
+      error: app.onError,
+      fetch: (request) => {
+        fallbackEntries += 1;
+        return app.fetch(request);
+      },
+      hostname: '127.0.0.1',
+      port: 0,
+      routes: {
+        '/counted': {
+          GET: (request) => {
+            getEntries += 1;
+            return getHandler(request);
+          },
+          HEAD: (request) => {
+            headEntries += 1;
+            return headHandler(request);
+          },
+        },
+        '/implicit': {
+          GET: () => {
+            implicitGetEntries += 1;
+            return Response.json({ implicit: true });
+          },
+        },
+      },
+    });
+
+    try {
+      const implicitResponse = await fetch(new URL('/implicit', server.url), {
+        method: 'HEAD',
+      });
+      expect(implicitResponse.status).toBe(200);
+      expect(await implicitResponse.text()).toBe('');
+      expect(implicitGetEntries).toBe(1);
+
+      const headResponse = await fetch(new URL('/counted', server.url), {
+        method: 'HEAD',
+      });
+
+      expect(headResponse.status).toBe(200);
+      expect(headResponse.body).toBeNull();
+      expect(await headResponse.text()).toBe('');
+      expect(headEntries).toBe(1);
+      expect(getEntries).toBe(0);
+      expect(fallbackEntries).toBe(0);
+      expect(executions).toBe(1);
+    } finally {
+      await server.stop(true);
+    }
+  });
+
+  test('live requests combine duplicate custom header lines', async () => {
+    let observedHeader: string | null | undefined;
+    const handle = await surface(topo('bun-headers', { protectedTrail }), {
+      hostname: '127.0.0.1',
+      port: 0,
+      resolvePermit: ({ headers }) => {
+        observedHeader =
+          headers instanceof Headers ? headers.get('x-tenant-id') : undefined;
+        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+      },
+    });
+
+    try {
+      const { promise, resolve, reject } = Promise.withResolvers<
+        number | undefined
+      >();
+      const request = nodeRequest(
+        new URL('/permit/scope', handle.url),
+        {
+          headers: {
+            Authorization: 'Bearer strong',
+            'X-Tenant-ID': ['tenant-1', 'tenant-2'],
+          },
+        },
+        (response) => {
+          response.resume();
+          response.on('end', () => resolve(response.statusCode));
+        }
+      );
+      request.on('error', reject);
+      request.end();
+      const status = await promise;
+
+      expect(status).toBe(200);
+      expect(observedHeader).toBe('tenant-1, tenant-2');
     } finally {
       await handle.close();
     }

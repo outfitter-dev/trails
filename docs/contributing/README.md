@@ -36,3 +36,5 @@ Root `@types/bun` and generated scaffold dependency metadata use the Bun 1.4 typ
 Rerunning `trails create` upgrades the prior generated `@types/bun` range `^1.4.3` to the current scaffold default in standalone and workspace apps. Dry-run previews leave the project unchanged. Customized ranges and other historical pins remain conflicts; review those choices explicitly before rerunning.
 
 See [Bun 1.4.4 Test Qualification](./bun-144-test-qualification.md) for the measured serial, bounded parallel, compatibility-pattern, and coverage results.
+
+See [Bun 1.4.4 Surface Qualification](./bun-144-surface-qualification.md) for HTTP, CLI, MCP stdio, and disposable SQLite migration regression evidence.
