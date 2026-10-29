@@ -4,6 +4,7 @@ import { parseSync } from 'oxc-parser';
 
 import type { AstNode, AstParseResult } from './nodes.js';
 
+// <!-- fix ::: Document that parser diagnostics may yield a recovered AST; use parseWithDiagnostics when syntax errors must reject the input. #stale -->
 /** Parse TypeScript source into an AST. Returns null on parse failure. */
 export const parse = (filePath: string, sourceCode: string): AstNode | null => {
   try {
