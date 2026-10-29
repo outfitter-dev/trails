@@ -264,6 +264,17 @@ RpcDiscoverResult, RpcHostCapabilities
 JsonRpcRequest, JsonRpcResponse, JsonRpcFrame, JsonRpcId
 ```
 
+### `@ontrails/rpc/websocket`
+
+```typescript
+surface(graph, options?)               // Bun.serve with the upgrade on /rpc; returns { url, close }
+createRpcWebSocketHost(graph, options?) // { upgrade, websocket, drain, handler } for an existing server
+RPC_CLOSE_CODES                        // 1000, 1001, 1002, 1008, 1009, 1011, 1013
+
+RpcWebSocketOptions, SurfaceRpcWebSocketOptions, SurfaceRpcWebSocketResult
+RpcWebSocketHost, RpcSocketData, ResolveRpcPermit, ResolveRpcPermitInput, RpcCloseCode
+```
+
 ## `@ontrails/http`
 
 ```typescript
