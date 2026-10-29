@@ -2184,6 +2184,7 @@ const vocabularyReportFromEvaluation = (params: {
  * ```ts
  * const prepared = prepareVocabularyRegradeRun({ identity, plan, root });
  * if (prepared.isOk() && prepared.value !== null) {
+ *   // <!-- fix ::: Access run?.report.gate.status through VocabularyRegradeRun.report and typecheck this example. #stale #coverage -->
  *   console.log(prepared.value.report.run?.gate.status);
  * }
  * ```

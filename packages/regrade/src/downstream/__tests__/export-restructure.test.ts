@@ -25,6 +25,7 @@ import {
 
 const repoRoot = join(import.meta.dir, '..', '..', '..', '..', '..');
 
+// <!-- fix ::: Replace moving HEAD~3 provenance here and on the app-module fixture with the immutable pre-cutover commit named in the header. #stale -->
 /** Verbatim `git show 'HEAD~3:examples/packlist/bin/packlist.ts'`. */
 const preCutoverPacklistBin = `#!/usr/bin/env bun
 

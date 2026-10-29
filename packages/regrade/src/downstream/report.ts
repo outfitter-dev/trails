@@ -242,6 +242,8 @@ export interface RegradeReviewDetail {
 }
 
 /**
+ * <!-- fix ::: Update the future Warden-mapping framing below to reference the implemented createWardenTermRewriteClass; retain the standalone helper's raw-text limitations. #stale -->
+ *
  * Build a whole-word term-rewrite class.
  *
  * Whole-word occurrences of `from` are rewritten to `to`. When `from` appears

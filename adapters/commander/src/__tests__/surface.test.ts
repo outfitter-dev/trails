@@ -40,6 +40,7 @@ describe('surface', () => {
     expect(program.commands[0]?.name()).toBe('ping');
   });
 
+  // <!-- fix ::: Exercise createProgram without onResult and assert default output; supplying defaultOnResult explicitly does not cover the fallback (src/surface.ts). #coverage -->
   test('uses defaultOnResult when none provided', () => {
     const t = trail('echo', {
       implementation: (input: { msg: string }) => Result.ok(input.msg),
