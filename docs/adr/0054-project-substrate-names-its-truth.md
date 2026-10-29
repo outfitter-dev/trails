@@ -181,13 +181,14 @@ The v1 command cardinality is deliberately small:
 | Command | App root or standalone CWD | Configured workspace root | Explicit `--app` |
 | --- | --- | --- | --- |
 | `compile` | Compile one app lock. | Require `--app`; do not fan out. | Compile the selected app lock. |
+| `resolve` | Recover one existing app lock from verified evidence. | Preflight every declared app, then recover each app lock. | Recover the selected app lock. |
 | `validate` | Validate one app. | Validate the configured app set, binding, locks, and live graphs for the complete workspace. | Validate one app. |
 | `run` | Resolve only in the current app. | Resolve against a complete fresh or live ownership view; coach collisions toward `--app`. | Run that app even when unrelated apps are unavailable. |
 | Wayfinder | Navigate one saved app graph. | Navigate the app-partitioned workspace view; label partial views. | Navigate one app. |
 | semantic diff | Compare one app scope. | Compare complete app-partitioned views. | Compare one app. |
 | Warden | Evaluate project facts from the collection root and default topo-aware rules to the current app. | Evaluate project facts, every configured topo, and workspace rules. | Preserve project facts and narrow app or topo-aware rules to the selected app. |
 
-Workspace-root `compile` does not fan out in v1. Multi-lock writes would require transaction planning, partial-failure behavior, force semantics, and recovery that current adopter evidence does not justify. The typed error names the configured apps and the corrective `--app` command. If repeated use proves an all-apps operation valuable, it can be designed explicitly later.
+Workspace-root `compile` does not fan out in v1. General multi-lock compilation remains future work; its typed error names the configured apps and the corrective `--app` command. `resolve` is the explicit generated-artifact recovery exception: it verifies evidence, sources, and force governance for every selected app before the first write, then writes each app-root lock independently. It does not provide a transaction across files. A filesystem I/O failure can leave earlier locks recovered; inspect the selected app locks and retained Git evidence before retrying. App ownership remains separate, and recovery never creates an aggregate workspace lock or changes Git staging.
 
 App selection and source-collection scope are separate axes. Selecting one app does not make shared project source disappear, and a project-wide source scan does not claim complete workspace topo evidence when only one app was selected. Structured command results carry selected extent and provenance. Human success output may stay concise; errors explain the selection and the exact corrective action.
 
