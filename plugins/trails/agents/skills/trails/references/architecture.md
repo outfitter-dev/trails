@@ -12,7 +12,7 @@ Core defines ports. Everything on the edges is an adapter.
             |  MCP (sdk)         |          |  Config (config)   |
             |  HTTP (hono/bun)   |          |  Permits (permits) |
             |  Library           |          |  Observe (observe) |
-            |  WebSocket (plan.) |          |  Trace state       |
+            |  RPC (ws host)     |          |  Trace state       |
             |                    |          |  (tracing)         |
             |                    |          |  Store (store)     |
             |                    |          |  Drizzle (drizzle) |

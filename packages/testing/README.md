@@ -151,7 +151,7 @@ The CLI harness accepts the same `presets` as the real CLI and rejects flags tha
 
 The parity helper explicitly installs `outputModePreset()` on its internal CLI harness to compare JSON payloads, including scalar strings. This configuration does not add flags to your application's CLI. It omits structured input flags when an example has empty input.
 
-The helper compares normalized success payloads and normalized TrailsError category/code pairs. CLI command names, MCP tool names, HTTP method/path values, transport envelopes, activation consumers, internal trails, and planned WebSocket work stay outside the equality check. Use `createResources` when examples need deterministic fixtures for each surface invocation, and use exclusions for intentional semantic differences that should not be silently skipped.
+The helper compares normalized success payloads and normalized TrailsError category/code pairs. CLI command names, MCP tool names, HTTP method/path values, transport envelopes, activation consumers, internal trails, and the RPC surface stay outside the equality check. Use `createResources` when examples need deterministic fixtures for each surface invocation, and use exclusions for intentional semantic differences that should not be silently skipped.
 
 ## Installation
 

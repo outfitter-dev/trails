@@ -84,7 +84,7 @@ trails survey resource db.main
 trails survey signal user.created
 ```
 
-Use `trails survey surfaces` when a blind agent or parity check needs the complete shipped-surface derived view inventory. The report lists every public trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool names, HTTP method/path pairs, and whether each derived view came from explicit authored surface metadata or default derivation. WebSocket is still planned and is intentionally reported as excluded until a public package/API exists.
+Use `trails survey surfaces` when a blind agent or parity check needs the complete shipped-surface derived view inventory. The report lists every public trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool names, HTTP method/path pairs, and whether each derived view came from explicit authored surface metadata or default derivation. The RPC surface, hosted on WebSocket, is intentionally reported as excluded until its method table renders into the lock.
 
 ### `trails topo history`
 

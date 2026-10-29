@@ -2,7 +2,7 @@
 
 Install the core packages, define your first trail, open surfaces on CLI, MCP, or HTTP, and test it with one line.
 
-This guide demonstrates CLI and MCP first because they are the shortest path to a working app. HTTP is equally shipped today, and WebSocket is still planned.
+This guide demonstrates CLI and MCP first because they are the shortest path to a working app. HTTP is equally shipped today, and the RPC surface, hosted on WebSocket, is landing.
 
 ## Installation
 
@@ -210,7 +210,7 @@ Same topo. Same runnable trail. Different shipped surface. The HTTP adapter deri
 - Input validation still comes from the same Zod schema
 - The same `Result` and error taxonomy map to HTTP responses instead of CLI or MCP output
 
-See the [HTTP surface guide](./surfaces/http.md) for the full route and error model. WebSocket follows the same peer-surface design, but does not have a public package yet.
+See the [HTTP surface guide](./surfaces/http.md) for the full route and error model. The RPC surface, hosted on WebSocket, follows the same peer-surface design through `@ontrails/rpc`.
 
 ## Test with `testAll`
 

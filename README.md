@@ -2,9 +2,9 @@
 
 **Define once. Surface everywhere.**
 
-Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework renders it on CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework renders it on CLI, MCP, HTTP, or the RPC surface hosted on WebSocket. One definition, every surface, zero drift.
 
-Trails ships CLI, MCP, and HTTP surfaces today. WebSocket is part of the architecture and roadmap, but not yet built.
+Trails ships CLI, MCP, and HTTP surfaces today. The RPC surface (JSON-RPC 2.0, hosted on WebSocket first) is landing through `@ontrails/rpc`.
 
 ## Get started
 
@@ -138,7 +138,7 @@ await cliSurface(graph);      // CLI
 // await mcpSurface(graph);   // MCP — same runnable trails
 ```
 
-The same topo can be opened on HTTP today with `@ontrails/hono` or Bun-native `@ontrails/http/bun`. WebSocket follows the same peer-surface model, but is still planned.
+The same topo can be opened on HTTP today with `@ontrails/hono` or Bun-native `@ontrails/http/bun`. The RPC surface, hosted on WebSocket, follows the same peer-surface model through `@ontrails/rpc`.
 
 ```bash
 $ myapp greet --name World
@@ -187,4 +187,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-Pre-1.0 API development. The first normal release was `0.2.0`; normal releases use the npm `latest` tag. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented. The WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+Pre-1.0 API development. The first normal release was `0.2.0`; normal releases use the npm `latest` tag. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented. The RPC surface, hosted on WebSocket, is landing through `@ontrails/rpc`. See [Horizons](./docs/horizons.md) for what's next.

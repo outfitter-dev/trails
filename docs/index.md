@@ -43,7 +43,7 @@
 - **[Trailheads](./surfaces/surface-trailheads.md)** — MCP shaping for dense topos without adding a new core primitive
 - **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
 - **[Trailhead Parity](./surfaces/surface-trailhead-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped rendering
-- **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
+- **RPC Surface, hosted on WebSocket** — JSON-RPC 2.0 over `@ontrails/rpc`, landing with its Bun WebSocket host. See [Horizons](./horizons.md) for the direction.
 
 ## Governing your codebase?
 
@@ -94,4 +94,4 @@
 
 ## Where to next?
 
-- **[Horizons](./horizons.md)** — WebSocket, mounts, packs, guide-driven SDKs, and the post-v1 roadmap
+- **[Horizons](./horizons.md)** — the RPC surface, mounts, packs, guide-driven SDKs, and the post-v1 roadmap
