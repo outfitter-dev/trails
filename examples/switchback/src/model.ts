@@ -13,6 +13,7 @@ import { z } from 'zod';
 export const conditionOps = ['eq', 'neq', 'in', 'gte', 'lte'] as const;
 
 /** A single attribute check inside a rule's `when` clause. */
+// <!-- fix ::: Align the array-required in-operator description with scalar acceptance and singleton normalization in engine.ts, or enforce the stated constraint. #drift -->
 export const conditionSchema = z.object({
   attribute: z
     .string()

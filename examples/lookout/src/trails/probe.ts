@@ -205,6 +205,7 @@ const probeRunInputSchema = z.object({
 
 type ProbeRunInput = z.output<typeof probeRunInputSchema>;
 
+// <!-- todo ::: Define whether probe timing covers the whole run or only the final attempt; recovery resets startedAt/duration after backoff while attempts counts the whole run (finalizeProbe). #verify -->
 const recoverTransientProbe = async (
   attempt: { readonly attempt: number; readonly input: ProbeRunInput },
   ctx: TrailContext,

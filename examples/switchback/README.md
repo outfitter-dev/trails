@@ -4,6 +4,8 @@ Feature flags with deterministic, explainable evaluation — the Trails library-
 
 This is the app for "I don't want a server, I want a package." One authored trail contract is consumed three ways with zero divergence: as a typed in-process library, as CLI commands, and as MCP tools.
 
+<!-- fix ::: Use the actual library-render-coherence rule name here and in the scaffold guidance (src/__tests__/governance.test.ts). #stale -->
+
 ## What this showcases
 
 | Capability | Where it appears |
