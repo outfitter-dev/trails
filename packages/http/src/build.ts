@@ -34,6 +34,7 @@ import {
   withSurfaceLayerNames,
   zodToJsonSchema,
 } from '@ontrails/core';
+import { reconcilePermit } from '@ontrails/permits';
 import type {
   ActivationEntry,
   ActivationProvenance,
@@ -308,58 +309,57 @@ const surfaceContextFactory = (
   };
 };
 
-const presentsCredential = (
-  request: HttpExecutionContext | undefined
-): boolean =>
-  ['authorization', 'x-api-key', 'x-auth-token'].some((name) => {
-    const value = readHeader(request?.headers, name);
-    return value !== undefined && value.length > 0;
-  });
+/** Correlation id for a resolver when the route received none; never a fire id. */
+const fallbackRequestId = (): string =>
+  `http_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+
+const HTTP_MISSING_VERIFIER_MESSAGE =
+  'A credential was presented but this HTTP surface has no permit resolver; configure resolvePermit with a verifier.';
 
 const resolveHttpPermit = async (
+  graph: Topo,
   options: DeriveHttpRoutesOptions,
   request: HttpExecutionContext | undefined,
   requestId: string | undefined,
   requiresPermit: boolean
 ): Promise<Result<BasePermit | undefined, Error>> => {
   const authorization = readHeader(request?.headers, 'authorization');
-  if (options.resolvePermit === undefined) {
-    // A network surface never treats a presented credential as absence.
-    if (
-      options.credentialPosture === 'network' &&
-      presentsCredential(request)
-    ) {
-      return Result.err(
-        new AuthError(
-          'A credential was presented but this HTTP surface has no permit resolver; configure resolvePermit with a verifier.',
-          { context: { code: 'no_permit_resolver' } }
-        )
-      );
+  // Keep legacy protected-route header errors when no custom policy exists.
+  if (options.resolvePermit === undefined && requiresPermit) {
+    const parsed = parseBearerAuthorization(authorization);
+    if (parsed.isErr()) {
+      return parsed;
     }
-    // Keep legacy protected-route header errors when no custom policy exists.
-    if (requiresPermit) {
-      const parsed = parseBearerAuthorization(authorization);
-      if (parsed.isErr()) {
-        return parsed;
-      }
-    }
-    return Result.ok();
   }
   // Bearer parsing derives a credential candidate; it is not an authentication gate.
   // Preserve raw Authorization so the selected adapter owns its scheme policy.
   const token = parseBearerAuthorization(authorization);
-  const resolved = await options.resolvePermit({
+  const candidate = {
     apiKey: readHeader(request?.headers, 'x-api-key'),
     authToken: readHeader(request?.headers, 'x-auth-token'),
     authorization,
     bearerToken: token.isOk() ? token.value : undefined,
     headers: toHeaders(request?.headers),
-    requestId,
+  };
+  const resolve = options.resolvePermit;
+  return await reconcilePermit({
+    candidates: { credential: { ...candidate, label: 'A credential' } },
+    graph,
+    missingVerifierMessage: HTTP_MISSING_VERIFIER_MESSAGE,
+    posture: options.credentialPosture === 'network' ? 'network' : 'in-process',
+    requestId: requestId ?? fallbackRequestId(),
+    surface: 'http',
+    verifierName: 'resolvePermit',
+    verify:
+      resolve === undefined
+        ? undefined
+        : async () => {
+            const resolved = await resolve({ ...candidate, requestId });
+            return resolved.isErr()
+              ? resolved
+              : Result.ok(resolved.value ?? null);
+          },
   });
-  if (resolved.isErr()) {
-    return resolved;
-  }
-  return Result.ok(resolved.value ?? undefined);
 };
 
 const createWebhookActivationFireId = (): string => {
@@ -906,6 +906,7 @@ const createExecute =
       layerRenderings
     );
     const permitResolution = await resolveHttpPermit(
+      graph,
       options,
       request,
       requestId,
@@ -996,6 +997,7 @@ const createWebhookConsumerExecute =
       layerRenderings
     );
     const permitResolution = await resolveHttpPermit(
+      graph,
       options,
       request,
       requestId,
