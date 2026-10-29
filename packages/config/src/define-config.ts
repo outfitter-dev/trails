@@ -35,6 +35,7 @@ interface DefineConfigResolveOptions {
 // ---------------------------------------------------------------------------
 
 /**
+ * fix ::: Describe asynchronous local config loading; discoverLocalOverrides awaits loadTrailsLocalConfigValue. #stale
  * Discover and synchronously import a `trails.config.local.*` file.
  *
  * Skipped when `TRAILS_ENV=test` for hermetic test environments.

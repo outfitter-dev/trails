@@ -55,6 +55,8 @@ testTrail(showTrail, [
 
 ## Testing composition (trails with composes)
 
+<!-- fix ::: Teach testComposes for graph scenarios and clarify the compose context needed by testTrail; src/trail.ts directly invokes the implementation with a test context. #stale -->
+
 `testTrail` works the same for trails with `composes` -- it exercises the composition graph:
 
 ```typescript

@@ -174,6 +174,7 @@ describe('scenario()', () => {
 
   // Step failure reporting
   describe('step failure reporting', () => {
+    // fix ::: Exercise a failing scenario step and assert its reported step identity and message; this only checks executeTrail returns an error. #coverage
     test('reports which step failed', async () => {
       // We can't use scenario() directly here because it registers
       // describe/test blocks. Instead, test the error message shape

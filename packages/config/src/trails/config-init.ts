@@ -4,6 +4,7 @@
  * Produces TOML, JSON, JSONC, or YAML output from the registered
  * config schema, with defaults shown and deprecated fields annotated.
  *
+ * fix ::: Qualify .env.example creation: collectArtifacts writes it only when the schema has env bindings. #stale
  * When `dir` is provided, also writes `.env.example` and `.schema.json`
  * to the specified directory.
  */
