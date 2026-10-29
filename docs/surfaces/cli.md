@@ -175,6 +175,8 @@ trail('config.set', {
 
 ## Structured Input
 
+<!-- fix ::: Document positional inline JSON for structured-only fields and its mutual exclusion with --input and --input-json; see packages/cli/src/build.ts and build.test.ts. #stale -->
+
 Every non-empty object input schema also gets two structured input channels:
 
 - `--input-json <json>` to pass the full input object inline

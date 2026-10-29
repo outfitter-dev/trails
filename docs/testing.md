@@ -215,6 +215,8 @@ testTrail(showTrail, [
 ]);
 ```
 
+<!-- fix ::: Teach a graph-aware helper such as testComposes or inject compose explicitly; testTrail directly invokes the implementation and does not create a composition graph. #stale -->
+
 For trails with `composes`, use `testTrail` the same way -- it exercises the composition graph and verifies that upstream failures propagate correctly:
 
 ```typescript

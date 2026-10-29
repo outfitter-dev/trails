@@ -735,6 +735,7 @@ writeActivationTraceRecord(name, attrs, status?, category?, parent?) // write an
 createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
+// fix ::: Group the memory sink exports under @ontrails/observability; the dev subpath does not export them. #stale
 // Developer-state tools (from @ontrails/observability/dev)
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
