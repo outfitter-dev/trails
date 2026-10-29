@@ -9,6 +9,7 @@ import {
 } from '@ontrails/source';
 import type { AstNode } from '@ontrails/source';
 
+// <!-- fix ::: Use cross-rule/cross-file for store-key aggregation comments here and on deriveStoreTableId; compose denotes trail invocation (docs/lexicon.md). #stale -->
 export interface StoreTableDefinition {
   /** Table name declared inside store({ ... }). */
   readonly name: string;

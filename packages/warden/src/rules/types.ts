@@ -306,6 +306,7 @@ export interface AuthoredMcpSurfaceBindingSet {
 }
 
 /**
+ * <!-- fix ::: Use cross-file rather than compose-file for project context here and the CRUD coverage description below (docs/lexicon.md). #stale -->
  * Options for compose-file rules that need knowledge of all trail IDs in a project.
  */
 export interface ProjectContext {

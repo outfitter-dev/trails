@@ -100,6 +100,8 @@ const resolveExpiresAtMs = (
 /**
  * Create an in-memory {@link CloudflareKv} backed by a `Map`.
  *
+ * <!-- todo ::: Reconcile the TTL-parity summary with the additional expirationTtl precedence divergence documented in README.md and implemented by resolveExpiresAtMs. #drift #verify -->
+ *
  * This is the mock factory behind every `cloudflareKv` resource, exported for
  * direct use in tests. TTL semantics mirror the KV binding (lazy expiry,
  * seconds granularity) but the 60-second minimum TTL is intentionally not

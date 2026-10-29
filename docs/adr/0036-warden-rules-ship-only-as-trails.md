@@ -68,6 +68,8 @@ import { wardenRules } from '@ontrails/warden'; // registry
 // raw rule object no longer importable
 ```
 
+<!-- todo ::: Reconcile this Trail-valued registry decision with the public WardenRule/TopoAwareWardenRule maps (packages/warden/src/rules/index.ts and src/index.ts); preserve the public-wrapper doctrine. #drift #verify -->
+
 The registry stays public because it is the concrete shape `runWarden` and external runners consume — a `ReadonlyMap<string, Trail>` keyed by rule name, used for iteration and name-based lookup. It is derivable from the trail set, but multiple consumers want the same derived view, so the framework provides it once rather than forcing every caller to rebuild it.
 
 ### Consumers drive rules through Warden trail runners
