@@ -50,7 +50,13 @@ describe('deriveRpcMethods', () => {
     const table = deriveRpcMethods(topo('app', { greet })).unwrap();
     expect(table.framework.map((entry) => entry.method)).toEqual([
       'trails.discover',
+      'trails.cancel',
+      'trails.progress',
     ]);
+    expect(
+      table.framework.find((entry) => entry.method === 'trails.progress')
+        ?.capability
+    ).toBe('progress');
   });
 
   test('lists topo signals as channel candidates', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  CancelledError,
   LAYER_INPUTS_KEY,
   NotFoundError,
   Result,
@@ -257,7 +258,7 @@ describe('createRpcHandler', () => {
     }
     expect(response.result).toMatchObject({
       capabilities: { input: false, progress: true, subscribe: false },
-      methods: ['trails.discover'],
+      methods: ['trails.discover', 'trails.cancel', 'trails.progress'],
       protocol: 'trails.v1',
     });
     const result = response.result as { trails: readonly { id: string }[] };
@@ -421,6 +422,203 @@ describe('createRpcHandler', () => {
     expect('error' in response && response.error.code).toBe(
       JSON_RPC_INVALID_REQUEST
     );
+    expect(step.state.inFlight).toEqual([]);
+  });
+
+  test('discover omits trails.progress when the host cannot push', async () => {
+    const handler = handlerFor();
+    const step = await handler.handle(
+      handler.createState(),
+      frame({ id: 1, jsonrpc: '2.0', method: 'trails.discover' })
+    );
+    const response = single(step.frames);
+    if (!('result' in response)) {
+      throw new Error('expected a discover result');
+    }
+    expect(response.result).toMatchObject({
+      methods: ['trails.discover', 'trails.cancel'],
+    });
+  });
+
+  test('trails.progress notifications reach the host while a trail runs', async () => {
+    const reporting = trail('report', {
+      implementation: (_input, ctx) => {
+        ctx.progress?.({ current: 1, total: 2, ts: 't', type: 'progress' });
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const pushed: unknown[] = [];
+    const handler = createRpcHandler(topo('app', { reporting }), {
+      capabilities: { progress: true },
+    }).unwrap();
+    const step = await handler.handle(
+      handler.createState(),
+      frame({ id: 'p1', jsonrpc: '2.0', method: 'report', params: {} }),
+      { send: (message) => pushed.push(message) }
+    );
+    expect(single(step.frames)).toMatchObject({ result: { ok: true } });
+    expect(pushed).toEqual([
+      {
+        jsonrpc: '2.0',
+        method: 'trails.progress',
+        params: {
+          event: { current: 1, total: 2, ts: 't', type: 'progress' },
+          id: 'p1',
+        },
+      },
+    ]);
+  });
+
+  test('progress stays silent without the capability or a push seam', async () => {
+    let offered = false;
+    const reporting = trail('report', {
+      implementation: (_input, ctx) => {
+        offered = ctx.progress !== undefined;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const pushed: unknown[] = [];
+    const silent = createRpcHandler(topo('app', { reporting })).unwrap();
+    await silent.handle(
+      silent.createState(),
+      frame({ id: 1, jsonrpc: '2.0', method: 'report', params: {} }),
+      { send: (message) => pushed.push(message) }
+    );
+    expect(offered).toBe(false);
+    expect(pushed).toEqual([]);
+
+    const capable = createRpcHandler(topo('app', { reporting }), {
+      capabilities: { progress: true },
+    }).unwrap();
+    await capable.handle(
+      capable.createState(),
+      frame({ id: 1, jsonrpc: '2.0', method: 'report', params: {} })
+    );
+    expect(offered).toBe(false);
+  });
+
+  test('trails.cancel aborts the in-flight request on the same connection', async () => {
+    const waiting = trail('wait', {
+      implementation: (_input, ctx) => {
+        const settled = Promise.withResolvers<Result<{ ok: boolean }, Error>>();
+        ctx.abortSignal.addEventListener('abort', () => {
+          settled.resolve(
+            Result.err(new CancelledError('cancelled by client'))
+          );
+        });
+        return settled.promise;
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createRpcHandler(topo('app', { waiting })).unwrap();
+    const state = handler.createState();
+    const pending = handler.handle(
+      state,
+      frame({ id: 'w1', jsonrpc: '2.0', method: 'wait', params: {} })
+    );
+    await Bun.sleep(0);
+    const other = await handler.handle(
+      handler.createState(),
+      frame({
+        id: 'c0',
+        jsonrpc: '2.0',
+        method: 'trails.cancel',
+        params: { id: 'w1' },
+      })
+    );
+    expect(single(other.frames)).toMatchObject({
+      result: { cancelled: false, id: 'w1' },
+    });
+    const cancelled = await handler.handle(
+      state,
+      frame({ jsonrpc: '2.0', method: 'trails.cancel', params: { id: 'w1' } })
+    );
+    expect(cancelled.frames).toEqual([]);
+    const finished = await pending;
+    const settled = single(finished.frames);
+    if (!('error' in settled)) {
+      throw new Error('expected the cancelled request to fail');
+    }
+    expect(settled.error.data).toMatchObject({ name: 'CancelledError' });
+  });
+
+  test('trails.cancel without an id is an invalid-params failure', async () => {
+    const handler = handlerFor();
+    const step = await handler.handle(
+      handler.createState(),
+      frame({ id: 1, jsonrpc: '2.0', method: 'trails.cancel', params: {} })
+    );
+    const response = single(step.frames);
+    if (!('error' in response)) {
+      throw new Error('expected a failure');
+    }
+    expect(response.error.code).toBe(JSON_RPC_INVALID_PARAMS);
+  });
+
+  test('a failing progress push never replaces the trail result', async () => {
+    const reporting = trail('report', {
+      implementation: (_input, ctx) => {
+        ctx.progress?.({ current: 1, total: 1, ts: 't', type: 'progress' });
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createRpcHandler(topo('app', { reporting }), {
+      capabilities: { progress: true },
+    }).unwrap();
+    const step = await handler.handle(
+      handler.createState(),
+      frame({ id: 1, jsonrpc: '2.0', method: 'report', params: {} }),
+      {
+        send: () => {
+          throw new Error('socket closed');
+        },
+      }
+    );
+    expect(single(step.frames)).toEqual({
+      id: 1,
+      jsonrpc: '2.0',
+      result: { ok: true },
+    });
+  });
+
+  test('a batch can cancel a waiting member that precedes it', async () => {
+    const waiting = trail('wait', {
+      implementation: async (_input, ctx) => {
+        if (!ctx.abortSignal.aborted) {
+          const aborted = Promise.withResolvers<undefined>();
+          ctx.abortSignal.addEventListener('abort', () => aborted.resolve(), {
+            once: true,
+          });
+          await aborted.promise;
+        }
+        return Result.err(new CancelledError('cancelled by client'));
+      },
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createRpcHandler(topo('app', { waiting })).unwrap();
+    const step = await handler.handle(
+      handler.createState(),
+      frame([
+        { id: 'w', jsonrpc: '2.0', method: 'wait', params: {} },
+        { jsonrpc: '2.0', method: 'trails.cancel', params: { id: 'w' } },
+      ])
+    );
+    expect(batch(step.frames)).toEqual([
+      expect.objectContaining({
+        error: expect.objectContaining({
+          data: expect.objectContaining({ name: 'CancelledError' }),
+        }),
+        id: 'w',
+      }),
+    ]);
     expect(step.state.inFlight).toEqual([]);
   });
 });

@@ -253,13 +253,13 @@ Host-agnostic JSON-RPC 2.0 kernel. Trail ids are method names, `params` is the t
 
 ```typescript
 deriveRpcMethods(graph, options?)      // derivation: Result-returning method and channel table
-createRpcHandler(graph, options?)      // kernel: createState, admit, run, handle, recover
+createRpcHandler(graph, options?)      // kernel: createState, admit, run(state, work, host?), handle, recover
 parseJsonRpcFrame(text)                // one frame → validated requests or a single error response
 isReservedRpcMethod(method)            // trails.* and rpc.* are never trail ids
 RPC_SUBPROTOCOL                        // 'trails.v1'
 
 DeriveRpcMethodsOptions, CreateRpcHandlerOptions, RpcMethodTable, RpcTrailMethod
-RpcHandler, RpcConnectionState, RpcAdmission, RpcAdmittedWork, RpcStepResult, RpcEffect
+RpcHandler, RpcRunHost, RpcConnectionState, RpcAdmission, RpcAdmittedWork, RpcStepResult, RpcEffect
 RpcDiscoverResult, RpcHostCapabilities
 JsonRpcRequest, JsonRpcResponse, JsonRpcFrame, JsonRpcId
 ```
