@@ -226,8 +226,7 @@ const toExtractionInput = (
 /** Verify a presented credential, or refuse it when nobody can. */
 const admitCredential = async (
   options: ReconcilePermitOptions,
-  credential: CredentialCandidate,
-  presented: boolean
+  credential: CredentialCandidate
 ): Promise<Result<BasePermit | undefined, Error>> => {
   if (options.verify === undefined) {
     const message =
@@ -246,17 +245,9 @@ const admitCredential = async (
     return verified;
   }
   if (verified.value === null) {
-    // On the network nothing can be inherited, so an unselected credential is
-    // anonymous. In process the host may hold a seed, and a presented
-    // credential the verifier declined must not fall back to it.
-    if (presented && options.posture === 'in-process') {
-      return Result.err(
-        new AuthError(
-          `${credential.label} was presented but the verifier did not accept it as a credential.`,
-          { context: { code: 'credential_not_accepted' } }
-        )
-      );
-    }
+    // The verifier owns selection: null means no accepted credential was
+    // selected, which is absence on every posture (an adapter that wants a
+    // presented credential refused returns an error instead).
     return Result.ok();
   }
   return Result.ok({
@@ -275,9 +266,11 @@ const admitCredential = async (
  *   `AuthError` (`no_permit_resolver`) on the network.
  * - A verifier runs whenever the surface supplied a credential candidate, even
  *   an empty one, because the verifier owns selection. Its `null` means it
- *   selected no credential: absence on the network, and in process an
- *   `AuthError` (`credential_not_accepted`) when a credential was explicitly
- *   presented, so a declined `--token` never falls back to a host seed.
+ *   selected no credential, which is absence; a verifier that wants a
+ *   presented credential refused returns an error. Surfaces whose verifier
+ *   never answers `null` for a presented token (the CLI's
+ *   `resolvePermitFromToken` returns a permit or an error) therefore never
+ *   fall back to a host seed on a declined token.
  * - `inline` and `synthetic` are refused on the network and gated by host
  *   policy in process; what they admit carries `asserted` or `synthetic`
  *   admission and an unverified actor chain.
@@ -342,5 +335,5 @@ export const reconcilePermit = async (
   ) {
     return Result.ok();
   }
-  return await admitCredential(options, credential, credentialPresented);
+  return await admitCredential(options, credential);
 };

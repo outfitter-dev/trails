@@ -341,19 +341,14 @@ describe('reconcilePermit', () => {
     });
   });
 
-  test('a verifier that declines a presented credential is an AuthError in process and absence on the network; its errors pass through', async () => {
+  test('a verifier that selects no credential yields absence on both postures; its errors pass through', async () => {
     const declined = await reconcilePermit(
       base({
         candidates: { credential: { bearerToken: 't', label: '--token' } },
         verify: () => Result.ok(null),
       })
     );
-    expect(categoryOf(declined)).toBe('auth');
-    expect(
-      declined.isErr() &&
-        isTrailsError(declined.error) &&
-        declined.error.context
-    ).toMatchObject({ code: 'credential_not_accepted' });
+    expect(declined.isOk() && declined.value).toBeUndefined();
     const absent = await reconcilePermit(
       base({
         candidates: {
