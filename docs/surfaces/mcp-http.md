@@ -24,7 +24,7 @@ server.stop();
 
 ## Hono
 
-Mount the same function at an explicit route. Hono owns routing; the MCP entry owns protocol handling.
+Attach the same function at an explicit route. Hono owns routing; the MCP entry owns protocol handling.
 
 ```typescript
 import { Hono } from 'hono';
