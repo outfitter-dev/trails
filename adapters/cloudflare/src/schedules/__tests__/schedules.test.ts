@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { CLOUDFLARE_CRON_UTC_ONLY, createScheduledHandler } from '../index.js';
 import type { CloudflareScheduledController } from '../index.js';
+import { cloudflareKv } from '../../kv/index.js';
 import { createWorkersHandler } from '../../workers/index.js';
 
 const controller = (
@@ -149,6 +150,89 @@ describe('createScheduledHandler', () => {
     expect(caught instanceof Error && caught.message).toContain(
       'nothing to tick'
     );
+  });
+
+  test('a throwing where predicate skips its activation instead of failing the invocation', async () => {
+    let fired = 0;
+    const tick = schedule('tick', { cron: '* * * * *' });
+    const guarded = trail('tick.guarded', {
+      implementation: () => {
+        fired += 1;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      on: [
+        {
+          source: tick,
+          where: () => {
+            throw new Error('predicate exploded');
+          },
+        },
+      ],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const steady = trail('tick.steady', {
+      implementation: () => {
+        fired += 1;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      on: [tick],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const originalWarn = console.warn;
+    const warnings: unknown[] = [];
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args);
+    };
+    try {
+      const handler = createScheduledHandler(
+        topo('schedules', { guarded, steady })
+      );
+      await handler(controller('* * * * *'));
+    } finally {
+      console.warn = originalWarn;
+    }
+    expect(fired).toBe(1);
+    expect(warnings).toHaveLength(1);
+  });
+
+  test('an unrelated schedule with a missing binding never blocks the firing cron', async () => {
+    let fired = 0;
+    const flags = cloudflareKv('flags', { binding: 'FLAGS' });
+    const hourly = schedule('hourly', { cron: '0 * * * *' });
+    const nightly = schedule('nightly', { cron: '0 3 * * *' });
+    const onHourly = trail('hourly.run', {
+      implementation: () => {
+        fired += 1;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      on: [hourly],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const onNightly = trail('nightly.sweep', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [nightly],
+      output: z.object({ ok: z.boolean() }),
+      resources: [flags],
+    });
+    const worker = createWorkersHandler(
+      topo('schedules', { flags, onHourly, onNightly })
+    );
+    // No FLAGS binding in env: only the nightly cron needs it.
+    await worker.scheduled(controller('0 * * * *'), {});
+    expect(fired).toBe(1);
+    const originalError = console.error;
+    console.error = () => {};
+    try {
+      await expect(
+        worker.scheduled(controller('0 3 * * *'), {})
+      ).rejects.toThrow(/FLAGS/);
+    } finally {
+      console.error = originalError;
+    }
   });
 
   test('the Workers export exposes scheduled next to fetch and queue', async () => {

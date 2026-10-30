@@ -21,6 +21,7 @@ import {
   filterSurfaceTrails,
   isLiveTrailVersionEntry,
 } from '@ontrails/core';
+import { normalizeCron } from './cron.js';
 import type {
   AnyResource,
   BaseSurfaceOptions,
@@ -116,6 +117,8 @@ export interface BuildEnvResourceOverridesOptions extends Pick<
   readonly entrypoint?: 'fetch' | 'queue' | 'scheduled' | undefined;
   /** Physical queue delivered to the current queue entrypoint. */
   readonly queue?: string | undefined;
+  /** Cron firing on the current scheduled entrypoint; only its trails need bindings. */
+  readonly cron?: string | undefined;
 }
 
 const isInternalTrail = (
@@ -165,13 +168,19 @@ const isEligibleWorkerActivationTrail = (
   options: BuildEnvResourceOverridesOptions
 ): boolean => {
   const activationKind = activationKindFor(options.entrypoint ?? 'fetch');
+  const firingCron =
+    options.cron === undefined ? undefined : normalizeCron(options.cron);
   const hasWorkerActivationSource = graphTrail.activationSources.some(
     (activation) =>
       activation.source.kind === activationKind &&
       (activationKind !== 'queue' ||
         options.queue === undefined ||
         (typeof activation.source.queue === 'string' &&
-          activation.source.queue.trim() === options.queue))
+          activation.source.queue.trim() === options.queue)) &&
+      (activationKind !== 'schedule' ||
+        firingCron === undefined ||
+        (typeof activation.source.cron === 'string' &&
+          normalizeCron(activation.source.cron) === firingCron))
   );
   if (!hasWorkerActivationSource) {
     return false;
