@@ -5,7 +5,7 @@ import type { BasePermit } from '@ontrails/core';
 import type { McpExtra } from './build.js';
 import { resolveMcpPermit } from './permit-resolution.js';
 import type { McpResourceDefinition } from './resources.js';
-import type { CreateServerOptions } from './surface.js';
+import type { CreateServerOptions } from './server.js';
 
 /** Verified caller and canonical resource descriptor, without invocation scopes. */
 export interface AuthorizeMcpResourceReadInput {
