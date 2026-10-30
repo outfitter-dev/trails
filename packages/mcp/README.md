@@ -61,6 +61,16 @@ for (const tool of result.value) {
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
+## Request credential resolution
+
+A configured `resolvePermit` receives each request's raw `authorization`, best-effort `bearerToken` and untrusted application `_meta`. It owns the accepted credential source and syntax. An opaque key in Authorization can therefore reach that policy without first passing Bearer parsing. Metadata fields and tool arguments are never promoted into header credentials. HTTP header candidates require a real hosting adapter; the core does not synthesize them from `_meta`.
+
+Return `Result.ok(null)` or `undefined` only when no accepted credential was selected. A selected malformed or invalid credential, lookup miss or operational failure must return an error; it stops even a public tool before host-context fallback or execution. Choose precedence before verification and never fall back to another candidate after selected failure. A Bearer-only policy must reject malformed presented Bearer credentials itself.
+
+Explicit host-provided `extra.permit` keeps its existing precedence. When the configured resolver returns absence, trusted `createContext` permit configuration remains available, including local stdio use; a resolver error cannot use that fallback. An unconfigured resolver retains the existing Authorization parser behavior. This preserves host configuration without granting protocol-session authority.
+
+Tool invocation uses one internal request permit-resolution seam that resource adapters can also consume. Resource policy and its host-context fallback remain owned by the resource adapter; verification is not duplicated. This change does not establish Fetch hosting, query credentials, application-cookie policy or header extraction for a future host.
+
 ## Annotations
 
 Trail intent, idempotency, and description map directly to MCP annotations:
