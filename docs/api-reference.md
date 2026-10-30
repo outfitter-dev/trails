@@ -231,6 +231,8 @@ deriveAnnotations(trail)               // MCP annotations from intent, idempoten
 createMcpProgressCallback(extra)       // progress bridge
 
 CreateServerOptions, DeriveMcpToolsOptions
+AuthorizeMcpResourceRead, AuthorizeMcpResourceReadInput // verified caller + canonical resource policy
+McpResourceDefinition                  // optional real trailId, absent for aggregate resources
 McpToolDefinition,                     // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```

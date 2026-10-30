@@ -31,6 +31,23 @@ export {
   type McpResourcesConfig,
 } from './resources.js';
 
+/**
+ * Policy over verified callers and canonical MCP resource descriptors.
+ *
+ * @example
+ * ```ts
+ * const options: CreateServerOptions = {
+ *   authorizeResourceRead: ({ permit }) => permit
+ *     ? Result.ok()
+ *     : Result.err(new PermissionError('Sign in to read resources')),
+ * };
+ * ```
+ */
+export type {
+  AuthorizeMcpResourceRead,
+  AuthorizeMcpResourceReadInput,
+} from './resource-access.js';
+
 // Tool naming
 export { deriveToolName } from './tool-name.js';
 

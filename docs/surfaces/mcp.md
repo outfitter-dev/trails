@@ -132,6 +132,35 @@ await surface(graph, {
 
 Graph resources are opt-in for general MCP hosts because they widen cold context for every exposed trail. The Trails operator enables them so agents can inspect high-signal graph facts without invoking another tool.
 
+### Resource read policy
+
+`resources/list` and `resources/read` resolve credentials through the same request-scoped `resolvePermit` boundary as tool calls. Verification runs once per request, including anonymous, metadata-only and empty-list requests. Invalid selected credentials fail even when resources would otherwise be public. A verified request permit takes precedence over trusted `createContext` permit configuration; absence may use that local-host fallback, while a verification error cannot.
+
+Without an `authorizeResourceRead` callback, static introspection remains public within the app's authored MCP population. Include/exclude selectors, intent, visibility, aliases and trailheads continue to determine that population. Apps can narrow reads with an explicit policy:
+
+```typescript
+import { PermissionError, Result } from '@ontrails/core';
+import { surface } from '@ontrails/mcp';
+
+await surface(graph, {
+  resolvePermit,
+  authorizeResourceRead: ({ permit, resource }) => {
+    if (permit === undefined) {
+      return Result.err(new PermissionError(`Private resource: ${resource.uri}`));
+    }
+    return Result.ok();
+  },
+});
+```
+
+The callback receives the verified permit, possibly absent, and the canonical catalog descriptor. Trail-specific descriptors carry the actual `resource.trailId`; aggregates such as `trails://surface-map` have no trail ID. These descriptors do not copy a trail's invocation requirements, and reading a schema does not invoke its trail. Raw credentials remain with the credential resolver.
+
+Return `Result.ok()` to allow a URI or `Result.err(new PermissionError(...))` to deny it. Resource listing omits permission-denied URIs; direct reads return the shared protocol error. Other policy errors fail the request. Every direct read verifies and evaluates policy again, so an earlier list or read grants no later access. Neither a connection nor an interleaved caller's result caches a grant. Unexpected callback exceptions use the public error renderer rather than exposing their messages.
+
+URI policy does not hide tool descriptions or redact the surface-map aggregate. `tools/list` remains static. Apps that require member-level private discovery must deny unsafe aggregates until a shared filtered-discovery capability is implemented. Denying one URI alone does not establish global schema confidentiality. `buildMcpResources` remains a low-level catalog builder; app hosts using its raw `read` function must provide their own access boundary.
+
+When migrating a resolver, expect calls from resource listing and reading as well as tool invocation, even without bearer credentials. Return no permit only for genuine credential absence; selected invalid credentials and verification failures must return errors. Stdio can retain explicit trusted host policy and remains outside OAuth. The separate fetch-shaped host must consume this same request boundary when implemented; these SDK controls do not establish live HTTP interoperability.
+
 The resource naming is intentionally qualified: `McpResource`, `McpResources`, and `mcpResources` refer to MCP protocol resources. Trails `resource()` remains the infrastructure dependency primitive.
 
 ## Deferred Loading Hint
