@@ -1,5 +1,11 @@
 # @ontrails/cloudflare
 
+## 0.3.0
+
+### Minor Changes
+
+- [`9e1ad81`](https://github.com/outfitter-dev/trails/commit/9e1ad8159ee12920689c564158b44a284b906b62): Change D1 connections to require pre-applied schema by default: connectD1 and cloudflareD1 no longer create tables or seed data implicitly during request access. Add renderD1SchemaSql for deterministic create-only baseline SQL managed through Wrangler migrations. Existing apps must apply/adopt reviewed schema migrations before runtime use, or explicitly set autoCreate: true for development/test bootstrap. Runtime seed now requires that opt-in and otherwise throws ValidationError; in-memory fixtures/mockSeed retain their behavior. Preserve the resolved table prefix when adopting existing data. See the D1 migration guide for upgrade and baseline-adoption steps; IF NOT EXISTS is not schema validation or a data migration.
+
 ## 0.2.5
 
 No changes in this release.
