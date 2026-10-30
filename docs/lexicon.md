@@ -36,7 +36,7 @@ const show = trail('entity.show', {
 
 ### `surface`
 
-The boundary-owned rendering where the outside world reaches the trail system. CLI, MCP, HTTP, and the RPC surface are surfaces. The RPC surface speaks JSON-RPC 2.0 and is hosted on WebSocket first (`@ontrails/rpc/websocket`), with stdio as a later host; say "RPC surface, hosted on WebSocket", not "WebSocket surface". MCP is a separate surface that shares core's error codes and data shape, never the RPC package.
+The boundary-owned rendering where the outside world reaches the trail system. CLI, MCP, HTTP, and the RPC surface are surfaces. The RPC surface speaks JSON-RPC 2.0 and is hosted on WebSocket first (the WebSocket host ships inside `@ontrails/rpc`), with stdio as a later host; say "RPC surface, hosted on WebSocket", not "WebSocket surface". MCP is a separate surface that shares core's error codes and data shape, never the RPC package.
 
 ```typescript
 import { surface } from '@ontrails/commander';
@@ -516,7 +516,7 @@ The store declaration stays kind-agnostic. The binding (native or adapter) choos
 | `schema facet` | Descriptive phrase for a schema-owned slice or view when docs need it; not a decided public API |
 | `trail fork` | Doctrine phrase for the point where a surface accommodation would change semantics or merge or hide member identity; author a distinct trail, composing trail, or trailhead that preserves identity instead |
 | `MCP resources` | MCP protocol resources used for cold context; not Trails `resource()` infrastructure declarations |
-| `RPC surface` | The JSON-RPC 2.0 surface from `@ontrails/rpc`: a trail id is the method, `params` is the input, errors carry core's codes. Hosted on WebSocket first (`@ontrails/rpc/websocket`); not a `@ontrails/ws`, `@ontrails/websocket`, or `@ontrails/jsonrpc` package |
+| `RPC surface` | The JSON-RPC 2.0 surface from `@ontrails/rpc`: a trail id is the method, `params` is the input, errors carry core's codes. Hosted on WebSocket first (the WebSocket host ships inside `@ontrails/rpc`); not a `@ontrails/ws`, `@ontrails/websocket`, or `@ontrails/jsonrpc` package |
 | `trails.*` | Reserved JSON-RPC method prefix for the RPC surface's framework methods (`trails.discover`, `trails.cancel`, `trails.progress`, and later subscription and auth methods); never a trail id |
 | `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
