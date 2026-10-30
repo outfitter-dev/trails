@@ -16,6 +16,7 @@ import {
   renderErrorDiagnostics,
   renderPublicSurfaceError,
 } from '@ontrails/core';
+import { normalizeCron } from '../cron.js';
 import type {
   BaseSurfaceOptions,
   Layer,
@@ -156,7 +157,8 @@ const resolveResourceOverrides = (
   env: WorkersEnv,
   options: CreateWorkersHandlerOptions,
   entrypoint: 'fetch' | 'queue' | 'scheduled',
-  queueName?: string
+  queueName?: string,
+  cron?: string
 ): ResourceOverrideMap => {
   // Explicit overrides are the documented escape hatch, so they resolve
   // first: an overridden resource never requires its env binding. Surface
@@ -173,6 +175,7 @@ const resolveResourceOverrides = (
     include: options.include,
     intent: options.intent,
     queue: queueName,
+    ...(cron === undefined ? {} : { cron }),
   });
   if (envOverrides.isErr()) {
     throw envOverrides.error;
@@ -218,7 +221,10 @@ export const createWorkersHandler = (
 ): CloudflareWorker => {
   let materialized: MaterializedHandler | undefined;
   let materializedQueue: MaterializedQueueHandler | undefined;
-  let materializedScheduled: MaterializedScheduledHandler | undefined;
+  // One materialization per firing cron: a schedule only needs the bindings
+  // of the trails on its own cron, so an unrelated schedule's missing binding
+  // never blocks it.
+  const materializedScheduled = new Map<string, MaterializedScheduledHandler>();
 
   const handlerFor = (
     env: WorkersEnv | undefined
@@ -275,13 +281,13 @@ export const createWorkersHandler = (
   };
 
   const scheduledHandlerFor = (
-    env: WorkersEnv | undefined
+    env: WorkersEnv | undefined,
+    cron: string
   ): ((controller: CloudflareScheduledController) => Promise<void>) => {
-    if (
-      materializedScheduled !== undefined &&
-      materializedScheduled.env === env
-    ) {
-      return materializedScheduled.handle;
+    const key = normalizeCron(cron);
+    const cached = materializedScheduled.get(key);
+    if (cached !== undefined && cached.env === env) {
+      return cached.handle;
     }
     const handle = createScheduledHandler(graph, {
       configValues: options.configValues,
@@ -294,11 +300,13 @@ export const createWorkersHandler = (
         graph,
         env ?? {},
         options,
-        'scheduled'
+        'scheduled',
+        undefined,
+        key
       ),
       validate: options.validate,
     });
-    materializedScheduled = { env, handle };
+    materializedScheduled.set(key, { env, handle });
     return handle;
   };
 
@@ -322,7 +330,7 @@ export const createWorkersHandler = (
       // failure) must fail the invocation loudly; Cron Triggers have no
       // response body to carry a rendered error.
       try {
-        await scheduledHandlerFor(env)(controller);
+        await scheduledHandlerFor(env, controller.cron)(controller);
       } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error(

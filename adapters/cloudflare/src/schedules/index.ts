@@ -28,6 +28,7 @@ import {
   withActivationProvenance,
   writeActivationTraceRecord,
 } from '@ontrails/core';
+import { normalizeCron } from '../cron.js';
 import type {
   ActivationEntry,
   AnyTrail,
@@ -72,10 +73,6 @@ interface ScheduleRegistration {
 }
 
 const EMPTY_INPUT: Readonly<Record<string, never>> = Object.freeze({});
-
-/** Match core's schedule normalization: trimmed, single-spaced fields. */
-const normalizeCron = (cron: string): string =>
-  cron.trim().replaceAll(/\s+/g, ' ');
 
 const isUtc = (timezone: string | undefined): boolean =>
   timezone === undefined || timezone === 'UTC' || timezone === 'Etc/UTC';
@@ -249,16 +246,14 @@ const shouldRun = async (
   try {
     return await predicate(registration.input);
   } catch (error: unknown) {
-    throw new InternalError(
-      `Schedule activation predicate failed for source "${registration.sourceId}" and trail "${registration.trail.id}": ${errorFromUnknown(error).message}`,
-      {
-        cause: errorFromUnknown(error),
-        context: {
-          sourceId: registration.sourceId,
-          trailId: registration.trail.id,
-        },
-      }
+    // Same policy as core's schedule runtime (`packages/core/src/schedule-runtime.ts`,
+    // `where_error`): a throwing predicate skips this activation and is
+    // reported, rather than failing the whole invocation.
+    console.warn(
+      `[ontrails:cloudflare/schedules] Schedule activation predicate failed for source "${registration.sourceId}" and trail "${registration.trail.id}"; skipping this activation`,
+      { error: errorFromUnknown(error).message }
     );
+    return false;
   }
 };
 
