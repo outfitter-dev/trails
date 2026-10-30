@@ -90,6 +90,33 @@ describe('createRpcHarness', () => {
     ]);
   });
 
+  test('results and pushes cross the JSON wire boundary', async () => {
+    const stamped = trail('stamp', {
+      implementation: (_input, ctx) => {
+        ctx.progress?.({
+          current: 1,
+          total: 1,
+          ts: new Date('2026-10-29T00:00:00Z') as unknown as string,
+          type: 'progress',
+        });
+        return Result.ok({
+          at: new Date('2026-10-29T00:00:00Z'),
+          gone: undefined,
+        });
+      },
+      input: z.object({}),
+      output: z.object({ at: z.date(), gone: z.undefined() }),
+    });
+    const rpc = createRpcHarness({
+      graph: topo('rpc-harness-wire', { stamped }),
+    });
+    const result = await rpc.call('stamp', {});
+    expect(result.result).toEqual({ at: '2026-10-29T00:00:00.000Z' });
+    expect(rpc.pushed[0]).toMatchObject({
+      params: { event: { ts: '2026-10-29T00:00:00.000Z' } },
+    });
+  });
+
   test('test context merges into every call', async () => {
     const seen: string[] = [];
     const observing = trail('observe', {

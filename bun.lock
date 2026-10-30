@@ -488,6 +488,7 @@
         "@ontrails/http": "workspace:^",
         "@ontrails/mcp": "workspace:^",
         "@ontrails/observability": "workspace:^",
+        "@ontrails/rpc": "workspace:^",
         "@ontrails/store": "workspace:^",
       },
       "peerDependencies": {
