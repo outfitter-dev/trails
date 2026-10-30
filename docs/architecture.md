@@ -153,7 +153,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/commander` | Commander adapter, `surface()` | `commander` |
-| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/server` |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
 | `@ontrails/library` | Plain TypeScript library rendering, runtime-backed package emitter, `surface()` | None beyond core |
@@ -196,7 +196,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/core (zod)
      ^
 @ontrails/cli (core)
-@ontrails/mcp (core, @modelcontextprotocol/sdk)
+@ontrails/mcp (core, @modelcontextprotocol/server)
 @ontrails/http (core)
 @ontrails/library (core)
 @ontrails/config (core, source, yaml)

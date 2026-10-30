@@ -29,8 +29,11 @@
   "dependencies": {
     "@ontrails/core": "workspace:^"
   },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0"
+  },
   "peerDependencies": {
-    "@modelcontextprotocol/sdk": "^1.28.0",
+    "@modelcontextprotocol/server": "^2.4.0",
     "zod": "catalog:"
   }
 }

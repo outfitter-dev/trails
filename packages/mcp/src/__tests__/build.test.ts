@@ -1,3 +1,4 @@
+import { specTypeSchemas } from '@modelcontextprotocol/server';
 import { describe, expect, test } from 'bun:test';
 
 import {
@@ -23,7 +24,7 @@ import {
   MCP_TOOL_TRAILHEAD_META_KEY,
   deriveMcpTools,
 } from '../build.js';
-import type { McpExtra, McpToolDefinition } from '../build.js';
+import type { McpContent, McpExtra, McpToolDefinition } from '../build.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -136,12 +137,22 @@ const buildTools = (
   return result.value;
 };
 
-const parseJsonContent = (
-  content: { readonly text?: string | undefined } | undefined
-): unknown => {
-  expect(content?.text).toBeDefined();
-  return JSON.parse(content?.text ?? 'null');
+const textContent = (content: McpContent | undefined): string => {
+  if (content?.type !== 'text') {
+    throw new Error('Expected text content');
+  }
+  return content.text;
 };
+
+const imageContent = (content: McpContent | undefined) => {
+  if (content?.type !== 'image') {
+    throw new Error('Expected image content');
+  }
+  return content;
+};
+
+const parseJsonContent = (content: McpContent | undefined): unknown =>
+  JSON.parse(textContent(content));
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -273,7 +284,7 @@ describe('deriveMcpTools', () => {
 
     test('object union output schemas wrap under data envelope (MCP spec)', async () => {
       // MCP's Tool schema requires `outputSchema` to have literal
-      // `type: "object"` at the root (see @modelcontextprotocol/sdk's
+      // `type: "object"` at the root (see @modelcontextprotocol/server's
       // `outputSchema: z.object({ type: z.literal('object'), ... })`).
       // Discriminated unions emit as `{ anyOf: [...] }`, so they go
       // through the `wrapAsData` path: schema becomes
@@ -352,7 +363,7 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({ notMessage: 123 }, noExtra);
       expect(result?.isError).toBe(true);
       expect(result?.content[0]?.type).toBe('text');
-      expect(result?.content[0]?.text).toBeDefined();
+      expect(textContent(result?.content[0])).toBeDefined();
     });
 
     test('handler calls implementation and returns result as text content', async () => {
@@ -503,7 +514,7 @@ describe('deriveMcpTools', () => {
 
       const result = await tool.handler({ reason: 'broken' }, noExtra);
       expect(result?.isError).toBe(true);
-      expect(result?.content[0]?.text).toBe('Internal server error');
+      expect(textContent(result?.content[0])).toBe('Internal server error');
     });
 
     test('handler renders TrailsError metadata onto MCP tool-result errors', async () => {
@@ -557,7 +568,7 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, noExtra);
 
       expect(result?.isError).toBe(true);
-      expect(result?.content[0]?.text).toBe('Internal server error');
+      expect(textContent(result?.content[0])).toBe('Internal server error');
     });
   });
 
@@ -750,7 +761,9 @@ describe('deriveMcpTools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(result.content[0]?.text).toContain('unknown trail selector');
+      expect(textContent(result.content[0])).toContain(
+        'unknown trail selector'
+      );
     });
 
     test('rejects trailhead selectors that overlap without narrowing', () => {
@@ -849,7 +862,9 @@ describe('deriveMcpTools', () => {
         );
 
         expect(result.isError).toBe(true);
-        expect(result.content[0]?.text).toContain('unknown trail selector');
+        expect(textContent(result.content[0])).toContain(
+          'unknown trail selector'
+        );
       });
 
       test('rejects overlay group bindings that overlap without narrowing', () => {
@@ -1238,7 +1253,7 @@ describe('deriveMcpTools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(result.content[0]?.text).toContain('No permit provided');
+      expect(textContent(result.content[0])).toContain('No permit provided');
     });
 
     test('per-call MCP permit override wins over session authorization', async () => {
@@ -1287,7 +1302,7 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, noExtra);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0]?.text).toContain('No permit provided');
+      expect(textContent(result.content[0])).toContain('No permit provided');
     });
 
     test('malformed MCP authorization fails before execution', async () => {
@@ -1307,7 +1322,9 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, { authorization: 'Basic nope' });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0]?.text).toContain('Malformed MCP authorization');
+      expect(textContent(result.content[0])).toContain(
+        'Malformed MCP authorization'
+      );
       expect(invoked).toBe(false);
     });
 
@@ -1326,7 +1343,7 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, { authorization: 'Bearer weak' });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0]?.text).toContain('Missing scopes');
+      expect(textContent(result.content[0])).toContain('Missing scopes');
     });
   });
 
@@ -1349,8 +1366,8 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, noExtra);
 
       expect(result?.content[0]?.type).toBe('image');
-      expect(result?.content[0]?.mimeType).toBe('image/png');
-      expect(result?.content[0]?.data).toBeDefined();
+      expect(imageContent(result?.content[0]).mimeType).toBe('image/png');
+      expect(imageContent(result?.content[0]).data).toBeDefined();
     });
 
     test('BlobRef output converts to resource content for non-images', async () => {
@@ -1370,12 +1387,20 @@ describe('deriveMcpTools', () => {
       const tool = requireOnlyTool(buildTools(topo('myapp', { blobTrail })));
       const result = await tool.handler({}, noExtra);
 
-      expect(result?.content[0]?.type).toBe('resource');
-      expect(result?.content[0]?.uri).toBe('blob://doc.pdf');
-      expect(result?.content[0]?.mimeType).toBe('application/pdf');
+      expect(result.content[0]).toEqual({
+        resource: {
+          blob: 'AQID',
+          mimeType: 'application/pdf',
+          uri: 'blob://doc.pdf',
+        },
+        type: 'resource',
+      });
+      expect(
+        specTypeSchemas.CallToolResult['~standard'].validate(result).issues
+      ).toBeUndefined();
     });
 
-    test('BlobRef resource content does not consume non-image streams', async () => {
+    test('BlobRef embeds non-image streams as readable binary content', async () => {
       const bytes = new Uint8Array([4, 5, 6]);
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
@@ -1402,9 +1427,18 @@ describe('deriveMcpTools', () => {
       const read = await reader.read();
       reader.releaseLock();
 
-      expect(result?.content[0]?.type).toBe('resource');
-      expect(read.done).toBe(false);
-      expect(read.value).toEqual(bytes);
+      expect(result.content[0]).toEqual({
+        resource: {
+          blob: 'BAUG',
+          mimeType: 'application/pdf',
+          uri: 'blob://doc.pdf',
+        },
+        type: 'resource',
+      });
+      expect(
+        specTypeSchemas.CallToolResult['~standard'].validate(result).issues
+      ).toBeUndefined();
+      expect(read.done).toBe(true);
     });
 
     test('BlobRef with ReadableStream data is collected and serialized', async () => {
@@ -1432,8 +1466,8 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, noExtra);
 
       expect(result?.content[0]?.type).toBe('image');
-      expect(result?.content[0]?.mimeType).toBe('image/gif');
-      expect(result?.content[0]?.data).toBeDefined();
+      expect(imageContent(result?.content[0]).mimeType).toBe('image/gif');
+      expect(imageContent(result?.content[0]).data).toBeDefined();
       expect(stream.locked).toBe(false);
     });
 
@@ -1484,9 +1518,12 @@ describe('deriveMcpTools', () => {
           type: 'text',
         },
         {
-          mimeType: 'application/pdf',
+          resource: {
+            blob: 'AQID',
+            mimeType: 'application/pdf',
+            uri: 'blob://doc.pdf',
+          },
           type: 'resource',
-          uri: 'blob://doc.pdf',
         },
       ]);
       expect(result?.structuredContent).toEqual({
@@ -1541,7 +1578,7 @@ describe('deriveMcpTools', () => {
         mimeType: 'image/png',
         type: 'image',
       });
-      expect(result?.content[1]?.data).toBeDefined();
+      expect(imageContent(result?.content[1]).data).toBeDefined();
       expect(result?.structuredContent).toEqual({
         files: [
           {
@@ -1589,14 +1626,20 @@ describe('deriveMcpTools', () => {
       });
       expect(result?.content.slice(1)).toEqual([
         {
-          mimeType: 'application/pdf',
+          resource: {
+            blob: 'AQID',
+            mimeType: 'application/pdf',
+            uri: 'blob://shared.pdf',
+          },
           type: 'resource',
-          uri: 'blob://shared.pdf',
         },
         {
-          mimeType: 'application/pdf',
+          resource: {
+            blob: 'AQID',
+            mimeType: 'application/pdf',
+            uri: 'blob://shared.pdf',
+          },
           type: 'resource',
-          uri: 'blob://shared.pdf',
         },
       ]);
       expect(result?.structuredContent).toEqual({
@@ -1651,7 +1694,9 @@ describe('deriveMcpTools', () => {
         mimeType: 'image/png',
         type: 'image',
       });
-      expect(imageContents?.[0]?.data).toBe(imageContents?.[1]?.data);
+      expect(imageContent(imageContents?.[0]).data).toBe(
+        imageContent(imageContents?.[1]).data
+      );
       expect(stream.locked).toBe(false);
     });
 
@@ -1685,14 +1730,20 @@ describe('deriveMcpTools', () => {
       });
       expect(result?.content.slice(1)).toEqual([
         {
-          mimeType: 'application/pdf',
+          resource: {
+            blob: 'AQID',
+            mimeType: 'application/pdf',
+            uri: 'blob://cycle.pdf',
+          },
           type: 'resource',
-          uri: 'blob://cycle.pdf',
         },
         {
-          mimeType: 'application/pdf',
+          resource: {
+            blob: 'AQID',
+            mimeType: 'application/pdf',
+            uri: 'blob://cycle.pdf',
+          },
           type: 'resource',
-          uri: 'blob://cycle.pdf',
         },
       ]);
       expect(result?.structuredContent).toEqual({
