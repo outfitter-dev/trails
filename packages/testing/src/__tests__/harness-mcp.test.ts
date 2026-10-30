@@ -36,9 +36,10 @@ describe('createMcpHarness', () => {
   });
 
   test('forwards authorization through the harness so bearer-token permits enforce', async () => {
-    // Regression for TRL-1176: the harness used to drop authorization,
-    // permit, and sessionId from options.extra, so permit-guarded tools
-    // always failed with "No permit provided" even for valid tokens.
+    // Regression for TRL-1176: the harness used to drop authorization and
+    // permit from options.extra, so permit-guarded tools always failed with
+    // "No permit provided" even for valid tokens. Permits resolve per request
+    // from the bearer credential; there is no protocol session id (TRL-1458).
     const protectedTrail = trail('permit.guarded', {
       implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
@@ -46,19 +47,16 @@ describe('createMcpHarness', () => {
       permit: { scopes: ['thing:read'] },
     });
     const graph = topo('test-app', { protectedTrail });
-    let seenSession: string | undefined;
     const buildHarness = (authorization: string) =>
       createMcpHarness({
-        extra: { authorization, sessionId: 'session-1' },
+        extra: { authorization },
         graph,
-        resolvePermit: ({ bearerToken, sessionId }) => {
-          seenSession = sessionId;
-          return Result.ok(
+        resolvePermit: ({ bearerToken }) =>
+          Result.ok(
             bearerToken === 'admin-token'
               ? { id: 'admin', scopes: ['thing:read'] }
               : { id: 'guest', scopes: [] }
-          );
-        },
+          ),
       });
     const toolName = deriveToolName(graph.name, protectedTrail.id);
 
@@ -68,7 +66,6 @@ describe('createMcpHarness', () => {
     );
     expect(accepted.isError).toBe(false);
     expect(JSON.stringify(accepted.content)).toContain('true');
-    expect(seenSession).toBe('session-1');
 
     const rejected = await buildHarness('Bearer guest-token').callTool(
       toolName,

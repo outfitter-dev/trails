@@ -68,6 +68,24 @@ describe('stdio protocol serving', () => {
         expect(wireOrder.lastIndexOf('progress')).toBeLessThan(
           wireOrder.indexOf('result')
         );
+        const identityRequest = {
+          _meta: { fixtureCredential: 'reader' },
+          arguments: {},
+          name: 'stdio_fixture_identity',
+        };
+        const firstIdentity = await client.callTool(identityRequest);
+        expect(firstIdentity.structuredContent).toEqual({
+          id: 'fixture-reader',
+        });
+        const rejectedIdentity = await client.callTool({
+          ...identityRequest,
+          _meta: { fixtureCredential: 'wrong' },
+        });
+        expect(rejectedIdentity.isError).toBe(true);
+        const repeatedIdentity = await client.callTool(identityRequest);
+        expect(repeatedIdentity.structuredContent).toEqual(
+          firstIdentity.structuredContent
+        );
         const file = await client.callTool({
           arguments: {},
           name: 'stdio_fixture_file',

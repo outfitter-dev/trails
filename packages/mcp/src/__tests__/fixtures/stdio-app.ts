@@ -47,6 +47,22 @@ const file = trail('file', {
   output: blobRefSchema,
 });
 
-await surface(topo('stdio-fixture', { file, greet }), {
+const identity = trail('identity', {
+  implementation: (_input, ctx) =>
+    Result.ok({ id: ctx.permit?.id ?? 'anonymous' }),
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ id: z.string() }),
+  permit: { scopes: ['identity:read'] },
+});
+
+await surface(topo('stdio-fixture', { file, greet, identity }), {
   mcpResources: { examples: true, graph: true, surfaceMap: true },
+  // This fixed credential is a test fixture, not a production verifier.
+  resolvePermit: ({ _meta }) =>
+    Result.ok(
+      _meta?.['fixtureCredential'] === 'reader'
+        ? { id: 'fixture-reader', scopes: ['identity:read'] }
+        : undefined
+    ),
 });

@@ -142,15 +142,13 @@ const createMcpServer = (
           };
 
     const extra = {
+      _meta: requestExtra.mcpReq._meta,
       abortSignal: requestExtra.mcpReq.signal,
       ...(authorizationToken === undefined
         ? {}
         : { authorization: `Bearer ${authorizationToken}` }),
       progressToken,
       sendProgress,
-      ...(requestExtra.sessionId === undefined
-        ? {}
-        : { sessionId: requestExtra.sessionId }),
     };
 
     const result = await tool.handler(args, extra);

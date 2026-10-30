@@ -4,7 +4,7 @@ slug: connector-agnostic-permits
 title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
-updated: 2026-05-19
+updated: 2026-10-28
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -20,7 +20,7 @@ The historical slug is preserved for reference stability. The 2026-05-08 amendme
 
 ### Surfaces resolve auth differently
 
-HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the blaze shouldn't know or care which one ran. The blaze needs a single, surface-agnostic permit — or the knowledge that no permit was required.
+HTTP reads a bearer token from the `Authorization` header. MCP HTTP credentials must be resolved per request under [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-request), with bearer credentials and untrusted application `_meta`. A protocol session or transport handshake does not grant MCP authority. Stdio remains outside OAuth and may use explicit local host permit configuration. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the blaze shouldn't know or care which one ran. The blaze needs a single, surface-agnostic permit — or the knowledge that no permit was required.
 
 ### Auth is a resource + layer hybrid
 
@@ -86,13 +86,16 @@ The permit model separates into three distinct responsibilities:
 interface PermitExtractionInput {
   readonly surface: 'http' | 'mcp' | 'cli';
   readonly bearerToken?: string;
+  /** Optional legacy host context; MCP protocol sessions do not grant authority. */
   readonly sessionId?: string;
   readonly headers?: Headers;
   readonly requestId: string;
 }
 ```
 
-Surfaces do raw extraction — pulling tokens from headers, sessions, or environment. The auth adapter receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
+This is the generic `@ontrails/permits` adapter port. Its optional `sessionId` remains available as legacy host context; removing MCP protocol-session input does not remove that generic field or prescribe app-cookie handling. The MCP-specific `ResolveMcpPermitInput` carries `authorization`, `bearerToken`, and per-request `_meta`, with no `sessionId`. `_meta` is untrusted credential context at the MCP boundary; it is not a field of this normalized adapter input.
+
+Surfaces do raw extraction — pulling credentials from headers, adapter-owned application context, or environment. The auth adapter receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
 
 ### Auth adapter interface
 
@@ -179,6 +182,8 @@ No cookies. No session-based auth at the framework level. Session management via
   refresh on key rotation. Sender-constrained tokens are rejected because this
   adapter does not verify their proof. The existing Permit shape is unchanged;
   resource-server doctrine and provider packaging amendments remain separate.
+- 2026-10-28: MCP permits resolve per request under ADR-0055. The MCP-specific session input is removed; the generic adapter context seam remains available without implying MCP protocol-session authority.
+
 - 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
   examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
   stable.

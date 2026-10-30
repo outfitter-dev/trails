@@ -281,6 +281,24 @@ await surface(graph, {
 
 `surface(graph)` already derives the MCP server name and version from the topo identity. Pass `name` or `version` only when a specific surface instance needs to override them.
 
+## Request Permits
+
+`resolvePermit` receives credential candidates from each tool call. Its `ResolveMcpPermitInput` contains:
+
+| Field | Meaning |
+| --- | --- |
+| `authorization` | The request's bearer authorization value when supplied by the host. |
+| `bearerToken` | The token extracted from that value, or `undefined`. |
+| `_meta` | This request's application metadata, or `undefined`; reserved protocol envelope fields remain SDK-owned. |
+
+The resolver runs even when no bearer token is present, so it can consider credentials in application metadata or reject missing credentials according to the app's policy. It returns `Result` with a verified permit, no permit, or a verification error. Metadata is untrusted input: neither a claimed identity nor a protocol session proves authority. Stdio remains outside OAuth. A host can still configure its own explicit permit through `createContext` for local stdio policy.
+
+`sessionId` has been removed from `ResolveMcpPermitInput` and `McpExtra`. Remove it from custom resolver destructuring and stop using it as an identity or trace identifier. Generate a request identifier in the host when one is needed. The MCP adapter does not cache a permit between calls: the same bearer and metadata reach the resolver again after intervening calls.
+
+Application state uses explicit handles. A trail that creates state returns a handle in its output schema; subsequent trails accept that handle in their input schemas and check the caller's permit again. The handle identifies state and does not establish authority. See [ADR-0055](../adr/0055-mcp-stateless-core-on-sdk-v2.md#application-state-has-an-explicit-handle).
+
+This change establishes the tool and stdio permit seam. The fetch-shaped MCP host must consume and verify the same request-scoped contract when it is implemented; HTTP credential normalization and verification belong to the shared auth implementation.
+
 ## SDK v2 Migration
 
 The source targets `@modelcontextprotocol/server` 2.x (minimum 2.4.0). The migration ships as a Trails 0.x minor break; source support does not establish that the release has been published. Install the Trails release containing this migration together with its SDK peer. Existing published releases retain their declared peer requirements.
@@ -299,7 +317,7 @@ The SDK may construct a discovery probe before pinning the connection instance, 
 
 Non-image `BlobRef` results now contain SDK-valid embedded binary resources: `{ type: 'resource', resource: { uri, mimeType, blob } }`, where `blob` is base64. The old flat resource entry was invalid. This change reads and buffers non-image streams as well as image streams; it does not advertise a `blob://` resource reader. Custom content consumers must read the nested `resource` object. Trail output descriptors in `structuredContent` keep their existing shape.
 
-This migration covers stdio and the SDK dependency. The fetch-shaped handler, session-permit removal, modern scalar and array output envelopes, and temporary adopter migration skill remain separate implementations. It does not advertise subscriptions or additional-input exchanges.
+This migration covers stdio and the SDK dependency. The fetch-shaped handler, modern scalar and array output envelopes, and temporary adopter migration skill remain separate implementations. It does not advertise subscriptions or additional-input exchanges.
 
 SDK 2.4.0's client can lose its `onprogress` callback when one pipe read contains a progress notification and its tool result: notification dispatch is deferred while the result removes the callback. The server's stdio tests validate progress payloads and ordering on the wire. This migration does not patch the client SDK.
 
