@@ -30,6 +30,7 @@
     "scratch:import-to-notion": "bun scripts/import-scratch-to-notion.ts",
     "scratch:manifest": "bun scripts/scratch-inventory/build-manifest.ts",
     "wayfinder:dogfood": "bun apps/trails/bin/trails.ts release smoke --check wayfinder-dogfood",
+    "mcp:http-smoke": "bun apps/trails/bin/trails.ts release smoke --check mcp-http",
     "lock:roundtrip": "bun apps/trails/bin/trails.ts release smoke --check lock-roundtrip",
     "plugin:metadata:sync": "bun scripts/sync-plugin-metadata.ts",
     "plugin:metadata:record": "bun scripts/record-plugin-metadata.ts",

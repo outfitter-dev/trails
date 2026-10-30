@@ -51,6 +51,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@ontrails/cloudflare": "workspace:^",
     "@ontrails/testing": "workspace:^"
   }

@@ -25,10 +25,11 @@ Release confidence smokes use the neighboring `release.smoke` trail:
 ```bash
 trails release smoke --check packed-artifacts
 trails release smoke --check wayfinder-dogfood
+trails release smoke --check mcp-http
 trails release smoke --check all
 ```
 
-In this repo, `bun run dogfood:packed` and `bun run wayfinder:dogfood` remain package-script wrappers around those trail commands. The Wayfinder smoke is intentionally semantic: it exercises saved operator and demo topo artifacts, resources, signals, errors, relation views, invalid grammar, and artifact provenance around rejected compiles.
+In this repo, `bun run dogfood:packed`, `bun run wayfinder:dogfood`, and `bun run mcp:http-smoke` remain package-script wrappers around those trail commands. The MCP-over-HTTP smoke serves the demo app through the fetch-shaped MCP handler, drives it with the official SDK client on the legacy and 2026-07-28 protocol eras, exercises the network credential posture (anonymous callers refused on protected trails, a verified bearer admitted), and probes the Host and Origin boundary with raw requests; CI's Governance job runs it. The Wayfinder smoke is intentionally semantic: it exercises saved operator and demo topo artifacts, resources, signals, errors, relation views, invalid grammar, and artifact provenance around rejected compiles.
 
 ## Facts
 
