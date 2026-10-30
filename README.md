@@ -163,6 +163,7 @@ $ myapp greet --name World
 | [`@ontrails/blob`](./packages/blob) | Provider-neutral blob resources, byte/stream bodies, and binding conformance |
 | [`@ontrails/queue`](./packages/queue) | Provider-neutral queue producers, recorder mocks, and binding conformance |
 | [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
+| [`@ontrails/cloudflare`](./adapters/cloudflare) | Cloudflare resources and Workers hosting; D1 store bindings with reviewed schema SQL |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testComposes()`, contract testing, surface harnesses |
 | [`@ontrails/topography`](./packages/topography) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence, Wayfind graph-read query APIs |
 | [`@ontrails/source`](./packages/source) | Shared source-code AST parsing, walking, locations, edits, literals, and Trails syntax helpers |

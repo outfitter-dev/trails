@@ -17,6 +17,14 @@
 export { cloudflareOverlay } from './facts.js';
 export type { CloudflareLockFacts } from './facts.js';
 export { cloudflareD1, connectD1 } from './d1/index.js';
+/**
+ * Render a deterministic physical D1 baseline for reviewed migrations.
+ * @example
+ * ```ts
+ * const sql = renderD1SchemaSql(definition, { tablePrefix: db.id });
+ * ```
+ */
+export { renderD1SchemaSql } from './d1/schema.js';
 export type {
   CloudflareD1AllResult,
   CloudflareD1Connection,

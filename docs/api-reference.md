@@ -292,6 +292,19 @@ createApp(graph, options?)             // create a Hono app without serving
 CreateAppOptions, SurfaceHttpResult
 ```
 
+## `@ontrails/cloudflare/d1`
+
+The [D1 migration guide](./migration/d1-schema.md) covers schema preparation and the default/seed compatibility change. Runtime connections require pre-applied schema unless `autoCreate: true` is explicitly selected for development/tests.
+
+```typescript
+cloudflareD1(definition, options)        // resource using the native Worker D1 binding
+connectD1(definition, database, options?) // connect to an already-prepared database
+renderD1SchemaSql(definition, options?)  // deterministic create-only physical SQL; no I/O
+
+ConnectD1Options                        // tablePrefix?, autoCreate?, seed?, generateIdentity?
+CloudflareD1Options, CloudflareD1Resource, CloudflareD1Connection
+```
+
 ## `@ontrails/topography`
 
 These are programmatic Topography APIs for deriving, hashing, diffing, reading, and writing TopoGraph artifacts. App authors usually run the artifact lifecycle through the top-level CLI commands instead: `trails compile`, `trails validate`, and `trails diff`. The package does not expose a separate CLI binary, and retired `trails topo compile` / `trails topo verify` / `trails topo check` forms are not aliases.
