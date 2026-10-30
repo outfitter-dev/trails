@@ -20,7 +20,7 @@ import type { McpToolDefinition, McpToolResult } from '../build.js';
 import { createFetchHandler } from '../fetch.js';
 import { resetSeededPermitDiagnostic } from '../permit-resolution.js';
 
-const seed = { id: 'local-host', scopes: ['record:write'] };
+const seed = { actors: [], id: 'local-host', scopes: ['record:write'] };
 
 const whoami = trail('whoami', {
   implementation: (_input, ctx) => Result.ok({ id: ctx.permit?.id ?? null }),
@@ -170,7 +170,7 @@ describe('network credential posture', () => {
     expect(hostCall.structuredContent).toEqual({ ok: true });
     const viaExtra = await toolNamed(host, 'posture_whoami').handler(
       {},
-      { permit: { id: 'extra', scopes: [] } }
+      { permit: { actors: [], id: 'extra', scopes: [] } }
     );
     expect(viaExtra.structuredContent).toEqual({ id: 'extra' });
     expect(warnings).toHaveLength(0);
@@ -215,7 +215,11 @@ describe('network credential posture', () => {
       createContext: seededContext,
       resolvePermit: ({ bearerToken }) =>
         bearerToken === 'verified'
-          ? Result.ok({ id: 'verified-user', scopes: ['record:write'] })
+          ? Result.ok({
+              actors: [],
+              id: 'verified-user',
+              scopes: ['record:write'],
+            })
           : Result.ok(null),
     });
     let authorization: string | undefined;

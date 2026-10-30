@@ -119,7 +119,11 @@ describe('portable MCP fetch entry', () => {
           seen.push(input);
           return input.authorization === 'opaque-key' &&
             input._meta?.['credential'] === 'request'
-            ? Result.ok({ id: 'verified-user', scopes: ['identity:read'] })
+            ? Result.ok({
+                actors: [],
+                id: 'verified-user',
+                scopes: ['identity:read'],
+              })
             : Result.err(new AuthError('Invalid credential'));
         },
       });

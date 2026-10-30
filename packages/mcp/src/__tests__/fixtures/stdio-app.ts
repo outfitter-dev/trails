@@ -62,7 +62,7 @@ await surface(topo('stdio-fixture', { file, greet, identity }), {
   resolvePermit: ({ _meta }) =>
     Result.ok(
       _meta?.['fixtureCredential'] === 'reader'
-        ? { id: 'fixture-reader', scopes: ['identity:read'] }
+        ? { actors: [], id: 'fixture-reader', scopes: ['identity:read'] }
         : undefined
     ),
 });
