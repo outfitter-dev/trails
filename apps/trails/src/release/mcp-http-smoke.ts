@@ -50,19 +50,53 @@ const loadDemoGraph = async (): Promise<Topo> => {
   return graph;
 };
 
-/** Every demo resource runs on its own mock so the smoke never needs infrastructure. */
-const mockResources = async (graph: Topo): Promise<ResourceOverrideMap> => {
+interface MockedResources {
+  readonly dispose: () => Promise<void>;
+  readonly overrides: ResourceOverrideMap;
+}
+
+/**
+ * Every demo resource runs on its own mock so the smoke never needs
+ * infrastructure. Overrides bypass the pipeline's lifecycle, so the smoke
+ * owns disposal (the entity store mock opens a SQLite connection).
+ */
+const mockResources = async (graph: Topo): Promise<MockedResources> => {
   const overrides: Record<string, unknown> = {};
+  const disposers: (() => Promise<void>)[] = [];
   for (const definition of graph.listResources()) {
     if (definition.mock === undefined) {
       throw new Error(
         `MCP HTTP smoke: demo resource "${definition.id}" has no mock`
       );
     }
-    overrides[definition.id] = await definition.mock();
+    const instance = await definition.mock();
+    overrides[definition.id] = instance;
+    const { dispose } = definition;
+    if (dispose !== undefined) {
+      disposers.push(async () => {
+        await dispose(instance);
+      });
+    }
   }
-  return overrides;
+  return {
+    dispose: async () => {
+      await Promise.all(disposers.map((run) => run()));
+    },
+    overrides,
+  };
 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const namesIn = (value: unknown): readonly string[] =>
+  isRecord(value) && Array.isArray(value['results'])
+    ? value['results'].flatMap((entry: unknown) =>
+        isRecord(entry) && typeof entry['name'] === 'string'
+          ? [entry['name']]
+          : []
+      )
+    : [];
 
 const expectStatus = (
   label: string,
@@ -75,9 +109,6 @@ const expectStatus = (
     );
   }
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 interface EraReport {
   readonly era: string;
@@ -125,6 +156,13 @@ const driveEra = async (
     if (searched.isError === true) {
       throw new TypeError(
         `MCP HTTP smoke (${era}): demo_search answered isError`
+      );
+    }
+    // The demo mock seeds an entity named Alpha; an empty hit list means the
+    // search path is broken even though the call succeeded.
+    if (!namesIn(searched.structuredContent).includes('Alpha')) {
+      throw new Error(
+        `MCP HTTP smoke (${era}): demo_search did not return the seeded Alpha entity: ${JSON.stringify(searched.structuredContent)}`
       );
     }
     const resource = await client.readResource({ uri: 'trails://surface-map' });
@@ -227,7 +265,7 @@ const probeBoundary = async (
  */
 export const runMcpHttpSmoke = async (): Promise<McpHttpSmokeResult> => {
   const graph = await loadDemoGraph();
-  const resources = await mockResources(graph);
+  const mocked = await mockResources(graph);
   const handler = createFetchHandler(graph, {
     resolvePermit: ({ bearerToken }) => {
       if (bearerToken === undefined) {
@@ -237,7 +275,7 @@ export const runMcpHttpSmoke = async (): Promise<McpHttpSmokeResult> => {
         ? Result.ok(SMOKE_PERMIT)
         : Result.err(new AuthError('MCP HTTP smoke rejected the credential'));
     },
-    resources,
+    resources: mocked.overrides,
   });
   try {
     const legacy = await driveEra(handler.fetch, 'legacy', 'legacy');
@@ -257,6 +295,7 @@ export const runMcpHttpSmoke = async (): Promise<McpHttpSmokeResult> => {
     };
   } finally {
     await handler.close();
+    await mocked.dispose();
   }
 };
 
@@ -264,4 +303,9 @@ export const runMcpHttpSmoke = async (): Promise<McpHttpSmokeResult> => {
 export const isMcpHttpSmokeResult = (
   value: unknown
 ): value is McpHttpSmokeResult =>
-  isRecord(value) && value['check'] === 'mcp-http' && value['passed'] === true;
+  isRecord(value) &&
+  value['check'] === 'mcp-http' &&
+  value['passed'] === true &&
+  typeof value['eras'] === 'number' &&
+  typeof value['toolCount'] === 'number' &&
+  typeof value['message'] === 'string';
