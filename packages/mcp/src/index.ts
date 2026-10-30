@@ -6,6 +6,7 @@ export {
   MCP_TOOL_TRAILHEAD_META_KEY,
   deriveMcpTools,
   type DeriveMcpToolsOptions,
+  type McpCredentialPosture,
   type McpSurfaceTrailheadDefinition,
   type McpSurfaceTrailheadMap,
   type McpSurfaceTrailheadTrailSelector,

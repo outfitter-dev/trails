@@ -3,7 +3,10 @@ import { Result, renderJsonRpcError } from '@ontrails/core';
 import type { BasePermit } from '@ontrails/core';
 
 import type { McpExtra } from './build.js';
-import { resolveMcpPermit } from './permit-resolution.js';
+import {
+  resolveMcpPermit,
+  surfaceContextFactory,
+} from './permit-resolution.js';
 import type { McpResourceDefinition } from './resources.js';
 import type { CreateServerOptions } from './server.js';
 
@@ -31,14 +34,19 @@ export type AuthorizeMcpResourceRead = (
  * Credential errors return before consulting the host factory.
  */
 export const resolveMcpResourcePermit = async (
-  options: Pick<CreateServerOptions, 'resolvePermit' | 'createContext'>,
+  options: Pick<
+    CreateServerOptions,
+    'resolvePermit' | 'createContext' | 'credentialPosture'
+  >,
   extra: Pick<McpExtra, '_meta' | 'authorization' | 'permit'>
 ): Promise<Result<BasePermit | undefined, Error>> => {
   const resolved = await resolveMcpPermit(options, extra);
   if (resolved.isErr() || resolved.value !== undefined) {
     return resolved;
   }
-  const context = await options.createContext?.();
+  // The network posture strips the seeded permit, so this fallback only
+  // carries host policy for in-process surfaces.
+  const context = await surfaceContextFactory(options)?.();
   return Result.ok(context?.permit);
 };
 

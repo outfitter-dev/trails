@@ -138,7 +138,7 @@ Graph resources are opt-in for general MCP hosts because they widen cold context
 
 ### Resource read policy
 
-`resources/list` and `resources/read` resolve credentials through the same request-scoped `resolvePermit` boundary as tool calls. Verification runs once per request, including anonymous, metadata-only and empty-list requests. Invalid selected credentials fail even when resources would otherwise be public. A verified request permit takes precedence over trusted `createContext` permit configuration; absence may use that local-host fallback, while a verification error cannot.
+`resources/list` and `resources/read` resolve credentials through the same request-scoped `resolvePermit` boundary as tool calls. Verification runs once per request, including anonymous, metadata-only and empty-list requests. Invalid selected credentials fail even when resources would otherwise be public. A verified request permit takes precedence over trusted `createContext` permit configuration; on the stdio (host) posture absence may use that local-host fallback, while a verification error cannot. The fetch-shaped HTTP entry runs on the network posture and never consults a `createContext` permit; see [MCP Over HTTP](mcp-http.md).
 
 Without an `authorizeResourceRead` callback, static introspection remains public within the app's authored MCP population. Include/exclude selectors, intent, visibility, aliases and trailheads continue to determine that population. Apps can narrow reads with an explicit policy:
 
@@ -163,7 +163,7 @@ Return `Result.ok()` to allow a URI or `Result.err(new PermissionError(...))` to
 
 URI policy does not hide tool descriptions or redact the surface-map aggregate. `tools/list` remains static. Apps that require member-level private discovery must deny unsafe aggregates until a shared filtered-discovery capability is implemented. Denying one URI alone does not establish global schema confidentiality. `buildMcpResources` remains a low-level catalog builder; app hosts using its raw `read` function must provide their own access boundary.
 
-When migrating a resolver, expect calls from resource listing and reading as well as tool invocation, even without bearer credentials. Return no permit only for genuine credential absence; selected invalid credentials and verification failures must return errors. Stdio can retain explicit trusted host policy and remains outside OAuth. The separate fetch-shaped host must consume this same request boundary when implemented; these SDK controls do not establish live HTTP interoperability.
+When migrating a resolver, expect calls from resource listing and reading as well as tool invocation, even without bearer credentials. Return no permit only for genuine credential absence; selected invalid credentials and verification failures must return errors. Stdio can retain explicit trusted host policy and remains outside OAuth. The fetch-shaped host consumes this same request boundary on the network posture, where only `resolvePermit` can admit a permit; these SDK controls do not establish live HTTP interoperability.
 
 The resource naming is intentionally qualified: `McpResource`, `McpResources`, and `mcpResources` refer to MCP protocol resources. Trails `resource()` remains the infrastructure dependency primitive.
 
@@ -324,7 +324,7 @@ await surface(graph, {
 | `bearerToken` | The token extracted from that value, or `undefined`. |
 | `_meta` | This request's application metadata, or `undefined`; reserved protocol envelope fields remain SDK-owned. |
 
-The resolver runs even when no bearer token is present, so it can consider credentials in application metadata or reject missing credentials according to the app's policy. It returns `Result` with a verified permit, no permit, or a verification error. Metadata is untrusted input: neither a claimed identity nor a protocol session proves authority. Stdio remains outside OAuth. A host can still configure its own explicit permit through `createContext` for local stdio policy.
+The resolver runs even when no bearer token is present, so it can consider credentials in application metadata or reject missing credentials according to the app's policy. It returns `Result` with a verified permit, no permit, or a verification error. Metadata is untrusted input: neither a claimed identity nor a protocol session proves authority. Stdio remains outside OAuth. A stdio host can still configure its own explicit permit through `createContext` for local policy; a network host cannot, because `@ontrails/mcp/fetch` discards a seeded permit at runtime and refuses protected trails without a resolver at build time.
 
 `sessionId` has been removed from `ResolveMcpPermitInput` and `McpExtra`. Remove it from custom resolver destructuring and stop using it as an identity or trace identifier. Generate a request identifier in the host when one is needed. The MCP adapter does not cache a permit between calls: the same bearer and metadata reach the resolver again after intervening calls.
 
