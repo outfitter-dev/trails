@@ -3,8 +3,12 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { AuthError, NotFoundError, Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { RPC_CLOSE_CODES, surface } from '../websocket.js';
-import type { SurfaceRpcWebSocketResult } from '../websocket.js';
+import {
+  createRpcWebSocketHost,
+  RPC_CLOSE_CODES,
+  surface,
+} from '../websocket.js';
+import type { RpcSocketData, SurfaceRpcWebSocketResult } from '../websocket.js';
 
 const greet = trail('greet', {
   implementation: (input: { name: string }) =>
@@ -229,23 +233,38 @@ describe('RPC over Bun WebSocket', () => {
   });
 
   test('buffered output past the hard limit closes 1013', async () => {
-    // A zero limit makes any send that leaves bytes buffered an overload;
-    // a large response guarantees the kernel buffer is not drained in time.
-    running = await surface(graph, {
-      backpressureHardLimitBytes: 0,
-      maxFrameBytes: 8 * 1024 * 1024,
-      port: 0,
-    });
-    const session = await connect(running.url);
-    session.socket.send(
+    // Drive the handler with a socket whose buffered amount never drains, so
+    // the check is deterministic instead of depending on OS socket buffers.
+    const host = createRpcWebSocketHost(graph, {
+      backpressureHardLimitBytes: 16,
+    }).unwrap();
+    const closed: { code: number; reason: string }[] = [];
+    const sent: string[] = [];
+    const socket = {
+      close: (code: number, reason: string) => {
+        closed.push({ code, reason });
+      },
+      data: { state: host.handler.createState({ connectionId: 'c1' }) },
+      getBufferedAmount: () => sent.reduce((total, s) => total + s.length, 0),
+      readyState: WebSocket.OPEN,
+      send: (payload: string) => {
+        sent.push(payload);
+      },
+    };
+    await host.websocket.message?.(
+      // The handler only touches these members; the full Bun socket surface is irrelevant here.
+      socket as unknown as Bun.ServerWebSocket<RpcSocketData>,
       JSON.stringify({
         id: 1,
         jsonrpc: '2.0',
         method: 'greet',
-        params: { name: 'x'.repeat(2 * 1024 * 1024) },
+        params: { name: 'Ada' },
       })
     );
-    expect(await closeCode(session)).toBe(RPC_CLOSE_CODES.overload);
+    expect(sent).toHaveLength(1);
+    expect(closed).toEqual([
+      { code: RPC_CLOSE_CODES.overload, reason: 'backpressure limit exceeded' },
+    ]);
   });
 
   test('progress notifications are pushed before the response', async () => {
