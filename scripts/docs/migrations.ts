@@ -59,9 +59,17 @@ const removedInHistory = (
   head: string
 ): ReadonlySet<string> => {
   const removed = new Set<string>();
+  // The window follows the first-parent line and skips merge commits:
+  // diffing a merge against its branch-side parent would report everything
+  // trunk removed since the fork as this change's own removals, and the
+  // trunk commits a merge brings in are trunk's accounting, not this
+  // branch's. Every removal the branch really made lives in one of its own
+  // non-merge commits.
   const commits = gitOutput(root, [
     'rev-list',
     '--parents',
+    '--first-parent',
+    '--no-merges',
     `${before}..${head}`,
   ])
     .trim()

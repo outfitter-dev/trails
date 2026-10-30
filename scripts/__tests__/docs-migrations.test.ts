@@ -213,6 +213,26 @@ describe('documentation migration accounting', () => {
     expect(checkDocumentationMigrations(root, start).failures).toEqual([]);
   });
 
+  test('ignores removals trunk made before a merge back into the branch', () => {
+    const { root, base } = fixture();
+    git(root, 'checkout', '--quiet', '-b', 'feature');
+    write(root, 'docs/feature.md', '# Feature\n');
+    const start = commit(root);
+    git(root, 'checkout', '--quiet', 'main');
+    rmSync(join(root, 'docs/old.md'));
+    commit(root);
+    git(root, 'checkout', '--quiet', 'feature');
+    git(root, 'merge', '--quiet', '--no-edit', '--no-ff', 'main');
+    // Trunk's removal is trunk's accounting: the branch window ignores it
+    // whether it starts at the fork or at the branch's own first commit.
+    expect(checkDocumentationMigrations(root, start).failures).toEqual([]);
+    expect(checkDocumentationMigrations(root, base).failures).toEqual([]);
+    git(root, 'checkout', '--quiet', 'main');
+    expect(checkDocumentationMigrations(root, base).failures).toContain(
+      'docs/old.md: missing migration entry in docs/migration-map.json'
+    );
+  });
+
   test('rejects an unrecorded fixed-root deletion even when the root is restored', () => {
     const { root, base } = fixture();
     rmSync(join(root, 'docs/index.md'));
