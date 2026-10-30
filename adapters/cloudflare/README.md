@@ -255,7 +255,7 @@ Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd
 
 ## Lock facts
 
-`cloudflareOverlay` (root export) is the adapter's lock overlay overlay: an `Overlay` pairing the `cloudflare` namespace with an elevated zod fact schema and a deterministic derive over the app's topo. It records every env-bound resource as `{ binding, resourceId }` so the committed `trails.lock` documents which wrangler bindings the app depends on.
+`cloudflareOverlay` (root export) is the adapter's lock overlay overlay: an `Overlay` pairing the `cloudflare` namespace with an elevated zod fact schema and a deterministic derive over the app's topo. It records every env-bound resource as `{ binding, resourceId }` so the committed `trails.lock` documents which wrangler bindings the app depends on, and every core `schedule()` source as `{ cron, sourceId, trailId, timezone?, realization: 'utc-only' }` so renderers and the provider-aware Warden check can read the Worker's crons and the UTC-only constraint Cron Triggers impose instead of re-deriving them. Crons are normalized (trimmed, single-spaced) and facts are sorted by trail id, source id, then cron.
 
 An app opts in by exporting the overlay list next to its topo, then compiling:
 
