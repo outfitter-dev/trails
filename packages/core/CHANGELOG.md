@@ -1,5 +1,17 @@
 # @ontrails/core
 
+## 0.3.0
+
+### Minor Changes
+
+- [`c2b11a4`](https://github.com/outfitter-dev/trails/commit/c2b11a4c5d61648471da1d9e919007b3d32960b3): Correct the default JSON-RPC `not_found` code from `-32601` (method not found) to `-32001`. Clients matching the previous numeric code must update or use the error category; HTTP status and CLI exit mappings are unchanged.
+  
+  Export the shared JSON-RPC error data shape and public rendering helper from core, with a method-specific override for MCP `resources/read`. Unknown MCP resources retain protocol code `-32602` and now include `data.category`, `data.name`, and `data.retryable`. Trail failures remain `isError` tool results with shared metadata and public redaction.
+
+### Patch Changes
+
+- [`372781f`](https://github.com/outfitter-dev/trails/commit/372781f7658c5642145ac2e94f56ef6414d9e59a): Preserve `z.null()` contracts as `{ type: 'null' }` in JSON Schema, including nested object fields and union branches.
+
 ## 0.2.5
 
 ### Patch Changes

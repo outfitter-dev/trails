@@ -1,5 +1,12 @@
 # @ontrails/testing
 
+## 0.3.0
+
+### Patch Changes
+
+- [`7c8d396`](https://github.com/outfitter-dev/trails/commit/7c8d396923495ab6758bc78f75332053c86e39ae): The MCP test harness no longer forwards a protocol session id into permit resolution. Permits resolve per request from the bearer credential and `_meta`, matching the stateless MCP core; `createMcpHarness` options.extra accepts the same `McpExtra` fields minus `sessionId`.
+- [`bf22e95`](https://github.com/outfitter-dev/trails/commit/bf22e95654d6c9830a327d4f063789527f7faf39): Honor CLI preset registrations in createCliHarness and reject unregistered flags before executing a trail. Register JSON output explicitly in surface parity checks, and avoid structured-input flags for empty examples. Harness callers using output flags must configure the same outputModePreset as their CLI or omit those flags.
+
 ## 0.2.5
 
 No changes in this release.
