@@ -30,6 +30,9 @@
     "@ontrails/source": "workspace:^",
     "yaml": "^2.9.1"
   },
+  "devDependencies": {
+    "@ontrails/core": "workspace:^"
+  },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
     "zod": "catalog:"

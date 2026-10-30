@@ -77,20 +77,6 @@ const workspaceEntries = [
 
 const workspaceMap = Object.fromEntries(workspaceEntries);
 
-// `@ontrails/testing` exposes the surface harnesses behind subpaths
-// (`./cli`, `./mcp`, `./http`) and marks the surface peers optional via
-// `peerDependenciesMeta`. The subpath modules statically import those peers
-// because consumers opt into them by importing the matching subpath; knip's
-// "Referenced optional peerDependencies" hint is intentional in this layout.
-const testingWorkspace = 'packages/testing';
-const testingWorkspaceEntry = workspaceMap[testingWorkspace];
-if (testingWorkspaceEntry) {
-  workspaceMap[testingWorkspace] = {
-    ...testingWorkspaceEntry,
-    ignoreDependencies: ['@ontrails/cli', '@ontrails/http', '@ontrails/mcp'],
-  };
-}
-
 // The lock-overlays proof test writes a fixture app whose source string
 // imports `@ontrails/cloudflare`; the devDependency exists so that fixture
 // resolves at runtime, but knip cannot see imports inside string literals.

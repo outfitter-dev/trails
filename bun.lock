@@ -20,7 +20,7 @@
         "markdownlint-cli2": "^0.22.1",
         "oxfmt": "0.47.0",
         "oxlint": "1.62.0",
-        "turbo": "^2.8.10",
+        "turbo": "^2.11.10",
         "typescript": "^5.9.3",
         "ultracite": "7.6.2",
         "zod": "catalog:",
@@ -34,6 +34,8 @@
       },
       "devDependencies": {
         "@ontrails/adapter-kit": "workspace:^",
+        "@ontrails/http": "workspace:^",
+        "@ontrails/store": "workspace:^",
         "@ontrails/testing": "workspace:^",
         "miniflare": "^4.20250617.4",
       },
@@ -62,6 +64,9 @@
         "@ontrails/core": "workspace:^",
         "drizzle-orm": "^0.45.4",
       },
+      "devDependencies": {
+        "@ontrails/store": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/store": "workspace:^",
         "zod": "catalog:",
@@ -74,6 +79,9 @@
         "@ontrails/core": "workspace:^",
         "hono": "^4.13.13",
       },
+      "devDependencies": {
+        "@ontrails/http": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/http": "workspace:^",
         "zod": "catalog:",
@@ -85,6 +93,9 @@
       "dependencies": {
         "@logtape/logtape": "^2.4.2",
       },
+      "devDependencies": {
+        "@ontrails/observability": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/observability": "workspace:^",
         "zod": "catalog:",
@@ -95,6 +106,9 @@
       "version": "0.2.5",
       "dependencies": {
         "pino": "^10.4.0",
+      },
+      "devDependencies": {
+        "@ontrails/observability": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/observability": "workspace:^",
@@ -310,6 +324,9 @@
         "@ontrails/source": "workspace:^",
         "yaml": "^2.9.1",
       },
+      "devDependencies": {
+        "@ontrails/core": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -372,6 +389,9 @@
     "packages/observability": {
       "name": "@ontrails/observability",
       "version": "0.2.5",
+      "devDependencies": {
+        "@ontrails/core": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -387,6 +407,9 @@
     "packages/permits": {
       "name": "@ontrails/permits",
       "version": "0.2.5",
+      "devDependencies": {
+        "@ontrails/core": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -442,7 +465,12 @@
       "name": "@ontrails/testing",
       "version": "0.2.5",
       "devDependencies": {
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/core": "workspace:^",
         "@ontrails/drizzle": "workspace:^",
+        "@ontrails/http": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
+        "@ontrails/observability": "workspace:^",
         "@ontrails/store": "workspace:^",
       },
       "peerDependencies": {
@@ -467,6 +495,9 @@
         "@ontrails/config": "workspace:^",
         "@ontrails/source": "workspace:^",
       },
+      "devDependencies": {
+        "@ontrails/core": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
@@ -489,7 +520,9 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@ontrails/core": "workspace:^",
         "@ontrails/testing": "workspace:^",
+        "@ontrails/topography": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
@@ -892,17 +925,17 @@
 
     "@speed-highlight/core": ["@speed-highlight/core@1.2.17", "", {}, "sha512-Z92FwKpCtfaW1V0jTU/fh3QzYEZN8wDwrzRIBoADCJfn4mJCNcJN/XegifX7BDrQ8/h9Xh/JnbyMchL0FqXrkg=="],
 
-    "@turbo/darwin-64": ["@turbo/darwin-64@2.8.20", "", { "os": "darwin", "cpu": "x64" }, "sha512-FQ9EX1xMU5nbwjxXxM3yU88AQQ6Sqc6S44exPRroMcx9XZHqqppl5ymJF0Ig/z3nvQNwDmz1Gsnvxubo+nXWjQ=="],
+    "@turbo/darwin-64": ["@turbo/darwin-64@2.11.10", "", { "os": "darwin", "cpu": "x64" }, "sha512-By4idRap5+nLnMuRzLB4qkOPRlvNdyY1ne4VJYDyUoUB11H94k7uif9mbe3JT8JSNXs1D68uMcBj6hJ/jMQRvA=="],
 
-    "@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.8.20", "", { "os": "darwin", "cpu": "arm64" }, "sha512-Gpyh9ATFGThD6/s9L95YWY54cizg/VRWl2B67h0yofG8BpHf67DFAh9nuJVKG7bY0+SBJDAo5cMur+wOl9YOYw=="],
+    "@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.11.10", "", { "os": "darwin", "cpu": "arm64" }, "sha512-pyEYlVcuexOPa92p0Wlwl9YT1Is5D60lxN3ItWm3g30YLvFaUq86TF4BBWg5ZAc0uMTnrOzCvuCsOBTdzUWnRQ=="],
 
-    "@turbo/linux-64": ["@turbo/linux-64@2.8.20", "", { "os": "linux", "cpu": "x64" }, "sha512-p2QxWUYyYUgUFG0b0kR+pPi8t7c9uaVlRtjTTI1AbCvVqkpjUfCcReBn6DgG/Hu8xrWdKLuyQFaLYFzQskZbcA=="],
+    "@turbo/linux-64": ["@turbo/linux-64@2.11.10", "", { "os": [ "linux", "android", ], "cpu": "x64" }, "sha512-1tYeR/IDZ5HEdsb0jNq2L2xam5nMQ+g80tlV2BZmv4OFw+pMcUM0mMmUcfc5wXPPNHVNPuDMjh9Y8G8HgXPLZA=="],
 
-    "@turbo/linux-arm64": ["@turbo/linux-arm64@2.8.20", "", { "os": "linux", "cpu": "arm64" }, "sha512-Gn5yjlZGLRZWarLWqdQzv0wMqyBNIdq1QLi48F1oY5Lo9kiohuf7BPQWtWxeNVS2NgJ1+nb/DzK1JduYC4AWOA=="],
+    "@turbo/linux-arm64": ["@turbo/linux-arm64@2.11.10", "", { "os": [ "linux", "android", ], "cpu": "arm64" }, "sha512-HuekQxvVGhUd46g1Im/DKdOtglHr4/gguZAvzEpPUgtxNkztSa8lWhQEGQ+EmPQ0n7w19qjThFU+OfEEd0uvlw=="],
 
-    "@turbo/windows-64": ["@turbo/windows-64@2.8.20", "", { "os": "win32", "cpu": "x64" }, "sha512-vyaDpYk/8T6Qz5V/X+ihKvKFEZFUoC0oxYpC1sZanK6gaESJlmV3cMRT3Qhcg4D2VxvtC2Jjs9IRkrZGL+exLw=="],
+    "@turbo/windows-64": ["@turbo/windows-64@2.11.10", "", { "os": "win32", "cpu": "x64" }, "sha512-UJOP3BkbreY3/JlMgJR6ZiimxYIBn+c+B4tnBIxD0E9c3Estmk+XoVNVBNBottZLNRXe3/ScgOU4+/k8tIWysg=="],
 
-    "@turbo/windows-arm64": ["@turbo/windows-arm64@2.8.20", "", { "os": "win32", "cpu": "arm64" }, "sha512-voicVULvUV5yaGXo0Iue13BcHGYW3u0VgqSbfQwBaHbpj1zLjYV4KIe+7fYIo6DO8FVUJzxFps3ODCQG/Wy2Qw=="],
+    "@turbo/windows-arm64": ["@turbo/windows-arm64@2.11.10", "", { "os": "win32", "cpu": "arm64" }, "sha512-xOkEjF3ws/b/YNlc+bvJHMYBn+vL+QbEISZFVi0qS+ImmhA1X3/gmNmBrjjIG3dg6aeN+n6gQitzSkXQ286qJQ=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 
@@ -1434,7 +1467,7 @@
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
-    "turbo": ["turbo@2.8.20", "", { "optionalDependencies": { "@turbo/darwin-64": "2.8.20", "@turbo/darwin-arm64": "2.8.20", "@turbo/linux-64": "2.8.20", "@turbo/linux-arm64": "2.8.20", "@turbo/windows-64": "2.8.20", "@turbo/windows-arm64": "2.8.20" }, "bin": { "turbo": "bin/turbo" } }, "sha512-Rb4qk5YT8RUwwdXtkLpkVhNEe/lor6+WV7S5tTlLpxSz6MjV5Qi8jGNn4gS6NAvrYGA/rNrE6YUQM85sCZUDbQ=="],
+    "turbo": ["turbo@2.11.10", "", { "optionalDependencies": { "@turbo/darwin-64": "2.11.10", "@turbo/darwin-arm64": "2.11.10", "@turbo/linux-64": "2.11.10", "@turbo/linux-arm64": "2.11.10", "@turbo/windows-64": "2.11.10", "@turbo/windows-arm64": "2.11.10" }, "bin": { "turbo": "bin/turbo" } }, "sha512-3GJYwig8ygEI89oaOZdduJX8/aw6O9eRPYHoIt6T3FZl9hkKjiyIspufJoVgqXihPoJu8M5CSV0DlZvzfohBCw=="],
 
     "type-is": ["type-is@2.0.1", "", { "dependencies": { "content-type": "^1.0.5", "media-typer": "^1.1.0", "mime-types": "^3.0.0" } }, "sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw=="],
 
