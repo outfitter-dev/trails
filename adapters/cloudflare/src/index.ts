@@ -87,6 +87,31 @@ export type {
   MemoryCloudflareQueue,
   MemoryQueueMessage,
 } from './queues/index.js';
+/**
+ * Cron Triggers materializer for core schedule() sources.
+ * @example
+ * ```ts
+ * import { createScheduledHandler } from '@ontrails/cloudflare';
+ * export const scheduled = createScheduledHandler(graph);
+ * ```
+ */
+export {
+  CLOUDFLARE_CRON_UTC_ONLY,
+  createScheduledHandler,
+} from './schedules/index.js';
+/**
+ * Scheduled handler shapes.
+ * @example
+ * ```ts
+ * import type { CloudflareScheduledController } from '@ontrails/cloudflare';
+ * const cronOf = (controller: CloudflareScheduledController) => controller.cron;
+ * ```
+ */
+export type {
+  CloudflareScheduledController,
+  CloudflareScheduledHandler,
+  CreateScheduledHandlerOptions,
+} from './schedules/index.js';
 export { createWorkersHandler } from './workers/index.js';
 export type {
   CloudflareWorker,
