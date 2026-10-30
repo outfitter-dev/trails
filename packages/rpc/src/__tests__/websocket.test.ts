@@ -187,7 +187,7 @@ describe('RPC over Bun WebSocket', () => {
       port: 0,
       resolvePermit: ({ bearerToken }) =>
         bearerToken === 'good'
-          ? Result.ok({ id: 'u1', scopes: ['record:write'] })
+          ? Result.ok({ actors: [], id: 'u1', scopes: ['record:write'] })
           : Result.err(new AuthError('bad token')),
     });
     const session = await connect(running.url, {
