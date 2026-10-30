@@ -192,7 +192,7 @@ DeriveTrailSpec<TEntity, TOp, TGenerated>
 
 ## `@ontrails/cli`
 
-Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. The RPC surface, hosted on WebSocket, ships as `@ontrails/rpc` with `@ontrails/rpc/websocket` as its first host.
+Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. The RPC surface, hosted on WebSocket, is landing as `@ontrails/rpc` with `@ontrails/rpc/websocket` as its first host; it is not published yet.
 
 ```typescript
 deriveCliCommands(graph, options?)     // derivation: Result-returning command definitions
