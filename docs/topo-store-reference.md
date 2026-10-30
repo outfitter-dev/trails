@@ -165,7 +165,7 @@ CREATE TABLE topo_examples (
 
 Which surfaces expose which trails.
 
-This table is an operational query derived view, not the canonical complete surface graph. In the current v1 posture it records CLI-derived rows only: `surface = 'cli'`, the CLI command name in `derived_name`, and `method = NULL`. Schema-rich contract detail lives in the saved `TopoGraph` (`topo_exports.topo_graph`) and the typed `store.topoGraph` / `store.entries` accessors. The TopoGraph's durable surface-related facts are the authored `surfaces` list and CLI path metadata. Complete shipped-surface derived view inventory is derived at survey/report time from the loaded topo; use `trails survey surfaces` or trail detail `derivedSurfaces` for the CLI, MCP, and HTTP derived view matrix. WebSocket remains planned and excluded until a public package/API exists.
+This table is an operational query derived view, not the canonical complete surface graph. In the current v1 posture it records CLI-derived rows only: `surface = 'cli'`, the CLI command name in `derived_name`, and `method = NULL`. Schema-rich contract detail lives in the saved `TopoGraph` (`topo_exports.topo_graph`) and the typed `store.topoGraph` / `store.entries` accessors. The TopoGraph's durable surface-related facts are the authored `surfaces` list and CLI path metadata. Complete shipped-surface derived view inventory is derived at survey/report time from the loaded topo; use `trails survey surfaces` or trail detail `derivedSurfaces` for the CLI, MCP, and HTTP derived view matrix. The RPC surface, hosted on WebSocket, remains excluded until its method table renders into the lock.
 
 ```sql
 CREATE TABLE topo_surfaces (

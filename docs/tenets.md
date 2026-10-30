@@ -20,7 +20,7 @@ These are the foundational beliefs of the framework. Every feature, ADR, and API
 
 ### The trail is the product
 
-A trail definition is the source of truth. Surfaces (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
+A trail definition is the source of truth. Surfaces (CLI, MCP, HTTP, RPC over WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
 
 The trail is the unit of everything. Testing targets the trail. Governance targets the trail. Composition follows the trail. As the framework matures, versioning, permissions, and activation sources will target the trail too. The trail is where capability lives.
 
@@ -119,7 +119,7 @@ Every tightening declaration is a place where the stated contract can drift from
 
 ### Surfaces are peers
 
-CLI, MCP, HTTP, and WebSocket are equal surfaces over the same graph. No surface is privileged. The trail doesn't know which surface invoked it. The execution pipeline is identical regardless of entry point.
+CLI, MCP, HTTP, and the RPC surface hosted on WebSocket are equal surfaces over the same graph. No surface is privileged. The trail doesn't know which surface invoked it. The execution pipeline is identical regardless of entry point.
 
 New surfaces don't require new trail code. They derive from the contract. If a trail works on one surface, it works on all of them.
 

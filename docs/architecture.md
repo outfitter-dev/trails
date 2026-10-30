@@ -11,7 +11,7 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  CLI (commander)      |
                 |  MCP (sdk)            |
                 |  HTTP (hono)          |
-                |  WebSocket (planned)  |
+                |  RPC (ws host)        |
                 +---------+-------------+
                           |
                 +---------v-------------+
@@ -50,7 +50,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, library, and WebSocket are all equal adapters reading from the same topo. CLI, MCP, HTTP, and library ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, library, and the RPC surface are all equal adapters reading from the same topo. CLI, MCP, HTTP, and library ship today; the RPC surface (JSON-RPC 2.0 from `@ontrails/rpc`, hosted on WebSocket first) is landing. MCP is a separate surface that shares core's error codes and data shape. Adding a surface is a `surface()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run the trail.
 

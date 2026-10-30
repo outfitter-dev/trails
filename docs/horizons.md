@@ -18,7 +18,7 @@
 
 ## Mid-term (v1.3+)
 
-**WebSocket surface.** A peer surface to CLI, MCP, and HTTP for long-lived request/response sessions plus subscription-style updates where the contract supports them. The design goal is the same as every other surface: derive names, validation, and error mapping from the topo instead of hand-authoring a separate runtime model.
+**RPC surface, hosted on WebSocket.** A peer surface to CLI, MCP, and HTTP for long-lived request/response sessions plus subscription-style updates where the contract supports them. The wire is JSON-RPC 2.0: a trail id is the method, `params` is the input, and errors carry core's codes and data shape. `@ontrails/rpc` owns the protocol kernel, `@ontrails/rpc/websocket` is the first host, and `@ontrails/rpc/stdio` follows; MCP stays a separate surface that shares core's error codes. The design goal is the same as every other surface: derive names, validation, and error mapping from the topo instead of hand-authoring a separate runtime model.
 
 **Derived dependency graphs.** Instead of hand-maintaining `composes` declarations, the framework infers them from `ctx.compose()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The TopoGraph captures the graph. Changes show up in diffs.
 
@@ -36,7 +36,7 @@
 
 **Behavioral types from runtime observation.** The tracing system already records execution data. Over time, runtime data validates or challenges authored declarations. A trail declared `intent: 'read'` that causes database writes has a contract violation. The framework reveals the discrepancy.
 
-**SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
+**SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or the RPC surface.
 
 **Derived documentation sites.** A live site that reads the topo and renders it. Examples become interactive widgets. Error taxonomy becomes a searchable reference. The `compose` graph becomes a visual diagram. Always accurate because it reads the same data the framework uses at runtime.
 
