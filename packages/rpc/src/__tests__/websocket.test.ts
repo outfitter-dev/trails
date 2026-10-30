@@ -228,6 +228,26 @@ describe('RPC over Bun WebSocket', () => {
     expect(await closeCode(session)).toBe(RPC_CLOSE_CODES.tooLarge);
   });
 
+  test('buffered output past the hard limit closes 1013', async () => {
+    // A zero limit makes any send that leaves bytes buffered an overload;
+    // a large response guarantees the kernel buffer is not drained in time.
+    running = await surface(graph, {
+      backpressureHardLimitBytes: 0,
+      maxFrameBytes: 8 * 1024 * 1024,
+      port: 0,
+    });
+    const session = await connect(running.url);
+    session.socket.send(
+      JSON.stringify({
+        id: 1,
+        jsonrpc: '2.0',
+        method: 'greet',
+        params: { name: 'x'.repeat(2 * 1024 * 1024) },
+      })
+    );
+    expect(await closeCode(session)).toBe(RPC_CLOSE_CODES.overload);
+  });
+
   test('progress notifications are pushed before the response', async () => {
     running = await surface(graph, { port: 0 });
     const session = await connect(running.url);
