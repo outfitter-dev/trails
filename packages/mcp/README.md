@@ -50,7 +50,7 @@ for (const tool of result.value) {
 
 ## Portable HTTP Entry
 
-Import `createFetchHandler` from `@ontrails/mcp/fetch` to obtain `{ fetch, close }` for Bun or Hono. The subpath avoids stdio imports and serves modern MCP plus legacy stateless HTTP. Hostnames default to loopback only; browser origins require an explicit exact HTTP(S) allowlist. Actual request Authorization and application metadata reach the existing permit resolver. See [MCP Over HTTP](../../docs/surfaces/mcp-http.md) for mounts, validation rules and the separate HTTP challenge and live-client follow-ups.
+Import `createFetchHandler` from `@ontrails/mcp/fetch` to obtain `{ fetch, close }` for Bun or Hono. The subpath avoids stdio imports and serves modern MCP plus legacy stateless HTTP. Hostnames default to loopback only; browser origins require an explicit exact HTTP(S) allowlist. Actual request Authorization and application metadata reach the existing permit resolver. See [MCP Over HTTP](../../docs/surfaces/mcp-http.md) for the Bun and Hono attachments, validation rules and the separate HTTP challenge and live-client follow-ups.
 
 ## API
 

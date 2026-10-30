@@ -108,7 +108,7 @@ Binding selectors use dotted trail-id globs (`snippet.*`), the same grammar as C
 
 ## HTTP Hosting
 
-Use the portable `@ontrails/mcp/fetch` entry to mount the same graph on Bun or Hono. See [MCP Over HTTP](mcp-http.md) for the fetch API, Host/Origin allowlists, request credentials and remaining auth and client follow-ups.
+Use the portable `@ontrails/mcp/fetch` entry to serve the same graph from Bun or Hono. See [MCP Over HTTP](mcp-http.md) for the fetch API, Host/Origin allowlists, request credentials and remaining auth and client follow-ups.
 
 ## MCP Resources For Cold Context
 
