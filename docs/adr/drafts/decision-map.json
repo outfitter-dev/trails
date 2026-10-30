@@ -128,7 +128,7 @@
       "path": "docs/adr/drafts/20260406-documentation-structure.md",
       "slug": "documentation-structure",
       "status": "draft",
-      "superseded_by": null,
+      "superseded_by": ["62"],
       "title": "Documentation structure",
       "updated": "2026-04-09"
     },
