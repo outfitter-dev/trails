@@ -21,6 +21,14 @@ import type { EnvBindingSpec } from './env.js';
 /**
  * How Cloudflare realizes a cron: Cron Triggers evaluate in UTC only, so a
  * schedule that declares another timezone cannot run as declared.
+ *
+ * @example
+ * ```ts
+ * import { CLOUDFLARE_CRON_REALIZATION } from '@ontrails/cloudflare';
+ *
+ * // 'utc-only': every schedule fact in the overlay carries it
+ * const realization = CLOUDFLARE_CRON_REALIZATION;
+ * ```
  */
 export const CLOUDFLARE_CRON_REALIZATION = 'utc-only';
 
@@ -88,7 +96,7 @@ const collectTopoResources = (graph: Topo): readonly AnyResource[] => {
   return [...collected.values()];
 };
 
-/** Match core's schedule normalization: trimmed, single-spaced fields. */
+/** Mirrors core's cron normalization (`packages/core/src/schedule.ts:41-42`): trimmed, single-spaced fields. */
 const normalizeCron = (cron: string): string =>
   cron.trim().replaceAll(/\s+/g, ' ');
 
