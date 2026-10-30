@@ -346,6 +346,22 @@ ConnectD1Options                        // tablePrefix?, autoCreate?, seed?, gen
 CloudflareD1Options, CloudflareD1Resource, CloudflareD1Connection
 ```
 
+## Cloudflare role bindings
+
+The [deployment fieldguide](./surfaces/cloudflare.md) covers native env wiring, migration from target-locked resources, provider limits and verification boundaries. The package root re-exports these factories.
+
+```typescript
+// @ontrails/cloudflare/kv
+createCloudflareKvBinding(namespace)               // Kv; classic paginated Workers KV
+// @ontrails/cloudflare/r2
+createCloudflareBlobBinding(bucket, options)       // BlobStorage; required maxBufferedBytes
+CloudflareBlobBindingOptions
+// @ontrails/cloudflare/queues
+createCloudflareQueueBinding<Body>(queue)           // QueueProducer<Body>; JSON wire domain
+```
+
+These clients bind the existing portable role contracts through ordinary resource overrides. The native resource factories remain available; this API adds no global env registry or deploy-lock markers.
+
 ## `@ontrails/topography`
 
 These are programmatic Topography APIs for deriving, hashing, diffing, reading, and writing TopoGraph artifacts. App authors usually run the artifact lifecycle through the top-level CLI commands instead: `trails compile`, `trails validate`, and `trails diff`. The package does not expose a separate CLI binary, and retired `trails topo compile` / `trails topo verify` / `trails topo check` forms are not aliases.
