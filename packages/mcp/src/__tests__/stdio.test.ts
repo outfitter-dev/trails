@@ -160,10 +160,22 @@ test('stdio keeps startup and invocation warnings off protocol stdout', async ()
   const awaitWarning = async (marker: string) => {
     const deadline = Date.now() + 3000;
     while (!warningsSeen.includes(marker)) {
-      if (Date.now() > deadline) {
+      // Race each read against the remaining time: a read blocks for as long
+      // as the child keeps stderr open, so the deadline must cut it short.
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
         throw new Error(`MCP subprocess never emitted ${marker}`);
       }
-      const chunk = await warningReader.read();
+      const expiry = Promise.withResolvers<never>();
+      const timer = setTimeout(() => {
+        expiry.reject(new Error(`MCP subprocess never emitted ${marker}`));
+      }, remaining);
+      let chunk: ReadableStreamReadResult<Uint8Array>;
+      try {
+        chunk = await Promise.race([warningReader.read(), expiry.promise]);
+      } finally {
+        clearTimeout(timer);
+      }
       if (chunk.done) {
         throw new Error(`MCP subprocess closed stderr before ${marker}`);
       }
