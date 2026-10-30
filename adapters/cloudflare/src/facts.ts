@@ -15,6 +15,7 @@ import type { Overlay } from '@ontrails/adapter-kit';
 import type { AnyResource, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
+import { normalizeCron } from './cron.js';
 import { getEnvBinding } from './env.js';
 import type { EnvBindingSpec } from './env.js';
 
@@ -95,10 +96,6 @@ const collectTopoResources = (graph: Topo): readonly AnyResource[] => {
   }
   return [...collected.values()];
 };
-
-/** Mirrors core's cron normalization (`packages/core/src/schedule.ts:41-42`): trimmed, single-spaced fields. */
-const normalizeCron = (cron: string): string =>
-  cron.trim().replaceAll(/\s+/g, ' ');
 
 const deriveBindings = (graph: Topo): CloudflareLockFacts['bindings'] =>
   collectTopoResources(graph)
