@@ -56,3 +56,25 @@ test('conformance disposes its subject when the contract fails', async () => {
   ).rejects.toBeInstanceOf(ValidationError);
   expect(disposed).toBe(true);
 });
+
+test('conformance fails a subject that ignores cursor scope', async () => {
+  // A nonconforming client: it stores keys but honors a cursor from any
+  // prefix or binding, which the shared cursor-scope case must catch.
+  const createSubject = () => {
+    const client = createKvMock();
+    const scoped = client.list.bind(client);
+    client.list = async (options) => {
+      if (options?.cursor === undefined) {
+        return await scoped(options);
+      }
+      const all = await scoped({ prefix: options.prefix });
+      return { complete: true, keys: all.keys.slice(1) };
+    };
+    return { advanceTime: () => {}, client };
+  };
+  await expect(
+    findCase('KV cursors stay scoped to their prefix query and their binding', {
+      createSubject,
+    }).check()
+  ).rejects.toThrow();
+});

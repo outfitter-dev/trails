@@ -118,6 +118,37 @@ export const createKvContractCases = (
       }
     ),
     using(
+      'KV cursors stay scoped to their prefix query and their binding',
+      async ({ client }) => {
+        await client.put('flag/a', '1');
+        await client.put('flag/b', '2');
+        await client.put('other/a', '3');
+        const page = await client.list({ limit: 1, prefix: 'flag/' });
+        if (page.complete) {
+          throw new Error('Expected a continuation cursor for flag/');
+        }
+        // A valid cursor used with another prefix is refused, not reinterpreted.
+        await expect(
+          client.list({ cursor: page.cursor, prefix: 'other/' })
+        ).rejects.toBeInstanceOf(TrailsError);
+        // A valid cursor used against an isolated binding is refused too.
+        const other = await options.createSubject();
+        try {
+          await expect(
+            other.client.list({ cursor: page.cursor, prefix: 'flag/' })
+          ).rejects.toBeInstanceOf(TrailsError);
+        } finally {
+          await other.dispose?.();
+        }
+        // The same binding and prefix continue from the cursor.
+        const next = await client.list({
+          cursor: page.cursor,
+          prefix: 'flag/',
+        });
+        expect(next.keys).toEqual(['flag/b']);
+      }
+    ),
+    using(
       'KV rejects invalid options as typed failures',
       async ({ client }) => {
         await expect(
