@@ -448,6 +448,16 @@
         "@ontrails/topography": "workspace:^",
       },
     },
+    "packages/rpc": {
+      "name": "@ontrails/rpc",
+      "version": "0.2.5",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/source": {
       "name": "@ontrails/source",
       "version": "0.2.5",
@@ -739,6 +749,8 @@
     "@ontrails/queue": ["@ontrails/queue@workspace:packages/queue"],
 
     "@ontrails/regrade": ["@ontrails/regrade@workspace:packages/regrade"],
+
+    "@ontrails/rpc": ["@ontrails/rpc@workspace:packages/rpc"],
 
     "@ontrails/source": ["@ontrails/source@workspace:packages/source"],
 

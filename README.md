@@ -153,6 +153,7 @@ $ myapp greet --name World
 | [`@ontrails/cli`](./packages/cli) | CLI command model - flag derivation, output formatting |
 | [`@ontrails/commander`](./adapters/commander) | Commander adapter for the CLI surface |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
+| [`@ontrails/rpc`](./packages/rpc) | JSON-RPC 2.0 surface kernel — derived method table, `trails.*` methods, serializable connection state |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, Web Fetch kernel, Bun-native subpath |
 | [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface using the shared kernel |
 | [`@ontrails/vite`](./adapters/vite) | Vite adapter for opening Trails surfaces inside Vite projects |
