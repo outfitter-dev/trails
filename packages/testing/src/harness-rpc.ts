@@ -113,6 +113,16 @@ let nextId = 0;
  * // missing.error?.code === -32001
  * ```
  */
+/**
+ * Every outbound frame passes through the same JSON wire boundary the WebSocket host
+ * uses (`JSON.stringify` per frame), so a test sees what a client receives: a
+ * Date becomes its ISO string and undefined fields disappear. `structuredClone`
+ * would keep the Date, which is exactly the difference this hides.
+ */
+const overWire = <T>(frame: T): T =>
+  // oxlint-disable-next-line unicorn/prefer-structured-clone -- the JSON round trip is the point
+  JSON.parse(JSON.stringify(frame)) as T;
+
 export const createRpcHarness = (
   harnessOptions: RpcHarnessOptions
 ): RpcHarness => {
@@ -132,15 +142,16 @@ export const createRpcHarness = (
   const send: RpcHarness['send'] = async (frame) => {
     const step = await handler.handle(state, JSON.stringify(frame), {
       send: (message) => {
-        if (isBatchFrame(message)) {
-          pushed.push(...message);
+        const wired = overWire(message);
+        if (isBatchFrame(wired)) {
+          pushed.push(...wired);
         } else {
-          pushed.push(message);
+          pushed.push(wired);
         }
       },
     });
     ({ state } = step);
-    return step.frames;
+    return step.frames.map((outbound) => overWire(outbound));
   };
 
   const call: RpcHarness['call'] = async (method, params) => {
