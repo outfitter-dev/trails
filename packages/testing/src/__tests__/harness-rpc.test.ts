@@ -118,11 +118,11 @@ describe('createRpcHarness', () => {
   });
 
   test('publishes admitted ids while a request is running', async () => {
-    const release = Promise.withResolvers<undefined>();
-    const started = Promise.withResolvers<undefined>();
+    const release = Promise.withResolvers<boolean>();
+    const started = Promise.withResolvers<boolean>();
     const slow = trail('slow', {
       implementation: async () => {
-        started.resolve();
+        started.resolve(true);
         await release.promise;
         return Result.ok({ ok: true });
       },
@@ -148,7 +148,7 @@ describe('createRpcHarness', () => {
     await rpc.call('greet', { name: 'Ada' });
     expect(rpc.state.inFlight).toEqual(['slow-1']);
 
-    release.resolve();
+    release.resolve(true);
     await pending;
     expect(rpc.state.inFlight).toEqual([]);
   });
