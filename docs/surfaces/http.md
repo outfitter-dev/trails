@@ -357,7 +357,7 @@ This gives you full control over the HTTP framework while preserving the shared 
 
 ## Request Context and AbortSignal Propagation
 
-The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the trail's implementation sees the aborted signal. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`. Every network entry point builds on the `network` credential posture: a `createContext` permit is never an identity source there, a presented credential without `resolvePermit` is an `AuthError`, and protected trails without a resolver are refused when the surface is built. In-process callers of `deriveHttpRoutes` keep the default `host` posture.
+The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the trail's implementation sees the aborted signal. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`. Every network entry point builds on the `network` credential posture: a `createContext` permit is never an identity source there, a presented credential without `resolvePermit` is an `AuthError`, and protected trails without a resolver are refused when the surface is built. In-process callers of `deriveHttpRoutes` keep the default `host` posture. Both postures resolve credentials through the shared reconciliation in `@ontrails/permits`, so a presented credential with no resolver is refused in process as well (a `ValidationError`), and resolved permits carry `admission` evidence.
 
 ```typescript
 const longTask = trail('report.generate', {
