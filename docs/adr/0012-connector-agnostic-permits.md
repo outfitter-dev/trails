@@ -174,6 +174,15 @@ No cookies. No session-based auth at the framework level. Session management via
 
 ## Amendment log
 
+- 2026-10-29: TRL-1561 makes the credential input the only door for a permit
+  on a surface. `@ontrails/permits` owns one reconciliation (`reconcilePermit`)
+  that every surface calls with its candidates and posture; it stamps explicit
+  admission evidence (`verified`, `asserted`, `synthetic`, plus the responsible
+  verifier or policy) on the permit. Asserted kinds (`--permit`, `--dev-permit`)
+  are refused on network surfaces and admitted in process only under host
+  policy derived from the topo or declared in app config. The CLI is the first
+  caller; stdio MCP, the fetch handler and HTTP follow. The resource-server ADR
+  (TRL-1429) carries the normative per-surface matrix.
 - 2026-10-28: TRL-1435 implements the promised provider-agnostic JWT/JWKS path
   in `@ontrails/permits/jwt` with native WebCrypto. A configured secret preserves
   HS256 behavior, including optional issuer/audience checks; issuer without a
