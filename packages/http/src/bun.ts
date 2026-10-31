@@ -197,7 +197,10 @@ export const createApp = (
   graph: Topo,
   options: CreateAppOptions = {}
 ): BunHttpApp => {
-  const routesResult = deriveHttpRoutes(graph, deriveOptions(options));
+  const routesResult = deriveHttpRoutes(graph, {
+    ...deriveOptions(options),
+    credentialPosture: 'network',
+  });
 
   if (routesResult.isErr()) {
     throw routesResult.error;

@@ -217,11 +217,22 @@ const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
 
 let webhookRecords: TraceRecord[] = [];
 
+/**
+ * Network surfaces refuse protected trails without a resolver at build time,
+ * so scenarios that configure no resolver leave the protected trail out.
+ */
+const surfaceOptions = (
+  options: SharedCreateAppOptions
+): SharedCreateAppOptions =>
+  options.resolvePermit === undefined
+    ? { ...options, exclude: ['permit.scope'] }
+    : options;
+
 const invokeHono = async (
   request: RequestSpec,
   options: SharedCreateAppOptions
 ): Promise<Response> => {
-  const app = createHonoApp(parityGraph, options);
+  const app = createHonoApp(parityGraph, surfaceOptions(options));
   const response = app.request(request.path, request.init);
   request.afterStart?.();
   return await response;
@@ -231,7 +242,7 @@ const invokeBun = async (
   request: RequestSpec,
   options: SharedCreateAppOptions
 ): Promise<Response> => {
-  const app = createBunApp(parityGraph, options);
+  const app = createBunApp(parityGraph, surfaceOptions(options));
   const method = request.init?.method ?? 'GET';
   const url = new URL(request.path, 'http://localhost');
   const handler =
@@ -511,14 +522,15 @@ const parityScenarios: readonly ParityScenario[] = [
       error: {
         category: 'auth',
         code: 'AuthError',
-        message: 'Malformed Authorization header; expected Bearer token',
+        message:
+          'A credential was presented but this HTTP surface has no permit resolver; configure resolvePermit with a verifier.',
       },
     },
     expectedStatus: 401,
-    name: 'malformed Bearer-equivalent protected request returns AuthError',
+    name: 'a presented credential with no resolver returns AuthError on a public route',
     request: () => ({
       init: { headers: { Authorization: 'Basic nope' } },
-      path: '/permit/scope',
+      path: '/echo?message=hi',
     }),
   },
   {

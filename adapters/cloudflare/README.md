@@ -24,7 +24,7 @@ import { graph } from './app.js';
 export default createWorkersHandler(graph, { basePath: '/api' });
 ```
 
-Options mirror the other HTTP surfaces: `basePath`, `createContext`, `layers`, `maxJsonBodyBytes`, `resolvePermit`, plus include/exclude/intent filtering. `resources` accepts either a static override map or a function of the Worker env:
+Options mirror the other HTTP surfaces: `basePath`, `createContext`, `layers`, `maxJsonBodyBytes`, `resolvePermit`, plus include/exclude/intent filtering. The Worker builds on the HTTP `network` credential posture: a `createContext` permit is discarded at runtime, a presented credential with no resolver answers 401, and a topo that exposes protected trails without a resolver fails materialization with a rendered `ValidationError`. `resources` accepts either a static override map or a function of the Worker env:
 
 ```ts
 export default createWorkersHandler(graph, {
