@@ -62,7 +62,7 @@ describe('createRpcHarness', () => {
     expect(denied.error).toMatchObject({ data: { category: 'permission' } });
     const writer = createRpcHarness({
       graph,
-      permit: { id: 'u1', scopes: ['record:write'] },
+      permit: { actors: [], id: 'u1', scopes: ['record:write'] },
     });
     const allowed = await writer.call('record.update', {});
     expect(allowed.result).toEqual({ ok: true });
