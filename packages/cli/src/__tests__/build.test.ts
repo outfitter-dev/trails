@@ -1786,6 +1786,7 @@ describe('--permit wiring', () => {
     expect(result.isOk()).toBe(true);
     expect(observed).toEqual({
       actors: [],
+      admission: { by: 'derived:no-auth-resource', kind: 'asserted' },
       id: 'dev',
       scopes: ['admin:write'],
     });
@@ -1816,6 +1817,7 @@ describe('--permit wiring', () => {
     expect(result.isOk()).toBe(true);
     expect(observed).toEqual({
       actors: [],
+      admission: { by: 'derived:no-auth-resource', kind: 'asserted' },
       id: 'lock-recovery',
       scopes: ['topo:write'],
     });
@@ -2088,6 +2090,7 @@ describe('--token wiring', () => {
     expect(result.isOk()).toBe(true);
     expect(observed).toEqual({
       actors: [],
+      admission: { by: 'resolvePermitFromToken', kind: 'verified' },
       id: 'user-42',
       scopes: ['read', 'write'],
     });
