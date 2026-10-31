@@ -85,6 +85,10 @@ A configured `resolvePermit` runs once per trail request, including public trail
 
 Return `Result.ok(null)` or `undefined` only when no accepted credential was selected. A selected invalid credential or lookup miss must return an error, which stops execution even for a public trail. A valid permit reaches `ctx.permit`; protected trails still enforce their declared scopes in Core. Never fall back to another candidate after verification fails. Apps without a configured resolver retain their existing behavior.
 
+Every HTTP entry point (the Web Fetch kernel, `@ontrails/http/bun`, `@ontrails/hono`, `@ontrails/cloudflare/workers`) builds routes on the `network` credential posture (`credentialPosture` on `deriveHttpRoutes`; `host` is the default for in-process callers such as the test harness). On that posture identity enters only through `resolvePermit`: a `createContext` permit is discarded at runtime (one diagnostic through the seed's logger names the migration), a presented credential (`Authorization`, `x-api-key`, `x-auth-token`) with no resolver answers an `AuthError` instead of absence, and a surface that exposes protected trails without a resolver is refused at build time with a `ValidationError` listing them. No credential stays anonymous: public trails run, protected trails fail at enforcement.
+
+Migration for apps that seeded a permit through `createContext` on an HTTP host: move the credential into a verifier passed as `resolvePermit` (a JWKS or opaque adapter from `@ontrails/permits`) and keep `createContext` for the logger, extensions and resources it still seeds. `--dev-permit` is not a migration path for network surfaces.
+
 Migration: resolvers that previously assumed they were called only with a nonempty Bearer token must now handle optional candidates. Bearer-only policies must reject malformed presented Bearer credentials themselves; a resolver that unconditionally returns a permit now authenticates requests without a Bearer header as well. No credentials become trail input.
 
 ## Adapter authoring

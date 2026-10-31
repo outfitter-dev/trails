@@ -441,9 +441,9 @@ describe('surface API (Hono adapter)', () => {
     expect(loggedErrors).toHaveLength(0);
   });
 
-  test('malformed Authorization fails as 401 without a custom Hono permit policy', async () => {
+  test('a presented credential fails as 401 without a Hono permit policy', async () => {
     let invoked = false;
-    const protectedTrail = trail('permit.malformed', {
+    const openTrail = trail('open.read', {
       implementation: () => {
         invoked = true;
         return Result.ok({ ok: true });
@@ -451,12 +451,11 @@ describe('surface API (Hono adapter)', () => {
       input: z.object({}),
       intent: 'read',
       output: z.object({ ok: z.boolean() }),
-      permit: { scopes: ['thing:read'] },
     });
-    const graph = topo('surface-api', { protectedTrail });
+    const graph = topo('surface-api', { openTrail });
     const app = createApp(graph);
 
-    const response = await app.request('/permit/malformed', {
+    const response = await app.request('/open/read', {
       headers: { Authorization: 'Basic nope' },
       method: 'GET',
     });
@@ -466,10 +465,24 @@ describe('surface API (Hono adapter)', () => {
       error: {
         category: 'auth',
         code: 'AuthError',
-        message: 'Malformed Authorization header; expected Bearer token',
+        message:
+          'A credential was presented but this HTTP surface has no permit resolver; configure resolvePermit with a verifier.',
       },
     });
     expect(invoked).toBe(false);
+  });
+
+  test('protected trails without a Hono permit policy are refused at build time', () => {
+    const protectedTrail = trail('permit.scope', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['thing:read'] },
+    });
+    expect(() => createApp(topo('surface-api', { protectedTrail }))).toThrow(
+      /permit\.scope/
+    );
   });
 
   test('malformed Authorization reaches the configured Hono permit policy', async () => {
@@ -503,7 +516,7 @@ describe('surface API (Hono adapter)', () => {
     });
   });
 
-  test('non-Bearer Authorization does not reject public Hono routes', async () => {
+  test('non-Bearer Authorization without a resolver is refused on public Hono routes', async () => {
     const graph = topo('surface-api', { echoTrail });
     const app = createApp(graph);
 
@@ -512,8 +525,10 @@ describe('surface API (Hono adapter)', () => {
       method: 'GET',
     });
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: { reply: 'hello' } });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      error: { category: 'auth', code: 'AuthError' },
+    });
   });
 
   test('resolved permits with missing scopes fail as 403 through Hono', async () => {
