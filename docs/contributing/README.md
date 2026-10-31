@@ -16,6 +16,8 @@ If you are building an app with Trails, start with the user-facing docs in [`doc
   map for cross-cutting capabilities and proposed extractions.
 - [Warden Rules](./warden-rules.md) — how to author and audit durable Warden
   and repo-local correctness rules.
+- [Documentation Validation](./documentation-validation.md) — generated owners,
+  committed migration accounting, explicit comparison bases and current limits.
 - [Script Graduation](./script-graduation.md) — when root-script behavior must
   graduate into a Trails concept, and the binding vocabulary (native binding,
   adapter binding, adapter seam).

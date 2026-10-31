@@ -116,6 +116,32 @@ jobs:
       - name: ADR check
         run: bun scripts/adr.ts check
 
+      - name: Install ripgrep for the hard-wrap owner check
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+
+      - name: Documentation migration fixtures
+        run: bun test scripts/__tests__/docs-migrations.test.ts scripts/__tests__/docs-ci.test.ts
+
+      - name: Pin documentation trunk
+        id: docs-trunk
+        run: |
+          git fetch --no-tags origin main
+          printf 'sha=%s\n' "$(git rev-parse --verify 'FETCH_HEAD^{commit}')" >> "$GITHUB_OUTPUT"
+
+      - name: Documentation checks
+        env:
+          DOCS_EVENT: ${{ github.event_name }}
+          DOCS_TRUNK_SHA: ${{ steps.docs-trunk.outputs.sha }}
+          DOCS_PUSH_BASE: ${{ github.event.before }}
+        run: |
+          if [ "$DOCS_EVENT" = "push" ]; then
+            test -n "$DOCS_PUSH_BASE" || { echo "Missing push comparison base" >&2; exit 1; }
+            docs_base="$DOCS_PUSH_BASE"
+          else
+            docs_base="$DOCS_TRUNK_SHA"
+          fi
+          bun run docs:check -- --base-ref "$docs_base"
+
       - name: CI workflow contract
         run: bun test scripts/__tests__/ci-workspace-context-contract.test.ts scripts/__tests__/release-publish-target.test.ts
 
