@@ -13,6 +13,11 @@ import {
   isIncompleteDirectorySkip,
 } from '../collect.js';
 
+/** Hooks export `GIT_DIR`; fixtures that inherit it write to the real repository. */
+const gitEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))
+);
+
 describe('classifyDownstreamEntry', () => {
   test('collects supported source extensions', () => {
     expect(classifyDownstreamEntry('signal.ts', 'file')).toEqual({
@@ -109,20 +114,24 @@ describe('collectDownstreamSources', () => {
     const root = mkdtempSync(join(tmpdir(), 'regrade-collect-worktree-'));
     const linked = join(root, '.worktrees', 'linked');
     try {
-      execFileSync('git', ['init', '--quiet'], { cwd: root });
+      execFileSync('git', ['init', '--quiet'], { cwd: root, env: gitEnv });
       execFileSync('git', ['config', 'user.email', 'trails@example.test'], {
         cwd: root,
+        env: gitEnv,
       });
       execFileSync('git', ['config', 'user.name', 'Trails Test'], {
         cwd: root,
+        env: gitEnv,
       });
       writeFileSync(join(root, 'primary.ts'), 'export const primary = 1;\n');
-      execFileSync('git', ['add', 'primary.ts'], { cwd: root });
+      execFileSync('git', ['add', 'primary.ts'], { cwd: root, env: gitEnv });
       execFileSync('git', ['commit', '--quiet', '-m', 'test: initialize'], {
         cwd: root,
+        env: gitEnv,
       });
       execFileSync('git', ['worktree', 'add', '--quiet', '--detach', linked], {
         cwd: root,
+        env: gitEnv,
       });
       writeFileSync(join(linked, 'linked.ts'), 'export const linked = 1;\n');
 
