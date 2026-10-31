@@ -137,6 +137,33 @@ describe('HTTP network credential posture', () => {
     expect(await verified.json()).toEqual({ data: { ok: true } });
   });
 
+  test('the discarded-permit diagnostic waits for a logger and is per surface', async () => {
+    const requestWhoami = (handler: ReturnType<typeof createFetchHandler>) =>
+      handler(request('/whoami'));
+    let logged = false;
+    const eventuallyLogged = createFetchHandler(graph(), {
+      createContext: () => {
+        const context = logged
+          ? seededContext()
+          : createTrailContext({ permit: seed });
+        logged = true;
+        return context;
+      },
+      resolvePermit: resolveBearer,
+    });
+    await requestWhoami(eventuallyLogged);
+    expect(warnings).toHaveLength(0);
+    await requestWhoami(eventuallyLogged);
+    expect(warnings).toHaveLength(1);
+
+    const secondSurface = createFetchHandler(graph(), {
+      createContext: () => seededContext(),
+      resolvePermit: resolveBearer,
+    });
+    await requestWhoami(secondSurface);
+    expect(warnings).toHaveLength(2);
+  });
+
   test('the host posture keeps the seed for in-process callers', async () => {
     const routes = deriveHttpRoutes(graph(), {
       createContext: seededContext,

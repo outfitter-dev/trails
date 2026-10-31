@@ -267,11 +267,12 @@ const toHeaders = (
 const SEEDED_PERMIT_DIAGNOSTIC =
   '[ontrails:http] A createContext permit was discarded on a network HTTP surface. Identity enters a network surface only through resolvePermit; move the credential into a verifier (see the @ontrails/http changelog for TRL-1560).';
 
-let seededPermitDiagnosed = false;
+/** Each surface's `createContext` factory is diagnosed at most once. */
+let diagnosedFactories = new WeakSet<object>();
 
 /** Test seam: forget that the seeded-permit diagnostic was emitted. */
 export const resetSeededPermitDiagnostic = (): void => {
-  seededPermitDiagnosed = false;
+  diagnosedFactories = new WeakSet();
 };
 
 /**
@@ -292,9 +293,13 @@ const surfaceContextFactory = (
   }
   return async () => {
     const { permit, ...seed } = await factory();
-    if (permit !== undefined && !seededPermitDiagnosed) {
-      seededPermitDiagnosed = true;
-      seed.logger?.warn(SEEDED_PERMIT_DIAGNOSTIC, {
+    if (
+      permit !== undefined &&
+      seed.logger !== undefined &&
+      !diagnosedFactories.has(factory)
+    ) {
+      diagnosedFactories.add(factory);
+      seed.logger.warn(SEEDED_PERMIT_DIAGNOSTIC, {
         code: 'seeded_permit_discarded',
         permitId: permit.id,
       });
