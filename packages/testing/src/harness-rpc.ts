@@ -100,6 +100,16 @@ const isDiscoverResult = (value: unknown): value is RpcDiscoverResult =>
 let nextId = 0;
 
 /**
+ * Every outbound frame passes through the same JSON wire boundary the WebSocket host
+ * uses (`JSON.stringify` per frame), so a test sees what a client receives: a
+ * Date becomes its ISO string and undefined fields disappear. `structuredClone`
+ * would keep the Date, which is exactly the difference this hides.
+ */
+const overWire = <T>(frame: T): T =>
+  // oxlint-disable-next-line unicorn/prefer-structured-clone -- the JSON round trip is the point
+  JSON.parse(JSON.stringify(frame)) as T;
+
+/**
  * Create an in-process harness over the RPC kernel.
  *
  * @example
@@ -113,16 +123,6 @@ let nextId = 0;
  * // missing.error?.code === -32001
  * ```
  */
-/**
- * Every outbound frame passes through the same JSON wire boundary the WebSocket host
- * uses (`JSON.stringify` per frame), so a test sees what a client receives: a
- * Date becomes its ISO string and undefined fields disappear. `structuredClone`
- * would keep the Date, which is exactly the difference this hides.
- */
-const overWire = <T>(frame: T): T =>
-  // oxlint-disable-next-line unicorn/prefer-structured-clone -- the JSON round trip is the point
-  JSON.parse(JSON.stringify(frame)) as T;
-
 export const createRpcHarness = (
   harnessOptions: RpcHarnessOptions
 ): RpcHarness => {
@@ -140,7 +140,14 @@ export const createRpcHarness = (
   let state = handler.createState({ connectionId: 'harness', permit });
 
   const send: RpcHarness['send'] = async (frame) => {
-    const step = await handler.handle(state, JSON.stringify(frame), {
+    const admitted = handler.admit(state, JSON.stringify(frame));
+    // Publish admission before running, so `state` shows in-flight ids (and
+    // `handler.recover(state)` can answer them) while a request is still running.
+    ({ state } = admitted);
+    if (admitted.work === undefined) {
+      return admitted.frames.map((outbound) => overWire(outbound));
+    }
+    const step = await handler.run(admitted.state, admitted.work, {
       send: (message) => {
         const wired = overWire(message);
         if (isBatchFrame(wired)) {
@@ -150,7 +157,15 @@ export const createRpcHarness = (
         }
       },
     });
-    ({ state } = step);
+    // Other requests may have been admitted during the run; settle only this
+    // step's ids against the current state.
+    const settled = new Set(
+      admitted.state.inFlight.filter((id) => !step.state.inFlight.includes(id))
+    );
+    state = {
+      ...step.state,
+      inFlight: state.inFlight.filter((id) => !settled.has(id)),
+    };
     return step.frames.map((outbound) => overWire(outbound));
   };
 

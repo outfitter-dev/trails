@@ -117,6 +117,42 @@ describe('createRpcHarness', () => {
     });
   });
 
+  test('publishes admitted ids while a request is running', async () => {
+    const release = Promise.withResolvers<undefined>();
+    const started = Promise.withResolvers<undefined>();
+    const slow = trail('slow', {
+      implementation: async () => {
+        started.resolve();
+        await release.promise;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+    });
+    const rpc = createRpcHarness({
+      graph: topo('rpc-harness-inflight', { greet, slow }),
+    });
+
+    const pending = rpc.send({
+      id: 'slow-1',
+      jsonrpc: '2.0',
+      method: 'slow',
+      params: {},
+    });
+    await started.promise;
+    expect(rpc.state.inFlight).toEqual(['slow-1']);
+    expect(rpc.handler.recover(rpc.state).frames).toHaveLength(1);
+
+    // A request settling meanwhile must not drop the running one's id.
+    await rpc.call('greet', { name: 'Ada' });
+    expect(rpc.state.inFlight).toEqual(['slow-1']);
+
+    release.resolve();
+    await pending;
+    expect(rpc.state.inFlight).toEqual([]);
+  });
+
   test('test context merges into every call', async () => {
     const seen: string[] = [];
     const observing = trail('observe', {
