@@ -620,6 +620,19 @@ testSurfaceParity(topo, options?), runSurfaceParityExample(...)
 SurfaceParityOptions, SurfaceParityComparison
 ```
 
+### `@ontrails/testing/rpc`
+
+```typescript
+createRpcHarness({ graph, permit?, ctx?, ...kernelOptions })  // in-process harness over the RPC kernel
+rpc.call(method, params?)      // one request; { ok, result?, error?, id, response }
+rpc.notify(method, params?)    // one notification
+rpc.send(frame)                // raw single or batch frame → outbound frames
+rpc.discover()                 // typed trails.discover result
+rpc.pushed, rpc.state, rpc.handler
+
+RpcHarness, RpcHarnessOptions, RpcHarnessResult
+```
+
 ## `@ontrails/warden`
 
 ```typescript

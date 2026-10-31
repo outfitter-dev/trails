@@ -21,6 +21,7 @@
     "./established": "./src/all-established.ts",
     "./http": "./src/http.ts",
     "./mcp": "./src/mcp.ts",
+    "./rpc": "./src/rpc.ts",
     "./surface-parity": "./src/surface-parity.ts",
     "./package.json": "./package.json"
   },
@@ -38,6 +39,7 @@
     "@ontrails/http": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "@ontrails/observability": "workspace:^",
+    "@ontrails/rpc": "workspace:^",
     "@ontrails/store": "workspace:^"
   },
   "peerDependencies": {
@@ -46,6 +48,7 @@
     "@ontrails/http": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "@ontrails/observability": "workspace:^",
+    "@ontrails/rpc": "workspace:^",
     "zod": "catalog:"
   },
   "peerDependenciesMeta": {
@@ -56,6 +59,9 @@
       "optional": true
     },
     "@ontrails/mcp": {
+      "optional": true
+    },
+    "@ontrails/rpc": {
       "optional": true
     }
   }
