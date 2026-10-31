@@ -1445,6 +1445,7 @@ describe('deriveHttpRoutes', () => {
       expect(result?.isOk()).toBe(true);
       expect(observedPermit).toEqual({
         actors: [],
+        admission: { by: 'resolvePermit', kind: 'verified' },
         id: 'user-1',
         scopes: ['thing:read'],
       });
@@ -1476,7 +1477,7 @@ describe('deriveHttpRoutes', () => {
       expect(result.error).toBeInstanceOf(PermitError);
     });
 
-    test('Bearer Authorization without a resolver falls through for public routes', async () => {
+    test('Bearer Authorization without a resolver is refused even on public routes', async () => {
       const app = topo('permit-http', { echoTrail });
       const buildResult = deriveHttpRoutes(app);
 
@@ -1494,9 +1495,12 @@ describe('deriveHttpRoutes', () => {
         }
       );
 
-      expect(result?.isOk()).toBe(true);
-      if (result?.isOk()) {
-        expect(result.value).toEqual({ reply: 'hello' });
+      // One door: a presented credential nobody can verify is never absence.
+      // The host posture answers a ValidationError; the network posture an AuthError.
+      expect(result?.isErr()).toBe(true);
+      if (result?.isErr()) {
+        expect(result.error).toBeInstanceOf(ValidationError);
+        expect(result.error.message).toContain('no permit resolver');
       }
     });
 
@@ -1562,7 +1566,7 @@ describe('deriveHttpRoutes', () => {
       expect(headers.get('x-tenant-id')).toBe('a, b');
     });
 
-    test('Bearer Authorization without a resolver still lets protected routes fail at the permit gate', async () => {
+    test('Bearer Authorization without a resolver is refused before the permit gate on protected routes', async () => {
       const protectedTrail = trail('permit.no-resolver', {
         implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
@@ -1583,7 +1587,7 @@ describe('deriveHttpRoutes', () => {
 
       expect(result?.isErr()).toBe(true);
       if (result?.isErr()) {
-        expect(result.error).toBeInstanceOf(PermitError);
+        expect(result.error).toBeInstanceOf(ValidationError);
       }
     });
 
