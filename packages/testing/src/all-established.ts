@@ -12,7 +12,7 @@ import type { Topo, TrailContext } from '@ontrails/core';
 import { validateEstablishedTopo } from '@ontrails/core';
 
 import { registerContractSuite } from './all.js';
-import type { TestExecutionOptions } from './context.js';
+import type { MinimalPermit, TestExecutionOptions } from './context.js';
 import { createCliHarness } from './harness-cli.js';
 import type { CliHarnessOptions } from './harness-cli.js';
 import { createHttpHarness } from './harness-http.js';
@@ -28,12 +28,7 @@ export interface TestAllEstablishedOptions {
           | { readonly scopes: readonly string[] }
           | 'public'
           | undefined;
-      }) =>
-        | {
-            readonly id: string;
-            readonly scopes: readonly string[];
-          }
-        | undefined)
+      }) => MinimalPermit | undefined)
     | undefined;
   readonly ctx?: Partial<TrailContext> | undefined;
   readonly http?: Omit<HttpHarnessOptions, 'graph'> | undefined;

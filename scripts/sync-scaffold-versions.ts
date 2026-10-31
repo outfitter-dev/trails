@@ -24,7 +24,7 @@ const proc = Bun.spawnSync({
     'versions',
     ...passthrough,
     '--permit',
-    '{"id":"scaffold-versions-sync","scopes":["project:write"]}',
+    '{"actors":[],"id":"scaffold-versions-sync","scopes":["project:write"]}',
   ],
   cwd: repoRoot,
   stdio: ['inherit', 'inherit', 'inherit'],

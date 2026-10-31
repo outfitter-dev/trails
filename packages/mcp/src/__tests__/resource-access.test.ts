@@ -112,7 +112,11 @@ describe('MCP resource access', () => {
         mcpResources: { graph: true },
         resolvePermit: (input) => {
           resolutions += 1;
-          return Result.ok({ id: String(input._meta?.['caller']), scopes: [] });
+          return Result.ok({
+            actors: [],
+            id: String(input._meta?.['caller']),
+            scopes: [],
+          });
         },
       },
       async (client) => {
@@ -227,7 +231,7 @@ describe('MCP resource access', () => {
             resolutions += 1;
             expect(input.bearerToken).toBeUndefined();
             return input._meta?.['credential'] === 'valid'
-              ? Result.ok({ id: 'metadata-user', scopes: [] })
+              ? Result.ok({ actors: [], id: 'metadata-user', scopes: [] })
               : Result.err(new AuthError('Rejected metadata'));
           },
         },
@@ -273,14 +277,16 @@ describe('MCP resource access', () => {
         createContext: () => {
           factories += 1;
           return createTrailContext({
-            permit: { id: 'host-user', scopes: [] },
+            permit: { actors: [], id: 'host-user', scopes: [] },
           });
         },
         resolvePermit: () =>
           state === 'invalid'
             ? Result.err(new AuthError('Rejected credential'))
             : Result.ok(
-                state === 'valid' ? { id: 'request-user', scopes: [] } : null
+                state === 'valid'
+                  ? { actors: [], id: 'request-user', scopes: [] }
+                  : null
               ),
       },
       async (client) => {

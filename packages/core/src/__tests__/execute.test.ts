@@ -1670,6 +1670,7 @@ describe('executeTrail', () => {
 
     test('propagates the parent permit to every concurrent branch', async () => {
       const permit = Object.freeze({
+        actors: [],
         id: 'permit-orders',
         scopes: ['orders:read'] as const,
       });

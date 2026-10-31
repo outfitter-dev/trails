@@ -22,6 +22,7 @@ import { graph } from '../src/app.js';
 import { runDev } from '../src/dev.js';
 
 const OPERATOR_PERMIT = {
+  actors: [],
   id: 'local-operator',
   scopes: ['lookout:admin'],
 };

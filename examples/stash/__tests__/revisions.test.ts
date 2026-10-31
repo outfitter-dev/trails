@@ -16,6 +16,7 @@ import { createMockDb, db } from '../src/resources/db.js';
 import { graph } from '../src/app.js';
 
 const alicePermit = {
+  actors: [],
   id: 'usr_alice',
   scopes: ['snippet:write'],
 } as const;

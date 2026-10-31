@@ -232,7 +232,7 @@ describe('@ontrails/http/bun', () => {
   });
 
   test('forwards permit headers, request id, and abort signals through native routes', async () => {
-    let observedHeader: string | null | undefined;
+    const observedHeaders: (string | undefined)[] = [];
     let observedSignalAborted: boolean | undefined;
     const abortingTrail = trail('abort.check', {
       implementation: (_input, ctx) => {
@@ -245,9 +245,12 @@ describe('@ontrails/http/bun', () => {
     });
     const app = createApp(topo('bun-api', { abortingTrail, protectedTrail }), {
       resolvePermit: ({ headers }) => {
-        observedHeader =
-          headers instanceof Headers ? headers.get('x-tenant-id') : undefined;
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        observedHeaders.push(
+          headers instanceof Headers
+            ? (headers.get('x-tenant-id') ?? undefined)
+            : undefined
+        );
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     });
     const permitHandler = app.routes['/permit/scope']?.GET;
@@ -278,7 +281,7 @@ describe('@ontrails/http/bun', () => {
     expect(await permitResponse.json()).toEqual({
       data: { permitId: 'user-1', requestId: 'req-1' },
     });
-    expect(observedHeader).toBe('tenant-1');
+    expect(observedHeaders).toEqual(['tenant-1', undefined]);
     expect(abortResponse.status).toBe(200);
     expect(await abortResponse.json()).toEqual({
       data: { aborted: true },
@@ -467,7 +470,7 @@ describe('@ontrails/http/bun', () => {
       resolvePermit: ({ headers }) => {
         observedHeader =
           headers instanceof Headers ? headers.get('x-tenant-id') : undefined;
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     });
 

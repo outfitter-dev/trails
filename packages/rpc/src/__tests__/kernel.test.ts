@@ -236,7 +236,9 @@ describe('createRpcHandler', () => {
     expect(denied.error.data).toMatchObject({ category: 'permission' });
 
     const allowed = await handler.handle(
-      handler.createState({ permit: { id: 'u1', scopes: ['record:write'] } }),
+      handler.createState({
+        permit: { actors: [], id: 'u1', scopes: ['record:write'] },
+      }),
       frame({ id: 2, jsonrpc: '2.0', method: 'record.update', params: {} })
     );
     expect(single(allowed.frames)).toEqual({
@@ -268,7 +270,9 @@ describe('createRpcHandler', () => {
     ]);
 
     const scoped = await handler.handle(
-      handler.createState({ permit: { id: 'u1', scopes: ['record:write'] } }),
+      handler.createState({
+        permit: { actors: [], id: 'u1', scopes: ['record:write'] },
+      }),
       frame({ id: 2, jsonrpc: '2.0', method: 'trails.discover' })
     );
     const scopedResponse = single(scoped.frames);
@@ -351,7 +355,9 @@ describe('createRpcHandler', () => {
   test('state round-trips through JSON text', async () => {
     const handler = handlerFor();
     const admitted = handler.admit(
-      handler.createState({ permit: { id: 'u1', scopes: ['record:write'] } }),
+      handler.createState({
+        permit: { actors: [], id: 'u1', scopes: ['record:write'] },
+      }),
       frame({
         id: 'r1',
         jsonrpc: '2.0',

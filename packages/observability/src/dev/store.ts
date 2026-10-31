@@ -1,6 +1,6 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
-import { openWriteTrailsDb } from '@ontrails/core';
+import { openWriteTrailsDb, tracePermitSchema } from '@ontrails/core';
 
 import {
   DEFAULT_MAX_AGE,
@@ -64,19 +64,27 @@ interface TraceRow {
   readonly status: string;
   readonly error_category: string | null;
   readonly permit_id: string | null;
+  readonly permit_issuer: string | null;
+  readonly permit_actors: string | null;
   readonly permit_tenant_id: string | null;
   readonly attrs: string | null;
 }
 
 /** Reconstruct the permit object from decomposed columns. */
-const buildPermit = (
-  permitId: string | null,
-  tenantId: string | null
-): TraceRecord['permit'] => {
-  if (permitId === null) {
+const buildPermit = (row: TraceRow): TraceRecord['permit'] => {
+  if (row.permit_id === null) {
     return undefined;
   }
-  return tenantId === null ? { id: permitId } : { id: permitId, tenantId };
+  return tracePermitSchema.parse({
+    ...(row.permit_actors === null
+      ? {}
+      : { actors: JSON.parse(row.permit_actors) }),
+    id: row.permit_id,
+    ...(row.permit_issuer === null ? {} : { issuer: row.permit_issuer }),
+    ...(row.permit_tenant_id === null
+      ? {}
+      : { tenantId: row.permit_tenant_id }),
+  });
 };
 
 /** Parse attrs JSON back into a record. */
@@ -93,7 +101,7 @@ const rowToRecord = (row: TraceRow): TraceRecord => ({
   kind: row.kind as TraceRecord['kind'],
   name: row.name,
   parentId: row.parent_id ?? undefined,
-  permit: buildPermit(row.permit_id, row.permit_tenant_id),
+  permit: buildPermit(row),
   rootId: row.root_id,
   startedAt: row.started_at,
   status: row.status as TraceRecord['status'],
@@ -170,6 +178,10 @@ const recordToParams = (record: TraceRecord): SQLQueryBindings[] => [
   record.status,
   record.errorCategory ?? null,
   record.permit?.id ?? null,
+  record.permit?.issuer ?? null,
+  record.permit?.actors === undefined
+    ? null
+    : JSON.stringify(record.permit.actors),
   record.permit?.tenantId ?? null,
   serializeAttrs(record.attrs),
 ];
@@ -179,8 +191,8 @@ const UPSERT_SQL = `INSERT INTO ${TRACK_TABLE} (
   id, trace_id, root_id, parent_id,
   kind, name, trail_id, surface,
   intent, started_at, ended_at, status,
-  error_category, permit_id, permit_tenant_id, attrs
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  error_category, permit_id, permit_issuer, permit_actors, permit_tenant_id, attrs
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   trace_id = excluded.trace_id,
   root_id = excluded.root_id,
@@ -195,6 +207,8 @@ ON CONFLICT(id) DO UPDATE SET
   status = excluded.status,
   error_category = excluded.error_category,
   permit_id = excluded.permit_id,
+  permit_issuer = excluded.permit_issuer,
+  permit_actors = excluded.permit_actors,
   permit_tenant_id = excluded.permit_tenant_id,
   attrs = excluded.attrs`;
 

@@ -186,6 +186,10 @@ See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Migration: topo-store moved to `@ontrails/topography`
 
+Execution permits use Core's `BasePermit` and `PermitActor` contracts. `actors` is required, including an explicitly authored empty array when no acting party is known. Optional `issuer`, `tenantId`, and finite millisecond `expiresAt` retain identity evidence. `basePermitSchema` and `permitActorSchema` validate this shape; execution rejects malformed supplied permits before implementation. Deadline enforcement and actor authorization policy are separate concerns.
+
+New trace records retain subject ID, optional attester and tenant, and the complete ordered actor chain through spans, signal lifecycle records, and parented activation records. `tracePermitSchema` also accepts retained historical records whose actor evidence is unknown. Missing historical actors stay absent; they are not converted to `[]`. Parentless activation records may have no permit. See [permit identity migration](../../docs/migration/permit-identity.md).
+
 Per [ADR-0042](../../docs/adr/0042-core-topography-boundary-doctrine.md), the topo-store public API previously exported from `@ontrails/core` now lives in `@ontrails/topography`. Generic `trails-db` helpers (`openReadTrailsDb`, `openWriteTrailsDb`, `ensureSubsystemSchema`, `deriveTrailsDbPath`, `deriveTrailsStateDir`, `deriveTrailsStateHome`, `deriveTrailsProjectKey`, `deriveTrailsDir`) stay in core because tracing and other subsystems share them.
 
 Update consumer imports:

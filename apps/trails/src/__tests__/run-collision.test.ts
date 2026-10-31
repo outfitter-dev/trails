@@ -89,6 +89,7 @@ const writeWorkspace = (root: string, apps: readonly AppSpec[]): void => {
 };
 
 const trailsRunPermit = {
+  actors: [],
   id: 'test-permit',
   scopes: ['trails:run'],
 } as const;

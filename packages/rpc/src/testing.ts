@@ -128,7 +128,11 @@ const waiting = trail('wait', {
 export const createRpcConformanceTopo = (): Topo =>
   topo('rpc-conformance', { greet, guarded, missing, reporting, waiting });
 
-const writer: BasePermit = { id: 'writer', scopes: ['record:write'] };
+const writer: BasePermit = {
+  actors: [],
+  id: 'writer',
+  scopes: ['record:write'],
+};
 
 /** Resolver contract: absence answers null; a presented credential verifies or errors. */
 const resolveBearer: ResolveRpcPermit = ({ bearerToken }) => {

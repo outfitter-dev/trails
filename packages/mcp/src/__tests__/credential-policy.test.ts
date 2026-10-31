@@ -12,7 +12,7 @@ import { deriveMcpTools } from '../build.js';
 import type { ResolveMcpPermitInput } from '../build.js';
 import { resolveMcpPermit } from '../permit-resolution.js';
 
-const permit = { id: 'org-42', scopes: ['record:read'] };
+const permit = { actors: [], id: 'org-42', scopes: ['record:read'] };
 
 describe('shared MCP permit resolution', () => {
   test('passes raw Authorization to configured policy without a successful Bearer parse', async () => {
@@ -138,7 +138,7 @@ describe('shared MCP permit resolution', () => {
         createContext: () => {
           contexts += 1;
           return createTrailContext({
-            permit: { id: 'local-host', scopes: ['record:read'] },
+            permit: { actors: [], id: 'local-host', scopes: ['record:read'] },
           });
         },
         resolvePermit: () => {

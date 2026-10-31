@@ -38,11 +38,16 @@ const setup = async (algorithm: 'RS256' | 'ES256' | 'EdDSA' = 'RS256') => {
 describe('issuer JWT verification', () => {
   for (const algorithm of ['RS256', 'ES256', 'EdDSA'] as const) {
     test(`discovers and verifies ${algorithm} into today's Permit`, async () => {
-      const { adapter, key, requests } = await setup(algorithm);
-      const result = await adapter.authenticate(input(await key.sign()));
+      const { adapter, issuer, key, requests } = await setup(algorithm);
+      const result = await adapter.authenticate(
+        input(await key.sign({ exp: 4_000_000_000 }))
+      );
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({
+        actors: [],
+        expiresAt: 4_000_000_000_000,
         id: 'user-42',
+        issuer,
         scopes: ['read', 'write'],
       });
       expect(requests).toHaveLength(2);
@@ -134,12 +139,16 @@ describe('issuer JWT verification', () => {
     });
     const token = await f.key.sign({
       aud: ['other', f.audience],
+      exp: 4_000_000_000,
       groups: ['admin'],
       permissions: ['read'],
     });
     const outcome10 = await adapter.authenticate(input(token));
     expect(outcome10.unwrap()).toEqual({
+      actors: [],
+      expiresAt: 4_000_000_000_000,
       id: 'user-42',
+      issuer: f.issuer,
       roles: ['admin'],
       scopes: ['read'],
     });

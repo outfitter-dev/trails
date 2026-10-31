@@ -3,6 +3,7 @@ import { Result, isPlainObject } from '@ontrails/core';
 import type { AuthAdapter, AuthError } from './adapter.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
+import { deriveJwtIdentity } from './jwt-identity.js';
 import { verifyIssuerSignature } from './jwt-jwks.js';
 
 /** Configuration for the JWT auth adapter. */
@@ -289,8 +290,13 @@ const buildPermit = (
   if (typeof payload.sub !== 'string' || !payload.sub) {
     return authErr('invalid_token', 'Missing subject claim (sub)');
   }
+  const identity = deriveJwtIdentity(payload);
+  if (identity.isErr()) {
+    return identity;
+  }
   const roles = extractRoles(payload, options.rolesClaim ?? 'roles');
   return Result.ok({
+    ...identity.value,
     id: payload.sub,
     scopes: extractScopes(payload, options.scopesClaim ?? 'scope'),
     ...(roles ? { roles } : {}),
@@ -386,8 +392,22 @@ export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
   const authenticate = async (
     input: PermitExtractionInput
   ): Promise<Result<Permit | null, AuthError>> => {
-    if (!input.bearerToken) {
+    let token = input.bearerToken;
+    if (
+      input.authorization !== undefined &&
+      /^\s*Bearer(?:\s|$)/i.test(input.authorization)
+    ) {
+      const match = input.authorization.match(/^Bearer +([\w.~+/-]+=*)$/i);
+      token = match?.[1];
+      if (token === undefined) {
+        return authErr('invalid_token', 'Malformed Bearer credential');
+      }
+    }
+    if (token === undefined) {
       return Result.ok(null);
+    }
+    if (token.length === 0) {
+      return authErr('invalid_token', 'Selected Bearer credential is empty');
     }
     if (!options.secret && (!options.issuer || !options.audience)) {
       return authErr(
@@ -395,7 +415,7 @@ export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
         'Configure a secret or an issuer and expected audience'
       );
     }
-    const decoded = await decodeAndVerify(input.bearerToken, options);
+    const decoded = await decodeAndVerify(token, options);
     return decoded.isErr() ? decoded : payloadToPermit(decoded.value, options);
   };
 

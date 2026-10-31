@@ -34,7 +34,7 @@ describe('per-request MCP permit resolution', () => {
       seen.push(input);
       return Result.ok(
         input._meta?.['credential'] === 'fixture-reader'
-          ? { id: 'reader', scopes: ['identity:read'] }
+          ? { actors: [], id: 'reader', scopes: ['identity:read'] }
           : undefined
       );
     });
@@ -52,6 +52,7 @@ describe('per-request MCP permit resolution', () => {
     const tool = createIdentityTool((input) => {
       seen.push(input);
       return Result.ok({
+        actors: [],
         id: `${input.bearerToken}:${input._meta?.['realm']}`,
         scopes: ['identity:read'],
       });

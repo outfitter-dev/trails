@@ -28,6 +28,7 @@ export interface McpHttpSmokeResult {
 
 const SMOKE_BEARER = 'smoke-writer';
 const SMOKE_PERMIT: BasePermit = {
+  actors: [],
   id: 'smoke-writer',
   scopes: ['entity:write'],
 };

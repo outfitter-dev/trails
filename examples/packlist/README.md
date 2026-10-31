@@ -170,7 +170,7 @@ Regenerate the lock after contract changes:
 
 ```bash
 bun ../../apps/trails/bin/trails.ts compile --root-dir . \
-  --permit '{"id":"packlist-build","scopes":["topo:write"]}'
+  --permit '{"actors":[],"id":"packlist-build","scopes":["topo:write"]}'
 ```
 
 ## Notes

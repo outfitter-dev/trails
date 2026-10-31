@@ -44,7 +44,7 @@ const permitScopes = [
 
 testAllEstablished(app, {
   ctx: {
-    permit: { id: 'test-permit', scopes: permitScopes },
+    permit: { actors: [], id: 'test-permit', scopes: permitScopes },
   },
 });
 `;

@@ -1,4 +1,5 @@
-import { Result, trail } from '@ontrails/core';
+import { Result, trail, tracePermitSchema } from '@ontrails/core';
+import type { TraceRecord } from '@ontrails/core';
 import { z } from 'zod';
 
 import type { DevStoreQueryOptions } from '../store.js';
@@ -14,6 +15,7 @@ const traceRecordOutput = z.object({
   kind: z.enum(['activation', 'signal', 'span', 'trail']),
   name: z.string(),
   parentId: z.string().optional(),
+  permit: tracePermitSchema.optional(),
   rootId: z.string(),
   startedAt: z.number(),
   status: z.enum(['ok', 'err', 'cancelled']),
@@ -29,22 +31,7 @@ const tracingQueryOutput = z.object({
 });
 
 /** Map a TraceRecord to the output shape, dropping internal fields. */
-const mapRecord = (r: {
-  readonly attrs: Readonly<Record<string, unknown>>;
-  readonly endedAt?: number | undefined;
-  readonly errorCategory?: string | undefined;
-  readonly id: string;
-  readonly intent?: string | undefined;
-  readonly kind: 'activation' | 'signal' | 'span' | 'trail';
-  readonly name: string;
-  readonly parentId?: string | undefined;
-  readonly rootId: string;
-  readonly startedAt: number;
-  readonly status: 'ok' | 'err' | 'cancelled';
-  readonly surface?: string | undefined;
-  readonly traceId: string;
-  readonly trailId?: string | undefined;
-}) => ({
+const mapRecord = (r: TraceRecord) => ({
   attrs: r.attrs,
   endedAt: r.endedAt,
   errorCategory: r.errorCategory,
@@ -53,6 +40,7 @@ const mapRecord = (r: {
   kind: r.kind,
   name: r.name,
   parentId: r.parentId,
+  permit: r.permit,
   rootId: r.rootId,
   startedAt: r.startedAt,
   status: r.status,
