@@ -14,6 +14,28 @@
  * crashes when no real sink has been registered.
  */
 
+import { basePermitSchema } from './permits.js';
+import type { z } from 'zod';
+
+/**
+ * Stored trace identity, including retained records with unknown actor evidence.
+ *
+ * This is not an execution permit: new execution permits require actors, while
+ * historical traces may omit them. Absence must never become a fabricated [].
+ *
+ * @example
+ * const legacy = tracePermitSchema.parse({ id: 'historical-subject' });
+ */
+export const tracePermitSchema = basePermitSchema
+  .pick({
+    actors: true,
+    id: true,
+    issuer: true,
+    tenantId: true,
+  })
+  .partial({ actors: true })
+  .readonly();
+
 /** Signal lifecycle records emitted by the typed signal runtime. */
 export type SignalTraceRecordName =
   | 'signal.fired'
@@ -49,9 +71,7 @@ export interface TraceRecord {
   readonly status: 'ok' | 'err' | 'cancelled';
   readonly errorCategory?: string | undefined;
   readonly sampled?: boolean | undefined;
-  readonly permit?:
-    | { readonly id: string; readonly tenantId?: string }
-    | undefined;
+  readonly permit?: z.infer<typeof tracePermitSchema> | undefined;
   readonly attrs: Readonly<Record<string, unknown>>;
 }
 
@@ -68,6 +88,7 @@ export interface TraceSink {
 
 /** Trace context carried through trail execution via `ctx.extensions`. */
 export interface TraceContext {
+  readonly permit?: TraceRecord['permit'];
   readonly traceId: string;
   readonly spanId: string;
   readonly rootId: string;
@@ -133,14 +154,13 @@ interface CreateTraceRecordOptions {
   readonly surface?: TraceRecord['surface'];
   readonly intent?: TraceRecord['intent'];
   readonly sampled?: boolean | undefined;
-  readonly permit?:
-    | { readonly id: string; readonly tenantId?: string }
-    | undefined;
+  readonly permit?: TraceRecord['permit'];
 }
 
 interface CreateActivationTraceRecordOptions {
   readonly attrs?: Readonly<Record<string, unknown>> | undefined;
   readonly parentId?: string | undefined;
+  readonly permit?: TraceRecord['permit'];
   readonly rootId?: string | undefined;
   readonly traceId?: string | undefined;
   readonly sampled?: boolean | undefined;
@@ -189,7 +209,7 @@ export const createActivationTraceRecord = (
     kind: 'activation',
     name,
     parentId: options.parentId,
-    permit: undefined,
+    permit: options.permit,
     rootId: options.rootId ?? id,
     sampled: options.sampled,
     startedAt: Date.now(),
@@ -213,6 +233,7 @@ export const createSpanRecord = (
   kind: 'span',
   name: label,
   parentId: parent.spanId,
+  permit: parent.permit,
   rootId: parent.rootId,
   sampled: parent.sampled,
   startedAt: Date.now(),
@@ -236,6 +257,7 @@ export const createSignalTraceRecord = (
   kind: 'signal',
   name,
   parentId: parent.spanId,
+  permit: parent.permit,
   rootId: parent.rootId,
   sampled: parent.sampled,
   startedAt: Date.now(),
@@ -247,6 +269,7 @@ export const createSignalTraceRecord = (
 
 /** Use a completed record as the current trace parent for subsequent trail execution. */
 export const traceContextFromRecord = (record: TraceRecord): TraceContext => ({
+  permit: record.permit,
   rootId: record.rootId,
   sampled: record.sampled ?? true,
   spanId: record.id,
@@ -326,6 +349,7 @@ export const writeActivationTraceRecord = async (
     createActivationTraceRecord(name, {
       attrs,
       parentId: parent?.spanId,
+      permit: parent?.permit,
       rootId: parent?.rootId,
       // Parentless activations are the root span of their trace tree. Default
       // sampled to true so the activation boundary stays consistent with

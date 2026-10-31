@@ -994,7 +994,7 @@ describe('@ontrails/http/fetch', () => {
   });
 
   test('forwards headers, bearer permits, request id, and abort signal', async () => {
-    let observedHeader: string | null | undefined;
+    const observedHeaders: (string | undefined)[] = [];
     let observedSignalAborted: boolean | undefined;
     const abortingTrail = trail('abort.check', {
       implementation: (_input, ctx) => {
@@ -1008,9 +1008,12 @@ describe('@ontrails/http/fetch', () => {
     const graph = topo('fetch-api', { abortingTrail, protectedTrail });
     const handler = createFetchHandler(graph, {
       resolvePermit: ({ headers }) => {
-        observedHeader =
-          headers instanceof Headers ? headers.get('x-tenant-id') : undefined;
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        observedHeaders.push(
+          headers instanceof Headers
+            ? (headers.get('x-tenant-id') ?? undefined)
+            : undefined
+        );
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     });
     const controller = new AbortController();
@@ -1033,7 +1036,7 @@ describe('@ontrails/http/fetch', () => {
     expect(await permitResponse.json()).toEqual({
       data: { permitId: 'user-1', requestId: 'req-1' },
     });
-    expect(observedHeader).toBe('tenant-1');
+    expect(observedHeaders).toEqual(['tenant-1', undefined]);
     expect(abortResponse.status).toBe(200);
     expect(await abortResponse.json()).toEqual({
       data: { aborted: true },

@@ -267,10 +267,10 @@ const publicErrorCase = async (
 const requestContextCase = async (
   adapter: HttpAdapterConformanceAdapter
 ): Promise<void> => {
-  let observedTenant: string | null | undefined;
+  const observedTenants: (string | undefined)[] = [];
   const resolvePermit: ResolveHttpPermit = ({ headers }) => {
-    observedTenant = readHeader(headers, 'x-tenant-id');
-    return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+    observedTenants.push(readHeader(headers, 'x-tenant-id') ?? undefined);
+    return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
   };
   const graph = topo('http-conformance-context', {
     abortingTrail,
@@ -297,7 +297,7 @@ const requestContextCase = async (
     permitId: 'user-1',
     requestId: 'req-1',
   });
-  expect(observedTenant).toBe('tenant-1');
+  expect(observedTenants).toEqual(['tenant-1', undefined]);
   await expectOkResponse(abortResponse, { aborted: true });
 };
 

@@ -10,14 +10,20 @@ import type { PermitRequirement } from '../types';
 describe('basePermitSchema', () => {
   test('parses the canonical BasePermit shape', () => {
     const parsed = basePermitSchema.parse({
+      actors: [],
       id: 'permit-user-1',
       scopes: ['user:read'],
     });
-    expect(parsed).toEqual({ id: 'permit-user-1', scopes: ['user:read'] });
+    expect(parsed).toEqual({
+      actors: [],
+      id: 'permit-user-1',
+      scopes: ['user:read'],
+    });
   });
 
   test('rejects malformed permit payloads', () => {
     const parsed = basePermitSchema.safeParse({
+      actors: [],
       id: 123,
       scopes: ['user:read'],
     });

@@ -12,7 +12,7 @@ import {
   trail,
   topo,
 } from '@ontrails/core';
-import type { TrailContext } from '@ontrails/core';
+import type { BasePermit, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import type {
@@ -1780,15 +1780,53 @@ describe('--permit wiring', () => {
 
     const result = await cmd.execute(
       { id: 'abc' },
-      { id: 'abc', permit: '{"id":"dev","scopes":["admin:write"]}' }
+      { id: 'abc', permit: '{"actors":[],"id":"dev","scopes":["admin:write"]}' }
     );
 
     expect(result.isOk()).toBe(true);
-    expect(observed).toEqual({ id: 'dev', scopes: ['admin:write'] });
+    expect(observed).toEqual({
+      actors: [],
+      id: 'dev',
+      scopes: ['admin:write'],
+    });
+  });
+
+  test('--permit JSON without actors constructs an explicit empty chain', async () => {
+    // The documented recovery form (`--permit '{"id":"lock-recovery","scopes":["topo:write"]}'`)
+    // omits actors; the CLI adapter supplies the empty chain rather than
+    // rejecting operator-authored permits.
+    let observed: TrailContext['permit'];
+    const t = trail('thing.read', {
+      implementation: (_input, ctx) => {
+        observed = ctx.permit;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const app = makeApp(t);
+    const cmd = requireCommand(buildCommands(app, { presets: authPresets() }));
+
+    const result = await cmd.execute(
+      { id: 'abc' },
+      { id: 'abc', permit: '{"id":"lock-recovery","scopes":["topo:write"]}' }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(observed).toEqual({
+      actors: [],
+      id: 'lock-recovery',
+      scopes: ['topo:write'],
+    });
   });
 
   test('omitted --permit leaves ctx.permit undefined', async () => {
-    let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
+    let observed: TrailContext['permit'] = {
+      actors: [],
+      id: 'sentinel',
+      scopes: [],
+    };
     const t = trail('thing.read-default', {
       implementation: (_input, ctx) => {
         observed = ctx.permit;
@@ -1842,7 +1880,7 @@ describe('--permit wiring', () => {
 
     const result = await cmd.execute(
       { id: 'abc' },
-      { id: 'abc', permit: '{"id":"dev"}' }
+      { id: 'abc', permit: '{"actors":[],"id":"dev"}' }
     );
 
     expect(result.isErr()).toBe(true);
@@ -1864,7 +1902,7 @@ describe('--permit wiring', () => {
 
     const result = await cmd.execute(
       { id: 'abc' },
-      { id: 'abc', permit: '{"id":42,"scopes":["x"]}' }
+      { id: 'abc', permit: '{"actors":[],"id":42,"scopes":["x"]}' }
     );
 
     expect(result.isErr()).toBe(true);
@@ -1890,7 +1928,7 @@ describe('--permit wiring', () => {
 
     const result = await cmd.execute(
       { id: 'abc' },
-      { id: 'abc', permit: '{"id":"dev","scopes":["admin:write"]}' }
+      { id: 'abc', permit: '{"actors":[],"id":"dev","scopes":["admin:write"]}' }
     );
 
     expect(result.isOk()).toBe(true);
@@ -1913,7 +1951,8 @@ describe('--permit wiring', () => {
       { id: 'abc' },
       {
         id: 'abc',
-        permit: '{"id":"dev","scopes":["entity:write","entity:read"]}',
+        permit:
+          '{"actors":[],"id":"dev","scopes":["entity:write","entity:read"]}',
       }
     );
 
@@ -1933,7 +1972,7 @@ describe('--token wiring', () => {
       readonly surface: 'cli' | 'http' | 'mcp';
     }) => Promise<
       Result<
-        { readonly id: string; readonly scopes: readonly string[] } | null,
+        BasePermit | null,
         { readonly code: string; readonly message: string }
       >
     >;
@@ -2029,7 +2068,11 @@ describe('--token wiring', () => {
       authenticate: (input: { readonly bearerToken?: string | undefined }) =>
         Promise.resolve(
           input.bearerToken === 'good-token'
-            ? Result.ok({ id: 'user-42', scopes: ['read', 'write'] })
+            ? Result.ok({
+                actors: [],
+                id: 'user-42',
+                scopes: ['read', 'write'],
+              })
             : Result.err({ code: 'invalid_token', message: 'rejected' })
         ),
     };
@@ -2043,7 +2086,11 @@ describe('--token wiring', () => {
     );
 
     expect(result.isOk()).toBe(true);
-    expect(observed).toEqual({ id: 'user-42', scopes: ['read', 'write'] });
+    expect(observed).toEqual({
+      actors: [],
+      id: 'user-42',
+      scopes: ['read', 'write'],
+    });
   });
 
   test('--token without a registered auth resource fails with ValidationError', async () => {
@@ -2143,7 +2190,7 @@ describe('--token wiring', () => {
 
     const stubAdapter = {
       // oxlint-disable-next-line require-await -- stub adapter
-      authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
+      authenticate: async () => Result.ok({ actors: [], id: 'u', scopes: [] }),
     };
 
     const app = makeAuthApp(t);
@@ -2153,7 +2200,7 @@ describe('--token wiring', () => {
       { id: 'abc' },
       {
         id: 'abc',
-        permit: '{"id":"dev","scopes":["x"]}',
+        permit: '{"actors":[],"id":"dev","scopes":["x"]}',
         token: 'good-token',
       }
     );
@@ -2167,7 +2214,11 @@ describe('--token wiring', () => {
   });
 
   test('omitted --token and --permit leaves ctx.permit undefined', async () => {
-    let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
+    let observed: TrailContext['permit'] = {
+      actors: [],
+      id: 'sentinel',
+      scopes: [],
+    };
     const t = trail('thing.no-flags', {
       implementation: (_input, ctx) => {
         observed = ctx.permit;
@@ -2179,7 +2230,7 @@ describe('--token wiring', () => {
 
     const stubAdapter = {
       // oxlint-disable-next-line require-await -- stub adapter
-      authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
+      authenticate: async () => Result.ok({ actors: [], id: 'u', scopes: [] }),
     };
 
     const app = makeAuthApp(t);
@@ -2204,7 +2255,8 @@ describe('--token wiring', () => {
 
     const stubAdapter = {
       // oxlint-disable-next-line require-await -- stub adapter
-      authenticate: async () => Result.ok({ id: 'user-42', scopes: ['read'] }),
+      authenticate: async () =>
+        Result.ok({ actors: [], id: 'user-42', scopes: ['read'] }),
     };
 
     const app = makeAuthApp(t);
@@ -2240,7 +2292,9 @@ describe('--token wiring', () => {
         readonly requestId: string;
       }) => {
         seenInput = input;
-        return Promise.resolve(Result.ok({ id: 'user-42', scopes: ['read'] }));
+        return Promise.resolve(
+          Result.ok({ actors: [], id: 'user-42', scopes: ['read'] })
+        );
       },
     };
 
@@ -2343,7 +2397,7 @@ describe('dev permit flag wiring', () => {
       {
         devPermit: true,
         id: 'abc',
-        permit: '{"id":"dev","scopes":["x"]}',
+        permit: '{"actors":[],"id":"dev","scopes":["x"]}',
       }
     );
 
@@ -2365,7 +2419,7 @@ describe('dev permit flag wiring', () => {
         readonly requestId: string;
       }) => Promise<
         Result<
-          { readonly id: string; readonly scopes: readonly string[] } | null,
+          BasePermit | null,
           { readonly code: string; readonly message: string }
         >
       >;
@@ -2373,7 +2427,8 @@ describe('dev permit flag wiring', () => {
       create: () =>
         Result.ok({
           // oxlint-disable-next-line require-await -- stub adapter
-          authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
+          authenticate: async () =>
+            Result.ok({ actors: [], id: 'u', scopes: [] }),
         }),
     });
 
@@ -2402,7 +2457,11 @@ describe('dev permit flag wiring', () => {
   });
 
   test('omitted dev permit flag leaves ctx.permit undefined', async () => {
-    let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
+    let observed: TrailContext['permit'] = {
+      actors: [],
+      id: 'sentinel',
+      scopes: [],
+    };
     const t = trail('thing.dev-omitted', {
       implementation: (_input, ctx) => {
         observed = ctx.permit;

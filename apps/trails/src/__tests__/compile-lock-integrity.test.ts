@@ -179,7 +179,7 @@ test.each([false, true])(
         '--module',
         './app.ts',
         '--permit',
-        '{"id":"test-compile","scopes":["topo:write"]}',
+        '{"actors":[],"id":"test-compile","scopes":["topo:write"]}',
         '--json',
         ...(force ? ['--force'] : []),
       ],

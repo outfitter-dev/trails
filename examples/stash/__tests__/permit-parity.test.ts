@@ -22,6 +22,7 @@ import {
   Result,
 } from '@ontrails/core';
 import type { BasePermit } from '@ontrails/core';
+import { derivePermitIdentityKey } from '@ontrails/permits';
 import { MCP_TOOL_ERROR_META_KEY, deriveToolName } from '@ontrails/mcp';
 import { createHttpHarness } from '@ontrails/testing/http';
 import { createMcpHarness } from '@ontrails/testing/mcp';
@@ -64,6 +65,23 @@ const resolveThroughAdapter = async (
   }
   return Result.ok(authed.value);
 };
+
+test('local opaque permits keep database subjects without inventing global identity', async () => {
+  const state = setup();
+  const result = await state.adapter.authenticate({
+    bearerToken: ALICE_TOKEN,
+    requestId: 'local-identity',
+    surface: 'http',
+  });
+  const permit = result.unwrap();
+  expect(permit).toMatchObject({ actors: [], id: 'usr_alice' });
+  expect(permit).not.toBeNull();
+  if (permit === null) {
+    return;
+  }
+  expect(permit.issuer).toBeUndefined();
+  expect(derivePermitIdentityKey(permit).isErr()).toBe(true);
+});
 
 // ---------------------------------------------------------------------------
 // HTTP surface

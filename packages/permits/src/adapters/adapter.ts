@@ -32,6 +32,10 @@ export const authAdapterSchema = z
  * headers, requestId, and credential fields — so it can make richer
  * decisions (e.g., rate-limit by surface or correlate via requestId).
  *
+ * Result.ok(null) means no credential was selected from an accepted source.
+ * Once selected, an invalid credential or lookup miss must return an error;
+ * never fall back to another candidate or anonymous access after failure.
+ *
  * Deliberately narrow — no session management, no token refresh.
  */
 export interface AuthAdapter {

@@ -262,6 +262,7 @@ describe('surface', () => {
           resolvePermit: (input) => {
             observedInput = input;
             return Result.ok({
+              actors: [],
               id:
                 input.bearerToken ??
                 (input._meta?.['requestCredential'] === 'fixture'

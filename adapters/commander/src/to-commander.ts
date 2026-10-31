@@ -504,7 +504,7 @@ const collectPermitScopeLines = (
   const scopeJson = scopes.map((scope) => JSON.stringify(scope)).join(',');
   return [
     `Required scopes: ${scopes.join(', ')}`,
-    `Grant with: --permit '{"id":"<caller-id>","scopes":[${scopeJson}]}'`,
+    `Grant with: --permit '{"actors":[],"id":"<caller-id>","scopes":[${scopeJson}]}'`,
   ];
 };
 

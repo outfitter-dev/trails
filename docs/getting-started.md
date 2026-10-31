@@ -36,10 +36,10 @@ Existing 1.0 beta consumers should use the [0.x migration guide](./releases/migr
 ```bash
 # Recommended: scaffold a standalone app
 # (create writes a project, so it needs an explicit project:write permit)
-bunx @ontrails/trails@0.2.4 create my-app --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.4 create my-app --permit '{"actors":[],"id":"local-dev","scopes":["project:write"]}'
 
 # Or scaffold a configured workspace with one app under apps/my-app
-bunx @ontrails/trails@0.2.4 create my-app --workspace --permit '{"id":"local-dev","scopes":["project:write"]}'
+bunx @ontrails/trails@0.2.4 create my-app --workspace --permit '{"actors":[],"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
 bun add --exact @ontrails/core@0.2.4 @ontrails/cli@0.2.4 @ontrails/commander@0.2.4 zod
@@ -56,8 +56,8 @@ bun add --exact -d @ontrails/testing@0.2.4
 
 `create` writes authored source, not a lock. After `bun install`, derive the app-owned lock with the locally installed Trails operator:
 
-- From a standalone app root, run `bun run compile --permit '{"id":"local-dev","scopes":["topo:write"]}'`.
-- From a configured workspace root, run `bunx trails compile --app my-app --permit '{"id":"local-dev","scopes":["topo:write"]}'`.
+- From a standalone app root, run `bun run compile --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'`.
+- From a configured workspace root, run `bunx trails compile --app my-app --permit '{"actors":[],"id":"local-dev","scopes":["topo:write"]}'`.
 
 That canonical compile path includes deterministic scaffold provenance in the lock's `scaffold` overlay. A workspace never receives an aggregate root lock.
 

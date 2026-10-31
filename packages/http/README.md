@@ -79,6 +79,14 @@ const spec = deriveOpenApiSpec(graph, { basePath: '/api' });
 | `@ontrails/http/bun` | Bun-native `createApp()` and `surface()` binding |
 | `@ontrails/http/testing` | Owner-owned adapter conformance factory for HTTP adapter authors |
 
+## Credential resolution
+
+A configured `resolvePermit` runs once per trail request, including public trails and requests without Authorization. It receives raw `authorization`, best-effort `bearerToken`, `apiKey` from `x-api-key`, `authToken` from `x-auth-token`, and the original headers. Header names are case-insensitive; query parameters never supply credential candidates. The resolver decides which source it accepts before verification, so an API-key policy can ignore an untrusted Authorization value. Malformed Authorization is preserved for that policy rather than rejected before it runs.
+
+Return `Result.ok(null)` or `undefined` only when no accepted credential was selected. A selected invalid credential or lookup miss must return an error, which stops execution even for a public trail. A valid permit reaches `ctx.permit`; protected trails still enforce their declared scopes in Core. Never fall back to another candidate after verification fails. Apps without a configured resolver retain their existing behavior.
+
+Migration: resolvers that previously assumed they were called only with a nonempty Bearer token must now handle optional candidates. Bearer-only policies must reject malformed presented Bearer credentials themselves; a resolver that unconditionally returns a permit now authenticates requests without a Bearer header as well. No credentials become trail input.
+
 ## Adapter authoring
 
 HTTP adapter authors should validate adapters through the owner-owned testing subpath instead of copying conformance behavior into each adapter:
@@ -129,7 +137,7 @@ const result = deriveHttpRoutes(graph, {
 
 ## Request context and abort propagation
 
-The `execute` function on each `HttpRouteDefinition` accepts optional `requestId`, `abortSignal`, and request context arguments. HTTP adapters should pass the request's `AbortSignal` so client disconnects propagate into trail execution, and pass headers in the request context when Bearer auth should resolve into `ctx.permit`.
+The `execute` function on each `HttpRouteDefinition` accepts optional `requestId`, `abortSignal`, and request context arguments. HTTP adapters should pass the request's `AbortSignal` so client disconnects propagate into trail execution, and pass headers in the request context when request credentials should resolve into `ctx.permit`.
 
 ## `HttpRouteDefinition`
 

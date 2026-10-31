@@ -28,7 +28,7 @@ describe('MCP Hono mount', () => {
         resolvePermit: (input) => {
           resolutions += 1;
           expect(input.bearerToken).toBe('allowed');
-          return Result.ok({ id: 'hono-user', scopes: ['read'] });
+          return Result.ok({ actors: [], id: 'hono-user', scopes: ['read'] });
         },
       });
       const app = new Hono();

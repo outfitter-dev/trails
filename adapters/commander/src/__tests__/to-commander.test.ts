@@ -1395,10 +1395,12 @@ describe('toCommander validation', () => {
       'survey',
       'trail',
       '--input-json',
-      '{"id":"shared"}',
+      '{"actors":[],"id":"shared"}',
     ]);
 
-    expect(calls).toEqual(['survey.trail:undefined:{"id":"shared"}']);
+    expect(calls).toEqual([
+      'survey.trail:undefined:{"actors":[],"id":"shared"}',
+    ]);
   });
 
   test('recognizes compact short structured input after the child path', async () => {
@@ -3227,7 +3229,7 @@ describe('toCommander option wiring', () => {
         '  Required scopes: project:write\n'
       );
       expect(process.stderr.write).toHaveBeenCalledWith(
-        `  Grant with: --permit '{"id":"<caller-id>","scopes":["project:write"]}'\n`
+        `  Grant with: --permit '{"actors":[],"id":"<caller-id>","scopes":["project:write"]}'\n`
       );
     });
   });
@@ -3257,7 +3259,7 @@ describe('toCommander option wiring', () => {
         program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
       ).rejects.toThrow(/EXIT/);
       expect(process.stderr.write).toHaveBeenCalledWith(
-        `  Grant with: --permit '{"id":"<caller-id>","scopes":["weird\\"scope"]}'\n`
+        `  Grant with: --permit '{"actors":[],"id":"<caller-id>","scopes":["weird\\"scope"]}'\n`
       );
     });
   });
@@ -3293,7 +3295,7 @@ describe('toCommander option wiring', () => {
         '  Required scopes: project:read, project:write\n'
       );
       expect(process.stderr.write).toHaveBeenCalledWith(
-        `  Grant with: --permit '{"id":"<caller-id>","scopes":["project:read","project:write"]}'\n`
+        `  Grant with: --permit '{"actors":[],"id":"<caller-id>","scopes":["project:read","project:write"]}'\n`
       );
     });
   });

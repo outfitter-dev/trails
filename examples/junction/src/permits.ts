@@ -10,6 +10,7 @@
  */
 
 import type { ResolveCliPermitFromToken } from '@ontrails/cli';
+import { Result } from '@ontrails/core';
 import type { ResolveHttpPermit } from '@ontrails/http';
 import type { ResolveMcpPermit } from '@ontrails/mcp';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
@@ -24,26 +25,38 @@ export const authConfigValues = () => ({
   auth: { adapter: 'jwt' as const, secret: jwtSecret() },
 });
 
+// Surfaces call the configured resolver for every request. An anonymous
+// request (no Authorization at all) resolves to no permit, so public trails
+// run and protected trails fail at their scope check. A presented credential
+// that is not a Bearer token still reaches the strict helper and is rejected.
 export const resolveHttpPermit: ResolveHttpPermit = ({
+  authorization,
   bearerToken,
   requestId,
 }) =>
-  resolvePermitFromBearerToken({
-    bearerToken: bearerToken ?? '',
-    configValues: authConfigValues(),
-    graph,
-    requestId: requestId ?? 'http-request',
-    surface: 'http',
-  });
+  authorization === undefined
+    ? Result.ok(null)
+    : resolvePermitFromBearerToken({
+        bearerToken: bearerToken ?? '',
+        configValues: authConfigValues(),
+        graph,
+        requestId: requestId ?? 'http-request',
+        surface: 'http',
+      });
 
-export const resolveMcpPermit: ResolveMcpPermit = ({ bearerToken }) =>
-  resolvePermitFromBearerToken({
-    bearerToken: bearerToken ?? '',
-    configValues: authConfigValues(),
-    graph,
-    requestId: crypto.randomUUID(),
-    surface: 'mcp',
-  });
+export const resolveMcpPermit: ResolveMcpPermit = ({
+  authorization,
+  bearerToken,
+}) =>
+  authorization === undefined && bearerToken === undefined
+    ? Result.ok(null)
+    : resolvePermitFromBearerToken({
+        bearerToken: bearerToken ?? '',
+        configValues: authConfigValues(),
+        graph,
+        requestId: crypto.randomUUID(),
+        surface: 'mcp',
+      });
 
 export const resolveCliPermit: ResolveCliPermitFromToken = ({
   requestId,

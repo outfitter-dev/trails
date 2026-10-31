@@ -2,6 +2,8 @@
 
 Self-hosted GitHub-Gists-style snippet service — the showcase suite's deliberate kitchen sink. One authored contract per trail; MCP, HTTP, and CLI are renderings of it.
 
+Stash uses one local token authority. Its permit subject IDs are local database keys, its actor chain is explicitly empty, and its permits have no invented issuer. These keys are not globally qualified identities. `derivePermitIdentityKey` rejects these issuerless permits for global routing or shared cross-issuer persistence. Federating Stash requires an explicit issuer binding and a separate data migration; existing local foreign keys stay unchanged.
+
 ## What this showcases
 
 | Capability | Where it appears |

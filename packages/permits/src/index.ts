@@ -10,6 +10,10 @@ export {
   type JwtAdapterOptions,
 } from './adapters/jwt.js';
 export {
+  createTokenCallbackAdapter,
+  type TokenCallbackAdapterOptions,
+} from './adapters/token-callback.js';
+export {
   authResource,
   authResourceConfigSchema,
   type AuthResourceConfig,
@@ -17,6 +21,8 @@ export {
 export {
   AUTH_RESOURCE_ID,
   resolvePermitFromBearerToken,
+  resolvePermitFromInput,
+  type ResolvePermitFromInputOptions,
   type ResolvePermitFromBearerTokenOptions,
 } from './boundary.js';
 export { authVerify } from './trails/auth-verify.js';
@@ -25,7 +31,9 @@ export {
   permitExtractionInputSchema,
   type PermitExtractionInput,
 } from './extraction.js';
-export { type Permit, getPermit } from './permit.js';
+export { type Permit, getPermit, permitSchema } from './permit.js';
+export type { PermitActor } from '@ontrails/core';
+export { derivePermitIdentityKey } from './identity.js';
 export {
   validatePermits,
   type PermitDiagnostic,

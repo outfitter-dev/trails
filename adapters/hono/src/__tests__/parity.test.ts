@@ -492,7 +492,7 @@ const parityScenarios: readonly ParityScenario[] = [
           headers instanceof Headers ? headers.get('x-tenant-id') : null
         ).toBe('tenant-1');
         expect(requestId).toBe('req-1');
-        return Result.ok({ id: 'user-1', scopes: ['thing:read'] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
       },
     }),
     request: () => ({
@@ -532,7 +532,7 @@ const parityScenarios: readonly ParityScenario[] = [
     expectedStatus: 403,
     name: 'resolved permit with insufficient scopes returns PermitError',
     options: () => ({
-      resolvePermit: () => Result.ok({ id: 'user-1', scopes: [] }),
+      resolvePermit: () => Result.ok({ actors: [], id: 'user-1', scopes: [] }),
     }),
     request: () => ({
       init: { headers: { Authorization: 'Bearer weak' } },

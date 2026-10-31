@@ -24,6 +24,8 @@ const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS ${TRACK_TABLE} (
   status TEXT NOT NULL,
   error_category TEXT,
   permit_id TEXT,
+  permit_issuer TEXT,
+  permit_actors TEXT,
   permit_tenant_id TEXT,
   attrs TEXT
 )`;
@@ -54,16 +56,23 @@ const traceTableExists = (db: Database): boolean => {
 export const ensureTraceSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
     migrate: (currentVersion) => {
-      if (currentVersion > 0) {
-        db.run(`DROP TABLE IF EXISTS ${TRACK_TABLE}`);
+      if (currentVersion === 2) {
+        // The subsystem owner applies this with the version write atomically.
+        // NULL retains unknown historical actors; it must not become known-empty [].
+        db.run(`ALTER TABLE ${TRACK_TABLE} ADD COLUMN permit_issuer TEXT`);
+        db.run(`ALTER TABLE ${TRACK_TABLE} ADD COLUMN permit_actors TEXT`);
+      } else {
+        if (currentVersion > 0) {
+          db.run(`DROP TABLE IF EXISTS ${TRACK_TABLE}`);
+        }
+        db.run(CREATE_TABLE_SQL);
       }
-      db.run(CREATE_TABLE_SQL);
       for (const sql of CREATE_INDEXES_SQL) {
         db.run(sql);
       }
     },
     subsystem: TRACK_SUBSYSTEM,
-    version: 2,
+    version: 3,
   });
 };
 
