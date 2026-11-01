@@ -1,5 +1,18 @@
 # @ontrails/topography
 
+## 0.3.0
+
+### Patch Changes
+
+- [`f7b57a1`](https://github.com/outfitter-dev/trails/commit/f7b57a1e741355ed29684f1d9931d40d50206ea4): Add `trails resolve` to recover selected generated app locks from resolved sources and verified Git parent evidence while preserving force audit history.
+  
+  Make force retention kind-aware and idempotent, keep orphaned events at graph level, and report pending events for every supported entry kind without conflating distinct timestamps or reasons.
+  
+  Keep retained audit warnings out of contract-break comparisons, report timestamp-only audit changes, and prevent lock path replacement from redirecting recovery writes. Byte-identical recovery needs only read access to the selected lock.
+- [`69d34ae`](https://github.com/outfitter-dev/trails/commit/69d34aeb43d36a36541ea3f611d3457ef359446f): Refuse to compile over unreadable committed locks so retained force audit history cannot be silently discarded. Report conflict markers and unsupported lock formats with recovery guidance instead of directing readers to regenerate a damaged lock.
+- [`3c19f73`](https://github.com/outfitter-dev/trails/commit/3c19f731e1c122698a3136eb13b2c832daa237d7): Document explicit selected-app directories for public lock I/O and provide an executable audit-preserving recovery recipe while retaining the legacy omitted-directory default.
+- [`3b1aad4`](https://github.com/outfitter-dev/trails/commit/3b1aad47284f8286ec4c5132cdb122efbf0793dd): Expose Topography-owned entry hashing and use it for watch-mode change detection, preserving existing hash bytes and rerun behavior.
+
 ## 0.2.5
 
 ### Patch Changes

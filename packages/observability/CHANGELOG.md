@@ -1,5 +1,17 @@
 # @ontrails/observability
 
+## 0.3.0
+
+### Minor Changes
+
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Require explicitly authored actor evidence on execution permits, retain optional issuer and finite millisecond expiry, and derive collision-free issuer-qualified subject keys. This is a breaking 0.x shape migration: custom adapters, contexts and inline CLI permits must supply `actors`, including `[]` when no acting party is known.
+  
+  Retain validated JWT attester, expiry and current-first actor chains without inventing actor namespaces or trusting caller provenance. Preserve full permits at existing authentication boundaries and update test factories and generated permit commands.
+  
+  Carry identity evidence through traces, queries and OTel output. Upgrade version-2 developer trace stores without deleting records; preserve unknown historical actors separately from known empty chains. See the permit identity migration guide for compatibility details.
+  
+  The RPC conformance suite's shared writer permit now carries `actors: []`, so hosts running `createRpcConformanceCases` need no change.
+
 ## 0.2.5
 
 No changes in this release.
