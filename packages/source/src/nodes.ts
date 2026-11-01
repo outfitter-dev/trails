@@ -299,6 +299,10 @@ export interface AstFieldView {
   readonly superClass?: AstNode;
   readonly test?: AstNode;
   readonly typeAnnotation?: AstNode;
+  readonly typeArguments?: AstNode;
+  readonly typeName?: AstNode;
+  readonly static?: boolean;
+  readonly optional?: boolean;
   readonly value?: unknown;
 }
 
@@ -645,6 +649,27 @@ export const getNodeSuperClass = (
 export const getNodeTest = (
   node: AstNode | null | undefined
 ): AstNode | undefined => deriveAstFieldView(node)?.test;
+
+/** Return explicit generic type arguments on calls and type references. */
+export const getNodeTypeArguments = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => {
+  const argumentsNode = deriveAstFieldView(node)?.typeArguments;
+  return deriveAstFieldView(argumentsNode)?.params ?? [];
+};
+
+/** Return the authored name of a TypeScript type reference. */
+export const getNodeTypeName = (
+  node: AstNode | null | undefined
+): AstNode | undefined => deriveAstFieldView(node)?.typeName;
+
+/** Whether a call or member access uses optional chaining. */
+export const getNodeOptional = (node: AstNode | null | undefined): boolean =>
+  deriveAstFieldView(node)?.optional === true;
+
+/** Whether a class member belongs to the class rather than its instances. */
+export const getNodeStatic = (node: AstNode | null | undefined): boolean =>
+  deriveAstFieldView(node)?.static === true;
 
 export const getNodeTypeAnnotation = (
   node: AstNode | null | undefined
