@@ -19,6 +19,8 @@
     "docs:snippets": "bun scripts/check-readme-snippets.ts",
     "docs:wrap-check": "bun scripts/check-hardwrap.ts",
     "docs:wrap-check:json": "bun scripts/check-hardwrap.ts --json",
+    "docs:generate": "bun scripts/docs.ts generate",
+    "docs:check": "bun scripts/docs.ts check",
     "type-cost:trail-input": "bun scripts/check-trail-input-type-cost.ts",
     "error-taxonomy:sync": "bun scripts/sync-error-taxonomy-docs.ts",
     "error-taxonomy:check": "bun scripts/sync-error-taxonomy-docs.ts --check",
