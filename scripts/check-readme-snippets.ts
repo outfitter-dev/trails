@@ -173,6 +173,7 @@ export const createMemorySink: any;
 export const createOtelAdapter: any;
 export const createPermitForTrail: any;
 export const createPinoSink: any;
+export const createRpcHarness: any;
 export const createProgram: any;
 export const createSourceEdit: any;
 export const createStoredTopoSnapshot: any;
