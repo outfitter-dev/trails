@@ -33,7 +33,11 @@ import type {
   WardenRule,
 } from '../rules/types.js';
 
-/** Hooks export `GIT_DIR`; fixtures that inherit it write to the real repository. */
+/**
+ * Hooks export `GIT_DIR`; fixtures that inherit it write to the real repository.
+ *
+ * Mirrors `gitEnv` in `scripts/__tests__/release-publish-target.test.ts`.
+ */
 const gitEnv = Object.fromEntries(
   Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))
 );
