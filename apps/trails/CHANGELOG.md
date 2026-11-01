@@ -1,5 +1,32 @@
 # trails
 
+## 0.3.0
+
+### Minor Changes
+
+- [`f7b57a1`](https://github.com/outfitter-dev/trails/commit/f7b57a1e741355ed29684f1d9931d40d50206ea4): Add `trails resolve` to recover selected generated app locks from resolved sources and verified Git parent evidence while preserving force audit history.
+  
+  Make force retention kind-aware and idempotent, keep orphaned events at graph level, and report pending events for every supported entry kind without conflating distinct timestamps or reasons.
+  
+  Keep retained audit warnings out of contract-break comparisons, report timestamp-only audit changes, and prevent lock path replacement from redirecting recovery writes. Byte-identical recovery needs only read access to the selected lock.
+
+### Patch Changes
+
+- [`bee00cf`](https://github.com/outfitter-dev/trails/commit/bee00cf34392b0d620220fdc23dd59aff1ced744): Update newly generated apps to Bun 1.4.4 type definitions while preserving the Bun 1.4.0 runtime floor.
+  
+  Allow scaffold reruns to upgrade the prior generated `^1.4.3` Bun type range while preserving customized-pin conflicts and dry-run behavior.
+- [`69d34ae`](https://github.com/outfitter-dev/trails/commit/69d34aeb43d36a36541ea3f611d3457ef359446f): Refuse to compile over unreadable committed locks so retained force audit history cannot be silently discarded. Report conflict markers and unsupported lock formats with recovery guidance instead of directing readers to regenerate a damaged lock.
+- [`372781f`](https://github.com/outfitter-dev/trails/commit/372781f7658c5642145ac2e94f56ef6414d9e59a): Preserve `z.null()` contracts as `{ type: 'null' }` in JSON Schema, including nested object fields and union branches.
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Require explicitly authored actor evidence on execution permits, retain optional issuer and finite millisecond expiry, and derive collision-free issuer-qualified subject keys. This is a breaking 0.x shape migration: custom adapters, contexts and inline CLI permits must supply `actors`, including `[]` when no acting party is known.
+  
+  Retain validated JWT attester, expiry and current-first actor chains without inventing actor namespaces or trusting caller provenance. Preserve full permits at existing authentication boundaries and update test factories and generated permit commands.
+  
+  Carry identity evidence through traces, queries and OTel output. Upgrade version-2 developer trace stores without deleting records; preserve unknown historical actors separately from known empty chains. See the permit identity migration guide for compatibility details.
+  
+  The RPC conformance suite's shared writer permit now carries `actors: []`, so hosts running `createRpcConformanceCases` need no change.
+- [`88bd873`](https://github.com/outfitter-dev/trails/commit/88bd8731e495ea12562cca2a8c3324c0e2d48348): Add the `mcp-http` release smoke. `trails release smoke --check mcp-http` (repo wrapper `bun run mcp:http-smoke`) serves the demo app's MCP surface through the fetch-shaped handler, drives it with the official SDK client on the legacy and 2026-07-28 protocol eras, exercises the network credential posture, and probes the Host and Origin boundary with raw requests. The `release.smoke` trail's `check` input accepts `mcp-http`, and `all` now includes it.
+- [`3b1aad4`](https://github.com/outfitter-dev/trails/commit/3b1aad47284f8286ec4c5132cdb122efbf0793dd): Expose Topography-owned entry hashing and use it for watch-mode change detection, preserving existing hash bytes and rerun behavior.
+
 ## 0.2.5
 
 ### Patch Changes

@@ -1,5 +1,25 @@
 # @ontrails/http
 
+## 0.3.0
+
+### Minor Changes
+
+- [`26d5341`](https://github.com/outfitter-dev/trails/commit/26d5341f9e44e2c63b75c9c85865c48ee122fb34): HTTP network surfaces never inherit a `createContext` permit. `deriveHttpRoutes` gains `credentialPosture` (`host` by default for in-process callers; the Web Fetch kernel, `@ontrails/http/bun`, `@ontrails/hono` and `@ontrails/cloudflare/workers` always build on `network`). On the network posture identity enters only through `resolvePermit`: a seeded `createContext` permit is discarded at runtime with one diagnostic through the seed's logger, a presented credential (`Authorization`, `x-api-key`, `x-auth-token`) with no resolver answers an `AuthError` instead of absence, and a surface that exposes protected trails without a resolver is refused at build time with a `ValidationError` naming them.
+  
+  Migration: apps that seeded a permit through `createContext` on an HTTP host move that credential into a verifier passed as `resolvePermit` (for example a JWKS or opaque adapter from `@ontrails/permits`) and keep `createContext` for the logger, extensions and resources it seeds. `--dev-permit` is not a migration path for network surfaces.
+- [`e109842`](https://github.com/outfitter-dev/trails/commit/e109842210f051951dc3710970a127382f19b013): HTTP routes resolve credentials through the shared reconciliation in `@ontrails/permits` (`reconcilePermit`), so `@ontrails/http` now depends on `@ontrails/permits`. Resolved permits carry `admission: { kind: 'verified', by: 'resolvePermit' }`. Behavior change on the default `host` posture: a presented credential (`Authorization`, `x-api-key`, `x-auth-token`) with no `resolvePermit` is refused with a `ValidationError` instead of falling through as absence, matching the CLI; the `network` posture keeps answering an `AuthError`. A configured resolver still runs for every request because it owns credential selection.
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Add a token-callback adapter and shared nullable credential boundary for opaque lookup, preserving strict Bearer-helper behavior. Normalize API-key and raw Authorization candidates for configured HTTP policies, including public trails and requests without Bearer credentials. Resolvers must handle optional credentials and return errors for selected invalid credentials or lookup misses. The JWT adapter rejects malformed presented Bearer and selected empty tokens instead of treating them as absent.
+
+### Patch Changes
+
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Require explicitly authored actor evidence on execution permits, retain optional issuer and finite millisecond expiry, and derive collision-free issuer-qualified subject keys. This is a breaking 0.x shape migration: custom adapters, contexts and inline CLI permits must supply `actors`, including `[]` when no acting party is known.
+  
+  Retain validated JWT attester, expiry and current-first actor chains without inventing actor namespaces or trusting caller provenance. Preserve full permits at existing authentication boundaries and update test factories and generated permit commands.
+  
+  Carry identity evidence through traces, queries and OTel output. Upgrade version-2 developer trace stores without deleting records; preserve unknown historical actors separately from known empty chains. See the permit identity migration guide for compatibility details.
+  
+  The RPC conformance suite's shared writer permit now carries `actors: []`, so hosts running `createRpcConformanceCases` need no change.
+
 ## 0.2.5
 
 No changes in this release.

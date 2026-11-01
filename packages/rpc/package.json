@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/rpc",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Host-agnostic JSON-RPC 2.0 surface kernel for Trails: derived method table, trails.* session methods, and serializable connection state.",
   "repository": {
     "type": "git",
