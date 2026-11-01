@@ -14,8 +14,8 @@
  * (`cloudflareOverlay`).
  */
 
-export { cloudflareOverlay } from './facts.js';
-export type { CloudflareLockFacts } from './facts.js';
+export { CLOUDFLARE_CRON_REALIZATION, cloudflareOverlay } from './facts.js';
+export type { CloudflareLockFacts, CloudflareScheduleFact } from './facts.js';
 export { cloudflareD1, connectD1 } from './d1/index.js';
 /**
  * Render a deterministic physical D1 baseline for reviewed migrations.
