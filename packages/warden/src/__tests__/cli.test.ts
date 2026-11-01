@@ -33,6 +33,15 @@ import type {
   WardenRule,
 } from '../rules/types.js';
 
+/**
+ * Hooks export `GIT_DIR`; fixtures that inherit it write to the real repository.
+ *
+ * Mirrors `gitEnv` in `scripts/__tests__/release-publish-target.test.ts`.
+ */
+const gitEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))
+);
+
 const DEV_PERMIT_FLAG = ['--dev', '-permit'].join('');
 
 const isDraftFileMarking = (rule: string): boolean =>
@@ -283,24 +292,31 @@ describe('runWarden basics', () => {
     const dir = makeTempDir();
     const linked = join(dir, 'packages/foreign');
     try {
-      execFileSync('git', ['init', '--quiet'], { cwd: dir });
+      execFileSync('git', ['init', '--quiet'], { cwd: dir, env: gitEnv });
       execFileSync('git', ['config', 'user.email', 'trails@example.test'], {
         cwd: dir,
+        env: gitEnv,
       });
       execFileSync('git', ['config', 'user.name', 'Trails Test'], {
         cwd: dir,
+        env: gitEnv,
       });
       writeFileSync(
         join(dir, 'package.json'),
         JSON.stringify({ name: 'fixture-root', workspaces: ['packages/*'] })
       );
       writeFileSync(join(dir, 'good.ts'), 'export const good = true;\n');
-      execFileSync('git', ['add', 'good.ts', 'package.json'], { cwd: dir });
+      execFileSync('git', ['add', 'good.ts', 'package.json'], {
+        cwd: dir,
+        env: gitEnv,
+      });
       execFileSync('git', ['commit', '--quiet', '-m', 'test: initialize'], {
         cwd: dir,
+        env: gitEnv,
       });
       execFileSync('git', ['worktree', 'add', '--quiet', '--detach', linked], {
         cwd: dir,
+        env: gitEnv,
       });
       writeFileSync(
         join(linked, 'bad.ts'),
