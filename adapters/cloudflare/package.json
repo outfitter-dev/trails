@@ -22,6 +22,7 @@
     "./d1": "./src/d1/index.ts",
     "./r2": "./src/r2/index.ts",
     "./queues": "./src/queues/index.ts",
+    "./schedules": "./src/schedules/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

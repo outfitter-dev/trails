@@ -2,7 +2,7 @@
  * Demo Worker for the miniflare integration lane.
  *
  * A small Trails app serving HTTP routes (read + write), a webhook route,
- * and a KV-backed trail — the wired combination the README teaches. Bundled
+ * a KV-backed schedule, and a KV-backed trail — the wired combination the README teaches. Bundled
  * by `../miniflare.test.ts` and executed under workerd via miniflare.
  */
 
@@ -10,6 +10,7 @@ import {
   getWebhookHeader,
   PermissionError,
   Result,
+  schedule,
   topo,
   trail,
   webhook,
@@ -104,11 +105,25 @@ const recordDeploy = trail('deploy.record', {
   resources: [flags],
 });
 
+const heartbeat = schedule('heartbeat', { cron: '*/5 * * * *' });
+
+const recordHeartbeat = trail('heartbeat.record', {
+  implementation: async (_input, ctx) => {
+    await flags.from(ctx).put('heartbeat', 'beat');
+    return Result.ok({ beat: true });
+  },
+  input: z.object({}),
+  on: [heartbeat],
+  output: z.object({ beat: z.boolean() }),
+  resources: [flags],
+});
+
 const graph = topo('cf-demo', {
   flags,
   notes,
   ping,
   recordDeploy,
+  recordHeartbeat,
   saveFlag,
   saveNote,
   showFlag,

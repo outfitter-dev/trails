@@ -1,8 +1,8 @@
 /**
  * Miniflare integration lane: bundles the demo Worker fixture and executes it
  * under workerd. This is the local-first integration proof — no Cloudflare
- * account is required — covering HTTP routes, a webhook route, KV, and a D1
- * store resource served through the env bridge.
+ * account is required — covering HTTP routes, a webhook route, a Cron
+ * Trigger, KV, and a D1 store resource served through the env bridge.
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -49,6 +49,7 @@ describe('demo worker under miniflare', () => {
       kvNamespaces: ['FLAGS'],
       modules: true,
       script,
+      unsafeTriggerHandlers: true,
     });
     await mf.ready;
   }, 120_000);
@@ -128,6 +129,17 @@ describe('demo worker under miniflare', () => {
       method: 'POST',
     });
     expect(denied.status).toBe(403);
+  });
+
+  test('fires a matching cron through the scheduled handler', async () => {
+    const fired = await mf.dispatchFetch(
+      'http://localhost/cdn-cgi/handler/scheduled?cron=*%2F5+*+*+*+*'
+    );
+    expect(fired.status).toBe(200);
+    const recorded = await mf.dispatchFetch(
+      'http://localhost/flag/show?key=heartbeat'
+    );
+    expect(await recorded.json()).toEqual({ data: { value: 'beat' } });
   });
 
   test('returns the rendered 404 for unknown routes', async () => {
