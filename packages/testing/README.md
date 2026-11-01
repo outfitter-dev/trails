@@ -96,8 +96,20 @@ Surface harnesses live on explicit subpaths so renders that only import contract
 - `@ontrails/testing/cli` requires `@ontrails/cli`
 - `@ontrails/testing/mcp` requires `@ontrails/mcp`
 - `@ontrails/testing/http` requires `@ontrails/http`
+- `@ontrails/testing/rpc` requires `@ontrails/rpc`
 - `@ontrails/testing/established` and `@ontrails/testing/surface-parity`
   require all three shipped surface peers
+
+The RPC harness drives the JSON-RPC kernel in process, with every outbound frame and pushed notification passing through the same JSON wire boundary a WebSocket client sees (a `Date` arrives as its ISO string):
+
+```typescript
+import { createRpcHarness } from '@ontrails/testing/rpc';
+
+const rpc = createRpcHarness({ graph, permit: { actors: [], id: 'u1', scopes: ['record:write'] } });
+const reply = await rpc.call('record.update', { id: 'r1' });
+expect(reply.result).toEqual({ ok: true });
+expect(rpc.pushed).toEqual([]); // trails.progress frames land here
+```
 
 ```typescript
 import { outputModePreset } from '@ontrails/cli';

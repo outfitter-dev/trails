@@ -488,6 +488,7 @@
         "@ontrails/http": "workspace:^",
         "@ontrails/mcp": "workspace:^",
         "@ontrails/observability": "workspace:^",
+        "@ontrails/rpc": "workspace:^",
         "@ontrails/store": "workspace:^",
       },
       "peerDependencies": {
@@ -496,12 +497,14 @@
         "@ontrails/http": "workspace:^",
         "@ontrails/mcp": "workspace:^",
         "@ontrails/observability": "workspace:^",
+        "@ontrails/rpc": "workspace:^",
         "zod": "catalog:",
       },
       "optionalPeers": [
         "@ontrails/cli",
         "@ontrails/http",
         "@ontrails/mcp",
+        "@ontrails/rpc",
       ],
     },
     "packages/topography": {
