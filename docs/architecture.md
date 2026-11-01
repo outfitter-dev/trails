@@ -172,6 +172,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/queue` | Provider-neutral queue producers, recorder mocks, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/cloudflare/d1` | D1 store binding and deterministic physical SQL; Wrangler owns migrations | Native D1 binding; store contracts |
+| `@ontrails/cloudflare` | Native KV/blob/queue role bindings and target-locked resources; Workers consumes the shared HTTP kernel | Core; role/http/store/zod peers |
 | `@ontrails/observability` | Production log and trace sink contracts, composition, built-in sinks, `/dev` developer-state tooling, and `/otel` OTel export | None beyond core |
 | `@ontrails/logtape` | Extracted LogTape adapter for Trails log records | `@logtape/logtape` |
 | `@ontrails/pino` | Extracted Pino adapter for Trails log records | `pino` |

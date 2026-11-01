@@ -102,3 +102,39 @@ export type {
   WorkersExecutionContext,
   WorkersResourceOverrides,
 } from './workers/index.js';
+
+/**
+ * Bind portable KV resources through ordinary Worker resource overrides.
+ * @example
+ * ```ts
+ * const client = createCloudflareKvBinding(env['FLAGS']);
+ * ```
+ */
+export { createCloudflareKvBinding } from './kv/binding.js';
+
+/**
+ * Bind portable JSON producers to native Cloudflare Queues.
+ * @example
+ * ```ts
+ * const client = createCloudflareQueueBinding(env['JOBS']);
+ * await client.send({ id: 'job-1' });
+ * ```
+ */
+export { createCloudflareQueueBinding } from './queues/binding.js';
+
+/**
+ * Bind portable blob storage to native R2 with an explicit stream buffering cap.
+ * @example
+ * ```ts
+ * const client = createCloudflareBlobBinding(env['BUCKET'], { maxBufferedBytes: 1_048_576 });
+ * ```
+ */
+export { createCloudflareBlobBinding } from './r2/binding.js';
+/**
+ * Required stream-write payload budget in bytes.
+ * @example
+ * ```ts
+ * const options: CloudflareBlobBindingOptions = { maxBufferedBytes: 1_048_576 };
+ * ```
+ */
+export type { CloudflareBlobBindingOptions } from './r2/binding.js';

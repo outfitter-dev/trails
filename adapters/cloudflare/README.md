@@ -50,6 +50,30 @@ Missing or mistyped bindings fail the request with a redacted 500 and log full d
 - Tooling helpers on the core barrel (the trails-db store, workspace discovery) still require a Bun or Node runtime when actually called; on workerd they throw a clear `InternalError` naming the missing builtin instead of poisoning the module graph.
 - Explicit `resources` overrides win over env-bound resolution, which is how tests substitute fakes.
 
+## Portable role bindings
+
+Declare portable resources with `kv()`, `blob()`, or `queueProducer()` from the corresponding role package, then bind them through the existing `createWorkersHandler(..., { resources: env => ... })` override map:
+
+```ts
+import { createCloudflareKvBinding } from '@ontrails/cloudflare/kv';
+import { createCloudflareBlobBinding } from '@ontrails/cloudflare/r2';
+import { createCloudflareQueueBinding } from '@ontrails/cloudflare/queues';
+import type { WorkersEnv } from '@ontrails/cloudflare/workers';
+import { flags, uploads, jobs } from './app.js';
+
+const resources = (env: WorkersEnv) => ({
+  [flags.id]: createCloudflareKvBinding(env['FLAGS']),
+  [uploads.id]: createCloudflareBlobBinding(env['UPLOADS'], {
+    maxBufferedBytes: 1_048_576,
+  }),
+  [jobs.id]: createCloudflareQueueBinding(env['JOBS']),
+});
+```
+
+The factories return the existing `Kv`, `BlobStorage`, and `QueueProducer` clients. They do not mutate resource definitions or create a global env registry. Classic KV translates TTL and explicit list completion; Blob preserves native bytes/size/MIME and requires an explicit stream buffering cap; Queue validates/snapshots complete JSON submissions before native I/O. Scoped cursors reject another client or prefix. Typed failures retain their identity; unknown native-operation failures use the existing `NetworkError` boundary without adding retries.
+
+See the [Cloudflare deployment fieldguide](../../docs/surfaces/cloudflare.md) for resource migration, call-shape changes, cursor lifetimes, R2 memory-budget limits, native queue limits and consumer semantics. Existing `cloudflareKv`, `cloudflareR2`, and `cloudflareQueue` APIs retain their native behavior. Saved target-locked/deploy facts remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452); local conformance does not establish publication or deployment.
+
 ## `/kv` — the key-value resource
 
 `cloudflareKv(id, { binding })` authors a resource wrapping a KV namespace binding. Trails declare it with `resources: [...]` and read it with `flags.from(ctx)` — the standard accessor pattern.
