@@ -63,6 +63,10 @@ export interface CreateScheduledHandlerOptions extends BaseSurfaceOptions {
 /** Context code on the materialization error for a non-UTC schedule. */
 export const CLOUDFLARE_CRON_UTC_ONLY = 'cloudflare_cron_utc_only';
 
+/** Context code on the materialization error for a non-wildcard weekday. */
+export const CLOUDFLARE_CRON_WEEKDAY_UNSUPPORTED =
+  'cloudflare_cron_weekday_unsupported';
+
 interface ScheduleRegistration {
   readonly activation: ActivationEntry;
   readonly cron: string;
@@ -161,6 +165,29 @@ const assertUtcOnly = (
         code: CLOUDFLARE_CRON_UTC_ONLY,
         sourceId: first.sourceId,
         timezone: first.timezone,
+        trailId: first.trail.id,
+      },
+    }
+  );
+};
+
+const assertWildcardWeekday = (
+  registrations: readonly ScheduleRegistration[]
+): void => {
+  const first = registrations.find(
+    (registration) => registration.cron.split(' ')[4] !== '*'
+  );
+  if (first === undefined) {
+    return;
+  }
+  throw new ValidationError(
+    `Cloudflare Cron Triggers number weekdays 1=Sunday through 7=Saturday, unlike core schedule() (0/7=Sunday, 1=Monday). Schedule "${first.sourceId}" on trail "${first.trail.id}" must use "*" as its day-of-week field on Workers; numeric weekdays, lists, ranges, and steps are not supported.`,
+    {
+      context: {
+        code: CLOUDFLARE_CRON_WEEKDAY_UNSUPPORTED,
+        cron: first.cron,
+        dayOfWeek: first.cron.split(' ')[4],
+        sourceId: first.sourceId,
         trailId: first.trail.id,
       },
     }
@@ -327,6 +354,7 @@ export const createScheduledHandler = (
   }
   const registrations = collectScheduleRegistrations(graph, options);
   assertUtcOnly(registrations);
+  assertWildcardWeekday(registrations);
 
   return async (controller) => {
     const cron = normalizeCron(controller.cron);
