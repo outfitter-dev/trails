@@ -7,10 +7,15 @@ import {
   schedule,
   topo,
   trail,
+  ValidationError,
 } from '@ontrails/core';
 import { z } from 'zod';
 
-import { CLOUDFLARE_CRON_UTC_ONLY, createScheduledHandler } from '../index.js';
+import {
+  CLOUDFLARE_CRON_UTC_ONLY,
+  CLOUDFLARE_CRON_WEEKDAY_UNSUPPORTED,
+  createScheduledHandler,
+} from '../index.js';
 import type { CloudflareScheduledController } from '../index.js';
 import { cloudflareKv } from '../../kv/index.js';
 import { createWorkersHandler } from '../../workers/index.js';
@@ -106,6 +111,70 @@ describe('createScheduledHandler', () => {
       timezone: 'America/Chicago',
       trailId: 'nightly.run',
     });
+  });
+
+  test.each(['0', '1', '6', '7', '1-5', '0,6', '1-5/2', '*/2', '*/1', '*,1'])(
+    'refuses weekday field %s instead of changing the authored day',
+    (dayOfWeek) => {
+      const cron = `0 3 * * ${dayOfWeek}`;
+      const weekly = schedule('weekly', { cron });
+      let fired = false;
+      const onWeekly = trail('weekly.run', {
+        implementation: () => {
+          fired = true;
+          return Result.ok({ ok: true });
+        },
+        input: z.object({}),
+        on: [weekly],
+        output: z.object({ ok: z.boolean() }),
+      });
+      const graph = topo('schedules', { onWeekly });
+      expect(() => createScheduledHandler(graph)).toThrow(ValidationError);
+      expect(() => createScheduledHandler(graph)).toThrow(
+        expect.objectContaining({
+          context: expect.objectContaining({
+            code: CLOUDFLARE_CRON_WEEKDAY_UNSUPPORTED,
+            cron,
+            dayOfWeek,
+            sourceId: 'weekly',
+            trailId: 'weekly.run',
+          }),
+          message: expect.stringContaining('1=Sunday through 7=Saturday'),
+        })
+      );
+      expect(fired).toBe(false);
+    }
+  );
+
+  test('excluded weekday schedules do not block eligible registrations', async () => {
+    const weekly = schedule('weekly', { cron: '0 3 * * 1' });
+    const onWeekly = trail('weekly.run', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [weekly],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createScheduledHandler(topo('schedules', { onWeekly }), {
+      exclude: ['weekly.*'],
+    });
+    await expect(handler(controller('0 3 * * 1'))).resolves.toBeUndefined();
+  });
+
+  test('numeric fields before the wildcard weekday remain supported', async () => {
+    const yearly = schedule('yearly', { cron: ' 0  3 1 1 * ' });
+    let fired = 0;
+    const onYearly = trail('yearly.run', {
+      implementation: () => {
+        fired += 1;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      on: [yearly],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const handler = createScheduledHandler(topo('schedules', { onYearly }));
+    await handler(controller('0 3 1 1 *'));
+    expect(fired).toBe(1);
   });
 
   test('explicit UTC schedules materialize', async () => {
@@ -250,6 +319,28 @@ describe('createScheduledHandler', () => {
     const worker = createWorkersHandler(topo('schedules', { onTick }));
     await worker.scheduled(controller('*/10 * * * *'), {});
     expect(fired).toBe(1);
+  });
+
+  test('the Workers export refuses numeric weekdays before running the trail', async () => {
+    const weekly = schedule('weekly', { cron: '0 3 * * 1' });
+    let fired = false;
+    const onWeekly = trail('weekly.run', {
+      implementation: () => {
+        fired = true;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      on: [weekly],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const worker = createWorkersHandler(topo('schedules', { onWeekly }));
+    await expect(
+      worker.scheduled(controller('0 3 * * 1'), {})
+    ).rejects.toMatchObject({
+      category: 'validation',
+      context: { code: CLOUDFLARE_CRON_WEEKDAY_UNSUPPORTED },
+    });
+    expect(fired).toBe(false);
   });
 
   test('the Workers export fails loudly on a non-UTC schedule', async () => {
