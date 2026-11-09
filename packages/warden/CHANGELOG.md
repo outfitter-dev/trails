@@ -1,5 +1,15 @@
 # @ontrails/warden
 
+## 0.3.0
+
+### Patch Changes
+
+- [`f7b57a1`](https://github.com/outfitter-dev/trails/commit/f7b57a1e741355ed29684f1d9931d40d50206ea4): Add `trails resolve` to recover selected generated app locks from resolved sources and verified Git parent evidence while preserving force audit history.
+  
+  Make force retention kind-aware and idempotent, keep orphaned events at graph level, and report pending events for every supported entry kind without conflating distinct timestamps or reasons.
+  
+  Keep retained audit warnings out of contract-break comparisons, report timestamp-only audit changes, and prevent lock path replacement from redirecting recovery writes. Byte-identical recovery needs only read access to the selected lock.
+
 ## 0.2.5
 
 ### Patch Changes

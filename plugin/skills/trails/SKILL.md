@@ -2,7 +2,7 @@
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   skillset.schema: "1"
-  trails: 0.2.5
+  trails: 0.3.0
   version: 0.4.0
 name: trails
 ---

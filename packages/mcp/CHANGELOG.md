@@ -1,5 +1,31 @@
 # @ontrails/mcp
 
+## 0.3.0
+
+### Minor Changes
+
+- [`c2b11a4`](https://github.com/outfitter-dev/trails/commit/c2b11a4c5d61648471da1d9e919007b3d32960b3): Correct the default JSON-RPC `not_found` code from `-32601` (method not found) to `-32001`. Clients matching the previous numeric code must update or use the error category; HTTP status and CLI exit mappings are unchanged.
+  
+  Export the shared JSON-RPC error data shape and public rendering helper from core, with a method-specific override for MCP `resources/read`. Unknown MCP resources retain protocol code `-32602` and now include `data.category`, `data.name`, and `data.retryable`. Trail failures remain `isError` tool results with shared metadata and public redaction.
+- [`01361a6`](https://github.com/outfitter-dev/trails/commit/01361a6e1fca0c6445633e4428b973598a87b815): Network MCP surfaces never inherit a `createContext` permit. `deriveMcpTools` and the server options gain `credentialPosture`; `@ontrails/mcp/fetch` always builds on the `network` posture, where identity enters only through `resolvePermit`: a seeded `createContext` permit is discarded at runtime (one diagnostic names the migration) for tools and resource reads, `extra.permit` is ignored, a presented bearer with no resolver is an `AuthError` instead of absence, and a handler that exposes protected trails without a resolver is refused at build time with a `ValidationError` naming them. The stdio `host` posture is unchanged.
+  
+  Migration: apps that seeded a permit through `createContext` on a network host move that credential into a verifier passed as `resolvePermit` (for example a JWKS or opaque adapter from `@ontrails/permits`) and keep `createContext` for the logger, extensions and resources it seeds. `--dev-permit` is not a migration path for network surfaces.
+- [`76661d3`](https://github.com/outfitter-dev/trails/commit/76661d3b888295c3a515885f695677f0b7c2a3db): Pass raw Authorization and best-effort Bearer candidates to configured MCP permit policies without requiring a successful Bearer parse. Share request permit resolution internally while preserving trusted host permit precedence and unconfigured parser behavior. Configured policies must distinguish absent credentials from selected invalid credentials; metadata and tool arguments are not synthesized into headers.
+- [`4b5d5bb`](https://github.com/outfitter-dev/trails/commit/4b5d5bb56639cbbec48c3072792f0ddc9deb2cb0): Add the portable `@ontrails/mcp/fetch` entry with a shared server factory for modern MCP and legacy stateless HTTP. Validate the authoritative request URL, optional Host authority and explicit HTTP(S) Origin allowlist before SDK dispatch. Forward actual request Authorization and per-request metadata to the existing permit resolver without synthesizing SDK auth information. Keep stdio imports outside the portable entry. HTTP challenge integration and real client interoperability retain separate acceptance gates.
+- [`7c8d396`](https://github.com/outfitter-dev/trails/commit/7c8d396923495ab6758bc78f75332053c86e39ae): Resolve MCP tool permits from each request's bearer credential and application `_meta`, and remove `sessionId` from `ResolveMcpPermitInput` and `McpExtra`. Protocol sessions no longer supply permit inputs. Custom resolvers must remove session-derived state and trace identifiers; application state belongs in explicit handles in trail input/output schemas.
+  
+  A configured resolver now runs even when no bearer token is present, allowing it to inspect untrusted metadata candidates or reject missing credentials according to the app's policy. Resolvers must handle absent bearer and metadata values and verify credentials before returning a permit. Explicit host-provided permits remain available for local stdio policy outside OAuth.
+  
+  This establishes the MCP tool and stdio seam. The separately implemented fetch host must supply the same per-request context before fetch-path acceptance is complete.
+- [`7868df9`](https://github.com/outfitter-dev/trails/commit/7868df908f310a4e3ad3e60e8bb1bc934d4e816a): Resolve permits for every MCP resource list and read request, and add `authorizeResourceRead` over the verified permit and canonical resource descriptor. Permission denials omit listed resources and reject direct reads; credential and operational failures remain terminal. Resolvers now receive resource requests, including requests without bearer credentials, and must return absence only when no accepted credential was selected. Resource policy preserves trusted local-host permits after absence and never after a verification error. This does not establish the separate fetch-shaped MCP host or private tool discovery.
+- [`72274ce`](https://github.com/outfitter-dev/trails/commit/72274ce04d4f45eb69b70df2857f26f100fba195): Migrate MCP stdio serving to the official SDK v2 and its protocol-aware `serveStdio` entry. Replace the `@modelcontextprotocol/sdk` peer with `@modelcontextprotocol/server ^2.4.0`. `surface(graph)` remains the stdio one-liner and supports modern 2026-07-28 and legacy connections.
+  
+  This is a documented 0.x break. Custom stdio hosts must change `await connectStdio(server)` to `const connection = await connectStdio(() => createServer(graph))` and close the returned connection handle. The factory must return a fresh server for SDK discovery and connection selection. Remove copied `transport: 'stdio'` properties; that documented option never existed.
+  
+  Non-image blob results now emit valid embedded binary resources with nested `resource: { uri, mimeType, blob }` instead of invalid flat resource entries. Non-image streams are read and buffered into base64. Custom consumers must use the nested resource shape. Structured trail output descriptors are unchanged. MCP content types now follow the SDK's discriminated content shapes.
+  
+  Session-permit API removal, the fetch-shaped handler, modern scalar/array output contract changes, and the temporary adopter migration skill have separate implementation gates.
+
 ## 0.2.5
 
 No changes in this release.

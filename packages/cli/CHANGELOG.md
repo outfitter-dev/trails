@@ -1,5 +1,20 @@
 # @ontrails/cli
 
+## 0.3.0
+
+### Minor Changes
+
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Require explicitly authored actor evidence on execution permits, retain optional issuer and finite millisecond expiry, and derive collision-free issuer-qualified subject keys. This is a breaking 0.x shape migration: custom adapters, contexts and inline CLI permits must supply `actors`, including `[]` when no acting party is known.
+  
+  Retain validated JWT attester, expiry and current-first actor chains without inventing actor namespaces or trusting caller provenance. Preserve full permits at existing authentication boundaries and update test factories and generated permit commands.
+  
+  Carry identity evidence through traces, queries and OTel output. Upgrade version-2 developer trace stores without deleting records; preserve unknown historical actors separately from known empty chains. See the permit identity migration guide for compatibility details.
+  
+  The RPC conformance suite's shared writer permit now carries `actors: []`, so hosts running `createRpcConformanceCases` need no change.
+- [`3866198`](https://github.com/outfitter-dev/trails/commit/3866198b00af9a6b8b49f74808854828b2fc4b97): Add the shared permit reconciliation. `BasePermit` gains optional `admission` evidence (`{ kind: 'verified' | 'asserted' | 'synthetic', by }`) validated by `permitAdmissionSchema`. `@ontrails/permits` exports `reconcilePermit`, the one reconciliation every surface calls with its credential candidates and posture: conflicts are a `ValidationError`, a presented credential with no verifier is a `ValidationError` in process and an `AuthError` (`no_permit_resolver`) on the network, asserted kinds are refused on the network and admitted in process only under an `AssertedKindsPolicy` derived from the topo (allowed with no `auth` resource, denied once one exists) or declared explicitly with a `maxScopes` ceiling, and admitted permits carry `admission` with an unverified actor chain for asserted kinds.
+  
+  The CLI's `--permit`, `--token` and `--dev-permit` reconciliation now runs through it, so `@ontrails/cli` depends on `@ontrails/permits` and `deriveCliCommands` accepts `assertedKinds`. Behavior change: an app whose topo declares an `auth` resource now refuses `--permit` and `--dev-permit` unless it passes `assertedKinds: { allow: true, ... }` from its own config; apps without an auth resource are unchanged. Permits admitted through the CLI carry `admission`.
+
 ## 0.2.5
 
 No changes in this release.

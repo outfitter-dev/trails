@@ -170,16 +170,16 @@
       ],
       "kind": "plugin-skill",
       "name": "trails",
-      "outputHash": "sha256:acbcb22cbba900be8a4ff9852d51b5cce7adeaf9479f8960b324552d8280b78a",
+      "outputHash": "sha256:e3e3b028f88fe2b5250084f0eb2f7ce80a3a3a15f27abda5f037ce1c28171527",
       "outputPath": "skills/trails/SKILL.md",
       "plugin": "trails",
-      "sourceHash": "sha256:46e66bcac5cf08d13c04b419572755f94814ce9bb1598711560932694b304c99",
+      "sourceHash": "sha256:b9de93570242dbb68d91fdc4d5791f0affff1f13c972eb6c16caf9d95f900746",
       "sourcePath": ".skillset/plugins/trails/skills/trails/SKILL.md",
       "version": "0.4.0"
     }
   ],
   "outputRoot": "plugin",
-  "provenanceHash": "sha256:16538e0534dc3f2fd5e2ab5a04c5f18ff11857d04c93cd0639ac091132fface9",
+  "provenanceHash": "sha256:4c1e5e1aba3b221eb5c6e7f0882faffbe66f570942583aba229fded202c93458",
   "renderResults": [
     {
       "destination": "target-native-island",

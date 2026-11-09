@@ -1,5 +1,27 @@
 # @ontrails/core
 
+## 0.3.0
+
+### Minor Changes
+
+- [`c2b11a4`](https://github.com/outfitter-dev/trails/commit/c2b11a4c5d61648471da1d9e919007b3d32960b3): Correct the default JSON-RPC `not_found` code from `-32601` (method not found) to `-32001`. Clients matching the previous numeric code must update or use the error category; HTTP status and CLI exit mappings are unchanged.
+  
+  Export the shared JSON-RPC error data shape and public rendering helper from core, with a method-specific override for MCP `resources/read`. Unknown MCP resources retain protocol code `-32602` and now include `data.category`, `data.name`, and `data.retryable`. Trail failures remain `isError` tool results with shared metadata and public redaction.
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Require explicitly authored actor evidence on execution permits, retain optional issuer and finite millisecond expiry, and derive collision-free issuer-qualified subject keys. This is a breaking 0.x shape migration: custom adapters, contexts and inline CLI permits must supply `actors`, including `[]` when no acting party is known.
+  
+  Retain validated JWT attester, expiry and current-first actor chains without inventing actor namespaces or trusting caller provenance. Preserve full permits at existing authentication boundaries and update test factories and generated permit commands.
+  
+  Carry identity evidence through traces, queries and OTel output. Upgrade version-2 developer trace stores without deleting records; preserve unknown historical actors separately from known empty chains. See the permit identity migration guide for compatibility details.
+  
+  The RPC conformance suite's shared writer permit now carries `actors: []`, so hosts running `createRpcConformanceCases` need no change.
+- [`3866198`](https://github.com/outfitter-dev/trails/commit/3866198b00af9a6b8b49f74808854828b2fc4b97): Add the shared permit reconciliation. `BasePermit` gains optional `admission` evidence (`{ kind: 'verified' | 'asserted' | 'synthetic', by }`) validated by `permitAdmissionSchema`. `@ontrails/permits` exports `reconcilePermit`, the one reconciliation every surface calls with its credential candidates and posture: conflicts are a `ValidationError`, a presented credential with no verifier is a `ValidationError` in process and an `AuthError` (`no_permit_resolver`) on the network, asserted kinds are refused on the network and admitted in process only under an `AssertedKindsPolicy` derived from the topo (allowed with no `auth` resource, denied once one exists) or declared explicitly with a `maxScopes` ceiling, and admitted permits carry `admission` with an unverified actor chain for asserted kinds.
+  
+  The CLI's `--permit`, `--token` and `--dev-permit` reconciliation now runs through it, so `@ontrails/cli` depends on `@ontrails/permits` and `deriveCliCommands` accepts `assertedKinds`. Behavior change: an app whose topo declares an `auth` resource now refuses `--permit` and `--dev-permit` unless it passes `assertedKinds: { allow: true, ... }` from its own config; apps without an auth resource are unchanged. Permits admitted through the CLI carry `admission`.
+
+### Patch Changes
+
+- [`372781f`](https://github.com/outfitter-dev/trails/commit/372781f7658c5642145ac2e94f56ef6414d9e59a): Preserve `z.null()` contracts as `{ type: 'null' }` in JSON Schema, including nested object fields and union branches.
+
 ## 0.2.5
 
 ### Patch Changes

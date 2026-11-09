@@ -1,5 +1,23 @@
 # @ontrails/testing
 
+## 0.3.0
+
+### Minor Changes
+
+- [`dffba59`](https://github.com/outfitter-dev/trails/commit/dffba590dc569d1af8e93fe449ee8be8aa6d689e): Require explicitly authored actor evidence on execution permits, retain optional issuer and finite millisecond expiry, and derive collision-free issuer-qualified subject keys. This is a breaking 0.x shape migration: custom adapters, contexts and inline CLI permits must supply `actors`, including `[]` when no acting party is known.
+  
+  Retain validated JWT attester, expiry and current-first actor chains without inventing actor namespaces or trusting caller provenance. Preserve full permits at existing authentication boundaries and update test factories and generated permit commands.
+  
+  Carry identity evidence through traces, queries and OTel output. Upgrade version-2 developer trace stores without deleting records; preserve unknown historical actors separately from known empty chains. See the permit identity migration guide for compatibility details.
+  
+  The RPC conformance suite's shared writer permit now carries `actors: []`, so hosts running `createRpcConformanceCases` need no change.
+- [`3877699`](https://github.com/outfitter-dev/trails/commit/38776994190614eb3cc5e1e0f8632e23fb34dbbb): Add `@ontrails/testing/rpc` with `createRpcHarness`: an in-process harness over the `@ontrails/rpc` kernel (one connection, serializable state kept between calls) so tests can call trails as JSON-RPC methods, read core error facts, observe `trails.discover` and pushed progress, and seed the connection permit without opening a socket. `@ontrails/rpc` is an optional peer, like the other surface harnesses.
+
+### Patch Changes
+
+- [`7c8d396`](https://github.com/outfitter-dev/trails/commit/7c8d396923495ab6758bc78f75332053c86e39ae): The MCP test harness no longer forwards a protocol session id into permit resolution. Permits resolve per request from the bearer credential and `_meta`, matching the stateless MCP core; `createMcpHarness` options.extra accepts the same `McpExtra` fields minus `sessionId`.
+- [`bf22e95`](https://github.com/outfitter-dev/trails/commit/bf22e95654d6c9830a327d4f063789527f7faf39): Honor CLI preset registrations in createCliHarness and reject unregistered flags before executing a trail. Register JSON output explicitly in surface parity checks, and avoid structured-input flags for empty examples. Harness callers using output flags must configure the same outputModePreset as their CLI or omit those flags.
+
 ## 0.2.5
 
 No changes in this release.
