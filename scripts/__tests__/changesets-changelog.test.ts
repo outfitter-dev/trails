@@ -46,6 +46,31 @@ describe('changesets changelog formatter', () => {
     ).resolves.toBe('');
   });
 
+  test.each(['', '   ', '\t'])(
+    'keeps blank continuation lines empty (%j)',
+    async (blank) => {
+      await expect(
+        changelog.getReleaseLine(
+          {
+            summary: [
+              'First paragraph.  ',
+              blank,
+              'Second paragraph.\t',
+              blank,
+              '- Nested bullet.',
+              blank,
+              '    nestedCode();  ',
+              '',
+            ].join('\n'),
+          },
+          'patch'
+        )
+      ).resolves.toBe(
+        '- First paragraph.\n\n  Second paragraph.\n\n  - Nested bullet.\n\n      nestedCode();\n'
+      );
+    }
+  );
+
   test('keeps external dependency updates visible', async () => {
     await expect(
       changelog.getDependencyReleaseLine(
