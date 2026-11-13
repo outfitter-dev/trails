@@ -118,9 +118,11 @@ const configuredAliasEntryPaths = (
 ): {
   readonly authored: ReadonlySet<string>;
   readonly physical: ReadonlySet<string>;
+  readonly physicalOnly: boolean;
 } => {
   const authored = new Set<string>();
   const physical = new Set<string>();
+  let physicalOnly = true;
   const segments = authoredRoot.split('/');
   for (let index = 1; index <= segments.length; index += 1) {
     const path = segments.slice(0, index).join('/');
@@ -129,6 +131,7 @@ const configuredAliasEntryPaths = (
       if (!lstatSync(absolutePath).isSymbolicLink()) {
         continue;
       }
+      physicalOnly = false;
       const canonicalAliasTarget = realpathSync(absolutePath);
       if (isWithinBoundary(canonicalWorkspaceRoot, canonicalAliasTarget)) {
         const physicalEntries = physicalAliasTargetChain(
@@ -144,10 +147,11 @@ const configuredAliasEntryPaths = (
         }
       }
     } catch {
+      physicalOnly = false;
       // A changing or unreadable alias remains an unsupported collection edge.
     }
   }
-  return { authored, physical };
+  return { authored, physical, physicalOnly };
 };
 
 /** Reconcile only normalized, unique aliases whose real target stays in-workspace. */
@@ -192,7 +196,7 @@ export const deriveConfiguredAppAliases = (
       canonicalWorkspaceRoot,
       app.root
     );
-    if (aliasEntryPaths.authored.size === 0) {
+    if (aliasEntryPaths.authored.size === 0 && !aliasEntryPaths.physicalOnly) {
       return [];
     }
     return [
