@@ -92,6 +92,9 @@
     "ultracite": "7.6.2",
     "zod": "catalog:"
   },
+  "overrides": {
+    "tinypool": "2.1.2"
+  },
   "engines": {
     "bun": ">=1.4.0"
   },
