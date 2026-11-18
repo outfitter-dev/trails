@@ -40,7 +40,7 @@
         "@ontrails/queue": "workspace:^",
         "@ontrails/store": "workspace:^",
         "@ontrails/testing": "workspace:^",
-        "miniflare": "^4.20260730.0",
+        "miniflare": "^4.20250617.4",
       },
       "peerDependencies": {
         "@ontrails/blob": "workspace:^",
