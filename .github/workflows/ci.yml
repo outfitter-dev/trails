@@ -242,9 +242,8 @@ jobs:
 
   ci-gate:
     name: >-
-      ${{ github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/changeset-release/main' &&
-      'Release Branch CI' || 'CI Gate' }}
+      ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/changeset-release/main' && 'Release Branch CI' || 'CI Gate' }}
+
     if: always()
     needs:
       [
