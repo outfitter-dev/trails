@@ -154,13 +154,7 @@ jobs:
   publish:
     name: Publish to npm manually
     needs: [publish-policy, release-asset-policy, stage-release-assets]
-    if: >-
-      !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' &&
-      github.event_name == 'workflow_dispatch' && inputs.publish == true &&
-      needs.publish-policy.result == 'success' && needs.publish-policy.outputs.decision == 'manual' &&
-      needs.publish-policy.outputs.should_publish == 'true' && needs.release-asset-policy.result == 'success' &&
-      (needs.release-asset-policy.outputs.needed == 'false' ||
-      (needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt))
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true' && needs.release-asset-policy.result == 'success' && (needs.release-asset-policy.outputs.needed == 'false' || (needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt)) }}
     runs-on: ubuntu-latest
     environment: npm
     env:
@@ -196,10 +190,7 @@ jobs:
   release-asset-policy:
     name: Check whether GitHub archives are needed
     needs: publish-policy
-    if: >-
-      !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' &&
-      (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-policy.outputs.decision == 'auto' ||
-      (github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual'))
+    if: ${{ !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-policy.outputs.decision == 'auto' || (github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual')) }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -331,10 +322,7 @@ jobs:
   archive-approval:
     name: Approve GitHub archives (npm publication not needed here)
     needs: [publish-policy, publish-auto, stage-release-assets]
-    if: >-
-      !cancelled() && needs.stage-release-assets.result == 'success' &&
-      needs.stage-release-assets.outputs.attempt == github.run_attempt &&
-      (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success')
+    if: ${{ !cancelled() && needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success') }}
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -346,10 +334,7 @@ jobs:
   github-release:
     name: Publish approved GitHub Release
     needs: [publish-policy, publish, stage-release-assets, archive-approval]
-    if: >-
-      !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' &&
-      needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt &&
-      (needs.publish.result == 'success' || needs.archive-approval.result == 'success')
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt && (needs.publish.result == 'success' || needs.archive-approval.result == 'success') }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
