@@ -185,6 +185,16 @@ The policy log separates three facts:
 
 Publication policy selects the commit that introduced the current package version, even when later repository-only commits have advanced `main`, so it reads the generated version PR's labels. npm jobs check out the immutable workflow commit on `main` and retain GitHub's source SHA for OIDC provenance. Before publication, a Git diff guard requires `apps`, `adapters`, `packages`, and `bun.lock` to be unchanged from the prepared release commit. Later repository-only fixes can advance the workflow without changing package sources. Both npm jobs pass the policy-approved dist-tag explicitly to publication and registry verification, so later changes to `.changeset/pre.json` cannot redirect a prerelease to `latest`. Release intent, registry checks, and protected npm environments still apply.
 
+### Approve GitHub Release Archives
+
+The Release workflow builds all four CLI archives from the prepared release commit before asking for approval. Open **Stage and checksum GitHub archives** in the run summary, review the source commit and checksums, then paste the displayed approval comment into **Review deployments** for `npm`. The comment identifies the run, attempt, artifact, and checksum manifest. An individually listed required reviewer must approve. An empty comment, a review for a different artifact, or an unprotected environment cannot authorize an upload.
+
+One review covers the archives and any manual npm publication in that run. When npm runs automatically or the registry is already complete, the workflow instead asks for the same review in an approval-only job with no npm publishing permissions. Keep the `npm` environment restricted to `main`, with individually named required reviewers and no environment secrets. The archive publisher does not use the npm environment or request an npm OIDC token.
+
+This gate controls publication to GitHub Releases; staged Actions artifacts in this public repository are not private.
+
+If archive staging or publication fails, choose **Re-run all jobs** or start a new eligible Release run. Do not use **Re-run failed jobs** to retry the archive upload. The retry stages a fresh artifact and needs its own review even if the tag and checksums are unchanged. The publisher checks the stored draft's complete asset list and digests before making it public; it never replaces assets on a published release. For a Homebrew-only retry after the release is public, follow the [Homebrew handoff runbook](stable-cutover.md#homebrew-handoff-recovery-boundary).
+
 ## Warden And Wayfinder
 
 `trails release check` owns branch-local release-rule evaluation. It reads the GitHub or local changed-file list, release config, Changesets intent, and first source-static public trail contract facts. Warden should not duplicate PR file-list logic or own stack and GitHub comparison state.

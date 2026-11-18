@@ -10,6 +10,8 @@ interface WorkflowStep {
 }
 
 interface WorkflowJob {
+  readonly environment?: { readonly name: string };
+  readonly permissions?: Record<string, string>;
   readonly if?: string;
   readonly needs?: string | readonly string[];
   readonly secrets?: Record<string, string>;
@@ -57,13 +59,49 @@ describe('TRL-1291 release workflow contract', () => {
     expect(script.indexOf('gh release upload')).toBeLessThan(
       script.indexOf('gh release edit')
     );
-    expect(release?.needs).toContain('release-assets');
+    expect(release?.needs).toContain('stage-release-assets');
 
     const homebrew = workflow.jobs?.homebrew;
     expect(homebrew?.needs).toBe('github-release');
     expect(homebrew?.uses).toBe('./.github/workflows/publish-homebrew.yml');
     expect(homebrew?.with?.tag).toBe(releaseTag);
     expect(homebrew?.secrets?.HOMEBREW_TAP_TOKEN).toBe(homebrewTapToken);
+  });
+
+  test('reuses manual npm approval or asks once in a job with no npm privileges', () => {
+    const workflow = readWorkflow('release.yml');
+    const stage = workflow.jobs?.['stage-release-assets'];
+    const publish = workflow.jobs?.['github-release'];
+
+    expect(stage?.needs).toContain('release-assets');
+    expect(stage?.if).toContain("needs.release-assets.result == 'success'");
+    const approve = workflow.jobs?.['archive-approval'];
+    expect(workflow.jobs?.publish?.needs).toContain('stage-release-assets');
+    expect(approve?.needs).toContain('stage-release-assets');
+    expect(approve?.environment?.name).toBe('npm');
+    expect(approve?.permissions).toEqual({});
+    expect(publish?.environment).toBeUndefined();
+    expect(publish?.permissions).not.toHaveProperty('id-token');
+    expect(publish?.if).toContain(
+      "needs.publish.result == 'success' || needs.archive-approval.result == 'success'"
+    );
+  });
+
+  test('requires the staged artifact from this attempt and verifies approval before upload', () => {
+    const publish = readWorkflow('release.yml').jobs?.['github-release'];
+    expect(publish?.if).toContain(
+      'needs.stage-release-assets.outputs.attempt == github.run_attempt'
+    );
+    expect(
+      publish?.steps?.find(({ uses }) => uses?.includes('download-artifact'))
+        ?.with?.['artifact-ids']
+    ).toBe(`\${{ needs.stage-release-assets.outputs.artifact_id }}`);
+    const stepNames = publish?.steps?.map(({ name }) => name) ?? [];
+    const verify = stepNames.indexOf('Verify exact archive approval');
+    expect(verify).toBeGreaterThanOrEqual(0);
+    expect(verify).toBeLessThan(
+      stepNames.indexOf('Stage, populate, and publish GitHub release')
+    );
   });
 
   test('proves the checked-out tag version and release assets before tap checkout', () => {
