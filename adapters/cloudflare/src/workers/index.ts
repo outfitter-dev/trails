@@ -242,8 +242,8 @@ interface MaterializedQueueHandler {
  *
  * @remarks The kernel fetch handler is materialized lazily per env identity.
  * The Workers runtime keeps `env` stable within an isolate, so steady-state
- * requests reuse one materialization; any request carrying a different env
- * object triggers a fresh resolution of every env-bound resource.
+ * requests reuse one materialization. When assets are configured, HTTP
+ * bindings are resolved on route execution, so assets do not require them.
  *
  * @example
  * ```ts
@@ -274,6 +274,14 @@ export const createWorkersHandler = (
     if (materialized !== undefined && materialized.env === env) {
       return materialized.handle;
     }
+    let resources: ResourceOverrideMap | undefined;
+    const resolveResources = () =>
+      (resources ??= resolveResourceOverrides(
+        graph,
+        env ?? {},
+        options,
+        'fetch'
+      ));
     const handle = createFetchHandler(graph, {
       basePath: options.basePath,
       configValues: options.configValues,
@@ -285,7 +293,8 @@ export const createWorkersHandler = (
       maxJsonBodyBytes: options.maxJsonBodyBytes,
       onUnmatched: createAssetsFallback(host.assets, env),
       resolvePermit: options.resolvePermit,
-      resources: resolveResourceOverrides(graph, env ?? {}, options, 'fetch'),
+      resources:
+        host.assets === undefined ? resolveResources() : resolveResources,
       validate: options.validate,
     });
     materialized = { env, handle };

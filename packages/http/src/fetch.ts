@@ -9,7 +9,7 @@ import {
   renderPublicSurfaceError,
   ValidationError,
 } from '@ontrails/core';
-import type { BlobRef, Topo } from '@ontrails/core';
+import type { BlobRef, ResourceOverrideMap, Topo } from '@ontrails/core';
 
 import { isBlobOutputSchema } from './blob-output.js';
 import { deriveHttpRoutes, resolveHttpQueryInput } from './build.js';
@@ -27,11 +27,16 @@ export interface CreateRouteHandlerOptions {
  */
 export interface CreateFetchHandlerOptions
   extends
-    Omit<DeriveHttpRoutesOptions, 'credentialPosture'>,
+    Omit<DeriveHttpRoutesOptions, 'credentialPosture' | 'resources'>,
     CreateRouteHandlerOptions {
   /** Called only when no HTTP method/path route matches, including webhooks. */
   readonly onUnmatched?:
     | ((request: Request) => Response | Promise<Response>)
+    | undefined;
+  /** A factory is called for route execution, not dispatch misses. */
+  readonly resources?:
+    | ResourceOverrideMap
+    | (() => ResourceOverrideMap)
     | undefined;
 }
 
@@ -1008,7 +1013,11 @@ export const createFetchHandler = (
     intent: options.intent,
     layers: options.layers,
     resolvePermit: options.resolvePermit,
-    resources: options.resources,
+    get resources() {
+      return typeof options.resources === 'function'
+        ? options.resources()
+        : options.resources;
+    },
     validate: options.validate,
   });
 

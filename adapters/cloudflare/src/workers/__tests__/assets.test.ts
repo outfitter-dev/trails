@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, mock, test } from 'bun:test';
 import { NotFoundError, Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import { cloudflareKv, createMemoryKv } from '../../kv/index.js';
 import { createWorkersHandler, workersHostConfigSchema } from '../index.js';
 
 const missing = trail('missing', {
@@ -66,6 +67,40 @@ test('asset binding follows env changes and custom names', async () => {
     const response = await worker.fetch(request('/unknown'), env);
     expect(await response.text()).toBe(text);
   }
+});
+
+test('assets do not require bindings for HTTP trails', async () => {
+  const flags = cloudflareKv('flags', { binding: 'FLAGS' });
+  const show = trail('flag.show', {
+    implementation: async (_input, ctx) =>
+      Result.ok({ value: await flags.from(ctx).get('color') }),
+    input: z.object({}),
+    intent: 'read',
+    output: z.object({ value: z.string().nullable() }),
+    resources: [flags],
+  });
+  const worker = createWorkersHandler(topo('flag-host', { flags, show }), {
+    host: { assets: { binding: 'ASSETS' } },
+  });
+  const fetch = mock(() => new Response('asset'));
+  const env = { ASSETS: { fetch } };
+  const asset = request('/index.html');
+
+  const first = await worker.fetch(asset, env);
+  const matched = await worker.fetch(request('/flag/show'), env);
+  const second = await worker.fetch(asset, env);
+  expect(await first.text()).toBe('asset');
+  expect(matched.status).toBe(500);
+  expect(await second.text()).toBe('asset');
+  expect(fetch.mock.calls).toEqual([[asset], [asset]]);
+
+  const kv = createMemoryKv();
+  await kv.put('color', 'red');
+  const recovered = await worker.fetch(request('/flag/show'), {
+    ...env,
+    FLAGS: kv,
+  });
+  expect(await recovered.json()).toEqual({ data: { value: 'red' } });
 });
 
 test('omitted assets retains HTTP 404, missing/malformed bindings fail only on a miss', async () => {
