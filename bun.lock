@@ -83,7 +83,7 @@
       "version": "0.3.0",
       "dependencies": {
         "@ontrails/core": "workspace:^",
-        "hono": "^4.13.13",
+        "hono": "^4.13.19",
       },
       "devDependencies": {
         "@ontrails/http": "workspace:^",
@@ -201,7 +201,7 @@
         "@ontrails/mcp": "workspace:^",
         "@ontrails/permits": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "hono": "^4.13.13",
+        "hono": "^4.13.19",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -264,7 +264,7 @@
         "@ontrails/mcp": "workspace:^",
         "@ontrails/permits": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "hono": "^4.13.13",
+        "hono": "^4.13.19",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -1075,7 +1075,7 @@
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
 
-    "hono": ["hono@4.13.13", "", {}, "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="],
+    "hono": ["hono@4.13.19", "", {}, "sha512-KmXvQAXwcAHV+muzbIwoJ23niEB5nMoDVr9WcRkU8mvjUECm/1+7v4Jgp7P7a+H6MLFrh+vXrGonGrGS+RQfkA=="],
 
     "human-id": ["human-id@4.2.1", "", { "bin": { "human-id": "dist/cli.js" } }, "sha512-zPGsiS+dWoTZtZ4AtpA9Y+BdSFSNWvnouNlWNoUFyAM6xHOHmdCvqO3k8AIbdamCOv4gUFUVNPf6rJFfc4UiJw=="],
 
