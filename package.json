@@ -84,7 +84,7 @@
     "@types/node": "^25.9.9",
     "knip": "^6.12.2",
     "lefthook": "^2.1.1",
-    "markdownlint-cli2": "^0.22.1",
+    "markdownlint-cli2": "^0.24.1",
     "oxfmt": "0.47.0",
     "oxlint": "1.62.0",
     "turbo": "^2.11.10",
@@ -94,6 +94,7 @@
   },
   "overrides": {
     "sharp": "0.35.5",
+    "tinypool": "2.1.2",
     "undici": "7.30.1"
   },
   "engines": {
