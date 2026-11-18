@@ -16,7 +16,7 @@ const getReleaseLine = async (changeset, _type, options = {}) => {
   let output = `- ${renderCommit(changeset.commit, options.repo)}${firstLine}`;
 
   if (rest.length > 0) {
-    output += `\n${rest.map((line) => `  ${line}`).join('\n')}`;
+    output += `\n${rest.map((line) => (line ? `  ${line}` : '')).join('\n')}`;
   }
 
   return output;

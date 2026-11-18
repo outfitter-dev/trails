@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/blob",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Provider-neutral blob resources, memory mock, and binding conformance for Trails.",
   "repository": {
     "type": "git",

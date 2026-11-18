@@ -1,5 +1,9 @@
 # @ontrails/drizzle
 
+## 0.3.0
+
+No changes in this release.
+
 ## 0.2.5
 
 ### Patch Changes

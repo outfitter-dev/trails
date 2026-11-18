@@ -145,6 +145,9 @@ jobs:
       - name: CI workflow contract
         run: bun test scripts/__tests__/ci-workspace-context-contract.test.ts scripts/__tests__/release-publish-target.test.ts
 
+      - name: Changesets changelog regression
+        run: bun test scripts/__tests__/changesets-changelog.test.ts scripts/__tests__/changesets-zero-line.test.ts
+
       - name: Skillset lock provenance
         if: github.event_name == 'pull_request'
         env:
