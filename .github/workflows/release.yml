@@ -380,6 +380,7 @@ jobs:
         with:
           artifact-ids: ${{ needs.stage-release-assets.outputs.artifact_id }}
           path: release-assets
+          merge-multiple: true
       - name: Stage, populate, and publish GitHub release
         id: release
         env:

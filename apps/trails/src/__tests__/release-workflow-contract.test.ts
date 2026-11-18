@@ -94,8 +94,12 @@ describe('TRL-1291 release workflow contract', () => {
     );
     expect(
       publish?.steps?.find(({ uses }) => uses?.includes('download-artifact'))
-        ?.with?.['artifact-ids']
-    ).toBe(`\${{ needs.stage-release-assets.outputs.artifact_id }}`);
+        ?.with
+    ).toEqual({
+      'artifact-ids': `\${{ needs.stage-release-assets.outputs.artifact_id }}`,
+      'merge-multiple': true,
+      path: 'release-assets',
+    });
     const stepNames = publish?.steps?.map(({ name }) => name) ?? [];
     const verify = stepNames.indexOf('Verify exact archive approval');
     expect(verify).toBeGreaterThanOrEqual(0);
