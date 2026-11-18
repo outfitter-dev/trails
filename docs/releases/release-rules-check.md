@@ -158,7 +158,9 @@ The release PR labeler fills missing publish/channel/release labels without over
 bun run publish:label-release-pr
 ```
 
-After the labeler updates `changeset-release/main`, the Release workflow checks out that generated branch and validates it with `trails release check`, `release-pack:check --lockfile-only`, and `publish:check`. The workflow also dispatches normal CI for the generated branch because pull request workflows created by `GITHUB_TOKEN` updates do not reliably run from the generated PR event; the version job therefore needs `actions: write` permission in addition to content and pull request permissions.
+After the labeler updates `changeset-release/main`, the Release workflow checks out that generated branch and validates it with `trails release check`, `release-pack:check --lockfile-only`, and `publish:check`. It also dispatches **Release Branch CI** on that branch. This fallback skips the PR-only **Changeset** and **Release Pack** jobs and does not replace the required **CI Gate**. The dispatch requires `actions: write` in addition to content and pull request permissions.
+
+GitHub requires approval for `pull_request` workflows created by `GITHUB_TOKEN`. On the generated release PR, a maintainer with write access selects **Approve workflows to run** in the merge box. Confirm the PR-triggered **CI Gate** passes on the current revision before merging; a green **Release Branch CI** is not enough.
 
 The policy gate emits machine-readable GitHub Actions outputs and chooses `auto`, `manual`, `none`, or `block`:
 
