@@ -55,7 +55,7 @@ test('reuses manual npm approval or asks once in a job with no npm privileges', 
   );
 });
 
-test('verifies approval before extracting the exact artifact to the checksum directory', () => {
+test('verifies approval, extracts the exact artifact, and then publishes', () => {
   const publish = workflow.jobs['github-release'];
   expect(publish?.if).toContain(
     'needs.release-assets.outputs.attempt == github.run_attempt'
@@ -65,8 +65,12 @@ test('verifies approval before extracting the exact artifact to the checksum dir
   const download = stepNames.indexOf(
     'Download only the approved archive artifact'
   );
+  const upload = stepNames.indexOf(
+    'Stage, populate, and publish GitHub release'
+  );
   expect(verify).toBeGreaterThanOrEqual(0);
   expect(verify).toBeLessThan(download);
+  expect(download).toBeLessThan(upload);
   expect(publish?.steps[download]?.with).toEqual({
     'artifact-ids': `\${{ needs.release-assets.outputs.artifact_id }}`,
     'merge-multiple': true,
