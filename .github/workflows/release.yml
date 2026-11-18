@@ -153,8 +153,8 @@ jobs:
 
   publish:
     name: Publish to npm manually
-    needs: publish-policy
-    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true'
+    needs: [publish-policy, release-asset-policy, release-assets]
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true' && needs.release-asset-policy.result == 'success' && (needs.release-asset-policy.outputs.needed == 'false' || (needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt)) }}
     runs-on: ubuntu-latest
     environment: npm
     env:
@@ -187,10 +187,50 @@ jobs:
       - name: Verify published packages
         run: bun run publish:registry-check:published --tag "$DIST_TAG"
 
-  release-assets:
+  release-asset-policy:
+    name: Check whether GitHub archives are needed
+    needs: publish-policy
+    if: ${{ !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-policy.outputs.decision == 'auto' || (github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      needed: ${{ steps.release.outputs.needed }}
+    steps:
+      - name: Skip an already published GitHub release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.publish-policy.outputs.version }}
+        run: |
+          release_json="$(mktemp)"
+          status="$(curl --silent --show-error --max-time 30 --output "$release_json" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/v$VERSION")"
+          case "$status" in
+            200) needed="$(jq -er '.draft | select(type == "boolean") | tostring' "$release_json")" ;;
+            404) needed=true ;;
+            *) echo "Could not check GitHub release v$VERSION (HTTP $status)" >&2; exit 1 ;;
+          esac
+          echo "needed=$needed" >> "$GITHUB_OUTPUT"
+      - name: Require a protected npm approval environment
+        if: steps.release.outputs.needed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api "repos/$GITHUB_REPOSITORY/environments/npm" |
+            jq -e 'any(.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?;
+              .type == "User" and (.reviewer.id | type == "number"))' > /dev/null; then
+            echo 'The npm environment must have an individually configured required reviewer before GitHub archives can be published.' >&2
+            exit 1
+          fi
+
+  build-release-assets:
     name: Build CLI asset (${{ matrix.platform }})
-    needs: [publish-policy, publish-auto, publish]
-    if: always() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success' || needs.publish.result == 'success')
+    needs: [publish-policy, release-asset-policy]
+    if: ${{ !cancelled() && needs.release-asset-policy.result == 'success' && needs.release-asset-policy.outputs.needed == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -209,94 +249,189 @@ jobs:
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
-          fetch-depth: 0
-      - name: Check out exact release target
-        env:
-          VERSION: ${{ needs.publish-policy.outputs.version }}
-        run: |
-          version_target="$(git log -n 1 --format=%H -S "\"version\": \"$VERSION\"" -- apps/trails/package.json)"
-          if [ -z "$version_target" ]; then
-            echo "Could not resolve commit that introduced apps/trails/package.json version $VERSION" >&2
-            exit 1
-          fi
-          git checkout --detach "$version_target"
+          ref: ${{ needs.publish-policy.outputs.release_sha }}
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Build and cold-verify CLI release asset
         run: bun run release:cli:build -- --out-dir dist --platform "${{ matrix.platform }}" --version "${{ needs.publish-policy.outputs.version }}"
       - name: Upload CLI release asset
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: trails-cli-${{ matrix.platform }}
-          path: |
-            dist/*.tar.gz
-            dist/*.sha256
+          name: trails-cli-${{ github.run_attempt }}-${{ matrix.platform }}
+          path: dist/trails-v${{ needs.publish-policy.outputs.version }}-${{ matrix.platform }}.tar.gz
+          compression-level: 0
           if-no-files-found: error
 
+  release-assets:
+    name: Stage and checksum GitHub archives
+    needs: [publish-policy, build-release-assets]
+    if: ${{ !cancelled() && needs.build-release-assets.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+      attempt: ${{ github.run_attempt }}
+      manifest_digest: ${{ steps.manifest.outputs.digest }}
+    steps:
+      - name: Download this attempt's CLI archives
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: trails-cli-${{ github.run_attempt }}-*
+          path: release-assets
+          merge-multiple: true
+      - name: Assemble CLI checksum manifest
+        id: manifest
+        working-directory: release-assets
+        env:
+          VERSION: ${{ needs.publish-policy.outputs.version }}
+        run: |
+          manifest="trails-v$VERSION-SHA256SUMS"
+          sha256sum -- "trails-v$VERSION-"{darwin-arm64,darwin-x64,linux-arm64,linux-x64}.tar.gz > "$manifest"
+          digest="$(sha256sum -- "$manifest")"
+          echo "digest=${digest%% *}" >> "$GITHUB_OUTPUT"
+      - name: Upload immutable review artifact
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: trails-release-${{ github.run_attempt }}
+          path: |
+            release-assets/trails-v${{ needs.publish-policy.outputs.version }}-*.tar.gz
+            release-assets/trails-v${{ needs.publish-policy.outputs.version }}-SHA256SUMS
+          compression-level: 0
+          if-no-files-found: error
+      - name: Show archive checksums and approval comment
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          MANIFEST_DIGEST: ${{ steps.manifest.outputs.digest }}
+          RELEASE_SHA: ${{ needs.publish-policy.outputs.release_sha }}
+          VERSION: ${{ needs.publish-policy.outputs.version }}
+        run: |
+          {
+            printf '## Trails v%s archives\n\nSource commit: %s\n\n' "$VERSION" "$RELEASE_SHA"
+            printf '[Download the staged archives](%s)\n\n' "$ARTIFACT_URL"
+            printf 'Review the checksums, then paste this exact comment when approving the npm environment deployment:\n\n'
+            printf '~~~\napprove-trails-archives %s/%s/%s %s\n~~~\n\n' \
+              "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$ARTIFACT_ID" "$MANIFEST_DIGEST"
+            printf '~~~\n'
+            cat "release-assets/trails-v$VERSION-SHA256SUMS"
+            printf '~~~\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  archive-approval:
+    name: Approve GitHub archives (npm publication not needed here)
+    needs: [publish-policy, publish-auto, release-assets]
+    if: ${{ !cancelled() && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: ${{ needs.release-assets.outputs.artifact_url }}
+    permissions: {}
+    steps:
+      - run: echo 'Archive approval received; the separate publisher verifies the review record.'
+
   github-release:
-    name: Create GitHub Release
-    needs: [publish-policy, publish-auto, publish, release-assets]
-    if: always() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success' || needs.publish.result == 'success')
+    name: Publish approved GitHub Release
+    needs: [publish-policy, publish, release-assets, archive-approval]
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt && (needs.publish.result == 'success' || needs.archive-approval.result == 'success') }}
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: write
+    defaults:
+      run:
+        shell: bash
     outputs:
       tag: ${{ steps.release.outputs.tag }}
     steps:
+      - name: Verify exact archive approval
+        env:
+          ARTIFACT_ID: ${{ needs.release-assets.outputs.artifact_id }}
+          GH_TOKEN: ${{ github.token }}
+          MANIFEST_DIGEST: ${{ needs.release-assets.outputs.manifest_digest }}
+          STAGED_ATTEMPT: ${{ needs.release-assets.outputs.attempt }}
+        run: |
+          if [[ "$STAGED_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ||
+                ! "$ARTIFACT_ID" =~ ^[0-9]+$ || ! "$MANIFEST_DIGEST" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'No complete archive artifact from this attempt; rerun all jobs.' >&2
+            exit 1
+          fi
+          proof="approve-trails-archives $GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT/$ARTIFACT_ID $MANIFEST_DIGEST"
+          environment="$(gh api "repos/$GITHUB_REPOSITORY/environments/npm")"
+          if ! gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" |
+            jq -e --arg proof "$proof" --argjson environment "$environment" '
+              [$environment.protection_rules[]? | select(.type == "required_reviewers") |
+                .reviewers[]? | select(.type == "User" and (.reviewer.id | type == "number")) | .reviewer.id] as $reviewers |
+              any(.[];
+                .user.id as $reviewer |
+                .state == "approved" and .comment == $proof and ($reviewers | index($reviewer)) != null
+                and any(.environments[]; .name == "npm" and .id == $environment.id))
+            ' > /dev/null; then
+            echo 'No required reviewer approved this exact archive artifact. Rerun all jobs, then approve with the new comment shown in the stage summary.' >&2
+            exit 1
+          fi
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - name: Download CLI release assets
+      - name: Download only the approved archive artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: trails-cli-*
+          artifact-ids: ${{ needs.release-assets.outputs.artifact_id }}
           path: release-assets
           merge-multiple: true
-      - name: Assemble CLI checksum manifest
-        env:
-          VERSION: ${{ needs.publish-policy.outputs.version }}
-        run: |
-          cat release-assets/*.sha256 | LC_ALL=C sort > "release-assets/trails-v$VERSION-SHA256SUMS"
-          test "$(wc -l < "release-assets/trails-v$VERSION-SHA256SUMS")" -eq 4
       - name: Stage, populate, and publish GitHub release
         id: release
         env:
           DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
+          MANIFEST_DIGEST: ${{ needs.release-assets.outputs.manifest_digest }}
+          VERSION_TARGET: ${{ needs.publish-policy.outputs.release_sha }}
           VERSION: ${{ needs.publish-policy.outputs.version }}
         run: |
+          tag="v$VERSION"
+          manifest="trails-v$VERSION-SHA256SUMS"
+          cd release-assets
+          printf '%s  %s\n' "$MANIFEST_DIGEST" "$manifest" | sha256sum --strict --check
+          sha256sum --strict --check "$manifest"
+          mapfile -t archives < <(cut -c 67- -- "$manifest")
+          files=("$manifest" "${archives[@]}")
+          expected_assets="$(sha256sum -- "${files[@]}" | jq -Rnc '[inputs | split("  ") | {name: .[1], digest: ("sha256:" + .[0])}] | sort_by(.name)')"
+          cd ..
+
+          if gh release view "$tag" --json isDraft > "$RUNNER_TEMP/trails-release.json"; then
+            if ! jq -e '.isDraft == true' "$RUNNER_TEMP/trails-release.json" > /dev/null; then
+              echo "Refusing to change published release $tag" >&2
+              exit 1
+            fi
+          fi
+
           create_args=(--draft --latest=false)
           if [ "$DIST_TAG" != "latest" ]; then
             create_args+=(--prerelease)
           fi
 
-          tag="v$VERSION"
           notes_file="$(mktemp)"
           bun scripts/release-notes.ts github-release \
             --version "$VERSION" \
             --dist-tag "$DIST_TAG" \
             > "$notes_file"
-          version_target="$(git log -n 1 --format=%H -S "\"version\": \"$VERSION\"" -- apps/trails/package.json)"
-          if [ -z "$version_target" ]; then
-            echo "Could not resolve commit that introduced apps/trails/package.json version $VERSION" >&2
-            exit 1
-          fi
+          git cat-file -e "$VERSION_TARGET^{commit}"
 
           git fetch --force --tags origin
           if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-            tag_target="$(git rev-list -n 1 "$tag")"
-            if [ "$tag_target" != "$version_target" ]; then
-              echo "$tag points to $tag_target, expected $version_target" >&2
+            tag_target="$(git rev-parse "refs/tags/$tag^{commit}")"
+            if [ "$tag_target" != "$VERSION_TARGET" ]; then
+              echo "$tag points to $tag_target, expected $VERSION_TARGET" >&2
               exit 1
             fi
           else
-            git tag "$tag" "$version_target"
+            git tag "$tag" "$VERSION_TARGET"
             git push origin "refs/tags/$tag"
           fi
 
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "GitHub release $tag already exists"
-          else
+          if [ ! -s "$RUNNER_TEMP/trails-release.json" ]; then
             gh release create "$tag" \
               --verify-tag \
               --title "Trails v$VERSION" \
@@ -304,17 +439,22 @@ jobs:
               "${create_args[@]}"
           fi
 
-          gh release upload "$tag" \
-            release-assets/*.tar.gz \
-            "release-assets/trails-v$VERSION-SHA256SUMS" \
-            --clobber
+          if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" != "true" ]; then
+            echo "Refusing to upload assets to a non-draft release $tag" >&2
+            exit 1
+          fi
+          gh release upload "$tag" "${files[@]/#/release-assets/}" --clobber
 
-          if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = "true" ]; then
-            if [ "$DIST_TAG" = "latest" ]; then
-              gh release edit "$tag" --draft=false --latest
-            else
-              gh release edit "$tag" --draft=false --prerelease --latest=false
-            fi
+          if ! gh release view "$tag" --json isDraft,assets |
+            jq -e --argjson expected "$expected_assets" \
+              '.isDraft == true and ([.assets[] | {name, digest}] | sort_by(.name)) == $expected' > /dev/null; then
+            echo "Draft $tag does not contain exactly the approved assets" >&2
+            exit 1
+          fi
+          if [ "$DIST_TAG" = "latest" ]; then
+            gh release edit "$tag" --draft=false --latest
+          else
+            gh release edit "$tag" --draft=false --prerelease --latest=false
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
