@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@ontrails/core": "workspace:^",
-    "hono": "^4.13.13"
+    "hono": "^4.13.19"
   },
   "devDependencies": {
     "@ontrails/http": "workspace:^"
