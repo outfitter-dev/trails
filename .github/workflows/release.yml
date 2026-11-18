@@ -153,8 +153,8 @@ jobs:
 
   publish:
     name: Publish to npm manually
-    needs: [publish-policy, release-asset-policy, stage-release-assets]
-    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true' && needs.release-asset-policy.result == 'success' && (needs.release-asset-policy.outputs.needed == 'false' || (needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt)) }}
+    needs: [publish-policy, release-asset-policy, release-assets]
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true' && needs.release-asset-policy.result == 'success' && (needs.release-asset-policy.outputs.needed == 'false' || (needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt)) }}
     runs-on: ubuntu-latest
     environment: npm
     env:
@@ -227,7 +227,7 @@ jobs:
             exit 1
           fi
 
-  release-assets:
+  build-release-assets:
     name: Build CLI asset (${{ matrix.platform }})
     needs: [publish-policy, release-asset-policy]
     if: ${{ !cancelled() && needs.release-asset-policy.result == 'success' && needs.release-asset-policy.outputs.needed == 'true' }}
@@ -262,10 +262,10 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
-  stage-release-assets:
+  release-assets:
     name: Stage and checksum GitHub archives
-    needs: [publish-policy, release-assets]
-    if: ${{ !cancelled() && needs.release-assets.result == 'success' }}
+    needs: [publish-policy, build-release-assets]
+    if: ${{ !cancelled() && needs.build-release-assets.result == 'success' }}
     runs-on: ubuntu-latest
     permissions: {}
     outputs:
@@ -321,20 +321,20 @@ jobs:
 
   archive-approval:
     name: Approve GitHub archives (npm publication not needed here)
-    needs: [publish-policy, publish-auto, stage-release-assets]
-    if: ${{ !cancelled() && needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success') }}
+    needs: [publish-policy, publish-auto, release-assets]
+    if: ${{ !cancelled() && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success') }}
     runs-on: ubuntu-latest
     environment:
       name: npm
-      url: ${{ needs.stage-release-assets.outputs.artifact_url }}
+      url: ${{ needs.release-assets.outputs.artifact_url }}
     permissions: {}
     steps:
       - run: echo 'Archive approval received; the separate publisher verifies the review record.'
 
   github-release:
     name: Publish approved GitHub Release
-    needs: [publish-policy, publish, stage-release-assets, archive-approval]
-    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.stage-release-assets.result == 'success' && needs.stage-release-assets.outputs.attempt == github.run_attempt && (needs.publish.result == 'success' || needs.archive-approval.result == 'success') }}
+    needs: [publish-policy, publish, release-assets, archive-approval]
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt && (needs.publish.result == 'success' || needs.archive-approval.result == 'success') }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -347,10 +347,10 @@ jobs:
     steps:
       - name: Verify exact archive approval
         env:
-          ARTIFACT_ID: ${{ needs.stage-release-assets.outputs.artifact_id }}
+          ARTIFACT_ID: ${{ needs.release-assets.outputs.artifact_id }}
           GH_TOKEN: ${{ github.token }}
-          MANIFEST_DIGEST: ${{ needs.stage-release-assets.outputs.manifest_digest }}
-          STAGED_ATTEMPT: ${{ needs.stage-release-assets.outputs.attempt }}
+          MANIFEST_DIGEST: ${{ needs.release-assets.outputs.manifest_digest }}
+          STAGED_ATTEMPT: ${{ needs.release-assets.outputs.attempt }}
         run: |
           if [[ "$STAGED_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ||
                 ! "$ARTIFACT_ID" =~ ^[0-9]+$ || ! "$MANIFEST_DIGEST" =~ ^[0-9a-f]{64}$ ]]; then
@@ -378,7 +378,7 @@ jobs:
       - name: Download only the approved archive artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          artifact-ids: ${{ needs.stage-release-assets.outputs.artifact_id }}
+          artifact-ids: ${{ needs.release-assets.outputs.artifact_id }}
           path: release-assets
           merge-multiple: true
       - name: Stage, populate, and publish GitHub release
@@ -386,7 +386,7 @@ jobs:
         env:
           DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
-          MANIFEST_DIGEST: ${{ needs.stage-release-assets.outputs.manifest_digest }}
+          MANIFEST_DIGEST: ${{ needs.release-assets.outputs.manifest_digest }}
           VERSION_TARGET: ${{ needs.publish-policy.outputs.release_sha }}
           VERSION: ${{ needs.publish-policy.outputs.version }}
         run: |

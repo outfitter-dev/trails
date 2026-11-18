@@ -10,7 +10,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 interface WorkflowJob {
-  readonly steps: readonly { readonly name?: string; readonly run?: string }[];
+  readonly environment?: { readonly name: string };
+  readonly if?: string;
+  readonly needs?: readonly string[];
+  readonly permissions?: Record<string, string>;
+  readonly steps: readonly {
+    readonly name?: string;
+    readonly run?: string;
+    readonly with?: Record<string, unknown>;
+  }[];
 }
 
 const workflow = Bun.YAML.parse(
@@ -28,6 +36,43 @@ const releaseStep = (job: string, name: string): string => {
   }
   return step.run;
 };
+
+test('reuses manual npm approval or asks once in a job with no npm privileges', () => {
+  const stage = workflow.jobs['release-assets'];
+  const publish = workflow.jobs['github-release'];
+  const approve = workflow.jobs['archive-approval'];
+
+  expect(stage?.needs).toContain('build-release-assets');
+  expect(stage?.if).toContain("needs.build-release-assets.result == 'success'");
+  expect(workflow.jobs.publish?.needs).toContain('release-assets');
+  expect(approve?.needs).toContain('release-assets');
+  expect(approve?.environment?.name).toBe('npm');
+  expect(approve?.permissions).toEqual({});
+  expect(publish?.environment).toBeUndefined();
+  expect(publish?.permissions).not.toHaveProperty('id-token');
+  expect(publish?.if).toContain(
+    "needs.publish.result == 'success' || needs.archive-approval.result == 'success'"
+  );
+});
+
+test('verifies approval before extracting the exact artifact to the checksum directory', () => {
+  const publish = workflow.jobs['github-release'];
+  expect(publish?.if).toContain(
+    'needs.release-assets.outputs.attempt == github.run_attempt'
+  );
+  const stepNames = publish?.steps.map(({ name }) => name) ?? [];
+  const verify = stepNames.indexOf('Verify exact archive approval');
+  const download = stepNames.indexOf(
+    'Download only the approved archive artifact'
+  );
+  expect(verify).toBeGreaterThanOrEqual(0);
+  expect(verify).toBeLessThan(download);
+  expect(publish?.steps[download]?.with).toEqual({
+    'artifact-ids': `\${{ needs.release-assets.outputs.artifact_id }}`,
+    'merge-multiple': true,
+    path: 'release-assets',
+  });
+});
 
 test('only a configured reviewer can approve these exact archives in this run and attempt', () => {
   const root = mkdtempSync(join(tmpdir(), 'trails-archive-approval-'));
@@ -219,7 +264,7 @@ esac
       );
 
     const staged = run(
-      'stage-release-assets',
+      'release-assets',
       'Assemble CLI checksum manifest',
       assets
     );
