@@ -89,6 +89,7 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
+      attempt: ${{ github.run_attempt }}
       channel: ${{ steps.policy.outputs.channel }}
       create_github_release: ${{ steps.policy.outputs.create_github_release }}
       decision: ${{ steps.policy.outputs.decision }}
@@ -108,6 +109,7 @@ jobs:
         id: policy
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TRAILS_RELEASE_POLICY_ASSUME_CI_PASSED: '0'
           TRAILS_RELEASE_POLICY_CI_ATTEMPTS: '30'
           TRAILS_RELEASE_POLICY_CI_WAIT_MS: '10000'
         run: |
@@ -126,6 +128,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      attempt: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -190,7 +194,7 @@ jobs:
   release-asset-policy:
     name: Check whether GitHub archives are needed
     needs: publish-policy
-    if: ${{ !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-policy.outputs.decision == 'auto' || (github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual')) }}
+    if: ${{ !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.attempt == github.run_attempt && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.decision == 'auto' || (needs.publish-policy.outputs.decision == 'manual' && (needs.publish-policy.outputs.should_publish == 'false' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)))) }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -215,7 +219,7 @@ jobs:
           esac
           echo "needed=$needed" >> "$GITHUB_OUTPUT"
       - name: Require a protected npm approval environment
-        if: steps.release.outputs.needed == 'true'
+        if: steps.release.outputs.needed == 'true' && needs.publish-policy.outputs.decision == 'manual'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -265,7 +269,7 @@ jobs:
   release-assets:
     name: Stage and checksum GitHub archives
     needs: [publish-policy, build-release-assets]
-    if: ${{ !cancelled() && needs.build-release-assets.result == 'success' }}
+    if: ${{ !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.attempt == github.run_attempt && needs.build-release-assets.result == 'success' }}
     runs-on: ubuntu-latest
     permissions: {}
     outputs:
@@ -273,6 +277,7 @@ jobs:
       artifact_url: ${{ steps.upload.outputs.artifact-url }}
       attempt: ${{ github.run_attempt }}
       manifest_digest: ${{ steps.manifest.outputs.digest }}
+      run_id: ${{ github.run_id }}
     steps:
       - name: Download this attempt's CLI archives
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -290,7 +295,7 @@ jobs:
           sha256sum -- "trails-v$VERSION-"{darwin-arm64,darwin-x64,linux-arm64,linux-x64}.tar.gz > "$manifest"
           digest="$(sha256sum -- "$manifest")"
           echo "digest=${digest%% *}" >> "$GITHUB_OUTPUT"
-      - name: Upload immutable review artifact
+      - name: Upload immutable archive artifact
         id: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -300,20 +305,25 @@ jobs:
             release-assets/trails-v${{ needs.publish-policy.outputs.version }}-SHA256SUMS
           compression-level: 0
           if-no-files-found: error
-      - name: Show archive checksums and approval comment
+      - name: Show archive checksums and manual approval instructions
         env:
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
           ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
           MANIFEST_DIGEST: ${{ steps.manifest.outputs.digest }}
+          POLICY_DECISION: ${{ needs.publish-policy.outputs.decision }}
           RELEASE_SHA: ${{ needs.publish-policy.outputs.release_sha }}
           VERSION: ${{ needs.publish-policy.outputs.version }}
         run: |
           {
             printf '## Trails v%s archives\n\nSource commit: %s\n\n' "$VERSION" "$RELEASE_SHA"
             printf '[Download the staged archives](%s)\n\n' "$ARTIFACT_URL"
-            printf 'Review the checksums, then paste this exact comment when approving the npm environment deployment:\n\n'
-            printf '~~~\napprove-trails-archives %s/%s/%s %s\n~~~\n\n' \
-              "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$ARTIFACT_ID" "$MANIFEST_DIGEST"
+            if [[ "$POLICY_DECISION" == 'manual' ]]; then
+              printf 'Review the checksums, then paste this exact comment when approving the npm environment deployment:\n\n'
+              printf '~~~\napprove-trails-archives %s/%s/%s %s\n~~~\n\n' \
+                "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$ARTIFACT_ID" "$MANIFEST_DIGEST"
+            else
+              printf 'Release policy: %s. Manifest SHA-256: %s\n\n' "$POLICY_DECISION" "$MANIFEST_DIGEST"
+            fi
             printf '~~~\n'
             cat "release-assets/trails-v$VERSION-SHA256SUMS"
             printf '~~~\n'
@@ -321,8 +331,8 @@ jobs:
 
   archive-approval:
     name: Approve GitHub archives (npm publication not needed here)
-    needs: [publish-policy, publish-auto, release-assets]
-    if: ${{ !cancelled() && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success') }}
+    needs: [publish-policy, release-assets]
+    if: ${{ !cancelled() && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.attempt == github.run_attempt && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'false' && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt }}
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -332,9 +342,10 @@ jobs:
       - run: echo 'Archive approval received; the separate publisher verifies the review record.'
 
   github-release:
-    name: Publish approved GitHub Release
-    needs: [publish-policy, publish, release-assets, archive-approval]
-    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt && (needs.publish.result == 'success' || needs.archive-approval.result == 'success') }}
+    name: Publish authorized GitHub Release
+    needs:
+      [publish-policy, publish-auto, publish, release-assets, archive-approval]
+    if: ${{ !cancelled() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.ref_protected && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.attempt == github.run_attempt && needs.release-assets.result == 'success' && needs.release-assets.outputs.attempt == github.run_attempt }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -345,18 +356,60 @@ jobs:
     outputs:
       tag: ${{ steps.release.outputs.tag }}
     steps:
-      - name: Verify exact archive approval
+      - name: Verify archive authorization
         env:
+          ARCHIVE_APPROVAL_RESULT: ${{ needs.archive-approval.result }}
           ARTIFACT_ID: ${{ needs.release-assets.outputs.artifact_id }}
+          AUTO_PUBLISH_ATTEMPT: ${{ needs.publish-auto.outputs.attempt }}
+          AUTO_PUBLISH_RESULT: ${{ needs.publish-auto.result }}
+          CREATE_GITHUB_RELEASE: ${{ needs.publish-policy.outputs.create_github_release }}
           GH_TOKEN: ${{ github.token }}
           MANIFEST_DIGEST: ${{ needs.release-assets.outputs.manifest_digest }}
+          MANUAL_PUBLISH_RESULT: ${{ needs.publish.result }}
+          POLICY_ATTEMPT: ${{ needs.publish-policy.outputs.attempt }}
+          POLICY_DECISION: ${{ needs.publish-policy.outputs.decision }}
+          POLICY_RESULT: ${{ needs.publish-policy.result }}
+          SHOULD_PUBLISH: ${{ needs.publish-policy.outputs.should_publish }}
           STAGED_ATTEMPT: ${{ needs.release-assets.outputs.attempt }}
+          STAGED_RUN_ID: ${{ needs.release-assets.outputs.run_id }}
         run: |
-          if [[ "$STAGED_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ||
+          if [[ "$STAGED_RUN_ID" != "$GITHUB_RUN_ID" ||
+                "$STAGED_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ||
                 ! "$ARTIFACT_ID" =~ ^[0-9]+$ || ! "$MANIFEST_DIGEST" =~ ^[0-9a-f]{64}$ ]]; then
             echo 'No complete archive artifact from this attempt; rerun all jobs.' >&2
             exit 1
           fi
+          if [[ "$POLICY_RESULT" != 'success' || "$POLICY_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ||
+                "$CREATE_GITHUB_RELEASE" != 'true' ]]; then
+            echo 'No release policy authorization from this attempt; rerun all jobs.' >&2
+            exit 1
+          fi
+          case "$POLICY_DECISION:$SHOULD_PUBLISH" in
+            auto:false) exit 0 ;;
+            auto:true)
+              if [[ "$AUTO_PUBLISH_RESULT" == 'success' && "$AUTO_PUBLISH_ATTEMPT" == "$GITHUB_RUN_ATTEMPT" ]]; then
+                exit 0
+              fi
+              echo 'Automatic npm publication was not verified in this attempt; rerun all jobs.' >&2
+              exit 1
+              ;;
+            manual:true)
+              if [[ "$MANUAL_PUBLISH_RESULT" != 'success' ]]; then
+                echo 'Manual npm publication did not succeed.' >&2
+                exit 1
+              fi
+              ;;
+            manual:false)
+              if [[ "$ARCHIVE_APPROVAL_RESULT" != 'success' ]]; then
+                echo 'The archive approval job did not succeed.' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo 'Release policy did not authorize an archive publication path.' >&2
+              exit 1
+              ;;
+          esac
           proof="approve-trails-archives $GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT/$ARTIFACT_ID $MANIFEST_DIGEST"
           environment="$(gh api "repos/$GITHUB_REPOSITORY/environments/npm")"
           if ! gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" |
@@ -375,7 +428,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - name: Download only the approved archive artifact
+      - name: Download only the authorized archive artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           artifact-ids: ${{ needs.release-assets.outputs.artifact_id }}
@@ -448,7 +501,7 @@ jobs:
           if ! gh release view "$tag" --json isDraft,assets |
             jq -e --argjson expected "$expected_assets" \
               '.isDraft == true and ([.assets[] | {name, digest}] | sort_by(.name)) == $expected' > /dev/null; then
-            echo "Draft $tag does not contain exactly the approved assets" >&2
+            echo "Draft $tag does not contain exactly the authorized assets" >&2
             exit 1
           fi
           if [ "$DIST_TAG" = "latest" ]; then
