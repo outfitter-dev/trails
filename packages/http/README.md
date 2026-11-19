@@ -45,6 +45,8 @@ The HTTP package follows the surface API naming split:
 
 The shared `@ontrails/http/fetch` kernel owns query/body parsing, content-length validation, public error rendering, diagnostics, request IDs, headers, abort propagation, and webhook verification/parsing behavior. Hono and Bun both consume that kernel so route semantics stay aligned.
 
+`createFetchHandler(graph, { onUnmatched })` optionally delegates a final method/path dispatch miss to `(request) => Response | Promise<Response>`. Exact routes and parameterized webhook routes run first. Matched responses and failures, including authored 404s, never invoke the callback. The callback receives the original request; its response or rejection passes through to the host. Omit it to preserve the standard HTTP route-not-found response. This hook lets a host serve static assets without inspecting response status or duplicating dispatch.
+
 For more control, build the routes yourself:
 
 ```typescript

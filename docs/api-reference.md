@@ -308,7 +308,7 @@ OpenApiOptions, OpenApiSpec, OpenApiServer
 createRouteHandler(route, options?)    // materialize one Web Fetch Request -> Response handler
 createFetchHandler(graph, options?)    // materialize a full topo Web Fetch dispatcher
 
-CreateRouteHandlerOptions, CreateFetchHandlerOptions
+CreateRouteHandlerOptions, CreateFetchHandlerOptions // onUnmatched? runs only on dispatch misses
 ```
 
 The fetch kernel owns query/body parsing, content-length checks, public HTTP error rendering, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP bindings.
@@ -332,6 +332,23 @@ createApp(graph, options?)             // create a Hono app without serving
 
 CreateAppOptions, SurfaceHttpResult
 ```
+
+## `@ontrails/cloudflare/workers`
+
+The [Workers guide](../adapters/cloudflare/README.md) covers HTTP/queue/scheduled hosting, the additive structural MCP slot, and assets fallback after unmatched HTTP routes. The package root re-exports this host API alongside its existing Cloudflare resource collection.
+
+```typescript
+createWorkersHandler(graph, options?) // Worker fetch/queue/scheduled export; optional exact MCP host path + factory
+workersHostConfigSchema              // pure strict host data; no runtime handler/native env objects
+buildEnvResourceOverrides(graph, env, options?)
+registerEnvBinding(resource, spec), getEnvBinding(resource)
+
+CloudflareWorker, CreateWorkersHandlerOptions, WorkersExecutionContext
+WorkersResourceOverrides, WorkersEnv, EnvBindingSpec, BuildEnvResourceOverridesOptions
+WorkersHostConfig, WorkersMcpContext, WorkersMcpFactory, WorkersMcpHandler
+```
+
+`host.mcp.path` is the sole MCP path declaration; the separate `mcp` factory receives env-resolved resources, shared config/context hooks and selections. Exact pathname matching reserves the endpoint for every method, rejects HTTP collisions, and never treats MCP errors as route misses. No-MCP apps retain existing behavior. Real MCP transport/client proof follows [TRL-1340](https://linear.app/outfitter/issue/TRL-1340); saved path facts and rendering remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452)/[TRL-1469](https://linear.app/outfitter/issue/TRL-1469).
 
 ## `@ontrails/cloudflare/d1`
 

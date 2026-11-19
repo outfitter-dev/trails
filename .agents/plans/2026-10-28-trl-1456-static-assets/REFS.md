@@ -1,0 +1,9 @@
+# Inputs and ownership
+
+- [TRL-1456](https://linear.app/outfitter/issue/TRL-1456), dependent on [TRL-1459](https://linear.app/outfitter/issue/TRL-1459), draft [#1114](https://github.com/outfitter-dev/trails/pull/1114), parent368d9523eea5866bed8ff2d75014f64eec98bed3.
+- B expressly leased optional CreateFetchHandlerOptions.onUnmatched on final method/path miss after exact and parameterized matches, plus focused HTTP tests/docs/minor release intent. C confirmed no overlap. No other HTTP changes authorized.
+- Astra ruling: extend the same pure authored WorkersHostConfig data; no alternate compiler export, registry, WeakMap or core deploy primitive. Facts and namespace migration remain1452/1424, rendering1469.
+- Operator authorized registering the unowned1459 bottom and constructing the exact1456 child, preserving parent; no trunk sync/global restack or sibling edits.
+- Actual separate temp cf build qualification: pinned Bun1.4.2, Node26.12.1, cf1.0.0-beta.5, @cloudflare/vite-plugin2.0.0-beta.v.7, Vite8.3.5. Normal install+frozen install+cf build passed, no trust/global/repo dependency changes. Manifest SHA2564222c399534531531f63aa82366025b3fb42bf632910bef5730fb54bf8d604e9; lock67c3dafa1429974f0febe1fc3feea20c207d1211780304f7a9a12a65f9a2e34c.
+- Build Output actual artifact `.cloudflare/output/v0/workers/default/worker.config.json` SHA25693d43274d45b3a802894365f0a869448d2e099ebc9809349ad89913fef5dbf1d contained env.ASSETS type assets and assets.runWorkerFirst plus assets.notFoundHandling. This proves placement/spelling, not MCP pattern reach or deployment.
+- Native test uses installed Miniflare4.20260701.0/workerd1.20260701.1, compatibility2026-06-01, with routerConfig.has_user_worker and invoke_user_worker_ahead_of_assets. This is local routing evidence, not October qualification.
