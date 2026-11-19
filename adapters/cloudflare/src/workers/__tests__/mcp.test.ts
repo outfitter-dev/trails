@@ -166,6 +166,9 @@ test('MCP response errors never fall through to HTTP', async () => {
 
 test('invalid or inconsistent host setup is rejected', () => {
   const empty = topo('empty', {});
+  expect(() => createWorkersHandler(empty, { host: null as never })).toThrow(
+    'Invalid Worker host configuration'
+  );
   for (const path of [
     'mcp',
     '//other/mcp',

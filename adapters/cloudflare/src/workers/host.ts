@@ -1,3 +1,4 @@
+import { ValidationError } from '@ontrails/core';
 import { z } from 'zod';
 
 const isCanonicalPathname = (path: string): boolean =>
@@ -35,3 +36,15 @@ export const workersHostConfigSchema = z
 
 /** Authored host data, independent of protocol implementation or SDK objects. */
 export type WorkersHostConfig = z.infer<typeof workersHostConfigSchema>;
+
+export const parseWorkersHostConfig = (host: unknown): WorkersHostConfig => {
+  const parsed = workersHostConfigSchema.safeParse(
+    host === undefined ? {} : host
+  );
+  if (!parsed.success) {
+    throw new ValidationError('Invalid Worker host configuration', {
+      cause: parsed.error,
+    });
+  }
+  return parsed.data;
+};
