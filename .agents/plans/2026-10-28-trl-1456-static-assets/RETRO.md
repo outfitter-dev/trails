@@ -1,0 +1,15 @@
+# Execution record
+
+Registered an unowned1459 bottom with its existing draft1114 after normal full push; created exact1456 child at368d. No parent or sibling rewrite. Main has advanced; operator owns current-main integration.
+
+Added HTTP regression first. The first run exposed an invalid webhook fixture (used input instead of required parse); corrected to the existing source contract. The proper red run then failed on the missing callback. Implemented the optional final-miss callback, extended pure host data with assets.binding, normalized host once at construction, and supplied a native fallback preserving request/receiver. Native binding is resolved only on a miss; missing binding does not hide a matched route. No duplicated dispatcher or response inspection.
+
+Focused tests and real Miniflare assets test passed. Full HTTP suite204tests/659assertions and Cloudflare127tests/396assertions passed, with both production typechecks and adapter build. Initial scoped lint found five test style issues; fixed without suppressions; scoped formatter/lint now zero errors/warnings. Owner docs/API and a minor changeset for both packages added. Docs links/wrap/Markdown pass. Independent review initial source and runtime checks clean, final frozen review pending. Normal commit/push, hosted gates and fresh campaign acceptance remain pending.
+
+No new agent workflow or governable trail contract boundary: agent guidance and Warden rule additions are not applicable. Existing dispatch/host tests enforce this surface accommodation. Both APIs are optional, so existing apps need no source/lock migration; assets opt-in requires a native env binding and front-router Worker-first configuration. Saved deploy facts/rendering remain separate owners. No lock, dependency, generated guidance, tracker, registry or deployment changes.
+
+Final independent review is clean with noP0-P3 in the authorized runtime horizon; direct focused tests/typechecks passed. All intended files explicitly staged, unrelated readiness packet excluded. Strict targeted typecheck for four new fixture/test files also passed. Broader package/release/governance checks remain in progress before normal commit.
+
+Final explicit staged-file release check covers both HTTP and Cloudflare minor intent; an earlier HEAD-only check correctly saw no committed child diff and was superseded. Full publish pack validation passed, Wayfinder inspected70trails and all7committed locks recompiled cold byte-identical with validate green. README snippet check passed21configured files; source-depth Warden zero errors/warnings. Strict new-test types and diff whitespace pass. Project-depth governance is the remaining local check before normal commit. No source changed after independent review.
+
+Project-depth Warden passed with zero errors and11pre-existing warnings; no diagnostics in changed source. Two warnings name the existing HTTP/observability runConformance ownership mirror, which this layer does not change. Local source verification complete; normal commit and full push follow.
