@@ -1,4 +1,4 @@
-import { ValidationError } from '@ontrails/core';
+import { InternalError } from '@ontrails/core';
 
 import type { WorkersEnv } from '../env.js';
 import type { WorkersHostConfig } from './host.js';
@@ -24,7 +24,7 @@ export const createAssetsFallback = (
   return (request) => {
     const binding = env?.[assets.binding];
     if (!isAssetsBinding(binding)) {
-      throw new ValidationError(
+      throw new InternalError(
         `Worker assets binding "${assets.binding}" must provide fetch(request)`,
         { context: { binding: assets.binding } }
       );

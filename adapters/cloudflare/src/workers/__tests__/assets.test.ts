@@ -82,7 +82,7 @@ test('assets do not require bindings for HTTP trails', async () => {
   const worker = createWorkersHandler(topo('flag-host', { flags, show }), {
     host: { assets: { binding: 'ASSETS' } },
   });
-  const fetch = mock(() => new Response('asset'));
+  const fetch = mock((_request: Request) => new Response('asset'));
   const env = { ASSETS: { fetch } };
   const asset = request('/index.html');
 
@@ -103,7 +103,7 @@ test('assets do not require bindings for HTTP trails', async () => {
   expect(await recovered.json()).toEqual({ data: { value: 'red' } });
 });
 
-test('omitted assets retains HTTP 404, missing/malformed bindings fail only on a miss', async () => {
+test('omitted assets retains HTTP 404; invalid bindings return a redacted 500 only on a miss', async () => {
   const unchanged = await createWorkersHandler(app).fetch(request('/unknown'));
   expect(unchanged.status).toBe(404);
   const worker = createWorkersHandler(app, {
@@ -118,9 +118,16 @@ test('omitted assets retains HTTP 404, missing/malformed bindings fail only on a
     const matched = await worker.fetch(request('/missing'), env);
     expect(await matched.text()).toContain('authored missing');
     const response = await worker.fetch(request('/unknown'), env);
-    expect(response.status).toBe(400);
-    expect(await response.text()).toContain('ValidationError');
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'internal',
+        code: 'InternalError',
+        message: 'Internal server error',
+      },
+    });
   }
+  expect(console.error).toHaveBeenCalled();
   expect(() =>
     createWorkersHandler(app, { host: { assets: { binding: '' } } })
   ).toThrow();
