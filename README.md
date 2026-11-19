@@ -156,7 +156,6 @@ $ myapp greet --name World
 | [`@ontrails/rpc`](./packages/rpc) | JSON-RPC 2.0 surface kernel — derived method table, `trails.*` methods, serializable connection state |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, Web Fetch kernel, Bun-native subpath |
 | [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface using the shared kernel |
-| [`@ontrails/cloudflare`](./adapters/cloudflare) | Workers HTTP/queue host, typed MCP factory slot, env bridge, and Cloudflare resources |
 | [`@ontrails/vite`](./adapters/vite) | Vite adapter for opening Trails surfaces inside Vite projects |
 | [`@ontrails/config`](./packages/config) | Config resolution, profiles, resource config schemas, diagnostics |
 | [`@ontrails/permits`](./packages/permits) | Auth layer, permit model, JWT adapter, scope enforcement |
@@ -165,7 +164,7 @@ $ myapp greet --name World
 | [`@ontrails/blob`](./packages/blob) | Provider-neutral blob resources, byte/stream bodies, and binding conformance |
 | [`@ontrails/queue`](./packages/queue) | Provider-neutral queue producers, recorder mocks, and binding conformance |
 | [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
-| [`@ontrails/cloudflare`](./adapters/cloudflare) | Portable role bindings, native resource escape hatches and Workers hosting; D1 store bindings with reviewed schema SQL |
+| [`@ontrails/cloudflare`](./adapters/cloudflare) | Workers HTTP and queue hosting, typed MCP factory slot, env bridge, portable role bindings and native resources, and D1 store bindings with reviewed schema SQL |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testComposes()`, contract testing, surface harnesses |
 | [`@ontrails/topography`](./packages/topography) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence, Wayfind graph-read query APIs |
 | [`@ontrails/source`](./packages/source) | Shared source-code AST parsing, walking, locations, edits, literals, and Trails syntax helpers |
