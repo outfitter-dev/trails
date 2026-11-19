@@ -122,7 +122,7 @@ const review = {
 
 const withAuthorization = (
   check: (
-    run: (
+    execute: (
       overrides?: Record<string, string>
     ) => ReturnType<typeof Bun.spawnSync>
   ) => void
