@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/regrade",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Downstream migration reporting and safe rewrite helpers for Trails.",
   "repository": {
     "type": "git",

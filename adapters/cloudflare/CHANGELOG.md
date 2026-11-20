@@ -1,5 +1,12 @@
 # @ontrails/cloudflare
 
+## 0.4.0
+
+### Minor Changes
+
+- [`c3923df`](https://github.com/outfitter-dev/trails/commit/c3923df27542c2d08688cdf189cd297682ead8ee): Add a typed pure Workers host configuration and a structural MCP handler factory slot. Route one exact MCP pathname with env-resolved resources and shared context/config, reject inconsistent setup and HTTP collisions, and preserve existing HTTP and queue behavior. Real MCP transport integration and saved deploy path facts remain separate work.
+- [`67e4003`](https://github.com/outfitter-dev/trails/commit/67e4003f89620e911bce091d909c7f88e44192b1): Add an optional HTTP dispatch-miss callback and Workers host.assets binding configuration. Unmatched HTTP method/path requests can delegate to the native assets binding without resolving trail resources. Matched trail responses, errors and the exact MCP endpoint remain terminal. Apps without assets configuration retain the standard HTTP 404. Saved deploy facts and generated front-router configuration remain separate work.
+
 ## 0.3.0
 
 ### Minor Changes
