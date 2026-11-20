@@ -229,8 +229,8 @@ export class CancelledError extends TrailsError {
 export class RetryExhaustedError<
   TErr extends TrailsError = TrailsError,
 > extends InternalError {
-  readonly category: ErrorCategory;
-  readonly cause: TErr;
+  override readonly category: ErrorCategory;
+  override readonly cause: TErr;
 
   /** Number of recovery attempts made before exhaustion. */
   readonly attempts: number;
