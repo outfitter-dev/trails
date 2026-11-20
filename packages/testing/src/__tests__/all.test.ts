@@ -237,36 +237,19 @@ const repoTempDir = (): string =>
     `test-all-established-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
-const runGeneratedGovernanceSuite = (
-  helperName: 'testAll' | 'testAllEstablished'
+const runGeneratedSuite = (
+  name: string,
+  source: string,
+  args: readonly string[] = []
 ): { readonly exitCode: number; readonly output: string } => {
   const dir = repoTempDir();
-  const testFile = join(dir, `${helperName}.test.ts`);
-  const helperImport =
-    helperName === 'testAllEstablished'
-      ? '../../../src/all-established.ts'
-      : '../../../src/index.ts';
+  const testFile = join(dir, `${name}.test.ts`);
 
   mkdirSync(dir, { recursive: true });
-  writeFileSync(
-    testFile,
-    `import { Result, trail, topo } from '@ontrails/core';
-import { ${helperName} } from '${helperImport}';
-import { z } from 'zod';
-
-const draftTrail = trail('_draft.entity.prepare', {
-  implementation: async () => Result.ok({ ok: true }),
-  input: z.object({}),
-  output: z.object({ ok: z.boolean() }),
-});
-
-${helperName}(topo('draft-topo', { draftTrail }));
-`
-  );
-
   try {
+    writeFileSync(testFile, source);
     const proc = Bun.spawnSync({
-      cmd: ['bun', 'test', testFile, '--bail'],
+      cmd: ['bun', 'test', testFile, ...args],
       cwd: resolve(import.meta.dir, '..', '..', '..'),
       stderr: 'pipe',
       stdout: 'pipe',
@@ -280,6 +263,72 @@ ${helperName}(topo('draft-topo', { draftTrail }));
     rmSync(dir, { force: true, recursive: true });
   }
 };
+
+const runGeneratedGovernanceSuite = (
+  helperName: 'testAll' | 'testAllEstablished'
+): { readonly exitCode: number; readonly output: string } => {
+  const helperImport =
+    helperName === 'testAllEstablished'
+      ? '../../../src/all-established.ts'
+      : '../../../src/index.ts';
+
+  return runGeneratedSuite(
+    helperName,
+    `import { Result, trail, topo } from '@ontrails/core';
+import { ${helperName} } from '${helperImport}';
+import { z } from 'zod';
+
+const draftTrail = trail('_draft.entity.prepare', {
+  implementation: async () => Result.ok({ ok: true }),
+  input: z.object({}),
+  output: z.object({ ok: z.boolean() }),
+});
+
+${helperName}(topo('draft-topo', { draftTrail }));
+`,
+    ['--bail']
+  );
+};
+
+const runGeneratedFailureSuite = () =>
+  runGeneratedSuite(
+    'testAll-diagnostics',
+    `import { InternalError, resource, Result, trail, topo } from '@ontrails/core';
+import { testAll } from '../../../src/index.ts';
+import { z } from 'zod';
+
+const repo = resource('repo.main', {
+  create: () => Result.err(new InternalError(
+    'Register resource "repo.main" to use its mock. token=fake-inline-credential',
+    {
+      cause: new Error('fake-cause-credential'),
+      context: { diagnostics: 'fake-context-credential' },
+    }
+  )),
+  mock: () => ({ ready: true }),
+});
+
+const repoRead = trail('repo.read', {
+  examples: [{ expected: { ready: true }, input: {}, name: 'Read repo' }],
+  implementation: (_input, ctx) => Result.ok(repo.from(ctx)),
+  input: z.object({}),
+  output: z.object({ ready: z.boolean() }),
+  resources: [repo],
+});
+
+const profileRead = trail('profile.read', {
+  examples: [{ expectedMatch: { ready: true }, input: {}, name: 'Read profile' }],
+  implementation: () => Result.ok({ ready: true }),
+  input: z.object({}),
+  output: z.object({ ready: z.boolean() }),
+  permit: { scopes: ['profile:read'] },
+});
+
+testAll(topo('diagnostic-topo', { repoRead, profileRead }), {
+  strictPermits: true,
+});
+`
+  );
 
 const runGeneratedEstablishedSuite = (): {
   readonly exitCode: number;
@@ -386,6 +435,26 @@ describe('testAll version entries', () => {
   afterAll(() => {
     expect(versionAllCurrentImplementation).toHaveBeenCalledTimes(4);
     expect(versionAllForkImplementation).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('testAll failure diagnostics', () => {
+  test('distinguishes an unregistered resource from a missing permit without leaking credentials', () => {
+    const { exitCode, output } = runGeneratedFailureSuite();
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain('resource-exists: Resource');
+    expect(output).toContain(
+      'InternalError: Register resource "repo.main" to use its mock. [REDACTED]'
+    );
+    expect(output).toContain('repo.read > example: Read repo');
+    expect(output).toContain('repo.read > contract: Read repo');
+    expect(output).toContain('PermitError: No permit provided');
+    expect(output).toContain('profile.read > example: Read profile');
+    expect(output).toContain('profile.read > contract: Read profile');
+    expect(output).not.toContain('fake-inline-credential');
+    expect(output).not.toContain('fake-cause-credential');
+    expect(output).not.toContain('fake-context-credential');
   });
 });
 

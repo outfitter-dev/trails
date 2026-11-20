@@ -10,7 +10,7 @@
 import { expect } from 'bun:test';
 
 import type { Result } from '@ontrails/core';
-import { formatZodIssues } from '@ontrails/core';
+import { formatZodIssues, redactErrorString } from '@ontrails/core';
 import type { z } from 'zod';
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,8 @@ import type { z } from 'zod';
 /**
  * Assert that a Result is Ok and return its value.
  *
- * Eliminates the `if (result.isOk())` / `as unknown as` dance in tests.
+ * On failure, report the redacted error name and message without exposing
+ * the original error object or its cause.
  *
  * @example
  * ```typescript
@@ -29,8 +30,16 @@ import type { z } from 'zod';
  * ```
  */
 export const expectOk = <T, E>(result: Result<T, E>): T => {
-  expect(result.isOk()).toBe(true);
-  return (result as unknown as { value: T }).value;
+  if (result.isOk()) {
+    return result.value;
+  }
+
+  const { error } = result;
+  const details =
+    error instanceof Error
+      ? `${redactErrorString(error.name || 'Error')}: ${redactErrorString(error.message)}`
+      : 'a non-Error value';
+  throw new Error(`Expected Result.ok(), received Result.err(): ${details}`);
 };
 
 /**

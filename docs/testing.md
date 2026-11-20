@@ -93,6 +93,8 @@ Generates a `contract` describe block containing:
 - **Contract checks** via `testContracts`
 - **Detour contract validation** via `testDetours`
 
+When a case expects success but receives a `Result.err()`, the test report names the trail and example and shows the redacted error name and message. For a missing resource, check the topo registration and test overrides. For `PermitError: No permit provided`, supply a test permit in the context.
+
 For most apps, `testAll` is the only test call you need. Reach for the individual helpers below when you need finer control.
 
 ## `testExamples(graph)`
