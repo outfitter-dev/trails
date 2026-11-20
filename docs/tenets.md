@@ -66,6 +66,8 @@ Good additions reduce ceremony, lower drift potential, impose an acceptable foot
 
 This does not preclude experimentation. Trails itself was formed through iteration, refinement, and repeated shaping over time. The key is that experimentation should feed the core story, not bypass it. Broadening the built-in surface is worth doing when it is a net win across the system. It is not worth doing to chase a trend or accumulate surface area.
 
+The same discipline applies to evolution. Every doctrine change must preserve or improve the happy path, not just the doctrine itself. Refactors that strengthen the model but leave consumers digging through the change log are not net wins. Doctrine evolution carries an obligation: the consuming app should not have to become a Trails archaeologist between releases.
+
 ### Ship the whole developer experience
 
 Framework work is not done when the code compiles. A shipped capability must be usable, teachable, governable, and releasable by the next developer or agent that meets it.
@@ -205,7 +207,7 @@ The authored default documents intent. The override enables reuse. The resolved 
 
 The system is a single graph: trails, resources, signals, compositions, and metadata. Authors define the contract once. Trails derives known facts from that contract, then surfaces render those facts for the interface they own. Typed layers can wrap that graph at declared attachment points, and their declared inputs can be rendered through surfaces, but layers are not persisted as standalone nodes in the graph.
 
-Wayfinder reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracing system shows what's actually happening at runtime — live during execution, historical after the fact.
+Wayfinder reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracing system shows what's actually happening at runtime: live during execution, historical after the fact.
 
 No separate data sources, no sync problems.
 
