@@ -1,5 +1,11 @@
 # @ontrails/hono
 
+## 0.4.0
+
+### Patch Changes
+
+- [`188ae87`](https://github.com/outfitter-dev/trails/commit/188ae875bb0de2341578e81caba43213f37f41d0): Raise the Hono dependency floor to 4.13.19 to pick up upstream security fixes.
+
 ## 0.3.0
 
 ### Minor Changes

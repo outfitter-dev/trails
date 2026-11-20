@@ -1,5 +1,12 @@
 # @ontrails/core
 
+## 0.4.0
+
+### Patch Changes
+
+- [`a9dfedc`](https://github.com/outfitter-dev/trails/commit/a9dfedc1d4023a5ebbfeaa60f5581d4d7a93c64f): Fix TypeScript errors when consumers enable `noImplicitOverride` and import
+  the published core package. Runtime behavior is unchanged.
+
 ## 0.3.0
 
 ### Minor Changes
