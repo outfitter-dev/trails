@@ -228,15 +228,13 @@ const convertQueryValue = (
   if (conversion === undefined) {
     return value;
   }
-  if (!Array.isArray(value)) {
-    return conversion.kind === 'scalar'
-      ? convertQueryScalar(value, conversion.scalarKind)
-      : value;
+  if (conversion.kind === 'array') {
+    const items = Array.isArray(value) ? value : [value];
+    return items.map((item) => convertQueryScalar(item, conversion.itemKind));
   }
-  if (conversion.kind !== 'array') {
-    return value;
-  }
-  return value.map((item) => convertQueryScalar(item, conversion.itemKind));
+  return Array.isArray(value)
+    ? value
+    : convertQueryScalar(value, conversion.scalarKind);
 };
 
 const queryRequiredFields = (

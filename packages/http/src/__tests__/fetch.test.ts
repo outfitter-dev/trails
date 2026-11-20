@@ -169,23 +169,61 @@ describe('@ontrails/http/fetch', () => {
     expect(await response.json()).toEqual({ data: { reply: 'direct' } });
   });
 
-  test('preserves repeated query keys as arrays and singleton keys as scalars', async () => {
+  test('reads singleton and repeated values as arrays without defaulting a missing required array', async () => {
     const handler = createFetchHandler(topo('fetch-api', { tagsTrail }));
 
     const repeated = await handler(buildRequest('/tags?tags=red&tags=blue'));
     const singleton = await handler(buildRequest('/tags?tags=solo'));
+    const missing = await handler(buildRequest('/tags'));
 
     expect(repeated.status).toBe(200);
     expect(await repeated.json()).toEqual({
       data: { tags: ['red', 'blue'] },
     });
-    expect(singleton.status).toBe(400);
-    expect(await singleton.json()).toMatchObject({
+    expect(singleton.status).toBe(200);
+    expect(await singleton.json()).toEqual({ data: { tags: ['solo'] } });
+    expect(missing.status).toBe(400);
+    expect(await missing.json()).toMatchObject({
       error: { category: 'validation' },
     });
   });
 
   describe('schema-derived query values', () => {
+    test('does not wrap ambiguous scalar-or-array fields or collapse repeated scalars', async () => {
+      const schema = z.object({
+        label: z.string(),
+        tags: z.union([z.string(), z.array(z.string())]),
+      });
+      const mixedTrail = trail('mixed', {
+        implementation: (input) => Result.ok(input),
+        input: schema,
+        intent: 'read',
+        output: schema,
+      });
+      const handler = createFetchHandler(topo('fetch-api', { mixedTrail }));
+
+      const singleton = await handler(buildRequest('/mixed?label=0&tags=red'));
+      const repeated = await handler(
+        buildRequest('/mixed?label=0&tags=red&tags=blue')
+      );
+      const invalidScalar = await handler(
+        buildRequest('/mixed?label=0&label=1&tags=red')
+      );
+
+      expect(singleton.status).toBe(200);
+      expect(await singleton.json()).toEqual({
+        data: { label: '0', tags: 'red' },
+      });
+      expect(repeated.status).toBe(200);
+      expect(await repeated.json()).toEqual({
+        data: { label: '0', tags: ['red', 'blue'] },
+      });
+      expect(invalidScalar.status).toBe(400);
+      expect(await invalidScalar.json()).toMatchObject({
+        error: { category: 'validation' },
+      });
+    });
+
     test('converts declared number and boolean fields while preserving strings', async () => {
       const handler = createFetchHandler(
         topo('fetch-api', { typedQueryTrail })
@@ -561,7 +599,7 @@ describe('@ontrails/http/fetch', () => {
       expect(resolved.preserveRawFields.has('addedFlag')).toBe(true);
     });
 
-    test('converts repeated nullable primitive arrays element by element', async () => {
+    test('converts nullable primitive arrays without guessing ambiguous item types', async () => {
       const schema = z.object({
         enabled: z.array(z.boolean()).nullable(),
         mixed: z.union([z.array(z.string()), z.array(z.number())]),
@@ -598,7 +636,10 @@ describe('@ontrails/http/fetch', () => {
         data: { enabled: [false, true], mixed: ['1', '2'], values: [1, 2] },
       });
       expect(malformed.status).toBe(400);
-      expect(singleton.status).toBe(400);
+      expect(singleton.status).toBe(200);
+      expect(await singleton.json()).toEqual({
+        data: { enabled: [false, true], mixed: ['1', '2'], values: [1] },
+      });
     });
 
     test('preserves absent optional fields and schema defaults', async () => {
@@ -679,7 +720,7 @@ describe('@ontrails/http/fetch', () => {
       });
     });
 
-    test('keeps the singleton array contract and rejects malformed array elements', async () => {
+    test('converts singleton primitive arrays and rejects malformed elements', async () => {
       const handler = createFetchHandler(
         topo('fetch-api', { typedQueryArraysTrail })
       );
@@ -687,14 +728,21 @@ describe('@ontrails/http/fetch', () => {
       const singleton = await handler(
         buildRequest('/typed/arrays?counts=1&enabled=true&labels=one')
       );
-      const malformed = await handler(
+      const malformedSingleton = await handler(
+        buildRequest('/typed/arrays?counts=two&enabled=true&labels=one')
+      );
+      const malformedRepeated = await handler(
         buildRequest(
           '/typed/arrays?counts=1&counts=two&enabled=true&enabled=false&labels=one&labels=two'
         )
       );
 
-      expect(singleton.status).toBe(400);
-      expect(malformed.status).toBe(400);
+      expect(singleton.status).toBe(200);
+      expect(await singleton.json()).toEqual({
+        data: { counts: [1], enabled: [true], labels: ['one'] },
+      });
+      expect(malformedSingleton.status).toBe(400);
+      expect(malformedRepeated.status).toBe(400);
     });
 
     test('does not apply the current schema to explicit historical versions', async () => {

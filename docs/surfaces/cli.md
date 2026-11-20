@@ -103,7 +103,7 @@ Flags are derived from the trail's Zod input schema when the shape can be repres
 | `z.boolean()` | `--verbose` | Boolean switch |
 | `z.enum(["a", "b"])` | `--format <value>` | With `.choices()` |
 | `z.array(z.enum(["a", "b"]))` | `--mode <value>` | `--mode a b` or `--mode a --mode b` |
-| `z.array(z.string())` | `--tag <values...>` | Repeatable: `--tag a --tag b` |
+| `z.array(z.string())` | `--tag <values...>` | `--tag a b` or `--tag a --tag b` |
 | `z.optional(z.string())` | `--name [value]` | Optional |
 | `z.string().default("x")` | `--name [value]` | With default |
 
@@ -114,6 +114,8 @@ Flags are derived from the trail's Zod input schema when the shape can be repres
 Nested objects and arrays of objects are intentionally omitted from automatic flag derivation. The CLI prefers fewer flags over dishonest flags.
 
 Bounded multiselects accept contiguous and repeated forms through the framework-owned `normalizeCliArgv()` grammar. The first matching token after a flag is its explicit value. After that first value, additional collection stops before a known child command or the first value outside the declared choices. CLI adapters validate the command model and apply this normalization before parsing.
+
+Declare an array directly, not a scalar-or-array union. For `tags: z.array(z.enum(['red', 'blue'])).default([])`, omit `--tags` to use the empty default, pass `--tags red` for one value, or pass `--tags red blue` or `--tags red --tags blue` for several. The same declaration accepts [repeated HTTP query keys](http.md#input-handling).
 
 When a nested command repeats an inherited bounded multiselect flag, its parsing shape and choices must stay equivalent. Divergent nested definitions are rejected before adapter wiring instead of depending on parser-specific option shadowing.
 

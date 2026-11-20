@@ -217,10 +217,8 @@ describe('@ontrails/http/bun', () => {
     expect(await repeated.json()).toEqual({
       data: { tags: ['red', 'blue'] },
     });
-    expect(singleton.status).toBe(400);
-    expect(await singleton.json()).toMatchObject({
-      error: { category: 'validation' },
-    });
+    expect(singleton.status).toBe(200);
+    expect(await singleton.json()).toEqual({ data: { tags: ['solo'] } });
     expect(oversized.status).toBe(413);
     expect(await oversized.json()).toEqual({
       error: {

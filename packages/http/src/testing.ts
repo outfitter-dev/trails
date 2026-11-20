@@ -206,7 +206,7 @@ const writeRouteCase = async (
   await expectOkResponse(response, { length: 5 });
 };
 
-const repeatedQueryCase = async (
+const arrayQueryCase = async (
   adapter: HttpAdapterConformanceAdapter
 ): Promise<void> => {
   const graph = topo('http-conformance-query', { tagsTrail });
@@ -214,10 +214,7 @@ const repeatedQueryCase = async (
   const singleton = await request(adapter, graph, '/tags?tags=solo');
 
   await expectOkResponse(repeated, { tags: ['red', 'blue'] });
-  expect(singleton.status).toBe(400);
-  expect(await expectJson(singleton)).toMatchObject({
-    error: { category: 'validation' },
-  });
+  await expectOkResponse(singleton, { tags: ['solo'] });
 };
 
 const typedQueryCase = async (
@@ -346,8 +343,8 @@ export const createHttpAdapterConformanceCases =
     { check: readRouteCase, name: 'serves read trails from query parameters' },
     { check: writeRouteCase, name: 'serves write trails from JSON bodies' },
     {
-      check: repeatedQueryCase,
-      name: 'preserves repeated query keys before validation',
+      check: arrayQueryCase,
+      name: 'reads one or more occurrences of a declared query array key as an array',
     },
     {
       check: typedQueryCase,
