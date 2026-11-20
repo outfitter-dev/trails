@@ -163,7 +163,7 @@ describe('surface API (Hono adapter)', () => {
     });
   });
 
-  test('single query values stay scalar even when the schema expects an array', async () => {
+  test('single query values arrive as one-element arrays for declared array fields', async () => {
     const graph = topo('surface-api', { tagsTrail });
     const app = createApp(graph);
 
@@ -171,12 +171,8 @@ describe('surface API (Hono adapter)', () => {
       method: 'GET',
     });
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: {
-        category: 'validation',
-      },
-    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { tags: ['solo'] } });
   });
 
   test('default JSON body cap rejects request bodies over 1 MiB', async () => {

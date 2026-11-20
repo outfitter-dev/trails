@@ -2,7 +2,13 @@
  * Example-driven parity across shipped surfaces.
  */
 
+import { expect, test } from 'bun:test';
+
+import { createProgram } from '@ontrails/commander';
+import { Result, topo, trail } from '@ontrails/core';
+import { createFetchHandler } from '@ontrails/http';
 import { testSurfaceParity } from '@ontrails/testing/surface-parity';
+import { z } from 'zod';
 
 import { graph } from '../src/app.js';
 import { createNotificationStore } from '../src/resources/notification-store.js';
@@ -47,3 +53,49 @@ testSurfaceParity(graph, {
     },
   ],
 });
+
+const tags = z.array(z.enum(['red', 'blue']));
+const listTags = trail('list-tags', {
+  implementation: (input) => Result.ok({ tags: input.tags }),
+  input: z.object({ tags: tags.default([]) }),
+  intent: 'read',
+  output: z.object({ tags }),
+});
+
+test.each([
+  { args: [], expected: [], query: '' },
+  { args: ['--tags', 'red'], expected: ['red'], query: '?tags=red' },
+  {
+    args: ['--tags', 'red', 'blue', 'red'],
+    expected: ['red', 'blue', 'red'],
+    query: '?tags=red&tags=blue&tags=red',
+  },
+  {
+    args: ['--tags', 'red', '--tags', 'blue'],
+    expected: ['red', 'blue'],
+    query: '?tags=red&tags=blue',
+  },
+])(
+  'CLI $args and HTTP $query pass the same tags to the trail',
+  async ({ args, expected, query }) => {
+    const app = topo('array-parity', { listTags });
+    let cliOutput: unknown;
+    const program = createProgram(app, {
+      onResult: async ({ result }) => {
+        if (result.isErr()) {
+          throw result.error;
+        }
+        cliOutput = result.value;
+      },
+    }).exitOverride();
+
+    await program.parseAsync(['list-tags', ...args], { from: 'user' });
+    expect(cliOutput).toEqual({ tags: expected });
+
+    const response = await createFetchHandler(app)(
+      new Request(`http://localhost/list-tags${query}`)
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: cliOutput });
+  }
+);

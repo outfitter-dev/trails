@@ -293,9 +293,9 @@ const parityScenarios: readonly ParityScenario[] = [
     request: () => ({ path: '/tags?tags=red&tags=blue' }),
   },
   {
-    expectedBodyMatch: { error: { category: 'validation' } },
-    expectedStatus: 400,
-    name: 'singleton query keys stay scalars',
+    expectedBody: { data: { tags: ['solo'] } },
+    expectedStatus: 200,
+    name: 'singleton query values for declared arrays become one-element arrays',
     request: () => ({ path: '/tags?tags=solo' }),
   },
   {
