@@ -10,8 +10,8 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 +-----------------------+
                 |  CLI (commander)      |
                 |  MCP (sdk)            |
-                |  HTTP (hono)          |
-                |  WebSocket (planned)  |
+                |  HTTP (hono/workers)  |
+                |  RPC (ws host)        |
                 +---------+-------------+
                           |
                 +---------v-------------+
@@ -31,6 +31,9 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  Config (config)      |
                 |  Permits (permits)    |
                 |  Store (store/drizzle)|
+                |  KV (kv)              |
+                |  Blob (blob)          |
+                |  Producer (queue)     |
                 |  Observe (observe)    |
                 |  Tracing (tracing)    |
                 |  LogTape (logtape)    |
@@ -47,7 +50,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, library, and WebSocket are all equal adapters reading from the same topo. CLI, MCP, HTTP, and library ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, library, and the RPC surface are all equal adapters reading from the same topo. CLI, MCP, HTTP, and library ship today; the RPC surface (JSON-RPC 2.0 from `@ontrails/rpc`, hosted on WebSocket first) is landing. MCP is a separate surface that shares core's error codes and data shape. Adding a surface is a `surface()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run the trail.
 
@@ -150,9 +153,11 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/commander` | Commander adapter, `surface()` | `commander` |
-| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
+| `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/server` |
+| `@ontrails/rpc` | JSON-RPC 2.0 kernel: derived method table, `trails.discover`, serializable connection state; hosts serve it | None beyond core |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
+| `@ontrails/cloudflare/workers` | Worker HTTP/queue host and structural MCP factory slot with pure host data; real MCP transport integration is separate | `@ontrails/http`, core; `zod` peer |
 | `@ontrails/library` | Plain TypeScript library rendering, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
@@ -163,7 +168,12 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/config` | Config resolution, profiles, static workspace app identity, resource config schemas, diagnostics | `@ontrails/source` for non-executing TypeScript identity parsing; `yaml` for source-preserving YAML identity validation |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
+| `@ontrails/kv` | Provider-neutral key-value resources, isolated memory mocks, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
+| `@ontrails/blob` | Provider-neutral blob resources, byte/stream bodies, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
+| `@ontrails/queue` | Provider-neutral queue producers, recorder mocks, and binding conformance; `/testing` owns Bun conformance cases | `zod` peer; core resource contract |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
+| `@ontrails/cloudflare/d1` | D1 store binding and deterministic physical SQL; Wrangler owns migrations | Native D1 binding; store contracts |
+| `@ontrails/cloudflare` | Native KV/blob/queue role bindings and target-locked resources; Workers consumes the shared HTTP kernel | Core; role/http/store/zod peers |
 | `@ontrails/observability` | Production log and trace sink contracts, composition, built-in sinks, `/dev` developer-state tooling, and `/otel` OTel export | None beyond core |
 | `@ontrails/logtape` | Extracted LogTape adapter for Trails log records | `@logtape/logtape` |
 | `@ontrails/pino` | Extracted Pino adapter for Trails log records | `pino` |
@@ -190,12 +200,15 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/core (zod)
      ^
 @ontrails/cli (core)
-@ontrails/mcp (core, @modelcontextprotocol/sdk)
+@ontrails/mcp (core, @modelcontextprotocol/server)
 @ontrails/http (core)
 @ontrails/library (core)
 @ontrails/config (core, source, yaml)
 @ontrails/permits (core)
 @ontrails/store (core)
+@ontrails/kv (core, zod peer; /testing uses bun:test)
+@ontrails/blob (core, zod peer; /testing uses bun:test)
+@ontrails/queue (core, zod peer; /testing uses bun:test)
 @ontrails/drizzle (store, drizzle-orm)
 @ontrails/observability (core)
 @ontrails/testing (core, cli, mcp, observe)
@@ -206,6 +219,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
+@ontrails/cloudflare (core; http/store/zod peers)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (observability, @logtape/logtape)
 @ontrails/pino (observability, pino)
@@ -306,7 +320,7 @@ The current taxonomy is generated from the `errorClasses` owner registry and cat
 | Category | CLI Exit | HTTP | JSON-RPC | Retryable | Fixed Classes |
 | --- | --- | --- | --- | --- | --- |
 | `validation` | 1 | 400 | -32602 | No | `ValidationError`, `AmbiguousError` |
-| `not_found` | 2 | 404 | -32601 | No | `NotFoundError`, `VersionNotSupportedError` |
+| `not_found` | 2 | 404 | -32001 | No | `NotFoundError`, `VersionNotSupportedError` |
 | `conflict` | 3 | 409 | -32603 | No | `AlreadyExistsError`, `ConflictError` |
 | `permission` | 4 | 403 | -32600 | No | `PermissionError`, `PermitError` |
 | `timeout` | 5 | 504 | -32603 | Yes | `TimeoutError` |

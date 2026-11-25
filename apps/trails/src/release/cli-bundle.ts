@@ -368,7 +368,7 @@ export const verifyTrailsCliArchive = (
         '--module',
         'lib/app.js',
         '--permit',
-        '{"id":"release-cold-verifier","scopes":["trails:run"]}',
+        '{"actors":[],"id":"release-cold-verifier","scopes":["trails:run"]}',
       ],
       {
         cwd: bundleRoot,

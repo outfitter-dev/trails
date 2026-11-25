@@ -1,0 +1,9 @@
+# Decision and ownership
+
+- [TRL-1492](https://linear.app/outfitter/issue/TRL-1492): actual issue records mechanism/default/seed compatibility before code, with coordinator's explicit D source lease. Related [TRL-1490](https://linear.app/outfitter/issue/TRL-1490) stays index-only future work, also D-owned; no concurrent index writer.
+- Astra ruled provider renderD1SchemaSql, one physical naming/quoting/DDL owner, Wrangler-owned migration execution/history, default zero schema/seed writes, explicit autoCreate:true dev/test escape hatch, typed seed guard, unchanged mocks and explicit adoption proof. No runtime migration/version framework, profile guessing, new metadata channel, inferred backfill or indexes.
+- Independent branch from actual main69d34aeb43d36a36541ea3f611d3457ef359446f. Prior1459/1456 PRs1114/1116 remain frozen operator-owned; no source dependency or cherry-pick.
+- F cleared narrow D1 owner guide/README/API/index/root/architecture docs paths; no ADR generation or whole-doc rewrite. Actual guide path docs/migration/d1-schema.md remains authoritative for future taxonomy work.
+- Physical source owner: adapters/cloudflare/src/d1/index.ts; new schema.ts extracts only existing naming/quoting/CREATE SQL and owns the pure renderer. Existing dev fixture and old bootstrap tests opt into autoCreate, with mock tests retaining default options.
+- Primary Cloudflare docs queried via Context7: [D1 migration workflow](https://developers.cloudflare.com/d1/reference/migrations/) and [Wrangler D1 commands](https://developers.cloudflare.com/workers/wrangler/commands/d1). Native tests apply reviewed SQL locally with Miniflare; no Wrangler remote command, authentication or deployment was run.
+- Installed native probe runtime remains Miniflare4.20260701.0/workerd1.20260701.1, compatibility2026-06-01; no October runtime qualification is inferred.

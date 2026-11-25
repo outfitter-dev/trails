@@ -16,6 +16,7 @@ import {
   renderErrorDiagnostics,
   renderPublicSurfaceError,
 } from '@ontrails/core';
+import { normalizeCron } from '../cron.js';
 import type {
   BaseSurfaceOptions,
   Layer,
@@ -30,6 +31,42 @@ import { buildEnvResourceOverrides } from '../env.js';
 import type { WorkersEnv } from '../env.js';
 import { createQueueHandler } from '../queues/index.js';
 import type { CloudflareQueueBatch } from '../queues/index.js';
+import { createScheduledHandler } from '../schedules/index.js';
+import type { CloudflareScheduledController } from '../schedules/index.js';
+import { createAssetsFallback } from './assets.js';
+import { parseWorkersHostConfig } from './host.js';
+import type { WorkersHostConfig } from './host.js';
+import { createWorkersMcpHost } from './mcp.js';
+import type { WorkersMcpFactory } from './mcp.js';
+
+/**
+ * Pure typed host configuration; runtime routing and future facts share one value.
+ * @example
+ * ```ts
+ * const host = workersHostConfigSchema.parse({ mcp: { path: '/mcp' } });
+ * ```
+ */
+export { workersHostConfigSchema } from './host.js';
+/**
+ * Host data and structural MCP factory contracts.
+ * @example
+ * ```ts
+ * const host: WorkersHostConfig = { mcp: { path: '/mcp' } };
+ * ```
+ */
+export type { WorkersHostConfig } from './host.js';
+/**
+ * Runtime MCP input/handler types, without an SDK dependency.
+ * @example
+ * ```ts
+ * const mcp: WorkersMcpFactory = () => async () => new Response('test double');
+ * ```
+ */
+export type {
+  WorkersMcpContext,
+  WorkersMcpFactory,
+  WorkersMcpHandler,
+} from './mcp.js';
 
 export {
   buildEnvResourceOverrides,
@@ -61,6 +98,10 @@ export type WorkersResourceOverrides =
  * Options for building a Trails Worker handler.
  */
 export interface CreateWorkersHandlerOptions extends BaseSurfaceOptions {
+  /** One pure authored host value; MCP path matching is exact. */
+  readonly host?: WorkersHostConfig | undefined;
+  /** Required with host.mcp; materialized lazily per env identity. */
+  readonly mcp?: WorkersMcpFactory | undefined;
   readonly basePath?: string | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
@@ -93,6 +134,11 @@ export interface CloudflareWorker {
   ): Promise<Response>;
   queue(
     batch: CloudflareQueueBatch,
+    env?: WorkersEnv | undefined,
+    executionCtx?: WorkersExecutionContext | undefined
+  ): Promise<void>;
+  scheduled(
+    controller: CloudflareScheduledController,
     env?: WorkersEnv | undefined,
     executionCtx?: WorkersExecutionContext | undefined
   ): Promise<void>;
@@ -148,8 +194,9 @@ const resolveResourceOverrides = (
   graph: Topo,
   env: WorkersEnv,
   options: CreateWorkersHandlerOptions,
-  entrypoint: 'fetch' | 'queue',
-  queueName?: string
+  entrypoint: 'fetch' | 'mcp' | 'queue' | 'scheduled',
+  queueName?: string,
+  cron?: string
 ): ResourceOverrideMap => {
   // Explicit overrides are the documented escape hatch, so they resolve
   // first: an overridden resource never requires its env binding. Surface
@@ -166,6 +213,7 @@ const resolveResourceOverrides = (
     include: options.include,
     intent: options.intent,
     queue: queueName,
+    ...(cron === undefined ? {} : { cron }),
   });
   if (envOverrides.isErr()) {
     throw envOverrides.error;
@@ -176,6 +224,11 @@ const resolveResourceOverrides = (
 interface MaterializedHandler {
   readonly env: WorkersEnv | undefined;
   readonly handle: (request: Request) => Promise<Response>;
+}
+
+interface MaterializedScheduledHandler {
+  readonly env: WorkersEnv | undefined;
+  readonly handle: (controller: CloudflareScheduledController) => Promise<void>;
 }
 
 interface MaterializedQueueHandler {
@@ -189,8 +242,8 @@ interface MaterializedQueueHandler {
  *
  * @remarks The kernel fetch handler is materialized lazily per env identity.
  * The Workers runtime keeps `env` stable within an isolate, so steady-state
- * requests reuse one materialization; any request carrying a different env
- * object triggers a fresh resolution of every env-bound resource.
+ * requests reuse one materialization. When assets are configured, HTTP
+ * bindings are resolved on route execution, so assets do not require them.
  *
  * @example
  * ```ts
@@ -206,6 +259,14 @@ export const createWorkersHandler = (
 ): CloudflareWorker => {
   let materialized: MaterializedHandler | undefined;
   let materializedQueue: MaterializedQueueHandler | undefined;
+  // One materialization per firing cron: a schedule only needs the bindings
+  // of the trails on its own cron, so an unrelated schedule's missing binding
+  // never blocks it.
+  const materializedScheduled = new Map<string, MaterializedScheduledHandler>();
+  const host = parseWorkersHostConfig(options.host);
+  const mcp = createWorkersMcpHost(graph, { ...options, host }, (env) =>
+    resolveResourceOverrides(graph, env ?? {}, options, 'mcp')
+  );
 
   const handlerFor = (
     env: WorkersEnv | undefined
@@ -213,6 +274,14 @@ export const createWorkersHandler = (
     if (materialized !== undefined && materialized.env === env) {
       return materialized.handle;
     }
+    let resources: ResourceOverrideMap | undefined;
+    const resolveResources = () =>
+      (resources ??= resolveResourceOverrides(
+        graph,
+        env ?? {},
+        options,
+        'fetch'
+      ));
     const handle = createFetchHandler(graph, {
       basePath: options.basePath,
       configValues: options.configValues,
@@ -222,8 +291,10 @@ export const createWorkersHandler = (
       intent: options.intent,
       layers: options.layers,
       maxJsonBodyBytes: options.maxJsonBodyBytes,
+      onUnmatched: createAssetsFallback(host.assets, env),
       resolvePermit: options.resolvePermit,
-      resources: resolveResourceOverrides(graph, env ?? {}, options, 'fetch'),
+      resources:
+        host.assets === undefined ? resolveResources() : resolveResources,
       validate: options.validate,
     });
     materialized = { env, handle };
@@ -261,9 +332,42 @@ export const createWorkersHandler = (
     return handle;
   };
 
+  const scheduledHandlerFor = (
+    env: WorkersEnv | undefined,
+    cron: string
+  ): ((controller: CloudflareScheduledController) => Promise<void>) => {
+    const key = normalizeCron(cron);
+    const cached = materializedScheduled.get(key);
+    if (cached !== undefined && cached.env === env) {
+      return cached.handle;
+    }
+    const handle = createScheduledHandler(graph, {
+      configValues: options.configValues,
+      createContext: options.createContext,
+      exclude: options.exclude,
+      include: options.include,
+      intent: options.intent,
+      layers: options.layers,
+      resources: resolveResourceOverrides(
+        graph,
+        env ?? {},
+        options,
+        'scheduled',
+        undefined,
+        key
+      ),
+      validate: options.validate,
+    });
+    materializedScheduled.set(key, { env, handle });
+    return handle;
+  };
+
   return {
     fetch: async (request, env, _executionCtx) => {
       try {
+        if (mcp !== undefined && new URL(request.url).pathname === mcp.path) {
+          return await mcp.handlerFor(env)(request);
+        }
         return await handlerFor(env)(request);
       } catch (error: unknown) {
         return mapCaughtError(error);
@@ -274,6 +378,21 @@ export const createWorkersHandler = (
         await queueHandlerFor(env, batch.queue)(batch);
       } catch (error: unknown) {
         mapCaughtQueueError(error, batch);
+      }
+    },
+    scheduled: async (controller, env, _executionCtx) => {
+      // A schedule that cannot materialize (non-UTC timezone, env bridge
+      // failure) must fail the invocation loudly; Cron Triggers have no
+      // response body to carry a rendered error.
+      try {
+        await scheduledHandlerFor(env, controller.cron)(controller);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error(
+          '[ontrails:cloudflare/workers] Scheduled invocation failed',
+          renderErrorDiagnostics(err)
+        );
+        throw err;
       }
     },
   };

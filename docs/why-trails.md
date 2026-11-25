@@ -12,7 +12,7 @@ The conservation law at the center of Trails is simple: if the developer already
 
 That is why new design questions often feel less like new subsystems and more like consequences being uncovered. The core belief keeps reappearing: author the irreducible truth, derive faithful facts, render them for each consumer, and make drift harder than alignment. When a proposal reduces duplicated authorship, creates inspectable ground truth, and leaves adopters with less to remember, it is probably aligned with Trails. When it asks users to restate something the framework already knows, it is probably design feedback.
 
-Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the shipped surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side. WebSocket is part of the architecture, but still planned.
+Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the shipped surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side. The RPC surface, hosted on WebSocket, follows the same model.
 
 ---
 
@@ -75,7 +75,7 @@ import { surface as mcpSurface } from '@ontrails/mcp';
 await mcpSurface(graph);
 ```
 
-The same topo can also open on HTTP today via `@ontrails/hono`. WebSocket follows the same peer-surface model, but does not ship yet.
+The same topo can also open on HTTP today via `@ontrails/hono`. The RPC surface, hosted on WebSocket, follows the same peer-surface model through `@ontrails/rpc`.
 
 One runnable trail. Every surface. The rest is derived.
 
@@ -153,7 +153,7 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 Great tools already exist for each surface. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surfaces. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface adapters — CLI, MCP, and HTTP today, with WebSocket planned — render that contract into whatever runtime format the surface needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surfaces. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface adapters — CLI, MCP, HTTP, and the RPC surface hosted on WebSocket — render that contract into whatever runtime format the surface needs.
 
 The value isn't in being better at any single surface. It's in making the contract the source of truth so that every surface stays consistent with it — not because anyone was careful, but because the framework derives each surface from the same definition.
 

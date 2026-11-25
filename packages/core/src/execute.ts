@@ -26,6 +26,7 @@ import {
   withFireDispatchTracking,
 } from './fire.js';
 import type { BasePermit } from './permits.js';
+import { basePermitSchema } from './permits.js';
 import type {
   ComposeBatchOptions,
   ComposeOptions,
@@ -349,6 +350,16 @@ const enforcePermitRequirement = (
   trail: AnyTrail,
   ctx: TrailContext
 ): Result<TrailContext, Error> => {
+  if (ctx.permit !== undefined) {
+    const parsed = basePermitSchema.safeParse(ctx.permit);
+    if (!parsed.success) {
+      return Result.err(
+        new ValidationError('Invalid execution permit', {
+          context: { issues: parsed.error.issues },
+        })
+      );
+    }
+  }
   const requirement = trail.permit;
   if (requirement === undefined || requirement === 'public') {
     return Result.ok(ctx);
@@ -448,19 +459,23 @@ const categorizeSpanError = (error: unknown): string => {
 };
 
 /** Extract the permit identity fields for the trace record. */
-const extractPermit = (
-  ctx: TrailContext
-): { readonly id: string; readonly tenantId?: string } | undefined => {
+const extractPermit = (ctx: TrailContext): TraceRecord['permit'] => {
   if (ctx.permit === undefined) {
     return undefined;
   }
-  const tenantId =
-    'tenantId' in ctx.permit
-      ? (ctx.permit as { tenantId?: string }).tenantId
-      : undefined;
-  return tenantId === undefined
-    ? { id: ctx.permit.id }
-    : { id: ctx.permit.id, tenantId };
+  return {
+    actors: ctx.permit.actors.map((actor) => ({
+      id: actor.id,
+      kind: actor.kind,
+      verified: actor.verified,
+      ...(actor.issuer === undefined ? {} : { issuer: actor.issuer }),
+    })),
+    id: ctx.permit.id,
+    ...(ctx.permit.issuer === undefined ? {} : { issuer: ctx.permit.issuer }),
+    ...(ctx.permit.tenantId === undefined
+      ? {}
+      : { tenantId: ctx.permit.tenantId }),
+  };
 };
 
 /**
@@ -532,6 +547,7 @@ const buildTracedContext = (
   // Root trace context for this trail's span. When inheriting a parent, the
   // traceId/rootId carry forward and only spanId advances to the new record.
   const rootTrace: TraceContext = {
+    permit: recordWithAttrs.permit,
     rootId: parent?.rootId ?? record.id,
     sampled: recordWithAttrs.sampled ?? true,
     spanId: recordWithAttrs.id,

@@ -8,6 +8,7 @@
  */
 
 export const operatorPermit = {
+  actors: [],
   id: 'packlist-operator',
   scopes: ['packlist:write'],
 } as const;

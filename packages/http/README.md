@@ -45,6 +45,8 @@ The HTTP package follows the surface API naming split:
 
 The shared `@ontrails/http/fetch` kernel owns query/body parsing, content-length validation, public error rendering, diagnostics, request IDs, headers, abort propagation, and webhook verification/parsing behavior. Hono and Bun both consume that kernel so route semantics stay aligned.
 
+`createFetchHandler(graph, { onUnmatched })` optionally delegates a final method/path dispatch miss to `(request) => Response | Promise<Response>`. Exact routes and parameterized webhook routes run first. Matched responses and failures, including authored 404s, never invoke the callback. The callback receives the original request; its response or rejection passes through to the host. Omit it to preserve the standard HTTP route-not-found response. This hook lets a host serve static assets without inspecting response status or duplicating dispatch.
+
 For more control, build the routes yourself:
 
 ```typescript
@@ -78,6 +80,18 @@ const spec = deriveOpenApiSpec(graph, { basePath: '/api' });
 | `@ontrails/http/fetch` | Shared Web Fetch `createRouteHandler()` and `createFetchHandler()` kernel |
 | `@ontrails/http/bun` | Bun-native `createApp()` and `surface()` binding |
 | `@ontrails/http/testing` | Owner-owned adapter conformance factory for HTTP adapter authors |
+
+## Credential resolution
+
+A configured `resolvePermit` runs once per trail request, including public trails and requests without Authorization. It receives raw `authorization`, best-effort `bearerToken`, `apiKey` from `x-api-key`, `authToken` from `x-auth-token`, and the original headers. Header names are case-insensitive; query parameters never supply credential candidates. The resolver decides which source it accepts before verification, so an API-key policy can ignore an untrusted Authorization value. Malformed Authorization is preserved for that policy rather than rejected before it runs.
+
+Return `Result.ok(null)` or `undefined` only when no accepted credential was selected. A selected invalid credential or lookup miss must return an error, which stops execution even for a public trail. A valid permit reaches `ctx.permit`; protected trails still enforce their declared scopes in Core. Never fall back to another candidate after verification fails. Apps without a configured resolver retain their existing behavior.
+
+Every HTTP entry point (the Web Fetch kernel, `@ontrails/http/bun`, `@ontrails/hono`, `@ontrails/cloudflare/workers`) builds routes on the `network` credential posture (`credentialPosture` on `deriveHttpRoutes`; `host` is the default for in-process callers such as the test harness). On that posture identity enters only through `resolvePermit`: a `createContext` permit is discarded at runtime (one diagnostic through the seed's logger names the migration), a presented credential (`Authorization`, `x-api-key`, `x-auth-token`) with no resolver answers an `AuthError` instead of absence, and a surface that exposes protected trails without a resolver is refused at build time with a `ValidationError` listing them. No credential stays anonymous: public trails run, protected trails fail at enforcement. Both postures go through the shared reconciliation in `@ontrails/permits` (`reconcilePermit`), so a presented credential with no resolver is refused on the `host` posture too (as a `ValidationError`), a configured resolver runs for every request because it owns credential selection, and a resolved permit carries `admission: { kind: 'verified', by: 'resolvePermit' }`.
+
+Migration for apps that seeded a permit through `createContext` on an HTTP host: move the credential into a verifier passed as `resolvePermit` (a JWKS or opaque adapter from `@ontrails/permits`) and keep `createContext` for the logger, extensions and resources it still seeds. `--dev-permit` is not a migration path for network surfaces.
+
+Migration: resolvers that previously assumed they were called only with a nonempty Bearer token must now handle optional candidates. Bearer-only policies must reject malformed presented Bearer credentials themselves; a resolver that unconditionally returns a permit now authenticates requests without a Bearer header as well. No credentials become trail input.
 
 ## Adapter authoring
 
@@ -129,7 +143,7 @@ const result = deriveHttpRoutes(graph, {
 
 ## Request context and abort propagation
 
-The `execute` function on each `HttpRouteDefinition` accepts optional `requestId`, `abortSignal`, and request context arguments. HTTP adapters should pass the request's `AbortSignal` so client disconnects propagate into trail execution, and pass headers in the request context when Bearer auth should resolve into `ctx.permit`.
+The `execute` function on each `HttpRouteDefinition` accepts optional `requestId`, `abortSignal`, and request context arguments. HTTP adapters should pass the request's `AbortSignal` so client disconnects propagate into trail execution, and pass headers in the request context when request credentials should resolve into `ctx.permit`.
 
 ## `HttpRouteDefinition`
 
@@ -144,9 +158,11 @@ Each route definition produced by `deriveHttpRoutes` includes:
 | `trail` | `Trail` | The original trail definition |
 | `execute` | `(input, requestId?, abortSignal?, context?) => Promise<Result>` | Validates, layers, resolves request auth when configured, and runs the trail |
 
-For GET routes on the Hono surface, repeated query keys are passed through as arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single occurrence stays a scalar string. The adapter does not coerce singleton query values into arrays.
+For GET routes, the shared Fetch kernel reads repeated query keys as arrays and single occurrences as strings before applying schema-driven conversion. A recognized primitive array field receives an array even when the key occurs only once. For `tag: z.array(z.string())`, `?tag=one` supplies `['one']` and `?tag=one&tag=two` supplies `['one', 'two']`. A missing key stays absent so the schema controls defaults and required fields.
 
-GET query values declared as numbers or booleans are converted at the HTTP boundary before schema validation. This includes primitive literals and union or nullable schemas whose non-null branches all resolve to the same primitive kind. Root object unions convert a field only when every branch that has its required fields present explicitly owns the field with the same primitive shape; otherwise the raw value is preserved. This keeps unknown and passthrough fields unchanged without choosing a union branch. Fields authored with Zod coercion receive the raw query value so their authored parser retains the same behavior as direct and library invocation; if any supported union branch for a field uses coercion, the boundary conservatively preserves that field. Numbers use JSON number syntax and must be finite; booleans accept the exact spellings `true` and `false`. Malformed values and the string `null` continue through normal validation and return a `400` response when the authored schema rejects them. Declared strings remain strings. Repeated keys for declared primitive arrays, including homogeneous union or nullable array schemas, apply the same conversion to each element, while a singleton remains a scalar and must satisfy the authored schema as-is.
+GET query values declared as numbers or booleans are converted at the HTTP boundary before schema validation. This includes primitive literals and union or nullable schemas whose non-null branches all resolve to the same primitive kind. Declared primitive arrays, including homogeneous union or nullable array schemas, apply the same conversion to each element. Numbers use JSON number syntax and must be finite; booleans accept the exact spellings `true` and `false`. Declared strings remain strings. Malformed values and the string `null` continue through normal validation and return a `400` response when the authored schema rejects them.
+
+Root object unions convert a field only when every branch that has its required fields present explicitly owns the field with the same primitive shape; otherwise the raw value is preserved. This keeps unknown and passthrough fields unchanged without choosing a union branch. Fields authored with Zod coercion receive the raw query value so their authored parser retains the same behavior as direct and library invocation; if any supported union branch for a field uses coercion, the boundary conservatively preserves that field.
 
 For versioned trails, query conversion resolves the selected version's input schema. `X-Trails-Version` and `X-Trail-Version` headers take precedence over the `trailVersion` query field, matching execution. If a historical input field conflicts with a layer parameter name rendered for the current version, the boundary preserves raw query strings so it does not guess which schema owns the field.
 

@@ -6,8 +6,12 @@
  * Results to MCP responses.
  */
 
+import type {
+  EmbeddedResource,
+  ImageContent,
+  TextContent,
+} from '@modelcontextprotocol/server';
 import {
-  AuthError,
   InternalError,
   Result,
   ValidationError,
@@ -49,6 +53,10 @@ import type {
 
 import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
+import {
+  resolveMcpPermit,
+  surfaceContextFactory,
+} from './permit-resolution.js';
 import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
 
@@ -129,7 +137,23 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
+  /**
+   * Where callers reach this surface from.
+   *
+   * `host` (the default) is the in-process posture: the launching process is
+   * the caller, so a `createContext` permit and a host-supplied `extra.permit`
+   * are accepted as the host's own policy. `network` is the posture the
+   * fetch-shaped entry sets: identity enters only through `resolvePermit`,
+   * a `createContext` permit is discarded at runtime with a diagnostic,
+   * `extra.permit` is ignored, a presented bearer with no resolver is an
+   * `AuthError`, and protected trails without a resolver are refused at
+   * build time.
+   */
+  readonly credentialPosture?: McpCredentialPosture | undefined;
 }
+
+/** See {@link DeriveMcpToolsOptions.credentialPosture}. */
+export type McpCredentialPosture = 'host' | 'network';
 
 export type McpSurfaceTrailheadTrailSelector = string | readonly string[];
 
@@ -151,10 +175,11 @@ export type McpSurfaceTrailheadMap = Readonly<
   Record<string, McpSurfaceTrailheadDefinition>
 >;
 
+/** Untrusted request credential candidates; the configured resolver owns verification. */
 export interface ResolveMcpPermitInput {
+  readonly _meta?: Readonly<Record<string, unknown>> | undefined;
   readonly authorization?: string | undefined;
   readonly bearerToken?: string | undefined;
-  readonly sessionId?: string | undefined;
 }
 
 export type ResolveMcpPermit = (
@@ -182,6 +207,8 @@ export interface McpToolDefinition {
 }
 
 export interface McpExtra {
+  /** Application metadata from this request, never proof of identity by itself. */
+  readonly _meta?: Readonly<Record<string, unknown>> | undefined;
   readonly authorization?: string | undefined;
   readonly progressToken?: string | number | undefined;
   readonly sendProgress?:
@@ -189,7 +216,6 @@ export interface McpExtra {
     | undefined;
   readonly abortSignal?: AbortSignal | undefined;
   readonly permit?: BasePermit | undefined;
-  readonly sessionId?: string | undefined;
 }
 
 export interface McpToolResult {
@@ -203,13 +229,8 @@ export type McpToolErrorMeta = Omit<SurfaceErrorRendering, 'surface'> & {
   readonly surface: 'mcp';
 };
 
-export interface McpContent {
-  readonly data?: string | undefined;
-  readonly mimeType?: string | undefined;
-  readonly text?: string | undefined;
-  readonly type: 'text' | 'image' | 'resource';
-  readonly uri?: string | undefined;
-}
+/** MCP content emitted from trail results, validated by the SDK wire boundary. */
+export type McpContent = TextContent | ImageContent | EmbeddedResource;
 
 // ---------------------------------------------------------------------------
 // Internal helpers (defined before use)
@@ -274,20 +295,20 @@ const blobToContent = async (
   blob: BlobRef,
   resolveData: BlobDataResolver = resolveBlobData
 ): Promise<McpContent> => {
+  const bytes = await resolveData(blob);
+  const data = uint8ArrayToBase64(bytes);
   if (!blob.mimeType.startsWith('image/')) {
     return {
-      mimeType: blob.mimeType,
+      resource: {
+        blob: data,
+        mimeType: blob.mimeType,
+        uri: `blob://${blob.name}`,
+      },
       type: 'resource',
-      uri: `blob://${blob.name}`,
     };
   }
 
-  const bytes = await resolveData(blob);
-  return {
-    data: uint8ArrayToBase64(bytes),
-    mimeType: blob.mimeType,
-    type: 'image',
-  };
+  return { data, mimeType: blob.mimeType, type: 'image' };
 };
 
 type BlobContentResolver = (blob: BlobRef) => Promise<McpContent>;
@@ -827,52 +848,6 @@ const withMcpSurface = (
     progressCb === undefined ? {} : { progress: progressCb }
   );
 
-const parseBearerAuthorization = (
-  authorization: string | undefined
-): Result<string | undefined, Error> => {
-  if (authorization === undefined || authorization.length === 0) {
-    return Result.ok();
-  }
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
-  const token = match?.[1]?.trim();
-  if (token === undefined || token.length === 0) {
-    return Result.err(
-      new AuthError('Malformed MCP authorization; expected Bearer token', {
-        context: { code: 'invalid_authorization_header' },
-      })
-    );
-  }
-  return Result.ok(token);
-};
-
-const resolveMcpPermit = async (
-  options: DeriveMcpToolsOptions,
-  extra: McpExtra
-): Promise<Result<BasePermit | undefined, Error>> => {
-  if (extra.permit !== undefined) {
-    return Result.ok(extra.permit);
-  }
-  const token = parseBearerAuthorization(extra.authorization);
-  if (token.isErr()) {
-    return token;
-  }
-  if (token.value === undefined) {
-    return Result.ok();
-  }
-  if (options.resolvePermit === undefined) {
-    return Result.ok();
-  }
-  const resolved = await options.resolvePermit({
-    authorization: extra.authorization,
-    bearerToken: token.value,
-    sessionId: extra.sessionId,
-  });
-  if (resolved.isErr()) {
-    return resolved;
-  }
-  return Result.ok(resolved.value ?? undefined);
-};
-
 const createHandler =
   (
     graph: Topo,
@@ -903,7 +878,7 @@ const createHandler =
     const result = await executeTrail(t, trailInput, {
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
-      createContext: options.createContext,
+      createContext: surfaceContextFactory(options),
       ctx: withMcpSurface(progressCb, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
@@ -946,7 +921,7 @@ const buildDescription = (
 ): string | undefined => trail.description;
 
 // MCP requires `outputSchema` to have literal `type: "object"` at the root
-// (see `@modelcontextprotocol/sdk` Tool schema — `outputSchema: z.object({
+// (see `@modelcontextprotocol/server` Tool schema — `outputSchema: z.object({
 // type: z.literal('object'), ... })`). Object-shaped unions like
 // `z.discriminatedUnion(...)` emit as `{ anyOf: [...] }` from
 // `zodToJsonSchema` with no top-level `type`, so we publish them under the
@@ -1269,10 +1244,53 @@ const eligibleTrails = (
     intent: options.intent,
   });
 
+const requiresVerifiedPermit = (
+  trailItem: Trail<unknown, unknown, unknown>
+): boolean => trailItem.permit !== undefined && trailItem.permit !== 'public';
+
+/**
+ * A network surface with protected trails and no verifier would fail every
+ * protected call at runtime; refuse at build time so the gap teaches.
+ */
+const validateNetworkVerifier = (
+  graph: Topo,
+  options: DeriveMcpToolsOptions
+): Result<void, Error> => {
+  if (
+    options.credentialPosture !== 'network' ||
+    options.resolvePermit !== undefined
+  ) {
+    return Result.ok();
+  }
+  const protectedIds = eligibleTrails(graph, options)
+    .filter((trailItem) => requiresVerifiedPermit(trailItem))
+    .map((trailItem) => trailItem.id);
+  if (protectedIds.length === 0) {
+    return Result.ok();
+  }
+  return Result.err(
+    new ValidationError(
+      `MCP network surface exposes protected trails without a permit resolver: ${protectedIds.join(', ')}. Configure resolvePermit with a verifier, or exclude those trails from this surface. A createContext permit is not an identity source on a network surface.`,
+      {
+        context: {
+          code: 'network_surface_missing_verifier',
+          trailIds: protectedIds,
+        },
+      }
+    )
+  );
+};
+
 const validateToolBuild = (
   graph: Topo,
   options: DeriveMcpToolsOptions
-): Result<void, Error> => validateSurfaceTopo(graph, options);
+): Result<void, Error> => {
+  const validated = validateSurfaceTopo(graph, options);
+  if (validated.isErr()) {
+    return validated;
+  }
+  return validateNetworkVerifier(graph, options);
+};
 
 const collectTrailheadMembers = (
   graph: Topo,

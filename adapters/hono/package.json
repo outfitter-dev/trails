@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/hono",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/outfitter-dev/trails.git",
@@ -28,7 +28,10 @@
   },
   "dependencies": {
     "@ontrails/core": "workspace:^",
-    "hono": "^4.13.13"
+    "hono": "^4.13.19"
+  },
+  "devDependencies": {
+    "@ontrails/http": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/http": "workspace:^",

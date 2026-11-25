@@ -57,7 +57,7 @@ describe('GET /file/raw', () => {
       {
         ctx: {
           extensions: { [db.id]: conn },
-          permit: { id: 'usr_alice', scopes: ['snippet:write'] },
+          permit: { actors: [], id: 'usr_alice', scopes: ['snippet:write'] },
         },
       }
     );

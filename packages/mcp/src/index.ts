@@ -6,6 +6,7 @@ export {
   MCP_TOOL_TRAILHEAD_META_KEY,
   deriveMcpTools,
   type DeriveMcpToolsOptions,
+  type McpCredentialPosture,
   type McpSurfaceTrailheadDefinition,
   type McpSurfaceTrailheadMap,
   type McpSurfaceTrailheadTrailSelector,
@@ -31,6 +32,23 @@ export {
   type McpResourcesConfig,
 } from './resources.js';
 
+/**
+ * Policy over verified callers and canonical MCP resource descriptors.
+ *
+ * @example
+ * ```ts
+ * const options: CreateServerOptions = {
+ *   authorizeResourceRead: ({ permit }) => permit
+ *     ? Result.ok()
+ *     : Result.err(new PermissionError('Sign in to read resources')),
+ * };
+ * ```
+ */
+export type {
+  AuthorizeMcpResourceRead,
+  AuthorizeMcpResourceReadInput,
+} from './resource-access.js';
+
 // Tool naming
 export { deriveToolName } from './tool-name.js';
 
@@ -40,13 +58,11 @@ export { deriveAnnotations, type McpAnnotations } from './annotations.js';
 // Progress
 export { createMcpProgressCallback } from './progress.js';
 
+// Server
+export { createServer, type CreateServerOptions } from './server.js';
+
 // Surface
-export {
-  createServer,
-  surface,
-  type CreateServerOptions,
-  type SurfaceMcpResult,
-} from './surface.js';
+export { surface, type SurfaceMcpResult } from './surface.js';
 
 // Transport
 export { connectStdio } from './stdio.js';

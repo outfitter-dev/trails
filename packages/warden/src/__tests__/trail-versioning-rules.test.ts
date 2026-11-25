@@ -943,4 +943,63 @@ describe('trail versioning topo-aware Warden rules', () => {
       }),
     ]);
   });
+
+  test('pending-force covers every force-bearing topo entry kind', async () => {
+    const kinds = ['entity', 'trail', 'signal', 'resource'] as const;
+    const entries = kinds.map((kind) => ({
+      exampleCount: 0,
+      forces: [
+        {
+          acceptedAt: '2026-05-20T10:00:00.000Z',
+          change: 'modified' as const,
+          detail: `${kind} changed`,
+          id: 'shared',
+          kind,
+          severity: 'breaking' as const,
+          source: 'trails compile --force' as const,
+        },
+      ],
+      id: 'shared',
+      kind,
+      surfaces: [],
+    }));
+    const graph = { ...deriveTopoGraph(emptyTopo), entries };
+
+    const diagnostics = await pendingForce.checkTopo(emptyTopo, { graph });
+
+    expect(diagnostics).toHaveLength(4);
+    expect(diagnostics.map((diagnostic) => diagnostic.message)).toEqual([
+      expect.stringContaining('Entity "shared"'),
+      expect.stringContaining('Trail "shared"'),
+      expect.stringContaining('Signal "shared"'),
+      expect.stringContaining('Resource "shared"'),
+    ]);
+  });
+
+  test('pending-force keeps events with distinct timestamps or reasons', async () => {
+    const base = {
+      acceptedAt: '2026-05-20T10:00:00.000Z',
+      change: 'modified' as const,
+      detail: 'Contract changed',
+      id: 'versioned.clean',
+      kind: 'trail' as const,
+      severity: 'breaking' as const,
+      source: 'trails compile --force' as const,
+    };
+    const [entry] = deriveTopoGraph(
+      topo('version-clean', { versionedTrail })
+    ).entries;
+    const graph = graphWithEntry({
+      ...entry,
+      forces: [
+        base,
+        { ...base, acceptedAt: '2026-05-21T10:00:00.000Z' },
+        { ...base, reason: 'approved migration' },
+      ],
+    } as TopoGraphEntry);
+
+    const diagnostics = await pendingForce.checkTopo(emptyTopo, { graph });
+
+    expect(diagnostics).toHaveLength(3);
+  });
 });

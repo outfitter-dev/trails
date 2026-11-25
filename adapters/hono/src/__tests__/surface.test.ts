@@ -115,6 +115,27 @@ describe('surface API (Hono adapter)', () => {
     expect(await response.json()).toEqual({ data: { reply: 'hello' } });
   });
 
+  test('createApp serves HEAD through the implicit GET route without a body', async () => {
+    let executions = 0;
+    const countedTrail = trail('counted', {
+      implementation: () => {
+        executions += 1;
+        return Result.ok({ executions });
+      },
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ executions: z.number() }),
+    });
+    const app = createApp(topo('surface-head', { countedTrail }));
+
+    const response = await app.request('/counted', { method: 'HEAD' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toBeNull();
+    expect(await response.text()).toBe('');
+    expect(executions).toBe(1);
+  });
+
   test('surface starts a Bun server and returns a close handle', async () => {
     const graph = topo('surface-api', { echoTrail });
     const handle = await surface(graph, { port: 0 });
@@ -142,7 +163,7 @@ describe('surface API (Hono adapter)', () => {
     });
   });
 
-  test('single query values stay scalar even when the schema expects an array', async () => {
+  test('single query values arrive as one-element arrays for declared array fields', async () => {
     const graph = topo('surface-api', { tagsTrail });
     const app = createApp(graph);
 
@@ -150,12 +171,8 @@ describe('surface API (Hono adapter)', () => {
       method: 'GET',
     });
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: {
-        category: 'validation',
-      },
-    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { tags: ['solo'] } });
   });
 
   test('default JSON body cap rejects request bodies over 1 MiB', async () => {
@@ -420,9 +437,9 @@ describe('surface API (Hono adapter)', () => {
     expect(loggedErrors).toHaveLength(0);
   });
 
-  test('malformed Authorization fails as 401 through Hono permit resolution', async () => {
+  test('a presented credential fails as 401 without a Hono permit policy', async () => {
     let invoked = false;
-    const protectedTrail = trail('permit.malformed', {
+    const openTrail = trail('open.read', {
       implementation: () => {
         invoked = true;
         return Result.ok({ ok: true });
@@ -430,14 +447,11 @@ describe('surface API (Hono adapter)', () => {
       input: z.object({}),
       intent: 'read',
       output: z.object({ ok: z.boolean() }),
-      permit: { scopes: ['thing:read'] },
     });
-    const graph = topo('surface-api', { protectedTrail });
-    const app = createApp(graph, {
-      resolvePermit: () => Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
-    });
+    const graph = topo('surface-api', { openTrail });
+    const app = createApp(graph);
 
-    const response = await app.request('/permit/malformed', {
+    const response = await app.request('/open/read', {
       headers: { Authorization: 'Basic nope' },
       method: 'GET',
     });
@@ -447,13 +461,58 @@ describe('surface API (Hono adapter)', () => {
       error: {
         category: 'auth',
         code: 'AuthError',
-        message: 'Malformed Authorization header; expected Bearer token',
+        message:
+          'A credential was presented but this HTTP surface has no permit resolver; configure resolvePermit with a verifier.',
       },
     });
     expect(invoked).toBe(false);
   });
 
-  test('non-Bearer Authorization does not reject public Hono routes', async () => {
+  test('protected trails without a Hono permit policy are refused at build time', () => {
+    const protectedTrail = trail('permit.scope', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['thing:read'] },
+    });
+    expect(() => createApp(topo('surface-api', { protectedTrail }))).toThrow(
+      /permit\.scope/
+    );
+  });
+
+  test('malformed Authorization reaches the configured Hono permit policy', async () => {
+    // Bearer parsing derives a credential candidate; it is not an authentication gate:
+    // the configured policy owns scheme decisions and sees the raw header.
+    let observed: { authorization?: string; bearerToken?: string } | undefined;
+    const protectedTrail = trail('permit.malformed', {
+      implementation: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['thing:read'] },
+    });
+    const graph = topo('surface-api', { protectedTrail });
+    const app = createApp(graph, {
+      resolvePermit: ({ authorization, bearerToken }) => {
+        observed = { authorization, bearerToken };
+        return Result.ok({ actors: [], id: 'user-1', scopes: ['thing:read'] });
+      },
+    });
+
+    const response = await app.request('/permit/malformed', {
+      headers: { Authorization: 'Basic nope' },
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(200);
+    expect(observed).toEqual({
+      authorization: 'Basic nope',
+      bearerToken: undefined,
+    });
+  });
+
+  test('non-Bearer Authorization without a resolver is refused on public Hono routes', async () => {
     const graph = topo('surface-api', { echoTrail });
     const app = createApp(graph);
 
@@ -462,8 +521,10 @@ describe('surface API (Hono adapter)', () => {
       method: 'GET',
     });
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: { reply: 'hello' } });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      error: { category: 'auth', code: 'AuthError' },
+    });
   });
 
   test('resolved permits with missing scopes fail as 403 through Hono', async () => {
@@ -481,7 +542,7 @@ describe('surface API (Hono adapter)', () => {
       resolvePermit: ({ bearerToken, headers }) => {
         observedBearerToken = bearerToken;
         observedHeaders = headers instanceof Headers ? headers : undefined;
-        return Result.ok({ id: 'user-1', scopes: [] });
+        return Result.ok({ actors: [], id: 'user-1', scopes: [] });
       },
     });
 

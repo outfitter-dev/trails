@@ -475,23 +475,27 @@ describe('trails warden', () => {
   });
 
   test.each([
-    'standalone',
-    'configured-app',
-    'workspace',
-    'source',
-    'configured-source-fix',
+    ['standalone', 'topo'],
+    ['configured-app', 'topo'],
+    ['workspace', 'topo'],
+    ['source', 'source'],
+    ['configured-source-fix', 'source'],
+    ['configured-project-fix', 'project'],
   ] as const)(
     'records only the app actually evaluated by a one-app run (%s)',
-    async (selection) => {
+    async (selection, depth) => {
       const dir = makeTempDir();
+      const fix =
+        selection === 'configured-source-fix' ||
+        selection === 'configured-project-fix';
       try {
         if (
           selection === 'configured-app' ||
           selection === 'workspace' ||
-          selection === 'configured-source-fix'
+          fix
         ) {
           writeConfiguredWorkspaceFixture(dir);
-          if (selection === 'configured-source-fix') {
+          if (fix) {
             await writeAppRootLock(
               join(dir, 'apps/alpha'),
               'alpha',
@@ -515,19 +519,11 @@ describe('trails warden', () => {
         }
         const result = await wardenTrail.implementation(
           {
-            ...(selection === 'configured-app' ||
-            selection === 'configured-source-fix'
-              ? { app: 'alpha' }
-              : {}),
-            depth:
-              selection === 'source' || selection === 'configured-source-fix'
-                ? 'source'
-                : 'topo',
-            fix: selection === 'configured-source-fix',
+            ...(selection === 'configured-app' || fix ? { app: 'alpha' } : {}),
+            depth,
+            fix,
             format: 'json',
-            ...(selection === 'configured-source-fix'
-              ? {}
-              : { lock: 'skip' as const }),
+            ...(fix ? {} : { lock: 'skip' as const }),
             rootDir: dir,
           },
           { cwd: dir, env: {} } as never
@@ -553,13 +549,13 @@ describe('trails warden', () => {
             expect(output).not.toHaveProperty('executedAppId');
           }
         }
-        if (selection === 'configured-source-fix') {
+        if (fix) {
           const cli = runCli(
             trailsBinPath,
             [
               'warden',
               '--depth',
-              'source',
+              depth,
               '--fix',
               '--app',
               'alpha',
@@ -1730,7 +1726,7 @@ export const app = topo('gamma', [trail('gamma.read', {
           '--root-dir',
           repoRoot,
           '--permit',
-          '{"id":"test","scopes":["trails:run"]}',
+          '{"actors":[],"id":"test","scopes":["trails:run"]}',
           '--json',
         ],
         repoRoot,

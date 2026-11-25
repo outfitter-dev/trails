@@ -28,6 +28,7 @@ import {
 } from '@ontrails/regrade';
 import type {
   PreparedRegradeRunIdentity,
+  RegradeReport,
   VocabularyRegradePlan,
 } from '@ontrails/regrade';
 
@@ -6646,12 +6647,32 @@ describe('trails regrade', () => {
       '--json',
     ]);
     expect(run.exitCode).toBe(0);
-    const parsed = parseCliJson<
-      {
-        readonly entries?: readonly { readonly outcome?: string }[];
-      } & Record<string, unknown>
-    >(run);
-    expect(parsed).toMatchObject({
+    const parsed = parseCliJson<RegradeReport>(run);
+    const needsReview = parsed.entries.filter(
+      (entry) => entry.outcome === 'needs-review'
+    );
+    const report = parsed.run?.report;
+    // Keep counters and actionable paths ahead of the full entry inventory.
+    expect({
+      needsReview: needsReview.slice(0, 10).map(({ path, reason }) => ({
+        path,
+        reason,
+      })),
+      review: parsed.review,
+      rewritten: parsed.rewritten,
+      run: {
+        report: {
+          deferred: report?.deferred,
+          dispositions: report?.dispositions,
+          gate: {
+            remaining: report?.gate.remaining,
+            status: report?.gate.status,
+          },
+          modified: report?.modified,
+          open: report?.open,
+        },
+      },
+    }).toMatchObject({
       review: 0,
       rewritten: 0,
       run: {
@@ -6664,9 +6685,7 @@ describe('trails regrade', () => {
         },
       },
     });
-    expect(
-      parsed.entries?.filter((entry) => entry.outcome === 'needs-review')
-    ).toEqual([]);
+    expect(needsReview).toEqual([]);
   });
 
   test('CLI regrade observes and applies governed package route source strings', () => {

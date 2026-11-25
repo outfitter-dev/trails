@@ -161,7 +161,7 @@ describe('probe.sweep scheduling', () => {
       'lookout.db': store,
       'lookout.probe-http': createScriptedProbeHttp(),
     };
-    const adminPermit = { id: 'test', scopes: ['lookout:admin'] };
+    const adminPermit = { actors: [], id: 'test', scopes: ['lookout:admin'] };
 
     const first = await run(graph, 'probe.sweep', {}, { resources });
     expect(first.isOk()).toBe(true);

@@ -2148,6 +2148,11 @@ const assertDependencyDirection = (
     workspace.manifest.optionalDependencies
   );
   const peerDependencies = dependencyMap(workspace.manifest.peerDependencies);
+  const devHasOwner = Object.hasOwn(devDependencies, targetEntry.ownerPackage);
+  const peerHasOwner = Object.hasOwn(
+    peerDependencies,
+    targetEntry.ownerPackage
+  );
 
   if (
     Object.hasOwn(dependencies, targetEntry.ownerPackage) ||
@@ -2165,7 +2170,7 @@ const assertDependencyDirection = (
     );
   }
 
-  if (Object.hasOwn(devDependencies, targetEntry.ownerPackage)) {
+  if (devHasOwner && !peerHasOwner) {
     diagnostics.push(
       diagnostic(
         workspace.packageJsonPath,
@@ -2178,7 +2183,7 @@ const assertDependencyDirection = (
     );
   }
 
-  if (!Object.hasOwn(peerDependencies, targetEntry.ownerPackage)) {
+  if (!peerHasOwner) {
     diagnostics.push(
       diagnostic(
         workspace.packageJsonPath,

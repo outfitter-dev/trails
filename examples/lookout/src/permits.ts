@@ -10,6 +10,7 @@ import { Result } from '@ontrails/core';
 import type { BasePermit } from '@ontrails/core';
 
 const ADMIN_PERMIT: BasePermit = {
+  actors: [],
   id: 'lookout-admin',
   scopes: ['lookout:admin'],
 };

@@ -338,7 +338,21 @@ describe('tryTraceJsonOutput', () => {
 
   test('emits envelope on stdout under --trace --json', async () => {
     const session = installTraceSink();
-    await executeTrail(greetTrail, { name: 'Alpha' });
+    const permit = {
+      actors: [
+        {
+          id: 'client',
+          issuer: 'actor-namespace',
+          kind: 'client',
+          verified: true,
+        },
+        { id: 'prior', kind: 'unknown', verified: true },
+      ],
+      id: 'subject',
+      issuer: 'attester',
+      scopes: [],
+    };
+    await executeTrail(greetTrail, { name: 'Alpha' }, { permit });
     const ctx = buildCtx(
       { json: true, trace: true },
       Result.ok({ greeting: 'hi Alpha' })
@@ -371,6 +385,7 @@ describe('tryTraceJsonOutput', () => {
         id: trailRecord?.id,
         kind: 'trail',
         name: 'greet',
+        permit: { actors: permit.actors, id: permit.id, issuer: permit.issuer },
         status: 'ok',
         trailId: 'greet',
       })

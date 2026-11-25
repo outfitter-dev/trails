@@ -139,6 +139,32 @@ afterEach(() => {
 });
 
 describe('Changesets zero-major progression', () => {
+  test('keeps multiline notes whitespace-clean across successive versions', () => {
+    const rootDir = createFixture('patch');
+
+    for (const version of ['0.2.1', '0.2.2']) {
+      writeFileSync(
+        join(rootDir, '.changeset', 'release.md'),
+        `---\n'@fixture/core': patch\n---\n\nFirst paragraph.\n\nSecond paragraph.\n\n- Nested bullet.\n\n    nestedCode();\n`
+      );
+      runChangeset(rootDir, 'version');
+
+      const changelog = readFileSync(
+        join(rootDir, 'packages', 'core', 'CHANGELOG.md'),
+        'utf8'
+      );
+      expect(changelog).toContain(`## ${version}`);
+      expect(changelog).toContain('First paragraph.\n\n  Second paragraph.');
+      expect(changelog).toContain(
+        '\n\n  - Nested bullet.\n\n      nestedCode();'
+      );
+      expect(changelog).not.toMatch(/[\t ]+$/m);
+
+      runCommand(rootDir, ['git', 'add', 'packages']);
+      runCommand(rootDir, ['git', 'diff', '--cached', '--check']);
+    }
+  });
+
   test.each([
     ['patch', '0.2.1'],
     ['minor', '0.3.0'],
