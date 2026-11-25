@@ -1,5 +1,4 @@
-import { globalRegistry } from 'zod';
-import type { z } from 'zod';
+import { globalRegistry, z } from 'zod';
 import { util as zodUtil } from 'zod/v4/core';
 
 import type { ConfigFieldMeta } from './extensions.js';
@@ -211,14 +210,48 @@ const branchObject = (schema: z.ZodType): z.ZodType | undefined => {
   return def['type'] === 'object' ? branch : undefined;
 };
 
+const readBranchOptions = (options: unknown): z.ZodType[] | undefined => {
+  if (
+    !Array.isArray(options) ||
+    Object.getPrototypeOf(options) !== Array.prototype ||
+    Object.hasOwn(options, Symbol.iterator)
+  ) {
+    return;
+  }
+  const branches: z.ZodType[] = [];
+  const length: unknown = Object.getOwnPropertyDescriptor(
+    options,
+    'length'
+  )?.value;
+  if (typeof length !== 'number' || length === 0) {
+    return;
+  }
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(options, index);
+    if (
+      !descriptor ||
+      !('value' in descriptor) ||
+      !(descriptor.value instanceof z.ZodType)
+    ) {
+      return;
+    }
+    branches.push(descriptor.value);
+  }
+  return branches;
+};
+
 /** Inspect only branch discriminators, never fields from unselected branches. */
 export const selectSecretBranch = (
-  options: readonly z.ZodType[],
+  options: unknown,
   discriminator: string,
   value: unknown
 ): SecretBranchSelection => {
+  const branches = readBranchOptions(options);
+  if (!branches) {
+    return { kind: 'unsupported' };
+  }
   const claims = new Map<unknown, z.ZodType>();
-  for (const option of options) {
+  for (const option of branches) {
     const branch = branchObject(option);
     if (!branch) {
       return { kind: 'unsupported' };

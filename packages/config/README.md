@@ -234,7 +234,8 @@ A complete derivation describes declared metadata for the selected supported sha
 - Discriminated unions need object branches (which may be readonly) with
   non-secret, unwrapped literal tags. Tag values must be distinct across
   branches; only the selected branch's other fields and annotations are
-  inspected.
+  inspected. Custom option arrays and annotations that declare `secret` or
+  `env` on both the union and its selected branch are incomplete.
 - Every present non-undefined catchall is incomplete at its containing object,
   including strict and loose objects and annotated `unknown`/`never` schemas.
   Plain objects and `.strip()` with no catchall remain supported. The helper

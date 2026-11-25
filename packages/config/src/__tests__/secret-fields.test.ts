@@ -301,6 +301,86 @@ describe('deriveConfigSecretFields', () => {
     }
   });
 
+  test('rejects custom branch option arrays without reading getters or iterators', () => {
+    const branch = z.object({ kind: z.literal('selected') });
+    const options = [branch];
+    const schema = z.discriminatedUnion('kind', options);
+    let reads = 0;
+    const getBranch = () => {
+      reads += 1;
+      return branch;
+    };
+    const derive = () =>
+      deriveConfigSecretFields(schema, {
+        discriminants: { kind: 'selected' },
+      });
+    const unsupported = {
+      complete: false,
+      path: 'kind',
+      reason: 'unsupported-schema',
+    };
+    Object.defineProperty(options, Symbol.iterator, {
+      configurable: true,
+      value() {
+        return [getBranch()][Symbol.iterator]();
+      },
+    });
+    expect(derive()).toEqual(unsupported);
+    Reflect.deleteProperty(options, Symbol.iterator);
+    Object.defineProperty(options, '0', { get: getBranch });
+    expect(derive()).toEqual(unsupported);
+    expect(reads).toBe(0);
+  });
+
+  test('fails closed when union and selected branch both declare metadata at one path', () => {
+    const other = z.object({ kind: z.literal('other') });
+    const branch = secret(
+      env(z.object({ kind: z.literal('selected') }), 'BRANCH')
+    );
+    const schema = z.discriminatedUnion('kind', [other, branch]);
+    const options = { discriminants: { 'auth.kind': 'selected' } };
+    for (const auth of [env(schema, 'UNION'), secret(env(schema, 'UNION'))]) {
+      expect(deriveConfigSecretFields(z.object({ auth }), options)).toEqual({
+        complete: false,
+        path: 'auth',
+        reason: 'unsupported-schema',
+      });
+    }
+    expect(
+      deriveConfigSecretFields(z.object({ auth: schema }), options)
+    ).toEqual({
+      complete: true,
+      fields: [
+        {
+          ancestors: [],
+          env: 'BRANCH',
+          path: 'auth',
+          required: true,
+          secret: true,
+        },
+      ],
+    });
+    expect(
+      deriveConfigSecretFields(
+        z.object({ auth: secret(env(schema, 'UNION')) }),
+        {
+          discriminants: { 'auth.kind': 'other' },
+        }
+      )
+    ).toEqual({
+      complete: true,
+      fields: [
+        {
+          ancestors: [],
+          env: 'UNION',
+          path: 'auth',
+          required: true,
+          secret: true,
+        },
+      ],
+    });
+  });
+
   test('selects distinct multi-value and null literals without evaluating arrays', () => {
     const literals = ['key', 'other'] as const;
     const schema = z.discriminatedUnion('kind', [

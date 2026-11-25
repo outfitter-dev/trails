@@ -51,6 +51,7 @@ interface WalkEntry {
   readonly path: string;
   readonly ancestors: readonly ConfigSecretAncestor[];
   readonly parent: VisitedSchema | undefined;
+  readonly unionHasMeta?: boolean;
 }
 
 interface VisitedSchema {
@@ -107,12 +108,11 @@ const queueBranch = (
   options: DeriveConfigSecretFieldsOptions
 ) => {
   const def = zodDef(entry.schema);
-  const { discriminator } = def;
-  if (
-    typeof discriminator !== 'string' ||
-    !supportedSegment(discriminator) ||
-    !Array.isArray(def['options'])
-  ) {
+  const discriminator: unknown = Object.getOwnPropertyDescriptor(
+    def,
+    'discriminator'
+  )?.value;
+  if (typeof discriminator !== 'string' || !supportedSegment(discriminator)) {
     return incomplete(entry.path);
   }
   const path = entry.path ? `${entry.path}.${discriminator}` : discriminator;
@@ -131,7 +131,7 @@ const queueBranch = (
     return incomplete(path);
   }
   const selected = selectSecretBranch(
-    def['options'],
+    Object.getOwnPropertyDescriptor(def, 'options')?.value,
     discriminator,
     selection.value
   );
@@ -163,6 +163,12 @@ const ancestorFacts = (
       ]
     : entry.ancestors;
 
+const supportsSecretField = (schema: z.ZodType, type: unknown): boolean =>
+  type === 'object' ||
+  type === 'union' ||
+  isSecretScalar(schema) ||
+  (type === 'array' && isInspectableSecretArray(schema));
+
 /**
  * Derive declared secret fields without reading values or evaluating schemas.
  *
@@ -193,15 +199,14 @@ export const deriveConfigSecretFields = (
     }
     const def = zodDef(shape.base);
     const { type } = def;
-    const supported =
-      type === 'object' ||
-      type === 'union' ||
-      isSecretScalar(shape.base) ||
-      (type === 'array' && isInspectableSecretArray(shape.base));
-    if (!supported) {
+    if (!supportsSecretField(shape.base, type)) {
       return incomplete(entry.path);
     }
     const { meta } = shape;
+    const hasMeta = meta?.secret === true || meta?.env !== undefined;
+    if (entry.unionHasMeta && hasMeta) {
+      return incomplete(entry.path);
+    }
     if (meta?.secret) {
       fields.push({
         ...(meta.env === undefined ? {} : { env: meta.env }),
@@ -221,7 +226,11 @@ export const deriveConfigSecretFields = (
     if (type === 'object') {
       issue = queueObject(childEntry, queue);
     } else if (type === 'union') {
-      issue = queueBranch(childEntry, queue, options);
+      issue = queueBranch(
+        { ...childEntry, unionHasMeta: hasMeta },
+        queue,
+        options
+      );
     }
     if (issue) {
       return issue;
