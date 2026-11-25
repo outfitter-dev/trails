@@ -45,7 +45,7 @@ This is bounded source analysis. Warden does not infer factory bodies, inherited
 
 Inside the implementation, use `const station: Result<Station, Error> = identity.ensureStation({ name });`, then preserve the narrowed `if (station.isErr()) return station;` path.
 
-Keep direct Err passthrough; do not add a redundant error wrapper to silence provenance diagnostics. Both rules recognize direct Result annotations, including imported aliases and namespace-qualified names. A type that merely contains a Result does not establish its own provenance.
+Keep direct Err passthrough; do not add a redundant error wrapper to silence provenance diagnostics. Both rules recognize direct Result annotations, including imported aliases, namespace-qualified names, and intersections that require a Result. A field containing a Result or a union that may not be a Result does not establish provenance.
 
 ## Project-local rules
 

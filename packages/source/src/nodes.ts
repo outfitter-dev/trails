@@ -302,6 +302,7 @@ export interface AstFieldView {
   readonly typeArguments?: AstNode;
   readonly typeParameters?: AstNode;
   readonly typeName?: AstNode;
+  readonly types?: readonly AstNode[];
   readonly static?: boolean;
   readonly optional?: boolean;
   readonly value?: unknown;
@@ -676,6 +677,14 @@ export const getNodeTypeParameterNames = (
 export const getNodeTypeName = (
   node: AstNode | null | undefined
 ): AstNode | undefined => deriveAstFieldView(node)?.typeName;
+
+/** Return only the immediate members of a TypeScript intersection. */
+export const getNodeIntersectionTypes = (
+  node: AstNode | null | undefined
+): readonly AstNode[] =>
+  node?.type === 'TSIntersectionType'
+    ? (deriveAstFieldView(node)?.types ?? [])
+    : [];
 
 /** Whether a call or member access uses optional chaining. */
 export const getNodeOptional = (node: AstNode | null | undefined): boolean =>

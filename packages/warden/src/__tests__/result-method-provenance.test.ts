@@ -120,6 +120,20 @@ describe('explicit resource class-method Result provenance', () => {
     expect(noRedundantResultErrorWrap.check(neededWrap, path)).toHaveLength(0);
     expect(implementationReturnsResult.check(neededWrap, path)).toHaveLength(0);
   });
+  test('recognizes Result intersections but not ambiguous unions', () => {
+    const options = {
+      expression: 'input.unknown',
+      localType: ': Result<string, Error> & { tag?: string }',
+    };
+    expect(check(options).returns).toHaveLength(0);
+    expect(check({ ...options, rewrap: true }).wraps).toHaveLength(1);
+    const maybeResult = {
+      ...options,
+      localType: ': Result<string, Error> | { error: Error; isErr(): boolean }',
+    };
+    expect(check(maybeResult).returns).toHaveLength(1);
+    expect(check({ ...maybeResult, rewrap: true }).wraps).toHaveLength(0);
+  });
   test('preserves a qualified Result annotation through a core namespace import', () => {
     const { source, path } = fixture({
       expression: 'input.unknown',
@@ -550,11 +564,11 @@ ${binding === 'aliased export' ? 'export { store };' : ''}`;
   });
 });
 
-test('does not collapse overloaded method signatures to an arbitrary Result witness', () => {
+test.each(['read', "['read']"])('rejects ambiguous overloads of %s', (key) => {
   const { source, path } = fixture({ rewrap: true });
   writeFileSync(
     join(root, 'client.ts'),
-    `import * as Trails from '@ontrails/core'; export declare class Client { 'read'(mode: true): Trails.Result<string,Error>; read(mode: false): { error: Error; isErr(): boolean }; }`
+    `import * as Trails from '@ontrails/core'; export declare class Client { 'read'(mode: true): Trails.Result<string,Error>; ${key}(mode: false): { error: Error; isErr(): boolean }; }`
   );
   expect(noRedundantResultErrorWrap.check(source, path)).toHaveLength(0);
   expect(

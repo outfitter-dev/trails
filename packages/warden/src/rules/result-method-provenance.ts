@@ -179,6 +179,14 @@ const bindingFrame = (
   name: string
 ): ScopeFrame | undefined => scopes.find((frame) => frame.has(name));
 
+const declaredMethodName = (method: AstNode): string | null => {
+  const key = getNodeKey(method);
+  if (!key || (getNodeComputed(method) && key.type === 'Identifier')) {
+    return null;
+  }
+  return staticPropertyKeyName(key);
+};
+
 // A lexical witness must hold across branches, loops, and captured writes;
 // source order cannot prove when an assignment runs.
 const collectMethodSites = (ast: AstNode) => {
@@ -262,15 +270,13 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
     for (const method of getNodeBodyStatements(getNodeBodyNode(client.node))) {
       if (
         method.type !== 'MethodDefinition' ||
-        getNodeComputed(method) ||
         getNodeOptional(method) ||
         getNodeStatic(method) ||
         getNodeKind(method) !== 'method'
       ) {
         continue;
       }
-      const key = getNodeKey(method);
-      const methodName = key ? staticPropertyKeyName(key) : null;
+      const methodName = declaredMethodName(method);
       if (!methodName) {
         continue;
       }
@@ -279,6 +285,9 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
         continue;
       }
       seen.add(methodName);
+      if (getNodeComputed(method)) {
+        continue;
+      }
       const value = getNodeValueNode(method);
       const kind = value
         ? returnKind(client.module, value, classTypeParameters)

@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import {
   collectPatternBindingNames,
   getNodeCallee,
+  getNodeIntersectionTypes,
   getNodeOptional,
   getNodeLeft,
   getNodeStatic,
@@ -86,4 +87,22 @@ test('optional call/member flags are distinct from ordinary static access', () =
   });
   expect(calls).toEqual([true, true, false]);
   expect(getNodeOptional()).toBe(false);
+});
+
+test('intersection accessor exposes direct members but not union alternatives', () => {
+  const ast = parse(
+    'types.ts',
+    'type A = Result & Meta; type B = Result | Raw;'
+  );
+  const members: (readonly string[])[] = [];
+  walk(ast, (node) => {
+    if (node.type === 'TSIntersectionType' || node.type === 'TSUnionType') {
+      members.push(
+        getNodeIntersectionTypes(node).map(
+          (type) => identifierName(getNodeTypeName(type)) ?? ''
+        )
+      );
+    }
+  });
+  expect(members).toEqual([['Result', 'Meta'], []]);
 });

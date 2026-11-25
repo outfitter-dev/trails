@@ -23,6 +23,7 @@ import {
   getNodeId,
   getNodeImported,
   getNodeInit,
+  getNodeIntersectionTypes,
   getNodeLocal,
   getNodeLeft,
   getNodeName,
@@ -439,13 +440,20 @@ export const trackScopedResultHelperDeclaration = (
 // Variable tracking
 // ---------------------------------------------------------------------------
 
-export const hasResultVariableAnnotation = (
-  node: AstNode,
+const isResultVariableType = (
+  annotation: AstNode | undefined,
   resultTypeNames: ReadonlySet<string>
 ): boolean => {
-  let annotation = getNodeTypeAnnotation(getNodeTypeAnnotation(node));
-  while (annotation?.type === 'TSParenthesizedType') {
-    annotation = getNodeTypeAnnotation(annotation);
+  if (annotation?.type === 'TSParenthesizedType') {
+    return isResultVariableType(
+      getNodeTypeAnnotation(annotation),
+      resultTypeNames
+    );
+  }
+  if (annotation?.type === 'TSIntersectionType') {
+    return getNodeIntersectionTypes(annotation).some((type) =>
+      isResultVariableType(type, resultTypeNames)
+    );
   }
   const ref = getNodeTypeName(annotation);
   if (getNodeTypeArguments(annotation).length === 0) {
@@ -463,6 +471,15 @@ export const hasResultVariableAnnotation = (
   const local = identifierName(ref);
   return local !== null && resultTypeNames.has(local);
 };
+
+export const hasResultVariableAnnotation = (
+  node: AstNode,
+  resultTypeNames: ReadonlySet<string>
+): boolean =>
+  isResultVariableType(
+    getNodeTypeAnnotation(getNodeTypeAnnotation(node)),
+    resultTypeNames
+  );
 
 /** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
 const trackResultVariable = (
