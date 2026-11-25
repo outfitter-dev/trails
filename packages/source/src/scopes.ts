@@ -199,6 +199,7 @@ const addBlockStatementBindings = (stmt: AstNode, into: Set<string>): void => {
     stmt.type === 'FunctionDeclaration' ||
     stmt.type === 'ClassDeclaration' ||
     stmt.type === 'TSEnumDeclaration' ||
+    stmt.type === 'TSImportEqualsDeclaration' ||
     stmt.type === 'TSModuleDeclaration'
   ) {
     addFunctionOrClassBindingName(stmt, into);
@@ -290,7 +291,10 @@ const visitForHoisted = (
   into: Set<string>,
   inNestedBlock: boolean
 ): void => {
-  if (!isRoot && FUNCTION_BOUNDARY_TYPES.has(node.type)) {
+  if (
+    !isRoot &&
+    (FUNCTION_BOUNDARY_TYPES.has(node.type) || node.type === 'TSModuleBlock')
+  ) {
     return;
   }
   recordHoistedBinding(node, into, inNestedBlock);
@@ -320,6 +324,11 @@ const collectProgramFrame: FrameCollector = (node, into) => {
   for (const stmt of body) {
     collectTopLevelStatementBindings(stmt, into);
   }
+};
+
+const collectNamespaceFrame: FrameCollector = (node, into) => {
+  collectProgramFrame(node, into);
+  collectHoistedVarAndFunctionBindings(node, into);
 };
 
 const collectFunctionFrame: FrameCollector = (node, into) => {
@@ -405,7 +414,7 @@ export const SCOPE_FRAME_COLLECTORS: Record<string, FrameCollector> = {
   Program: collectProgramFrame,
   StaticBlock: collectBlockFrame,
   SwitchStatement: collectSwitchStatementFrame,
-  TSModuleBlock: collectProgramFrame,
+  TSModuleBlock: collectNamespaceFrame,
 };
 
 /**

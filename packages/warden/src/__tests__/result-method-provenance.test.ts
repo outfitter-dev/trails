@@ -309,6 +309,8 @@ export class Client<Trails = unknown> {
     'function outer() { const identityStoreResource = rawResource;',
     '{ const identityStoreResource = rawResource;',
     'namespace Outer { export const identityStoreResource = rawResource;',
+    'namespace Outer { import identityStoreResource = Fixtures.rawResource;',
+    'namespace Outer { if (f) { var identityStoreResource = rawResource; }',
     'function outer() {',
   ])('resolves resource shadows around nested helpers in %s', (outer) => {
     const { source, path } = fixture();
