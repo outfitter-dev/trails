@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 export const permitExtractionInputSchema = z
   .object({
+    /** Candidate from x-api-key, without an implied trust decision. */
+    apiKey: z.string().optional(),
+    /** Candidate from x-auth-token, without an implied trust decision. */
+    authToken: z.string().optional(),
+    /** Original Authorization value; the adapter owns its accepted scheme. */
+    authorization: z.string().optional(),
     /** Bearer token from Authorization header or equivalent. */
     bearerToken: z.string().optional(),
     /** Raw headers (HTTP surface only, typically). */

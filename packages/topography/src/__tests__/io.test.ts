@@ -168,7 +168,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -183,7 +183,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -209,12 +209,24 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 });
 
 describe('isTopoArtifactRegenerationError', () => {
+  test('continues recognizing previously emitted unsupported-format diagnostics', () => {
+    for (const name of ['trails.lock', 'topo.lock']) {
+      expect(
+        isTopoArtifactRegenerationError(
+          new Error(
+            `Unsupported ${name} format; regenerate with \`trails compile\`.`
+          )
+        )
+      ).toBe(true);
+    }
+  });
+
   test('recognizes unsupported topo artifact read errors', async () => {
     await Bun.write(join(tempDir, 'topo.lock'), '{}\n');
     const topoError = await captureError(() => readTopoGraph({ dir: tempDir }));
@@ -263,7 +275,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -279,7 +291,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -305,7 +317,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -316,7 +328,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -324,7 +336,7 @@ describe('writeLockManifest / readLockManifest', () => {
     await Bun.write(join(tempDir, 'trails.lock'), `${'a'.repeat(64)}\n`);
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -399,7 +411,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     );
 
     await expect(readTrailsLock({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -411,7 +423,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 });
@@ -490,7 +502,7 @@ describe('readWorkspaceTrailIndex', () => {
     await Bun.write(join(tempDir, 'trails.lock'), `${hash}\n`);
 
     await expect(readWorkspaceTrailIndex({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 

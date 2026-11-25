@@ -4,31 +4,14 @@ import { z } from 'zod';
 
 import { authResource } from '../auth-resource.js';
 import type { PermitExtractionInput } from '../extraction.js';
-import type { Permit } from '../permit.js';
+import { permitSchema } from '../permit.js';
 
-const permitSchema = z.object({
-  id: z.string(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  roles: z.array(z.string()).optional(),
-  scopes: z.array(z.string()),
-  tenantId: z.string().optional(),
-});
 const authErrorCodeSchema = z.enum([
   'expired_token',
   'insufficient_scope',
   'invalid_token',
   'missing_credentials',
 ]);
-
-const toOutputPermit = (permit: Permit) => ({
-  ...(permit.metadata === undefined
-    ? {}
-    : { metadata: { ...permit.metadata } }),
-  ...(permit.roles === undefined ? {} : { roles: [...permit.roles] }),
-  ...(permit.tenantId === undefined ? {} : { tenantId: permit.tenantId }),
-  id: permit.id,
-  scopes: [...permit.scopes],
-});
 
 const isSurfaceName = (
   value: unknown
@@ -79,8 +62,16 @@ export const authVerify = trail('auth.verify', {
       });
     }
 
+    const validated = permitSchema.safeParse(permit);
+    if (!validated.success) {
+      return Result.ok({
+        error: 'Auth adapter returned a malformed permit',
+        errorCode: 'invalid_token',
+        valid: false,
+      });
+    }
     return Result.ok({
-      permit: toOutputPermit(permit),
+      permit: validated.data,
       valid: true,
     });
   },

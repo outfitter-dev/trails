@@ -156,6 +156,7 @@ const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
 };
 
 const trailsRunPermit = {
+  actors: [],
   id: 'test-permit',
   scopes: ['trails:run'],
 } as const;
@@ -165,7 +166,7 @@ const executeRunTrail = async (
   scopes: readonly string[] = trailsRunPermit.scopes
 ): Promise<Result<unknown, Error>> =>
   await executeTrail(runTrail, input, {
-    ctx: { permit: { id: trailsRunPermit.id, scopes } },
+    ctx: { permit: { actors: [], id: trailsRunPermit.id, scopes } },
   });
 
 const workspaceTmpRoot = join(import.meta.dir, '../..', '.tmp-tests');

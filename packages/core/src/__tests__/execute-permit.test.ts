@@ -24,7 +24,11 @@ describe('executeTrail permit enforcement', () => {
       {},
       {
         ctx: {
-          permit: { id: 'permit-1', scopes: ['entity:read', 'entity:write'] },
+          permit: {
+            actors: [],
+            id: 'permit-1',
+            scopes: ['entity:read', 'entity:write'],
+          },
         },
       }
     );
@@ -58,7 +62,9 @@ describe('executeTrail permit enforcement', () => {
       protectedTrail,
       {},
       {
-        ctx: { permit: { id: 'permit-1', scopes: ['entity:read'] } },
+        ctx: {
+          permit: { actors: [], id: 'permit-1', scopes: ['entity:read'] },
+        },
       }
     );
 
@@ -140,7 +146,7 @@ describe('executeTrail permit enforcement', () => {
     const result = await executeTrail(
       adminTrail,
       {},
-      { ctx: { permit: { id: 'user', scopes: ['user'] } } }
+      { ctx: { permit: { actors: [], id: 'user', scopes: ['user'] } } }
     );
 
     expect(result.isErr()).toBe(true);
@@ -175,7 +181,9 @@ describe('executeTrail permit enforcement', () => {
       parent,
       {},
       {
-        ctx: { permit: { id: 'permit-1', scopes: ['parent:write'] } },
+        ctx: {
+          permit: { actors: [], id: 'permit-1', scopes: ['parent:write'] },
+        },
         topo: app,
       }
     );

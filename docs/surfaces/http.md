@@ -87,11 +87,15 @@ If no intent is declared, the trail defaults to POST.
 
 Input parsing depends on the HTTP method:
 
-- **GET** -- Query parameters are parsed into an object. Repeated keys become arrays; single keys stay strings. The trail's input schema owns any coercion.
+- **GET** -- Query parameters are parsed into an object. For recognized primitive array fields, one key occurrence produces a one-element array and repeated keys produce an array in query order.
 - **POST / DELETE** -- The JSON request body is parsed via `req.json()`.
 - **Webhook routes** -- The shared Fetch kernel reads the raw body first, runs the webhook `verify` hook if one is defined, parses JSON, then validates the parsed payload against the source's `parse` schema before executing the trail.
 
 For direct routes, the parsed input is validated against the trail's Zod schema before the implementation receives it. For webhook routes, the source `parse` schema validates the JSON payload first, then the receiving trail's `input` schema validates the value passed into the trail.
+
+For example, declare `tags: z.array(z.enum(['red', 'blue'])).default([])` on a read trail at `/list-tags`. Request `/list-tags` for `[]`, `/list-tags?tags=red` for `['red']`, or `/list-tags?tags=red&tags=blue` for `['red', 'blue']`. Omission leaves the field absent so the schema can apply its default; without a default, a required array still fails validation. A blank value is one empty string, not an empty list. Use repeated keys, not comma-separated values.
+
+The same declaration supports [CLI array flags](cli.md#flag-derivation) without a scalar-or-array union.
 
 ## Webhook Activation Sources
 
@@ -357,7 +361,7 @@ This gives you full control over the HTTP framework while preserving the shared 
 
 ## Request Context and AbortSignal Propagation
 
-The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the trail's implementation sees the aborted signal. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`.
+The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the trail's implementation sees the aborted signal. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`. Every network entry point builds on the `network` credential posture: a `createContext` permit is never an identity source there, a presented credential without `resolvePermit` is an `AuthError`, and protected trails without a resolver are refused when the surface is built. In-process callers of `deriveHttpRoutes` keep the default `host` posture. Both postures resolve credentials through the shared reconciliation in `@ontrails/permits`, so a presented credential with no resolver is refused in process as well (a `ValidationError`), and resolved permits carry `admission` evidence.
 
 ```typescript
 const longTask = trail('report.generate', {

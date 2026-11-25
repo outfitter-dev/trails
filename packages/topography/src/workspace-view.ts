@@ -219,7 +219,7 @@ const failedAppRead = (
     observation: {
       binding: 'unavailable',
       coaching: invalid
-        ? `Regenerate ${lockPath} by compiling configured app ${app.id}.`
+        ? `Recover ${lockPath} from Git or follow its documented schema migration before compiling configured app ${app.id}.`
         : `Restore access to ${lockPath}, then inspect configured app ${app.id} again.`,
       detail: errorDetail(error),
       freshness: 'unavailable',

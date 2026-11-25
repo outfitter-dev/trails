@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/drizzle",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/outfitter-dev/trails.git",
@@ -29,6 +29,9 @@
   "dependencies": {
     "@ontrails/core": "workspace:^",
     "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@ontrails/store": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/store": "workspace:^",

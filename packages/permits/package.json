@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/permits",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/outfitter-dev/trails.git",
@@ -27,6 +27,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@ontrails/core": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",

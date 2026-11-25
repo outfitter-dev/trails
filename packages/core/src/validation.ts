@@ -236,7 +236,7 @@ export const zodDefaultValueIsDynamic = (
  *
  * Uses Zod v4's `_zod.def` and `_zod.traits` for introspection.
  * Covers: string, number, boolean, object, array, enum, optional,
- * default, union, literal, nullable, and describe.
+ * default, union, literal, null, nullable, and describe.
  */
 export const zodToJsonSchema: JsonSchemaConverter = (
   schema: z.ZodType
@@ -299,6 +299,7 @@ export const zodToJsonSchema: JsonSchemaConverter = (
       const values = value._zod.def['values'] as unknown[];
       return { const: values[0] };
     },
+    null: () => ({ type: 'null' }),
     nullable: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       return { anyOf: [zodToJsonSchema(inner), { type: 'null' }] };

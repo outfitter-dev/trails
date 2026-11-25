@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/trails",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/outfitter-dev/trails.git",
@@ -51,6 +51,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@ontrails/cloudflare": "workspace:^",
     "@ontrails/testing": "workspace:^"
   }

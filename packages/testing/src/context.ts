@@ -3,6 +3,7 @@
  */
 
 import type {
+  BasePermit,
   ComposeFn,
   ResourceOverrideMap,
   Topo,
@@ -61,10 +62,7 @@ export interface CreateComposeContextOptions {
 }
 
 /** Minimal permit shape returned by the create function. */
-export interface MinimalPermit {
-  readonly id: string;
-  readonly scopes: readonly string[];
-}
+export type MinimalPermit = Pick<BasePermit, 'actors' | 'id' | 'scopes'>;
 
 /** Trail shape consumed by the create function — avoids importing permits. */
 export interface PermittedTrail {
@@ -155,7 +153,7 @@ export const defaultCreatePermit = (
   if (!trail.permit || trail.permit === 'public') {
     return undefined;
   }
-  return { id: 'test-permit', scopes: trail.permit.scopes };
+  return { actors: [], id: 'test-permit', scopes: trail.permit.scopes };
 };
 
 const isTestExecutionOptions = (

@@ -106,6 +106,10 @@ A scalar binding is a tool synonym: an additional MCP tool whose name is the bin
 
 Binding selectors use dotted trail-id globs (`snippet.*`), the same grammar as CLI bindings and surface filters. `trails compile` embeds the bindings in `trails.lock` under `overlays.surfaces` and derives the graph's trailhead facts from the `mcp` list bindings, so `trails wayfind --trailheads`-style reads flow from the committed lock.
 
+## HTTP Hosting
+
+Use the portable `@ontrails/mcp/fetch` entry to serve the same graph from Bun or Hono. See [MCP Over HTTP](mcp-http.md) for the fetch API, Host/Origin allowlists, request credentials and remaining auth and client follow-ups.
+
 ## MCP Resources For Cold Context
 
 Cold context belongs in **MCP resources**, not in extra tools and not in Trails `resource()` declarations. The MCP surface exposes resources by default when using `surface(graph)` or `createServer(graph)`:
@@ -131,6 +135,35 @@ await surface(graph, {
 ```
 
 Graph resources are opt-in for general MCP hosts because they widen cold context for every exposed trail. The Trails operator enables them so agents can inspect high-signal graph facts without invoking another tool.
+
+### Resource read policy
+
+`resources/list` and `resources/read` resolve credentials through the same request-scoped `resolvePermit` boundary as tool calls. Verification runs once per request, including anonymous, metadata-only and empty-list requests. Invalid selected credentials fail even when resources would otherwise be public. A verified request permit takes precedence over trusted `createContext` permit configuration; on the stdio (host) posture absence may use that local-host fallback, while a verification error cannot. The fetch-shaped HTTP entry runs on the network posture and never consults a `createContext` permit; see [MCP Over HTTP](mcp-http.md).
+
+Without an `authorizeResourceRead` callback, static introspection remains public within the app's authored MCP population. Include/exclude selectors, intent, visibility, aliases and trailheads continue to determine that population. Apps can narrow reads with an explicit policy:
+
+```typescript
+import { PermissionError, Result } from '@ontrails/core';
+import { surface } from '@ontrails/mcp';
+
+await surface(graph, {
+  resolvePermit,
+  authorizeResourceRead: ({ permit, resource }) => {
+    if (permit === undefined) {
+      return Result.err(new PermissionError(`Private resource: ${resource.uri}`));
+    }
+    return Result.ok();
+  },
+});
+```
+
+The callback receives the verified permit, possibly absent, and the canonical catalog descriptor. Trail-specific descriptors carry the actual `resource.trailId`; aggregates such as `trails://surface-map` have no trail ID. These descriptors do not copy a trail's invocation requirements, and reading a schema does not invoke its trail. Raw credentials remain with the credential resolver.
+
+Return `Result.ok()` to allow a URI or `Result.err(new PermissionError(...))` to deny it. Resource listing omits permission-denied URIs; direct reads return the shared protocol error. Other policy errors fail the request. Every direct read verifies and evaluates policy again, so an earlier list or read grants no later access. Neither a connection nor an interleaved caller's result caches a grant. Unexpected callback exceptions use the public error renderer rather than exposing their messages.
+
+URI policy does not hide tool descriptions or redact the surface-map aggregate. `tools/list` remains static. Apps that require member-level private discovery must deny unsafe aggregates until a shared filtered-discovery capability is implemented. Denying one URI alone does not establish global schema confidentiality. `buildMcpResources` remains a low-level catalog builder; app hosts using its raw `read` function must provide their own access boundary.
+
+When migrating a resolver, expect calls from resource listing and reading as well as tool invocation, even without bearer credentials. Return no permit only for genuine credential absence; selected invalid credentials and verification failures must return errors. Stdio can retain explicit trusted host policy and remains outside OAuth. The fetch-shaped host consumes this same request boundary on the network posture, where only `resolvePermit` can admit a permit; these SDK controls do not establish live HTTP interoperability.
 
 The resource naming is intentionally qualified: `McpResource`, `McpResources`, and `mcpResources` refer to MCP protocol resources. Trails `resource()` remains the infrastructure dependency primitive.
 
@@ -197,7 +230,7 @@ Result.err(new NotFoundError('Entity not found'));
 //     "ontrails/error": {
 //       name: "NotFoundError",
 //       category: "not_found",
-//       code: -32601,
+//       code: -32001,
 //       retryable: false,
 //       message: "Entity not found",
 //       surface: "mcp"
@@ -216,6 +249,8 @@ If the result contains a `BlobRef` declared with `blobRefSchema`, MCP renders th
 // -> { content: [{ type: "image", data: "<base64>", mimeType: "image/png" }] }
 // -> { structuredContent: { file: { kind: "blob", name, mimeType, size, uri } } }
 ```
+
+Unknown resource reads are protocol failures: `resources/read` returns SDK error code `-32602` with core-owned `data.category`, `data.name`, and `data.retryable`. Core resolves that method override; it does not change the `-32001` code in a trail's `isError` tool result. The default `not_found` code previously rendered as `-32601`; clients that matched that old code should update to `-32001` or read the taxonomy category. Error messages use the same public redaction policy in both cases.
 
 ## Progress Bridging
 
@@ -272,13 +307,52 @@ Dense MCP surfaces can use trailheads to group related trails into fewer agent-f
 await surface(graph, {
   name: 'myapp',
   version: '1.0.0',
-  transport: 'stdio', // Only stdio for now; SSE/streamable HTTP planned
   layers: [myAuthLayer, myRateLimitLayer],
   createContext: () => createTrailContext({ logger: myLogger }),
 });
 ```
 
 `surface(graph)` already derives the MCP server name and version from the topo identity. Pass `name` or `version` only when a specific surface instance needs to override them.
+
+## Request Permits
+
+`resolvePermit` receives credential candidates from each tool call. Its `ResolveMcpPermitInput` contains:
+
+| Field | Meaning |
+| --- | --- |
+| `authorization` | The request's bearer authorization value when supplied by the host. |
+| `bearerToken` | The token extracted from that value, or `undefined`. |
+| `_meta` | This request's application metadata, or `undefined`; reserved protocol envelope fields remain SDK-owned. |
+
+The resolver runs even when no bearer token is present, so it can consider credentials in application metadata or reject missing credentials according to the app's policy. It returns `Result` with a verified permit, no permit, or a verification error. Metadata is untrusted input: neither a claimed identity nor a protocol session proves authority. Stdio remains outside OAuth. A stdio host can still configure its own explicit permit through `createContext` for local policy; a network host cannot, because `@ontrails/mcp/fetch` discards a seeded permit at runtime and refuses protected trails without a resolver at build time.
+
+`sessionId` has been removed from `ResolveMcpPermitInput` and `McpExtra`. Remove it from custom resolver destructuring and stop using it as an identity or trace identifier. Generate a request identifier in the host when one is needed. The MCP adapter does not cache a permit between calls: the same bearer and metadata reach the resolver again after intervening calls.
+
+Application state uses explicit handles. A trail that creates state returns a handle in its output schema; subsequent trails accept that handle in their input schemas and check the caller's permit again. The handle identifies state and does not establish authority. See [ADR-0055](../adr/0055-mcp-stateless-core-on-sdk-v2.md#application-state-has-an-explicit-handle).
+
+This change establishes the tool and stdio permit seam. The fetch-shaped MCP host must consume and verify the same request-scoped contract when it is implemented; HTTP credential normalization and verification belong to the shared auth implementation.
+
+## SDK v2 Migration
+
+The source targets `@modelcontextprotocol/server` 2.x (minimum 2.4.0). The migration ships as a Trails 0.x minor break; source support does not establish that the release has been published. Install the Trails release containing this migration together with its SDK peer. Existing published releases retain their declared peer requirements.
+
+`surface(graph)` keeps its one-line stdio API. It uses the SDK's `serveStdio` entry so a connection can select modern `2026-07-28` or legacy protocol behavior. A package upgrade with a manually connected stdio transport does not establish modern support. For custom stdio setup, pass a factory instead of an existing instance:
+
+```typescript
+import { connectStdio, createServer } from '@ontrails/mcp';
+
+const connection = await connectStdio(() => createServer(graph));
+// Later, when the host shuts down:
+await connection.close();
+```
+
+The SDK may construct a discovery probe before pinning the connection instance, so the factory must create a fresh server. `connectStdio` now returns the connection's close handle. The former `transport: 'stdio'` documentation described an option that never existed; remove that property from copied configurations.
+
+Non-image `BlobRef` results now contain SDK-valid embedded binary resources: `{ type: 'resource', resource: { uri, mimeType, blob } }`, where `blob` is base64. The old flat resource entry was invalid. This change reads and buffers non-image streams as well as image streams; it does not advertise a `blob://` resource reader. Custom content consumers must read the nested `resource` object. Trail output descriptors in `structuredContent` keep their existing shape.
+
+This migration covers stdio and the SDK dependency. The fetch-shaped handler, modern scalar and array output envelopes, and temporary adopter migration skill remain separate implementations. It does not advertise subscriptions or additional-input exchanges.
+
+SDK 2.4.0's client can lose its `onprogress` callback when one pipe read contains a progress notification and its tool result: notification dispatch is deferred while the result removes the callback. The server's stdio tests validate progress payloads and ordering on the wire. This migration does not patch the client SDK.
 
 ## AbortSignal Propagation
 

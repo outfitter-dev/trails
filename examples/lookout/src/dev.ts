@@ -23,6 +23,7 @@ import { graph } from './app.js';
 import { resolveHttpPermit } from './permits.js';
 
 const OPERATOR_PERMIT = {
+  actors: [],
   id: 'dev-runtime',
   scopes: ['lookout:admin'],
 };

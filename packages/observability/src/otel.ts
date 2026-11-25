@@ -114,7 +114,15 @@ const ATTR_MAP: readonly {
   },
   { get: (r) => r.errorCategory, key: 'trails.error.category' },
   { get: (r) => r.intent, key: 'trails.intent' },
+  {
+    get: (r) =>
+      r.permit?.actors === undefined
+        ? undefined
+        : JSON.stringify(r.permit.actors),
+    key: 'trails.permit.actors',
+  },
   { get: (r) => r.permit?.id, key: 'trails.permit.id' },
+  { get: (r) => r.permit?.issuer, key: 'trails.permit.issuer' },
   { get: (r) => r.permit?.tenantId, key: 'trails.permit.tenant_id' },
   { get: (r) => r.kind, key: 'trails.record.kind' },
   { get: (r) => r.name, key: 'trails.record.name' },

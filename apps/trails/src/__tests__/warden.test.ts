@@ -1605,7 +1605,7 @@ export const app = topo('gamma', [trail('gamma.read', {
           '--root-dir',
           repoRoot,
           '--permit',
-          '{"id":"test","scopes":["trails:run"]}',
+          '{"actors":[],"id":"test","scopes":["trails:run"]}',
           '--json',
         ],
         repoRoot,

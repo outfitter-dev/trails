@@ -48,6 +48,10 @@ for (const tool of result.value) {
 
 `deriveMcpTools` returns `Result<McpToolDefinition[], Error>` rather than a bare array. It returns `Result.err(ValidationError)` if two trails derive the same MCP tool name. Each `McpToolDefinition` includes a `trailId` field that records which trail the tool was derived from.
 
+## Portable HTTP Entry
+
+Import `createFetchHandler` from `@ontrails/mcp/fetch` to obtain `{ fetch, close }` for Bun or Hono. The subpath avoids stdio imports and serves modern MCP plus legacy stateless HTTP. Hostnames default to loopback only; browser origins require an explicit exact HTTP(S) allowlist. Actual request Authorization and application metadata reach the existing permit resolver. See [MCP Over HTTP](../../docs/surfaces/mcp-http.md) for the Bun and Hono attachments, validation rules and the separate HTTP challenge and live-client follow-ups.
+
 ## API
 
 | Export | What it does |
@@ -60,6 +64,20 @@ for (const tool of result.value) {
 | `createMcpProgressCallback(server)` | Bridge `ctx.progress` to MCP `notifications/progress` |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
+
+## Request credential resolution
+
+A configured `resolvePermit` receives each request's raw `authorization`, best-effort `bearerToken` and untrusted application `_meta`. It owns the accepted credential source and syntax. An opaque key in Authorization can therefore reach that policy without first passing Bearer parsing. Metadata fields and tool arguments are never promoted into header credentials. HTTP header candidates require a real hosting adapter; the core does not synthesize them from `_meta`.
+
+Return `Result.ok(null)` or `undefined` only when no accepted credential was selected. A selected malformed or invalid credential, lookup miss or operational failure must return an error; it stops even a public tool before host-context fallback or execution. Choose precedence before verification and never fall back to another candidate after selected failure. A Bearer-only policy must reject malformed presented Bearer credentials itself.
+
+Two credential postures exist (`credentialPosture` on the derive and server options). On the `host` posture, which stdio uses, explicit host-provided `extra.permit` keeps its precedence and, when the configured resolver returns absence, trusted `createContext` permit configuration remains available as the launcher's own policy; a resolver error cannot use that fallback. On the `network` posture, which `@ontrails/mcp/fetch` always sets, identity enters only through `resolvePermit`: a `createContext` permit is discarded at runtime (one diagnostic names the migration), `extra.permit` is ignored, a presented bearer with no resolver is an `AuthError` rather than absence, and a surface that exposes protected trails without a resolver is refused at build time with a `ValidationError` listing the trails. Resolver absence means anonymous: public trails run, protected trails fail at enforcement.
+
+Migration for apps that seeded a permit through `createContext` on a network host: move the credential into a verifier passed as `resolvePermit` (a JWKS or opaque adapter from `@ontrails/permits`), and keep `createContext` for the logger, extensions and resources it still seeds. `--dev-permit` is not a migration path for network surfaces.
+
+Tool invocation and resource list/read requests share one internal request permit-resolution seam. Resource requests resolve once, then evaluate optional `authorizeResourceRead({ permit, resource })` policy against canonical catalog descriptors. Return `Result.ok()` to allow a URI or a `PermissionError` to deny it. Listing omits permission-denied URIs; direct reads reject them, and other errors fail the request. The descriptor carries a real `trailId` for trail-specific resources and none for aggregates. Without explicit read policy, the authored static resource population remains public.
+
+Resolvers now receive resource requests even without bearer credentials. Every read rechecks; prior lists and other callers grant no authority. On the host posture, trusted `createContext` permits are available only after request-credential absence, never after verification failure; the network posture never consults them. Resource policy does not alter static tool discovery or redact the surface-map aggregate; deny unsafe aggregates when private member-level discovery is required. See [resource read policy](../../docs/surfaces/mcp.md#resource-read-policy) for configuration and migration guidance. This change does not establish Fetch hosting, query credentials, application-cookie policy or header extraction for a future host.
 
 ## Annotations
 
@@ -141,8 +159,10 @@ await surface(graph, { exclude: ['internal.debug'] });
 
 ## Installation
 
-These installation examples target Trails `0.2.1` on the normal npm release line.
+The source targets the SDK v2 migration release, with `@modelcontextprotocol/server` 2.x (minimum 2.4.0) as its peer. Source support does not establish publication; use the Trails release containing this migration and its matching peer requirements.
 
 ```bash
-bun add --exact @ontrails/mcp@0.2.1
+bun add @ontrails/mcp '@modelcontextprotocol/server@^2.4.0'
 ```
+
+See [SDK v2 Migration](../../docs/surfaces/mcp.md#sdk-v2-migration) for the stdio factory API and embedded binary content changes.

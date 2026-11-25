@@ -88,14 +88,14 @@ One error class hierarchy maps deterministically onto every surface. The rows ju
 | --- | --- | --- | --- | --- |
 | `AuthError` (bad webhook signature) | auth | 9 | 401 | -32600 |
 | `PermitError` (viewer attempting a mutation) | permission | 4 | 403 | -32600 |
-| `NotFoundError` (unknown endpoint/event/target/route) | not_found | 2 | 404 | -32601 |
+| `NotFoundError` (unknown endpoint/event/target/route) | not_found | 2 | 404 | -32001 |
 | `ValidationError` (malformed payload, disabled target) | validation | 1 | 400 | -32602 |
 | `NetworkError` (target unreachable, pre-detour) | network | 7 | 502 | -32603 |
 | `RetryExhaustedError` (delivery detour exhausted) | inherits wrapped `NetworkError` → network | 7 | 502 | -32603 |
 
 ## Governance artifacts
 
-- [`trails.lock`](trails.lock) — committed resolved topo (23 trails, 16 signals, 3 resources). Regenerate with `bun ../../apps/trails/bin/trails.ts compile --root-dir . --permit '{"id":"junction-dev","scopes":["topo:write"]}'`.
+- [`trails.lock`](trails.lock) — committed resolved topo (23 trails, 16 signals, 3 resources). Regenerate with `bun ../../apps/trails/bin/trails.ts compile --root-dir . --permit '{"actors":[],"id":"junction-dev","scopes":["topo:write"]}'`.
 - Warden: `bun ../../packages/warden/bin/warden.ts --root-dir .` — passes with 0 errors.
 - [`openapi.json`](openapi.json) — committed OpenAPI 3.1 rendering of the management API.
 

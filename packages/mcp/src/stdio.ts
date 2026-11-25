@@ -1,25 +1,23 @@
+/** Protocol-aware MCP stdio serving through the official SDK. */
+
+import type { McpServerFactory } from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
+import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio';
+
 /**
- * Thin wrapper around MCP SDK's StdioServerTransport.
+ * Serve stdio using a fresh server factory for protocol-era selection.
  *
- * Exists as a separate function so it can be swapped for other transports
- * (SSE, streamable HTTP) without changing surface().
- */
-
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-
-/**
- * Connect an MCP server to stdio transport.
+ * The SDK may create a discovery probe before pinning a connection instance.
+ * Returning one previously connected server from the factory is unsupported.
  *
  * @example
  * ```ts
  * import { connectStdio, createServer } from '@ontrails/mcp';
  *
- * const server = createServer(graph);
- * await connectStdio(server);
+ * const connection = await connectStdio(() => createServer(graph));
+ * await connection.close();
  * ```
  */
-export const connectStdio = async (server: Server): Promise<void> => {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-};
+export const connectStdio = async (
+  factory: McpServerFactory
+): Promise<StdioServerHandle> => serveStdio(factory);

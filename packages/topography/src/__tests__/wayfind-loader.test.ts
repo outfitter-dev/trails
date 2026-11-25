@@ -702,7 +702,7 @@ describe('lock integrity precedence', () => {
 
     expect(loaded.artifactStatus).toMatchObject({
       artifact: 'topoGraph',
-      message: expect.stringContaining('regenerate'),
+      message: expect.stringContaining('Restore a verified copy from Git'),
       status: 'schema-version-drift',
     });
   });

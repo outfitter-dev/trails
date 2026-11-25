@@ -2,9 +2,9 @@
 
 **Define once. Surface everywhere.**
 
-Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework renders it on CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework renders it on CLI, MCP, HTTP, or the RPC surface hosted on WebSocket. One definition, every surface, zero drift.
 
-Trails ships CLI, MCP, and HTTP surfaces today. WebSocket is part of the architecture and roadmap, but not yet built.
+Trails ships CLI, MCP, and HTTP surfaces today. The RPC surface (JSON-RPC 2.0, hosted on WebSocket first) is landing through `@ontrails/rpc`.
 
 ## Get started
 
@@ -138,7 +138,7 @@ await cliSurface(graph);      // CLI
 // await mcpSurface(graph);   // MCP — same runnable trails
 ```
 
-The same topo can be opened on HTTP today with `@ontrails/hono` or Bun-native `@ontrails/http/bun`. WebSocket follows the same peer-surface model, but is still planned.
+The same topo can be opened on HTTP today with `@ontrails/hono` or Bun-native `@ontrails/http/bun`. The RPC surface, hosted on WebSocket, follows the same peer-surface model through `@ontrails/rpc`.
 
 ```bash
 $ myapp greet --name World
@@ -153,13 +153,18 @@ $ myapp greet --name World
 | [`@ontrails/cli`](./packages/cli) | CLI command model - flag derivation, output formatting |
 | [`@ontrails/commander`](./adapters/commander) | Commander adapter for the CLI surface |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
+| [`@ontrails/rpc`](./packages/rpc) | JSON-RPC 2.0 surface kernel — derived method table, `trails.*` methods, serializable connection state |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, Web Fetch kernel, Bun-native subpath |
 | [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface using the shared kernel |
 | [`@ontrails/vite`](./adapters/vite) | Vite adapter for opening Trails surfaces inside Vite projects |
 | [`@ontrails/config`](./packages/config) | Config resolution, profiles, resource config schemas, diagnostics |
 | [`@ontrails/permits`](./packages/permits) | Auth layer, permit model, JWT adapter, scope enforcement |
 | [`@ontrails/store`](./packages/store) | Backend-agnostic store definitions, typed accessors, adapter-support helpers |
+| [`@ontrails/kv`](./packages/kv) | Provider-neutral key-value resources, isolated memory mocks, and binding conformance |
+| [`@ontrails/blob`](./packages/blob) | Provider-neutral blob resources, byte/stream bodies, and binding conformance |
+| [`@ontrails/queue`](./packages/queue) | Provider-neutral queue producers, recorder mocks, and binding conformance |
 | [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
+| [`@ontrails/cloudflare`](./adapters/cloudflare) | Workers HTTP and queue hosting, typed MCP factory slot, env bridge, portable role bindings and native resources, and D1 store bindings with reviewed schema SQL |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testComposes()`, contract testing, surface harnesses |
 | [`@ontrails/topography`](./packages/topography) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence, Wayfind graph-read query APIs |
 | [`@ontrails/source`](./packages/source) | Shared source-code AST parsing, walking, locations, edits, literals, and Trails syntax helpers |
@@ -184,4 +189,4 @@ bun run typecheck      # TypeScript strict mode
 
 ## Status
 
-Pre-1.0 API development. The first normal release was `0.2.0`; normal releases use the npm `latest` tag. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented. The WebSocket surface is designed but not yet built. See [Horizons](./docs/horizons.md) for what's next.
+Pre-1.0 API development. The first normal release was `0.2.0`; normal releases use the npm `latest` tag. The contract layer, CLI/MCP/HTTP surfaces, `trails topo` and `trails dev` workflows, shared `trails.db`, tracing-backed developer state, schema-derived stores, and the Drizzle runtime are implemented. The RPC surface, hosted on WebSocket, is landing through `@ontrails/rpc`. See [Horizons](./docs/horizons.md) for what's next.

@@ -107,9 +107,9 @@ describe('README_SNIPPET_CONFIGS', () => {
 
   test('requires scoped permits in published scaffold and operator compile commands', () => {
     const standaloneCommand =
-      'bunx @ontrails/trails create my-app --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
+      'bunx @ontrails/trails create my-app --permit \'{"actors":[],"id":"local-dev","scopes":["project:write"]}\'';
     const workspaceCommand =
-      'bunx @ontrails/trails create my-app --workspace --permit \'{"id":"local-dev","scopes":["project:write"]}\'';
+      'bunx @ontrails/trails create my-app --workspace --permit \'{"actors":[],"id":"local-dev","scopes":["project:write"]}\'';
     const publishedGuides = [
       new URL('../../apps/trails/README.md', import.meta.url),
       new URL('../../docs/getting-started.md', import.meta.url),
@@ -136,18 +136,18 @@ describe('README_SNIPPET_CONFIGS', () => {
     );
 
     expect(operatorReadme).toContain(
-      'trails compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\''
+      'trails compile --permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\''
     );
     expect(operatorReadme).toContain(
-      'trails compile --app my-app --permit \'{"id":"local-dev","scopes":["topo:write"]}\''
+      'trails compile --app my-app --permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\''
     );
   });
 
   test('requires locally resolvable permitted compile commands in published guides', () => {
     const standaloneCommand =
-      'bun run compile --permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+      'bun run compile --permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\'';
     const workspaceCommand =
-      'bunx trails compile --app my-app --permit \'{"id":"local-dev","scopes":["topo:write"]}\'';
+      'bunx trails compile --app my-app --permit \'{"actors":[],"id":"local-dev","scopes":["topo:write"]}\'';
     const publishedGuides = [
       new URL('../../docs/getting-started.md', import.meta.url),
       new URL(

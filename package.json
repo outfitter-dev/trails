@@ -19,6 +19,8 @@
     "docs:snippets": "bun scripts/check-readme-snippets.ts",
     "docs:wrap-check": "bun scripts/check-hardwrap.ts",
     "docs:wrap-check:json": "bun scripts/check-hardwrap.ts --json",
+    "docs:generate": "bun scripts/docs.ts generate",
+    "docs:check": "bun scripts/docs.ts check",
     "type-cost:trail-input": "bun scripts/check-trail-input-type-cost.ts",
     "error-taxonomy:sync": "bun scripts/sync-error-taxonomy-docs.ts",
     "error-taxonomy:check": "bun scripts/sync-error-taxonomy-docs.ts --check",
@@ -30,6 +32,7 @@
     "scratch:import-to-notion": "bun scripts/import-scratch-to-notion.ts",
     "scratch:manifest": "bun scripts/scratch-inventory/build-manifest.ts",
     "wayfinder:dogfood": "bun apps/trails/bin/trails.ts release smoke --check wayfinder-dogfood",
+    "mcp:http-smoke": "bun apps/trails/bin/trails.ts release smoke --check mcp-http",
     "lock:roundtrip": "bun apps/trails/bin/trails.ts release smoke --check lock-roundtrip",
     "plugin:metadata:sync": "bun scripts/sync-plugin-metadata.ts",
     "plugin:metadata:record": "bun scripts/record-plugin-metadata.ts",
@@ -77,22 +80,27 @@
     "@ontrails/trails": "workspace:*",
     "@ontrails/warden": "workspace:*",
     "@skillset/cli": "0.27.0",
-    "@types/bun": "^1.4.3",
+    "@types/bun": "^1.4.4",
     "@types/node": "^25.9.9",
     "knip": "^6.12.2",
     "lefthook": "^2.1.1",
-    "markdownlint-cli2": "^0.22.1",
+    "markdownlint-cli2": "^0.24.1",
     "oxfmt": "0.47.0",
     "oxlint": "1.62.0",
-    "turbo": "^2.8.10",
+    "turbo": "^2.11.10",
     "typescript": "^5.9.3",
     "ultracite": "7.6.2",
     "zod": "catalog:"
   },
+  "overrides": {
+    "sharp": "0.35.5",
+    "tinypool": "2.1.2",
+    "undici": "7.30.1"
+  },
   "engines": {
     "bun": ">=1.4.0"
   },
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.4",
   "catalog": {
     "commander": "^14.0.3",
     "zod": "^4.3.5"
