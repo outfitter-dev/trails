@@ -117,7 +117,7 @@ The port is deliberately narrow. No session management, no token refresh, no use
 
 `ctx.compose()` doesn't bypass auth. If a parent trail composes a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
 
-The intended Warden check validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, the parent must hold both. This check is required under [TRL-1450](https://linear.app/outfitter/issue/TRL-1450), not a shipped compile-time guarantee.
+[Warden's composition scope coverage rule](../warden.md#composition-scope-coverage) warns when a parent's declared scopes omit scopes from any reachable trail. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, it should declare both. The check ([TRL-1450](https://linear.app/outfitter/issue/TRL-1450)) is a topo-aware warning, not a compile-time or runtime authorization guarantee.
 
 ### Warden governance
 
