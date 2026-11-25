@@ -3,6 +3,7 @@
  */
 
 import { deriveTopoGraphForceIdentity } from './forces.js';
+import { deriveTrailMetadataHash } from './hash.js';
 import type {
   DiffEntry,
   DiffResult,
@@ -952,6 +953,16 @@ const diffTrailEntryDetails = (
   diffVersionEntries(acc, prev, curr);
   diffVersionExampleCoverage(acc, prev, curr);
   diffForces(acc, prev, curr);
+
+  // Breaking details become persisted force reasons, not annotations.
+  if (
+    acc.severity !== 'breaking' &&
+    curr.kind === 'trail' &&
+    prev.meta !== curr.meta &&
+    deriveTrailMetadataHash(prev.meta) !== deriveTrailMetadataHash(curr.meta)
+  ) {
+    addDetail(acc, 'info', 'Trail metadata changed');
+  }
 };
 
 const diffEntryDetails = (

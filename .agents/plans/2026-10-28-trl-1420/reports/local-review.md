@@ -1,0 +1,5 @@
+# Independent local review
+
+Reviewer review_trl1420 reviewed uncommitted source against4973f97442db7bc950e059d438c04c5bc433abac, read-only/no Git or source edits. InitialP2s: ineffective key-order evidence and IO formatting; fixed and independently verified. Expanded source includes store-backed projection discovered by actual CLI proof. Reviewer independently115tests332assertions, topography/warden typechecks, root format and diffcheck, all pass; only pre-existing TRL-575 advisories. No openP0-P2 in expanded source. Generated lock refreshes, rule-wrapper expected-message update and final CLI/roundtrip evidence sent for additional review. Distinct fresh-context acceptance before landing remains separate.
+
+Final artifact-only recheck by the same independent reviewer: no P0–P2. Verified five authored metadata projections across the two regenerated locks, recomputed both embedded hashes, compared all graph/entry force arrays to HEAD, checked the wrapper expectation, and read retained real CLI and seven-lock evidence. No broad-suite rerun claimed for that final narrow pass.
