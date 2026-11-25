@@ -34,7 +34,10 @@ import {
   resolveCliAliasInputsFromOverlays,
   resolveTrailheadEntriesFromOverlays,
 } from '../surface-bindings.js';
-import { deriveStableHash } from '../hash.js';
+import {
+  deriveTopoGraphRecordHash,
+  deriveTrailMetadataHashMarker,
+} from '../hash.js';
 import {
   LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
@@ -44,6 +47,7 @@ import type {
   LockManifest,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
+  TopoGraph,
   TopoGraphLibraryDerived,
   TopoGraphOverlays,
   TopoGraphTrailheadEntry,
@@ -73,7 +77,8 @@ type TopoGraphRecord = Readonly<{
   readonly overlays?: TopoGraphOverlays | undefined;
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
   readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
-}>;
+}> &
+  Pick<TopoGraph, 'trailMetadataHashVersion'>;
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 type ZodSchemaInput = Parameters<typeof zodToJsonSchema>[0];
@@ -303,21 +308,9 @@ const canonicalLeaf = (value: unknown): unknown => {
   }
 };
 
-const canonicalObject = (
-  value: Record<string, unknown>,
-  visit: (value: unknown) => unknown
-): Record<string, unknown> => {
-  const sorted: Record<string, unknown> = {};
-  for (const key of Object.keys(value).toSorted()) {
-    const next = value[key];
-    sorted[key] = next === undefined ? '[Undefined]' : visit(next);
-  }
-  return sorted;
-};
-
-const canonicalize = (value: unknown): unknown => {
+const canonicalize = (value: unknown, includeAllKeys = false): unknown => {
   if (Array.isArray(value)) {
-    return value.map(canonicalize);
+    return value.map((item) => canonicalize(item, includeAllKeys));
   }
   if (value instanceof Date) {
     return value.toISOString();
@@ -326,7 +319,13 @@ const canonicalize = (value: unknown): unknown => {
     return value.toString();
   }
   if (value !== null && typeof value === 'object') {
-    return canonicalObject(value as Record<string, unknown>, canonicalize);
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(record)
+        .filter((key) => includeAllKeys || key !== '__proto__')
+        .toSorted()
+        .map((key) => [key, canonicalize(record[key], includeAllKeys)])
+    );
   }
   return canonicalLeaf(value);
 };
@@ -409,7 +408,10 @@ const normalizeTrailRows = (
     id: trail.id,
     idempotent: trail.idempotent === true ? 1 : 0,
     intent: trail.intent,
-    meta: trail.meta === undefined ? null : stableJson(trail.meta),
+    meta:
+      trail.meta === undefined
+        ? null
+        : JSON.stringify(canonicalize(trail.meta, true)),
     pattern: trail.pattern ?? null,
     snapshotId,
   }));
@@ -867,6 +869,9 @@ const addExtendedMetadata = (
   raw: Record<string, unknown>,
   trail: AnyTrail
 ): void => {
+  if (trail.meta !== undefined) {
+    entry['meta'] = canonicalize(trail.meta, true);
+  }
   if (raw['deprecated'] === true) {
     entry['deprecated'] = true;
   }
@@ -1309,15 +1314,9 @@ const buildTopoGraph = (
     library: deriveTopoGraphLibrary(topo),
     ...(overlays === undefined ? {} : { overlays }),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    ...deriveTrailMetadataHashMarker(entries),
     ...(trailheads === undefined ? {} : { trailheads }),
   };
-};
-
-const hashTopoGraphRecord = (topoGraph: TopoGraphRecord): string => {
-  // Same canonical hash path as `deriveTopoGraphHash`: strip `generatedAt`,
-  // then key-sorted SHA-256 via the shared `deriveStableHash`.
-  const { generatedAt: _unused, ...rest } = topoGraph;
-  return deriveStableHash(rest);
 };
 
 const countEntriesForKind = (
@@ -1371,7 +1370,7 @@ const buildStoredTopoExport = (
     trails,
     options
   );
-  const topoGraphHash = hashTopoGraphRecord(topoGraph);
+  const topoGraphHash = deriveTopoGraphRecordHash(topoGraph);
   const lockManifest = `${JSON.stringify(
     buildLockManifest(topoGraphHash, topo, topoGraph),
     null,
