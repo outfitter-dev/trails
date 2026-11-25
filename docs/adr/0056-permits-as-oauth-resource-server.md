@@ -17,7 +17,7 @@ Trails already separates permit declarations, credential extraction, and scope e
 
 This decision ratifies the resource-server direction recorded in [TRL-1429] and the October 27 auth draft.[^draft] It amends ADR-0012 while retaining explicit scope declarations, `permit: 'public'`, surface-agnostic implementations, and exact-match scope enforcement. It records the target contract; accepting this ADR does not establish that every implementing issue has shipped. [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-request) owns the MCP request and hosting boundary.
 
-The JWT/JWKS verifier ([#1108](https://github.com/outfitter-dev/trails/pull/1108)), opaque-token lookup and MCP request policy ([#1135](https://github.com/outfitter-dev/trails/pull/1135)), and permit identity fields ([#1143](https://github.com/outfitter-dev/trails/pull/1143)) are implemented. That does not establish the full resource-server metadata and challenge contract, role expansion or actor ceilings, step-up, challenge lock facts, compose-scope governance, or stored grants.
+The JWT/JWKS verifier ([#1108](https://github.com/outfitter-dev/trails/pull/1108)), opaque-token lookup and MCP request policy ([#1135](https://github.com/outfitter-dev/trails/pull/1135)), and permit identity fields ([#1143](https://github.com/outfitter-dev/trails/pull/1143)) are implemented. Warden also warns when a trail omits reachable composition scopes, without changing runtime authorization. This does not establish the full resource-server metadata and challenge contract, role expansion or actor ceilings, step-up, challenge lock facts, or stored grants.
 
 ## Decision
 
