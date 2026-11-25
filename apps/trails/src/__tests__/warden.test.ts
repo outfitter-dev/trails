@@ -475,15 +475,16 @@ describe('trails warden', () => {
   });
 
   test.each([
-    ['standalone', 'topo'],
-    ['configured-app', 'topo'],
-    ['workspace', 'topo'],
-    ['source', 'source'],
-    ['configured-source-fix', 'source'],
-    ['configured-project-fix', 'project'],
+    ['standalone', 'topo', 'evaluated-standalone'],
+    ['legacy-module', 'topo', 'evaluated-standalone'],
+    ['configured-app', 'topo', 'alpha'],
+    ['workspace', 'topo', undefined],
+    ['source', 'source', undefined],
+    ['configured-source-fix', 'source', undefined],
+    ['configured-project-fix', 'project', undefined],
   ] as const)(
     'records only the app actually evaluated by a one-app run (%s)',
-    async (selection, depth) => {
+    async (selection, depth, expectedAppId) => {
       const dir = makeTempDir();
       const fix =
         selection === 'configured-source-fix' ||
@@ -520,6 +521,9 @@ describe('trails warden', () => {
         const result = await wardenTrail.implementation(
           {
             ...(selection === 'configured-app' || fix ? { app: 'alpha' } : {}),
+            ...(selection === 'legacy-module'
+              ? { apps: ['./src/app.ts'] }
+              : {}),
             depth,
             fix,
             format: 'json',
@@ -540,13 +544,10 @@ describe('trails warden', () => {
           JSON.parse(result.value.formatted),
         ];
         for (const output of outputs) {
-          if (selection === 'standalone' || selection === 'configured-app') {
-            expect(output).toHaveProperty(
-              'executedAppId',
-              selection === 'standalone' ? 'evaluated-standalone' : 'alpha'
-            );
-          } else {
+          if (expectedAppId === undefined) {
             expect(output).not.toHaveProperty('executedAppId');
+          } else {
+            expect(output).toHaveProperty('executedAppId', expectedAppId);
           }
         }
         if (fix) {
@@ -568,7 +569,7 @@ describe('trails warden', () => {
           expect(cli.exitCode).toBe(0);
           expect(cli.json).not.toHaveProperty('executedAppId');
         }
-        if (selection === 'standalone') {
+        if (selection === 'standalone' || selection === 'legacy-module') {
           const cli = runCli(
             trailsBinPath,
             [
@@ -577,6 +578,9 @@ describe('trails warden', () => {
               'topo',
               '--lock',
               'skip',
+              ...(selection === 'legacy-module'
+                ? ['--apps', './src/app.ts']
+                : []),
               '--json',
               '--root-dir',
               dir,
@@ -584,10 +588,7 @@ describe('trails warden', () => {
             repoRoot
           );
           expect(cli.exitCode).toBe(0);
-          expect(cli.json).toHaveProperty(
-            'executedAppId',
-            'evaluated-standalone'
-          );
+          expect(cli.json).toHaveProperty('executedAppId', expectedAppId);
         }
       } finally {
         rmSync(dir, { force: true, recursive: true });

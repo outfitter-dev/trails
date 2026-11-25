@@ -123,10 +123,6 @@ const assertWardenArtifactPreflight = async (
     : await assertWardenArtifactBindings(context);
 };
 
-const hasTopoAwareDepth = (
-  config: EffectiveWardenConfig | undefined
-): boolean => config?.depth === 'topo' || config?.depth === 'all';
-
 /**
  * Report whether a resolved Warden run can reach saved lock evidence.
  *
@@ -147,7 +143,7 @@ const consumesSavedArtifactEvidence = (
   if (effectiveConfig.lock === 'skip') {
     return false;
   }
-  return hasTopoAwareDepth(effectiveConfig);
+  return effectiveConfig.depth === 'topo' || effectiveConfig.depth === 'all';
 };
 
 // ---------------------------------------------------------------------------
@@ -551,13 +547,10 @@ export const wardenTrail = trail('warden', {
         return preflight;
       }
     }
-    // Fix-mode identity preflight can resolve topo names without running topo checks.
     const executedAppId =
-      hasTopoAwareDepth(report.effectiveConfig) &&
-      context.selectedExtent !== 'workspace' &&
-      report.topoNames?.length === 1
-        ? report.topoNames[0]
-        : undefined;
+      context.selectedExtent === 'workspace'
+        ? undefined
+        : result.evaluatedTopoId;
     const project = operatorProjectContextOutput(context);
     const workspaceEvidence = deriveWardenWorkspaceEvidence(
       context,
