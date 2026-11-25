@@ -1,14 +1,13 @@
 /** Explicit resource/client witnesses, shared by the two Result rules. */
 import {
   collectPatternBindingNames,
-  collectScopeFrameBindings,
   getNodeArgument,
   getNodeArguments,
-  getNodeParams,
   getNodeBodyNode,
   getNodeBodyStatements,
   getNodeCallee,
   getNodeComputed,
+  getNodeDeclarations,
   getNodeExpression,
   getNodeId,
   getNodeImported,
@@ -19,6 +18,7 @@ import {
   getNodeLocal,
   getNodeObject,
   getNodeOptional,
+  getNodeParams,
   getNodeProperty,
   getNodeReturnType,
   getNodeRight,
@@ -32,6 +32,7 @@ import {
   getNodeValue,
   getNodeValueNode,
   identifierName,
+  isFunctionLike,
   isMemberAccessNonComputed,
   walkWithScopes,
 } from '@ontrails/source';
@@ -163,10 +164,77 @@ const member = (
   return object && name ? { name, object } : null;
 };
 
+type ScopeFrame = ReadonlySet<string>;
+interface MethodSite {
+  node: AstNode;
+  scopes: readonly ScopeFrame[];
+}
+interface FunctionSites {
+  frame: ScopeFrame;
+  sites: MethodSite[];
+}
+
+const bindingFrame = (
+  scopes: readonly ScopeFrame[],
+  name: string
+): ScopeFrame | undefined => scopes.find((frame) => frame.has(name));
+
+// A lexical witness must hold across branches, loops, and captured writes;
+// source order cannot prove when an assignment runs.
+const collectMethodSites = (ast: AstNode) => {
+  const functions = new WeakMap<AstNode, FunctionSites>();
+  const owners = new Map<ScopeFrame, FunctionSites>();
+  const writes = new Map<ScopeFrame, Set<string>>();
+  let moduleFrame: ScopeFrame | undefined;
+
+  walkWithScopes(ast, (node, scopes) => {
+    const [frame] = scopes;
+    if (node === ast) {
+      moduleFrame = frame;
+    }
+    if (frame && isFunctionLike(node)) {
+      const owner = { frame, sites: [] };
+      functions.set(node, owner);
+      owners.set(frame, owner);
+    }
+    const target = writtenTarget(node);
+    if (target) {
+      for (const name of collectPatternBindingNames(target)) {
+        const scope = bindingFrame(scopes, name);
+        if (scope) {
+          const names = writes.get(scope) ?? new Set<string>();
+          names.add(name);
+          writes.set(scope, names);
+        }
+      }
+    }
+    const declarations =
+      node.type === 'VariableDeclaration' && getNodeKind(node) !== 'var'
+        ? getNodeDeclarations(node)
+        : [];
+    if (node.type !== 'CallExpression' && declarations.length === 0) {
+      return;
+    }
+    const ownerFrame = scopes.find((scope) => owners.has(scope));
+    const owner = ownerFrame ? owners.get(ownerFrame) : undefined;
+    if (owner) {
+      const snapshot = [...scopes];
+      for (const site of node.type === 'CallExpression'
+        ? [node]
+        : declarations) {
+        owner.sites.push({ node: site, scopes: snapshot });
+      }
+    }
+  });
+
+  return { functions, moduleFrame, writes };
+};
+
 /** Build per-function witnesses. File loads are bounded to direct resource and class imports. */
 export const createResultMethodProvenance = (ast: AstNode, path: string) => {
   const entry = { ast, path };
   const binding = createDirectBindingResolver('const-only');
+  let indexed: ReturnType<typeof collectMethodSites> | undefined;
   const resourceMethods = (name: string): Methods | null => {
     const resource = binding(entry, name);
     if (
@@ -221,33 +289,36 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
   };
   return (owner: AstNode): ResultMethodExpressions => {
     const expressions = new Map<AstNode, ResultKind>();
-    const contextScope = collectScopeFrameBindings(owner);
     const [, parameter] = getNodeParams(owner);
     const contextName = identifierName(
       parameter?.type === 'AssignmentPattern'
         ? getNodeLeft(parameter)
         : parameter
     );
-    let contextValid = true;
-    const receivers = new Map<ReadonlySet<string>, Map<string, Methods>>();
-    const body = getNodeBodyNode(owner);
-    if (!body) {
+    if (!contextName) {
       return expressions;
     }
+    const { functions, moduleFrame, writes } = (indexed ??=
+      collectMethodSites(ast));
+    const facts = functions.get(owner);
+    if (!facts || writes.get(facts.frame)?.has(contextName)) {
+      return expressions;
+    }
+    const receivers = new Map<ScopeFrame, Map<string, Methods>>();
     const lookup = (
       name: string,
-      scopes: readonly ReadonlySet<string>[]
+      scopes: readonly ScopeFrame[]
     ): Methods | undefined => {
-      const scope = scopes.find((frame) => frame.has(name));
+      const scope = bindingFrame(scopes, name);
       return scope ? receivers.get(scope)?.get(name) : undefined;
     };
     const trackReceiver = (
       node: AstNode,
-      scopes: readonly ReadonlySet<string>[]
+      scopes: readonly ScopeFrame[]
     ): void => {
       const name = identifierName(getNodeId(node));
-      const scope = name ? scopes.find((frame) => frame.has(name)) : undefined;
-      if (!name || !scope) {
+      const scope = name ? bindingFrame(scopes, name) : undefined;
+      if (!name || !scope || writes.get(scope)?.has(name)) {
         return;
       }
       const init = getNodeInit(node);
@@ -255,12 +326,12 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
       let methods: Methods | undefined;
       if (
         access?.name === 'from' &&
-        contextValid &&
-        contextName !== null &&
         getNodeArguments(init).length === 1 &&
         identifierName(getNodeArguments(init)[0]) === contextName &&
-        scopes.find((frame) => frame.has(contextName)) === contextScope &&
-        !scopes.some((frame) => frame.has(access.object))
+        bindingFrame(scopes, contextName) === facts.frame &&
+        !scopes.some(
+          (frame) => frame !== moduleFrame && frame.has(access.object)
+        )
       ) {
         methods = resourceMethods(access.object) ?? undefined;
       } else {
@@ -276,39 +347,19 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
         frame.set(name, methods);
       }
     };
-    walkWithScopes(
-      body,
-      (node, scopes) => {
-        if (node.type === 'VariableDeclarator') {
-          trackReceiver(node, scopes);
+    for (const { node, scopes } of facts.sites) {
+      if (node.type === 'VariableDeclarator') {
+        trackReceiver(node, scopes);
+      } else if (!getNodeOptional(node)) {
+        const access = member(getNodeCallee(node));
+        const kind = access
+          ? lookup(access.object, scopes)?.get(access.name)
+          : undefined;
+        if (kind) {
+          expressions.set(node, kind);
         }
-        const target = writtenTarget(node);
-        if (target) {
-          for (const name of collectPatternBindingNames(target)) {
-            const scope = scopes.find((frame) => frame.has(name));
-            if (name === contextName && scope === contextScope) {
-              contextValid = false;
-            }
-            if (scope) {
-              receivers.get(scope)?.delete(name);
-            }
-          }
-        }
-        if (node.type === 'CallExpression' && !getNodeOptional(node)) {
-          const access = member(getNodeCallee(node));
-          const kind = access
-            ? lookup(access.object, scopes)?.get(access.name)
-            : undefined;
-          if (kind) {
-            expressions.set(node, kind);
-          }
-        }
-      },
-      {
-        initialScopes: [contextScope],
-        stopAtNestedFunctions: true,
       }
-    );
+    }
     return expressions;
   };
 };

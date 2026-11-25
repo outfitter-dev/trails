@@ -323,6 +323,9 @@ const collectProgramFrame: FrameCollector = (node, into) => {
 };
 
 const collectFunctionFrame: FrameCollector = (node, into) => {
+  if (node.type === 'FunctionExpression') {
+    addFunctionOrClassBindingName(node, into);
+  }
   const params =
     (node as unknown as { params?: readonly AstNode[] }).params ?? [];
   for (const param of params) {
@@ -402,6 +405,7 @@ export const SCOPE_FRAME_COLLECTORS: Record<string, FrameCollector> = {
   Program: collectProgramFrame,
   StaticBlock: collectBlockFrame,
   SwitchStatement: collectSwitchStatementFrame,
+  TSModuleBlock: collectProgramFrame,
 };
 
 /**

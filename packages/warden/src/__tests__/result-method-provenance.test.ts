@@ -271,6 +271,89 @@ export class Client<Trails = unknown> {
     ).toHaveLength(0);
   });
 
+  test.each([
+    '(() => { identity = input.other; })();',
+    '(() => { ({ next: identity } = input); })();',
+    'function replace() { identity = input.other; } replace();',
+  ])('invalidates captured receiver writes in %s', (setup) => {
+    const { source, path } = fixture({ setup });
+    const candidate = source.replace('const identity =', 'let identity =');
+    expect(implementationReturnsResult.check(candidate, path)).toHaveLength(1);
+    expect(
+      noRedundantResultErrorWrap.check(
+        candidate.replace(
+          'return station;',
+          'return Result.err(station.error);'
+        ),
+        path
+      )
+    ).toHaveLength(0);
+  });
+
+  test('keeps receiver provenance across a write to a nested shadow', () => {
+    const { source, path } = fixture({
+      rewrap: true,
+      setup: '((identity) => { identity = input.other; })(input.initial);',
+    });
+    expect(noRedundantResultErrorWrap.check(source, path)).toHaveLength(1);
+    expect(
+      implementationReturnsResult.check(
+        source.replace('Result.err(station.error)', 'station'),
+        path
+      )
+    ).toHaveLength(0);
+  });
+
+  test.each([
+    'function outer(identityStoreResource) {',
+    'function outer() { const identityStoreResource = rawResource;',
+    '{ const identityStoreResource = rawResource;',
+    'namespace Outer { export const identityStoreResource = rawResource;',
+    'function outer() {',
+  ])('resolves resource shadows around nested helpers in %s', (outer) => {
+    const { source, path } = fixture();
+    const candidate = source
+      .replace(
+        "trail('observation.import', {\n implementation: async (input, ctx) => {",
+        `${outer}\nasync function helper(input, ctx) {`
+      )
+      .replace(/\n\}\);$/, '\n}');
+    expect(
+      noRedundantResultErrorWrap.check(
+        candidate.replace(
+          'return station;',
+          'return Result.err(station.error);'
+        ),
+        path
+      )
+    ).toHaveLength(outer === 'function outer() {' ? 1 : 0);
+  });
+
+  test('resolves enclosing resource shadows around trail definitions', () => {
+    const { source, path } = fixture();
+    const nested = source.replace(
+      "trail('observation.import'",
+      "function outer(identityStoreResource) { trail('observation.import'"
+    );
+    const candidate = `${nested}\n}`;
+    expect(implementationReturnsResult.check(candidate, path)).toHaveLength(1);
+  });
+
+  test('does not trust a context written by a captured closure', () => {
+    const { source, path } = fixture({ rewrap: true });
+    const candidate = source.replace(
+      'const identity =',
+      '(() => { ctx = input.otherContext; })(); const identity ='
+    );
+    expect(noRedundantResultErrorWrap.check(candidate, path)).toHaveLength(0);
+    expect(
+      implementationReturnsResult.check(
+        candidate.replace('Result.err(station.error)', 'station'),
+        path
+      )
+    ).toHaveLength(1);
+  });
+
   test.each(['direct export', 'aliased export', 'local'] as const)(
     'does not use a replaced module resource (%s)',
     (binding) => {
