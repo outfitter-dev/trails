@@ -37,7 +37,7 @@ Authored `ctx.fire()` signals retain a crash window between the business commit 
 
 An outbox event ID is monotonic in commit order and remains on delivered events for deduplication and audit. It is never a resume cursor. Admission happens after tenant and scope filtering and assigns a contiguous per-subscription delivery sequence, starting at 1, recorded in the delivery log.
 
-A checkpoint is opaque to clients and has two server-owned components:
+A checkpoint is opaque to clients and has two server-owned positions. It also preserves any accepted retention loss separately from those positions.
 
 | Component | Meaning |
 | --- | --- |
@@ -50,9 +50,9 @@ Replay follows delivery-sequence order, never event-ID order. Parallel consumers
 
 ### A checkpoint certifies a safe prefix
 
-Emit a checkpoint only after all surviving admitted events covered since the starting cursor have been sent on that stream and its scan watermark is safe across all relevant consumers. A live frame may carry a checkpoint when those conditions hold; a later or standalone checkpoint can certify the completed prefix. If cross-signal live delivery sends sequence 8 before 7, it cannot certify 8 while 7 is missing. This requires admission/frontier accounting, not an RPC-specific payload reorder buffer.
+Emit a checkpoint only when its scan watermark is safe across all relevant consumers and every covered delivery after the starting cursor is accounted for: sent on that stream, within explicitly accepted retention loss, or excluded by a final authorization decision. Preserve these dispositions separately; an excluded delivery was never sent or processed. A live frame may carry a checkpoint when those conditions hold; a later or standalone checkpoint can certify the completed prefix. If cross-signal live delivery sends sequence 8 before 7, it cannot certify 8 while 7 remains unresolved. This requires admission/frontier accounting, not an RPC-specific payload reorder buffer.
 
-Clients advance their stored checkpoint only after processing everything it covers. Sending and receiving are not processing. Resume is exclusive: `after: C` delivers the tail after C. Already processed events after the last saved checkpoint may recur; stable event IDs allow the consumer to deduplicate them. Every replay frame carries its own safe checkpoint.
+Clients advance their stored checkpoint only after processing all deliveries it covers. Sending and receiving are not processing. Resume is exclusive: `after: C` delivers the eligible tail after C. Already processed events after the last saved checkpoint may recur; stable event IDs allow the consumer to deduplicate them. Every replay frame carries its own safe checkpoint.
 
 Client-held cursors are the default. Named subscriptions hold a server cursor that advances only on an acknowledgment meaning processed. Webhook cursors are server-held. The channel defines how its acknowledgment is carried, while the common model owns what it certifies. An offline host or failed delivery attempt cannot advance the cursor or delete the replay record.
 
@@ -65,6 +65,8 @@ Subscription ownership keys on issuer plus subject and, where applicable, tenant
 A transient revalidation failure keeps the cursor and retries. An expired or revoked grant delivers nothing. Renewal in place before lapse preserves authorization continuity, while replay still checks the current grant at delivery time. Renewal after a lapse resumes from the cursor but excludes the lapsed authorization span and reports a typed `authorization_gap`. That is distinct from missing retained data, which is `replay_gap`.
 
 The grant records authorization intervals with opening and closing outbox positions, times, and cutoff causes. Early renewal with unchanged authority extends the open interval; narrowing ends the prior interval at the cutoff. Renewal after a lapse opens a new interval without reopening the old one. Replay comparisons use positions; times are retained for display and audit. Auth owns conservative conversion of revocation timestamps into outbox positions, including the configurable five-minute default skew allowance. Ambiguous windows are excluded rather than replayed. Do not invent a separate channel-specific cutoff formula.
+
+When revalidation confirms that a retained delivery falls outside an authorized interval or is excluded by the narrowed grant, record a final authorization exclusion for that sequence, not an acknowledgment or a retention loss. It can count toward the prefix when the grant permits replay of later deliveries. A transient failure leaves the affected delivery unresolved and blocks checkpoints past it; an expired or revoked grant still delivers nothing until renewed. Acknowledgment covers processing of deliveries that were sent, never the excluded delivery.
 
 The grant's default lifetime is 30 days, with an expiring signal three days before lapse on the subscription's own channel. Renew accepts a fresh credential and preserves subscription ID and cursor; optional sliding renewal is explicit policy. A never-expiring or sliding delegated grant requires an Auth adapter that can revalidate delegation, not just check that the subject is active. Where the adapter cannot verify delegation, those grants stay bounded. Those grant details remain Auth acceptance, not a capability asserted by this ADR alone.
 
@@ -97,6 +99,7 @@ The common conformance cases must run on every implemented channel:
 | Lagging consumer | If sequence 50 is at outbox position 101 and another consumer has not processed retained position 100, recovery replays 50 and still admits or rejects 100. It cannot certify `scan` through 100 before that work finishes. |
 | Empty retained filter | A stale filtered subscription with no surviving matches gets `resumeAfter`. Accept it, resume without an event or a repeated gap for the same loss, then deliver the first subsequent eligible event. |
 | Cross-signal live prefix | Sending sequence 8 before 7 cannot expose a checkpoint or acknowledgment that skips the missing sequence. |
+| Narrowed grant | A verified narrowing excludes retained sequence 50 but still permits 51. Do not send 50; after processing 51, the subscriber can advance through 51 without acknowledging 50 as delivered or accepting retention loss. A transient failure at 50 instead blocks any checkpoint through 51. |
 | Authorization lapse | Renewal cannot replay the lapsed authorization span; it reports `authorization_gap` separately from retention loss. |
 
 The retention-boundary test's one delivery in that replay does not change the overall at-least-once guarantee. Persistence, restart, retry, acknowledgment, and current-grant behavior must be exercised by the implementing issues; a model or a mocked cursor alone is not channel acceptance.
