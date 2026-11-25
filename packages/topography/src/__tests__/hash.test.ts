@@ -55,7 +55,7 @@ describe('deriveTopoGraphHash', () => {
     };
     const graph = makeTopoGraph({ entries: [signal] });
 
-    // Checksums generated before authored trail metadata was projected.
+    // Checksums from before trail entries included authored metadata.
     expect(deriveTopoGraphHash(graph)).toBe(
       'cc3ab139cdc48578bda32f035826ee69af212a60d784efcd43c2e6926153b5dd'
     );
