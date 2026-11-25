@@ -183,7 +183,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 #### Permits
 
 - `no-dev-permit-in-source` (error, source/source-static, external): The `--dev-permit` CLI flag string never appears in committed source.
-- `permit-governance` (warn, topo/topo-aware, external): Destroy trails declare explicit permit requirements.
+- `permit-governance` (warn, topo/topo-aware, external): Trails declare permit requirements for destructive intent and reachable composition.
 
 #### Resources
 
@@ -228,7 +228,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `library-render-coherence`: Keep resolved derived library exports collision-free and attached to one trail contract.
 - `no-throw-in-implementation`: Convert thrown failures in implementations into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
-- `permit-governance`: Make destructive trail authorization visible on the trail contract.
+- `permit-governance`: Keep destructive trails protected and composing trails explicit about required scopes.
 - `prefer-schema-inference`: Let schemas remain the owner for field metadata unless an override adds new information.
 - `public-output-schema`: Make public surface result contracts explicit before MCP/HTTP rendering.
 - `resource-declarations`: Keep infrastructure dependencies declared on the trail contract.
