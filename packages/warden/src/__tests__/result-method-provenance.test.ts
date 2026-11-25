@@ -578,3 +578,37 @@ test.each(['read', "['read']"])('rejects ambiguous overloads of %s', (key) => {
     )
   ).toHaveLength(1);
 });
+
+test.each([
+  [
+    'ambient declaration',
+    `export declare class Client { 'read'(): Trails.Result<string, Error>; }`,
+    'identity.read()',
+  ],
+  [
+    'computed alias overload',
+    `const key = 'read';
+export class Client {
+  'read'(mode: true): Trails.Result<string, Error>;
+  [key](mode: false): { error: Error };
+  [key](mode: boolean): Trails.Result<string, Error> | { error: Error } { return null as never; }
+}`,
+    'identity.read(false)',
+  ],
+])(
+  'does not use an unimplemented method signature as proof: %s',
+  (_label, client, expression) => {
+    const { source, path } = fixture({ expression });
+    writeFileSync(
+      join(root, 'client.ts'),
+      `import * as Trails from '@ontrails/core';\n${client}`
+    );
+    expect(implementationReturnsResult.check(source, path)).toHaveLength(1);
+    expect(
+      noRedundantResultErrorWrap.check(
+        source.replace('return station;', 'return Result.err(station.error);'),
+        path
+      )
+    ).toHaveLength(0);
+  }
+);

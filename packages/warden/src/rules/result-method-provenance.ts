@@ -105,6 +105,9 @@ const returnKind = (
   method: AstNode,
   classTypeParameters: readonly string[]
 ): ResultKind | null => {
+  if (!getNodeBodyNode(method)) {
+    return null;
+  }
   const shadowed = new Set([
     ...classTypeParameters,
     ...getNodeTypeParameterNames(method),
