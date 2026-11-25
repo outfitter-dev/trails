@@ -8,7 +8,6 @@ import {
   getNodeCallee,
   getNodeComputed,
   getNodeDeclarations,
-  getNodeExpression,
   getNodeId,
   getNodeImported,
   getNodeInit,
@@ -34,6 +33,7 @@ import {
   identifierName,
   isFunctionLike,
   isMemberAccessNonComputed,
+  staticPropertyKeyName,
   walkWithScopes,
 } from '@ontrails/source';
 import type { AstNode } from '@ontrails/source';
@@ -248,7 +248,7 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
       return null;
     }
     const args = getNodeTypeArguments(resource.node);
-    if (args.length !== 1) {
+    if (args.length < 1 || args.length > 2) {
       return null;
     }
     const typeName = identifierName(getNodeTypeName(args[0]));
@@ -269,19 +269,21 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
       ) {
         continue;
       }
-      const methodName = identifierName(getNodeKey(method));
-      if (methodName && seen.has(methodName)) {
+      const key = getNodeKey(method);
+      const methodName = key ? staticPropertyKeyName(key) : null;
+      if (!methodName) {
+        continue;
+      }
+      if (seen.has(methodName)) {
         methods.delete(methodName);
         continue;
       }
-      if (methodName) {
-        seen.add(methodName);
-      }
+      seen.add(methodName);
       const value = getNodeValueNode(method);
       const kind = value
         ? returnKind(client.module, value, classTypeParameters)
         : null;
-      if (methodName && kind) {
+      if (kind) {
         methods.set(methodName, kind);
       }
     }
@@ -367,26 +369,9 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
 /** A Promise-producing method is a Result witness only after explicit await. */
 export const isResultMethodExpression = (
   node: AstNode,
-  expressions: ResultMethodExpressions
+  expressions: ResultMethodExpressions,
+  awaited: boolean
 ): boolean => {
-  let current = node;
-  let awaited = false;
-  while (
-    current.type === 'AwaitExpression' ||
-    current.type === 'ParenthesizedExpression'
-  ) {
-    if (current.type === 'AwaitExpression') {
-      awaited = true;
-    }
-    const inner =
-      current.type === 'AwaitExpression'
-        ? getNodeArgument(current)
-        : getNodeExpression(current);
-    if (!inner) {
-      return false;
-    }
-    current = inner;
-  }
-  const kind = expressions.get(current);
+  const kind = expressions.get(node);
   return kind === 'sync' || (kind === 'async' && awaited);
 };

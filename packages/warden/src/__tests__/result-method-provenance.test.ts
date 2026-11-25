@@ -20,21 +20,23 @@ const fixture = (
     expression?: string;
     setup?: string;
     localType?: string;
+    methodName?: string;
     rewrap?: boolean;
+    resourceTypes?: string;
   } = {}
 ) => {
   writeFileSync(
     join(root, 'client.ts'),
     `import * as Trails from '@ontrails/core';
 export class Client {
- read(): ${options.signature ?? 'Trails.Result<string, Error>'} { return null as never; }
+ ${options.methodName ?? 'read'}(): ${options.signature ?? 'Trails.Result<string, Error>'} { return null as never; }
 }`
   );
   writeFileSync(
     join(root, 'resource.ts'),
     `import * as Trails from '@ontrails/core';
 import { Client as Store } from './client.js';
-export const store = Trails.resource<Store>('store', { create: () => null });`
+export const store = Trails.resource<${options.resourceTypes ?? 'Store'}>('store', { create: () => null });`
   );
   const source = `import { Result, trail } from '@ontrails/core';
 import { store as identityStoreResource } from './resource.js';
@@ -77,6 +79,69 @@ describe('explicit resource class-method Result provenance', () => {
         signature: 'Promise<Trails.Result<string, Error>>',
       }).returns
     ).toHaveLength(0);
+  });
+  test('recognizes awaited conditional methods, including mixed Result branches', () => {
+    for (const alternate of ['identity.read()', "Result.ok('fallback')"]) {
+      const options = {
+        expression: `await (input.flag ? identity.read() : ${alternate})`,
+        signature: 'Promise<Trails.Result<string, Error>>',
+      };
+      expect(check(options).returns).toHaveLength(0);
+      expect(check({ ...options, rewrap: true }).wraps).toHaveLength(1);
+    }
+  });
+  test('does not recognize unawaited conditional Promise<Result> branches', () => {
+    const options = {
+      expression: 'input.flag ? identity.read() : identity.read()',
+      signature: 'Promise<Trails.Result<string, Error>>',
+    };
+    expect(check(options).returns).toHaveLength(1);
+    expect(check({ ...options, rewrap: true }).wraps).toHaveLength(0);
+  });
+  test.each([
+    [
+      'configured resource clients',
+      { resourceTypes: 'Store, { location: string }' },
+    ],
+    ['uncomputed quoted method names', { methodName: "'read'" }],
+  ] as const)('recognizes %s', (_label, options) => {
+    expect(check(options).returns).toHaveLength(0);
+    expect(check({ ...options, rewrap: true }).wraps).toHaveLength(1);
+  });
+  test('does not infer the outer variable from a Result field in an annotation', () => {
+    const { path, source } = fixture({
+      expression: 'input.failure',
+      localType: ': { error: Error; previous: Result<string, Error> }',
+    });
+    const neededWrap = source.replace(
+      'if (station.isErr()) return station;\n  return Result.ok(station.value);',
+      'return Result.err(station.error);'
+    );
+    expect(noRedundantResultErrorWrap.check(neededWrap, path)).toHaveLength(0);
+    expect(implementationReturnsResult.check(neededWrap, path)).toHaveLength(0);
+  });
+  test('preserves a qualified Result annotation through a core namespace import', () => {
+    const { source, path } = fixture({
+      expression: 'input.unknown',
+      localType: ': Trails.Result<string, Error>',
+      rewrap: true,
+    });
+    const withNamespace = `import * as Trails from '@ontrails/core';\n${source}`;
+    expect(noRedundantResultErrorWrap.check(withNamespace, path)).toHaveLength(
+      1
+    );
+  });
+  test('preserves a locally exported Result helper that shares its name with a type', () => {
+    writeFileSync(
+      join(root, 'helper.ts'),
+      `import { Result } from '@ontrails/core';
+const read = (): Result<string, Error> => Result.ok('ready');
+type read = () => Result<string, Error>;
+export { read };`
+    );
+    const { source, path } = fixture({ expression: 'read()' });
+    const withHelper = `import { read } from './helper.js';\n${source}`;
+    expect(implementationReturnsResult.check(withHelper, path)).toHaveLength(0);
   });
   test('does not treat unawaited Promise<Result> as a Result', () => {
     expect(
@@ -464,7 +529,7 @@ test('does not collapse overloaded method signatures to an arbitrary Result witn
   const { source, path } = fixture({ rewrap: true });
   writeFileSync(
     join(root, 'client.ts'),
-    `import * as Trails from '@ontrails/core'; export declare class Client { read(mode: true): Trails.Result<string,Error>; read(mode: false): { error: Error; isErr(): boolean }; }`
+    `import * as Trails from '@ontrails/core'; export declare class Client { 'read'(mode: true): Trails.Result<string,Error>; read(mode: false): { error: Error; isErr(): boolean }; }`
   );
   expect(noRedundantResultErrorWrap.check(source, path)).toHaveLength(0);
   expect(

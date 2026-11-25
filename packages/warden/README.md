@@ -39,13 +39,13 @@ When adding or auditing rules, follow [Warden Rules](../../docs/contributing/war
 
 ## Result provenance
 
-`implementation-returns-result` and `no-redundant-result-error-wrap` share explicit typed resource-method provenance. For a lexical client obtained with `const client = storeResource.from(ctx)`, Warden follows a core `resource<Client>(...)` declaration and direct relative imports to that exact class's noncomputed instance methods. An explicit `Result<T, E>` signature permits narrowed direct passthrough; `Promise<Result<T, E>>` requires an explicit await before Result inspection. Redundant `Result.err(result.error)` wrapping is warned for the same proven values.
+`implementation-returns-result` and `no-redundant-result-error-wrap` share explicit typed resource-method provenance. For a lexical client obtained with `const client = storeResource.from(ctx)`, Warden follows a core `resource<Client>(...)` or `resource<Client, Config>(...)` declaration and direct named imports from relative paths to that exact class's noncomputed instance methods. An explicit `Result<T, E>` signature permits narrowed direct passthrough; `Promise<Result<T, E>>` requires an explicit await before Result inspection. Redundant `Result.err(result.error)` wrapping is warned for the same proven values.
 
-This is bounded source analysis. Warden does not infer factory bodies, inherited methods, computed/optional method access, arbitrary clients with `isErr()` methods, or re-export chains for these resource-method witnesses. Receiver reassignment invalidates the witness. For an unresolved resource or helper call, annotate the local result rather than only the enclosing implementation:
+This is bounded source analysis. Warden does not infer factory bodies, inherited methods, computed/optional method access, arbitrary clients with `isErr()` methods, default imports, or re-export chains for these resource-method witnesses. Receiver reassignment invalidates the witness. For an unresolved resource or helper call, annotate the local result rather than only the enclosing implementation:
 
 Inside the implementation, use `const station: Result<Station, Error> = identity.ensureStation({ name });`, then preserve the narrowed `if (station.isErr()) return station;` path.
 
-Keep direct Err passthrough; do not add a redundant error wrapper to silence provenance diagnostics. The local annotation is shared by both rules, including imported Result type aliases. Existing valid annotations remain supported; no consumer migration is required.
+Keep direct Err passthrough; do not add a redundant error wrapper to silence provenance diagnostics. Both rules recognize direct Result annotations, including imported aliases and namespace-qualified names. A type that merely contains a Result does not establish its own provenance.
 
 ## Project-local rules
 

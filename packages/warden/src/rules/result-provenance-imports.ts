@@ -71,7 +71,8 @@ export const resolveRelativeImportPath = (
 /** Index only a module's own declarations; no transitive or inferred bindings. */
 export const collectModuleDeclarations = (
   ast: AstNode,
-  initializerPolicy: InitializerPolicy = 'all'
+  initializerPolicy: InitializerPolicy = 'all',
+  accepts: (node: AstNode) => boolean = () => true
 ): ReadonlyMap<string, AstNode> => {
   const declarations = new Map<string, AstNode>();
   for (const statement of getNodeBodyStatements(ast)) {
@@ -89,13 +90,13 @@ export const collectModuleDeclarations = (
       for (const variable of getNodeDeclarations(declaration)) {
         const name = identifierName(getNodeId(variable));
         const init = getNodeInit(variable);
-        if (name && init) {
+        if (name && init && accepts(init)) {
           declarations.set(name, init);
         }
       }
     } else {
       const name = identifierName(getNodeId(declaration));
-      if (name) {
+      if (name && accepts(declaration)) {
         declarations.set(name, declaration);
       }
     }

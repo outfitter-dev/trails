@@ -30,7 +30,10 @@ import {
   getNodeReturnType,
   getNodeRight,
   getNodeSource,
+  getNodeSpecifiers,
   getNodeTypeAnnotation,
+  getNodeTypeArguments,
+  getNodeTypeName,
   getNodeValue,
   identifierName,
   offsetToLine,
@@ -220,8 +223,9 @@ const resolveIdentifierName = (node: AstNode): string | null => {
   return null;
 };
 
-const unwrapReturnExpression = (node: AstNode): AstNode => {
+const unwrapReturnExpression = (node: AstNode, inheritedAwait: boolean) => {
   let current = node;
+  let awaited = inheritedAwait;
   while (
     current.type === 'AwaitExpression' ||
     current.type === 'ParenthesizedExpression'
@@ -231,11 +235,12 @@ const unwrapReturnExpression = (node: AstNode): AstNode => {
         ? getNodeArgument(current)
         : getNodeExpression(current);
     if (!next) {
-      return current;
+      break;
     }
+    awaited ||= current.type === 'AwaitExpression';
     current = next;
   }
-  return current;
+  return { awaited, target: current };
 };
 
 /** Check whether an expression has visible Result-producing provenance. */
@@ -246,12 +251,13 @@ export const isResultProducingExpression = (
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[] = [],
   scopedHelpers: ScopedHelperMap = new Map(),
-  methodResults: ResultMethodExpressions = new Map()
+  methodResults: ResultMethodExpressions = new Map(),
+  inheritedAwait = false
 ): boolean => {
-  if (isResultMethodExpression(argument, methodResults)) {
+  const { awaited, target } = unwrapReturnExpression(argument, inheritedAwait);
+  if (isResultMethodExpression(target, methodResults, awaited)) {
     return true;
   }
-  const target = unwrapReturnExpression(argument);
   if (target.type === 'ConditionalExpression') {
     const alternate = getNodeAlternate(target);
     const consequent = getNodeConsequent(target);
@@ -265,7 +271,8 @@ export const isResultProducingExpression = (
         namespaceHelpers,
         scopes,
         scopedHelpers,
-        methodResults
+        methodResults,
+        awaited
       ) &&
       isResultProducingExpression(
         alternate,
@@ -274,7 +281,8 @@ export const isResultProducingExpression = (
         namespaceHelpers,
         scopes,
         scopedHelpers,
-        methodResults
+        methodResults,
+        awaited
       )
     );
   }
@@ -324,9 +332,13 @@ export const collectResultTypeNames = (ast: AstNode): ReadonlySet<string> => {
     ) {
       return;
     }
-    const specifiers =
-      (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
-    for (const specifier of specifiers) {
+    for (const specifier of getNodeSpecifiers(node)) {
+      if (specifier.type === 'ImportNamespaceSpecifier') {
+        const namespace = identifierName(getNodeLocal(specifier));
+        if (namespace !== null) {
+          names.add(`${namespace}.Result`);
+        }
+      }
       if (specifier.type !== 'ImportSpecifier') {
         continue;
       }
@@ -429,23 +441,27 @@ export const trackScopedResultHelperDeclaration = (
 
 export const hasResultVariableAnnotation = (
   node: AstNode,
-  sourceCode: string,
   resultTypeNames: ReadonlySet<string>
 ): boolean => {
-  const typeAnnotation = getNodeTypeAnnotation(node);
-  if (!typeAnnotation) {
+  let annotation = getNodeTypeAnnotation(getNodeTypeAnnotation(node));
+  while (annotation?.type === 'TSParenthesizedType') {
+    annotation = getNodeTypeAnnotation(annotation);
+  }
+  const ref = getNodeTypeName(annotation);
+  if (getNodeTypeArguments(annotation).length === 0) {
     return false;
   }
-  const annotationText = sourceCode.slice(
-    typeAnnotation.start,
-    typeAnnotation.end
-  );
-  for (const name of resultTypeNames) {
-    if (hasGenericTypeReference(annotationText, name)) {
-      return true;
-    }
+  if (ref?.type === 'TSQualifiedName') {
+    const namespace = identifierName(getNodeLeft(ref));
+    const name = identifierName(getNodeRight(ref));
+    return (
+      namespace !== null &&
+      name !== null &&
+      resultTypeNames.has(`${namespace}.${name}`)
+    );
   }
-  return false;
+  const local = identifierName(ref);
+  return local !== null && resultTypeNames.has(local);
 };
 
 /** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
@@ -456,7 +472,6 @@ const trackResultVariable = (
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[],
   scopedHelpers: ScopedHelperMap,
-  sourceCode: string,
   resultTypeNames: ReadonlySet<string>,
   methodResults: ResultMethodExpressions
 ): void => {
@@ -468,7 +483,7 @@ const trackResultVariable = (
       return;
     }
     if (
-      hasResultVariableAnnotation(id, sourceCode, resultTypeNames) ||
+      hasResultVariableAnnotation(id, resultTypeNames) ||
       isResultProducingExpression(
         init,
         helperNames,
@@ -586,7 +601,6 @@ const checkReturnStatements = (
           namespaceHelpers,
           currentScopes,
           scopedHelpers,
-          sourceCode,
           resultTypeNames,
           methodResults
         );
@@ -857,12 +871,12 @@ const addExportedFunctionResultHelper = (
 type DeclarationIndex = ReadonlyMap<string, AstNode>;
 
 const indexLocalDeclarations = (ast: AstNode): DeclarationIndex =>
-  new Map(
-    [...collectModuleDeclarations(ast)].filter(
-      ([, declaration]) =>
-        isFunctionLikeExpression(declaration) ||
-        declaration.type === 'FunctionDeclaration'
-    )
+  collectModuleDeclarations(
+    ast,
+    'all',
+    (declaration) =>
+      isFunctionLikeExpression(declaration) ||
+      declaration.type === 'FunctionDeclaration'
   );
 
 // ---------------------------------------------------------------------------
@@ -1581,25 +1595,17 @@ const checkImplementation = (
 
   const conciseScopes: readonly ReadonlySet<string>[] =
     implScope.size > 0 ? [implScope] : [];
-  const isConciseResultBody = (node: AstNode): boolean => {
-    const target = unwrapReturnExpression(node);
-    if (target.type === 'ConditionalExpression') {
-      const alternate = getNodeAlternate(target);
-      const consequent = getNodeConsequent(target);
-      return (
-        consequent !== undefined &&
-        alternate !== undefined &&
-        isConciseResultBody(consequent) &&
-        isConciseResultBody(alternate)
-      );
-    }
-    return (
-      isResultMethodExpression(node, methodResults) ||
-      isResultExpression(target) ||
-      isHelperCall(target, helperNames, namespaceHelpers, conciseScopes)
-    );
-  };
-  if (!isConciseResultBody(fnBody)) {
+  if (
+    !isResultProducingExpression(
+      fnBody,
+      helperNames,
+      new Map(),
+      namespaceHelpers,
+      conciseScopes,
+      new Map(),
+      methodResults
+    )
+  ) {
     diagnostics.push({
       filePath,
       line: offsetToLine(sourceCode, implValue.start),

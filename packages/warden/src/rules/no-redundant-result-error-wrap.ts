@@ -136,7 +136,6 @@ const trackVariableDeclarator = (
   scopedHelpers: ScopedHelperMap,
   scopes: readonly ReadonlySet<string>[],
   methodResults: ResultMethodExpressions,
-  sourceCode: string,
   resultTypeNames: ReadonlySet<string>
 ): void => {
   const id = getNodeId(node);
@@ -150,7 +149,7 @@ const trackVariableDeclarator = (
     return;
   }
   if (
-    (id && hasResultVariableAnnotation(id, sourceCode, resultTypeNames)) ||
+    (id && hasResultVariableAnnotation(id, resultTypeNames)) ||
     (init &&
       isResultProducingExpression(
         init,
@@ -287,7 +286,6 @@ const checkFunctionBody = (
           scopedHelpers,
           scopes,
           methodResults,
-          sourceCode,
           resultTypeNames
         );
         return;
