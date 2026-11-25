@@ -17,11 +17,11 @@ import type {
 import type {
   McpSurfaceTrailheadMap,
   McpExtra,
-  McpToolDefinition,
   ResolveMcpPermit,
   McpCredentialPosture,
 } from './build.js';
-import { deriveMcpTools } from './build.js';
+import { deriveMcpToolRecords } from './build.js';
+import type { McpToolRecord } from './output-rendering.js';
 import {
   resolveMcpResourcePermit,
   runMcpResourceRequest,
@@ -90,13 +90,15 @@ const requestCredentials = (
  * "optional instructions describing how to use the server and its features."
  */
 const createMcpServer = (
-  tools: McpToolDefinition[],
+  tools: readonly McpToolRecord[],
   info: {
     readonly name: string;
     readonly version: string;
     readonly description?: string | undefined;
   },
-  mcpResources: BuiltMcpResources | undefined,
+  mcpResources:
+    | Readonly<Record<keyof McpToolRecord, BuiltMcpResources>>
+    | undefined,
   options: CreateServerOptions,
   credentials?: Pick<McpExtra, 'authorization'>
 ): Server => {
@@ -114,31 +116,35 @@ const createMcpServer = (
   );
 
   // Build a lookup map for tool dispatch
-  const toolMap = new Map<string, McpToolDefinition>();
-  for (const tool of tools) {
-    toolMap.set(tool.name, tool);
-  }
+  const toolMap = new Map(tools.map((record) => [record.legacy.name, record]));
+  const protocolView = (): keyof McpToolRecord =>
+    server.getNegotiatedProtocolVersion() === '2026-07-28'
+      ? 'modern'
+      : 'legacy';
 
   // Register tools/list handler
   // oxlint-disable-next-line require-await -- MCP SDK requires async handler
-  server.setRequestHandler('tools/list', async () => ({
-    tools: tools.map((t) => ({
-      _meta: t._meta,
-      annotations: t.annotations,
-      description: t.description,
-      inputSchema: { ...t.inputSchema, type: 'object' as const },
-      name: t.name,
-      outputSchema:
-        t.outputSchema === undefined
-          ? undefined
-          : { ...t.outputSchema, type: 'object' as const },
-    })),
-  }));
+  server.setRequestHandler('tools/list', async () => {
+    const view = protocolView();
+    return {
+      tools: tools.map((record) => {
+        const tool = record[view];
+        return {
+          _meta: tool._meta,
+          annotations: tool.annotations,
+          description: tool.description,
+          inputSchema: { ...tool.inputSchema, type: 'object' as const },
+          name: tool.name,
+          outputSchema: tool.outputSchema,
+        };
+      }),
+    };
+  });
 
   // Register tools/call handler
   server.setRequestHandler('tools/call', async (request, requestExtra) => {
-    const tool = toolMap.get(request.params.name);
-    if (tool === undefined) {
+    const record = toolMap.get(request.params.name);
+    if (record === undefined) {
       return {
         content: [
           {
@@ -150,6 +156,7 @@ const createMcpServer = (
       };
     }
 
+    const tool = record[protocolView()];
     const args = (request.params.arguments ?? {}) as Record<string, unknown>;
     const progressToken = requestExtra.mcpReq._meta?.progressToken;
 
@@ -189,7 +196,7 @@ const createMcpServer = (
           return permit;
         }
         const resources = [];
-        for (const resource of mcpResources.list) {
+        for (const resource of mcpResources[protocolView()].list) {
           if (options.authorizeResourceRead !== undefined) {
             const allowed = await options.authorizeResourceRead({
               permit: permit.value,
@@ -222,7 +229,8 @@ const createMcpServer = (
         if (permit.isErr()) {
           return permit;
         }
-        const resource = mcpResources.list.find(
+        const rendering = mcpResources[protocolView()];
+        const resource = rendering.list.find(
           (entry) => entry.uri === request.params.uri
         );
         if (resource === undefined) {
@@ -239,7 +247,7 @@ const createMcpServer = (
             return allowed;
           }
         }
-        const content = mcpResources.read(resource.uri);
+        const content = rendering.read(resource.uri);
         if (content === undefined) {
           return Result.err(
             new NotFoundError(`Resource ${resource.uri} not found`)
@@ -262,7 +270,7 @@ export const createServerFactory = (
   graph: Topo,
   options: CreateServerOptions = {}
 ): ((credentials?: Pick<McpExtra, 'authorization'>) => Server) => {
-  const toolsResult = deriveMcpTools(graph, {
+  const toolsResult = deriveMcpToolRecords(graph, {
     configValues: options.configValues,
     createContext: options.createContext,
     credentialPosture: options.credentialPosture,
@@ -284,7 +292,18 @@ export const createServerFactory = (
   const mcpResources =
     options.mcpResources === false
       ? undefined
-      : buildMcpResources(graph, toolsResult.value, options.mcpResources);
+      : {
+          legacy: buildMcpResources(
+            graph,
+            toolsResult.value.map(({ legacy }) => legacy),
+            options.mcpResources
+          ),
+          modern: buildMcpResources(
+            graph,
+            toolsResult.value.map(({ modern }) => modern),
+            options.mcpResources
+          ),
+        };
 
   return (credentials) =>
     createMcpServer(

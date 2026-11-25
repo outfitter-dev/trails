@@ -138,7 +138,7 @@ Strict mode disables auto-minting entirely. Tests must provide explicit permits,
 
 Built-in: JWT/JWKS verification, provider-agnostic. Validates tokens, extracts claims, maps to `Permit`. No provider lock-in.
 
-First external adapter target: BetterAuth or Clerk, depending on which ships a cleaner token contract. OpenAuth later, once the adapter pattern is proven.
+[ADR-0057](0057-auth-adapter-packaging.md#the-selected-targets-have-concrete-homes) selects Better Auth and Clerk as the first extracted provider adapters. It records the package boundaries and criteria for adding other adapters; this does not commit to an OpenAuth adapter.
 
 ### Bearer-only for v1
 
@@ -174,7 +174,11 @@ No cookies. No session-based auth at the framework level. Session management via
 
 ## Amendment log
 
-- 2026-10-29: TRL-1561 makes the credential input the only door for a permit
+- 2026-11-25: [ADR-0057](0057-auth-adapter-packaging.md) replaces the provisional
+  first-adapter choice with separate Better Auth and Clerk packages. The
+  provider-agnostic JWT/JWKS verifier remains in permits.
+
+- 2026-10-29: [TRL-1561] makes the credential input the only door for a permit
   on a surface. `@ontrails/permits` owns one reconciliation (`reconcilePermit`)
   that every surface calls with its candidates and posture; it stamps explicit
   admission evidence (`verified`, `asserted`, `synthetic`, plus the responsible
@@ -182,8 +186,8 @@ No cookies. No session-based auth at the framework level. Session management via
   are refused on network surfaces and admitted in process only under host
   policy derived from the topo or declared in app config. The CLI is the first
   caller; stdio MCP, the fetch handler and HTTP follow. The resource-server ADR
-  (TRL-1429) carries the normative per-surface matrix.
-- 2026-10-28: TRL-1435 implements the promised provider-agnostic JWT/JWKS path
+  ([TRL-1429]) carries the normative per-surface matrix.
+- 2026-10-28: [TRL-1435] implements the promised provider-agnostic JWT/JWKS path
   in `@ontrails/permits/jwt` with native WebCrypto. A configured secret preserves
   HS256 behavior, including optional issuer/audience checks; issuer without a
   secret selects discovery and requires audience and expiration verification.
@@ -196,3 +200,7 @@ No cookies. No session-based auth at the framework level. Session management via
 - 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
   examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
   stable.
+
+[TRL-1429]: https://linear.app/outfitter/issue/TRL-1429
+[TRL-1435]: https://linear.app/outfitter/issue/TRL-1435
+[TRL-1561]: https://linear.app/outfitter/issue/TRL-1561
