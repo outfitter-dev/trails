@@ -428,7 +428,7 @@ const openFactBagSchema = z.record(z.string(), z.unknown());
 // Validate like a record without dropping authored JSON keys during parsing.
 const topoGraphEntryMetaSchema = z
   .unknown()
-  .refine(z.util.isPlainObject)
+  .refine(z.util.isPlainObject, { abort: true })
   .overwrite((meta) => Object.fromEntries(Object.entries(meta)))
   .meta({ additionalProperties: {}, type: 'object' });
 

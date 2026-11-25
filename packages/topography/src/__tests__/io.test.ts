@@ -383,6 +383,27 @@ describe('writeTrailsLock / readTrailsLock', () => {
     );
   });
 
+  test.each([[null], [[]], ['invalid']] as const)(
+    'reports malformed entry metadata (%j) as a recoverable lock error',
+    async (meta) => {
+      const topoGraph = makeTopoGraph();
+      const malformedLock = {
+        ...makeTrailsLock(topoGraph),
+        topoGraph: {
+          ...topoGraph,
+          entries: topoGraph.entries.map((entry) => ({ ...entry, meta })),
+        },
+      };
+      await Bun.write(
+        join(tempDir, 'trails.lock'),
+        JSON.stringify(malformedLock)
+      );
+
+      const error = await captureError(() => readTrailsLock({ dir: tempDir }));
+      expect(isTopoArtifactRegenerationError(error)).toBe(true);
+    }
+  );
+
   test('derives v5 root locks back to v4 manifests for compatibility', async () => {
     const topoGraph = makeTopoGraph();
     const trailsLock = makeTrailsLock(topoGraph);
