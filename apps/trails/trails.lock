@@ -21147,6 +21147,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "internal": true
+        },
         "output": {
           "properties": {
             "includes": {},
@@ -23856,6 +23859,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "internal": true
+        },
         "output": {
           "properties": {
             "includes": {},
@@ -24156,6 +24162,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "internal": true
+        },
         "output": {
           "properties": {
             "includes": {},
@@ -43164,6 +43173,7 @@
       }
     },
     "topoGraphSchemaVersion": 4,
+    "trailMetadataHashVersion": 1,
     "trailheads": [
       {
         "description": "Grouped MCP entry over: guide, survey, survey.brief, survey.diff, survey.resource, survey.signal, survey.surfaces, survey.trail, topo, topo.history.",
@@ -43187,6 +43197,6 @@
       }
     ]
   },
-  "topoGraphHash": "d6e70011d4e9d5adbad981792ca69df030d7c669ca913bbf68b77b927bea4d0e",
+  "topoGraphHash": "f52270217f02186ba674e9c1206efcc317d39361656311d0e0c9c0622c0543d7",
   "version": 5
 }

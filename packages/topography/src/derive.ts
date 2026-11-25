@@ -28,6 +28,7 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from './permit.js';
+import { deriveTrailMetadataHashMarker } from './hash.js';
 import { deriveTopoGraphLibrary } from './library-derivation.js';
 import { collectTopoGraphOverlays } from './overlays.js';
 import {
@@ -96,21 +97,9 @@ const canonicalLeaf = (value: unknown): unknown => {
   }
 };
 
-const canonicalObject = (
-  value: Record<string, unknown>,
-  visit: (value: unknown) => unknown
-): Record<string, unknown> => {
-  const sorted: Record<string, unknown> = {};
-  for (const key of Object.keys(value).toSorted()) {
-    const next = value[key];
-    sorted[key] = next === undefined ? '[Undefined]' : visit(next);
-  }
-  return sorted;
-};
-
-const canonicalize = (value: unknown): unknown => {
+const canonicalize = (value: unknown, includeAllKeys = false): unknown => {
   if (Array.isArray(value)) {
-    return value.map(canonicalize);
+    return value.map((item) => canonicalize(item, includeAllKeys));
   }
   if (value instanceof Date) {
     return value.toISOString();
@@ -119,7 +108,13 @@ const canonicalize = (value: unknown): unknown => {
     return value.toString();
   }
   if (value !== null && typeof value === 'object') {
-    return canonicalObject(value as Record<string, unknown>, canonicalize);
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(record)
+        .filter((key) => includeAllKeys || key !== '__proto__')
+        .toSorted()
+        .map((key) => [key, canonicalize(record[key], includeAllKeys)])
+    );
   }
   return canonicalLeaf(value);
 };
@@ -341,6 +336,9 @@ const addMetadata = (
 ): void => {
   if (t.description !== undefined) {
     entry['description'] = t.description;
+  }
+  if (t.meta !== undefined) {
+    entry['meta'] = canonicalize(t.meta, true);
   }
   if (t.pattern !== undefined) {
     entry['pattern'] = t.pattern;
@@ -686,5 +684,6 @@ export const deriveTopoGraph = (
     generatedAt: new Date().toISOString(),
     library,
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    ...deriveTrailMetadataHashMarker(sorted),
   };
 };
