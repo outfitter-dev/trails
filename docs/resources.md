@@ -4,6 +4,16 @@ Trails implementations are pure functions -- input in, `Result` out. But real im
 
 ## Defining a Resource
 
+To start an editable in-memory resource in an existing app:
+
+```bash
+trails add resource db.main --description 'In-memory values' --permit '{"id":"local-scaffold","scopes":["project:write"]}'
+```
+
+This writes `src/resources/db-main.ts` and `__tests__/db-main.test.ts`, exporting `db_mainResource`. Scaffold IDs use lowercase dotted segments with an optional `_draft.` prefix; that file/export naming subset does not restrict Core's broader resource ID grammar. Existing output files or blocked parent directories cause a conflict before creation; symbolic-link parents are rejected. File creation is exclusive, with bounded cleanup on failure; cleanup errors identify remaining files.
+
+Import the definition into your intended topo and declare it in consuming trails' `resources` arrays. Scaffolding does not edit the topo. The starter's `config.initialValues` seeds a `Map<string, string>`, health reports its size, disposal clears it, and each mock returns an independent empty map. Normal execution requires the resource's config slice (for example, `{ initialValues: {} }`); defaulting the field does not default a missing outer config object. `testAll(app)` uses the mock without resource configuration.
+
 Use `resource()` to create a typed resource definition:
 
 ```typescript
