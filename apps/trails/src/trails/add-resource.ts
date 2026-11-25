@@ -5,6 +5,8 @@ import { Result, trail, ValidationError } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
+  isScaffoldSourceId,
+  SCAFFOLD_SOURCE_ID_MESSAGE,
   TRAIL_ID_PATTERN,
   trailIdToExportName,
   trailIdToModuleName,
@@ -88,6 +90,9 @@ export const addResource = trail('add.resource', {
     if (!TRAIL_ID_PATTERN.test(id)) {
       return Result.err(new ValidationError(idMessage));
     }
+    if (!isScaffoldSourceId(id)) {
+      return Result.err(new ValidationError(SCAFFOLD_SOURCE_ID_MESSAGE));
+    }
     const module = trailIdToModuleName(id);
     const files = new Map([
       [`src/resources/${module}.ts`, generateResource(id, description)],
@@ -104,6 +109,7 @@ export const addResource = trail('add.resource', {
     id: z
       .string()
       .regex(TRAIL_ID_PATTERN, idMessage)
+      .refine(isScaffoldSourceId, SCAFFOLD_SOURCE_ID_MESSAGE)
       .describe(
         'Resource scaffold ID (e.g. db.main); lowercase dotted segments with optional _draft. prefix'
       ),

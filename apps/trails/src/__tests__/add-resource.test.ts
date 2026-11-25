@@ -25,7 +25,7 @@ import {
 test('resource scaffold writes a definition and runnable tests with safe identifiers', async () => {
   const dir = createResourceProject();
   try {
-    for (const id of ['db.main', 'class', 'resource', 'z', '_draft.db.main']) {
+    for (const id of ['db.main', 'class', 'resource', 'z', '_draft.db.test']) {
       const result = await executeTrail(
         addResource,
         { description: '  Editable in-memory starter  ', id },
@@ -79,7 +79,14 @@ test('resource scaffold writes a definition and runnable tests with safe identif
 }, 15_000);
 
 test('resource scaffolding rejects invalid IDs without creating files', async () => {
-  for (const id of ['../escape', 'db:main', 'db/main']) {
+  for (const id of [
+    '../escape',
+    'db:main',
+    'db/main',
+    '_draft.d',
+    '_draft.test',
+    '_draft.spec',
+  ]) {
     const dir = createResourceProject();
     try {
       const result = await executeTrail(
@@ -98,6 +105,7 @@ test('resource scaffolding rejects invalid IDs without creating files', async ()
       }
       expect(result.error).toBeInstanceOf(ValidationError);
       expect(existsSync(join(dir, 'src'))).toBe(false);
+      expect(existsSync(join(dir, '__tests__'))).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
