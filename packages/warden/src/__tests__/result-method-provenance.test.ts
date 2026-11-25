@@ -194,6 +194,117 @@ describe('bounded method witness exclusions', () => {
 });
 
 describe('method witness lexical and type identities', () => {
+  test.each([
+    [
+      'method Result',
+      'class Client { read<Result = Raw>(): Result { return null as never; } }',
+      'identity.read()',
+    ],
+    [
+      'class Result',
+      'class Client<Result = Raw> { read(): Result { return null as never; } }',
+      'identity.read()',
+    ],
+    [
+      'awaited method Result',
+      'class Client { read<Result = Raw>(): Promise<Result> { return null as never; } }',
+      'await identity.read()',
+    ],
+  ])(
+    'does not use a type name shadowed by %s',
+    (_name, definition, expression) => {
+      const { source, path } = fixture({ expression });
+      writeFileSync(
+        join(root, 'client.ts'),
+        `import type { Result } from '@ontrails/core';
+import type * as Trails from '@ontrails/core';
+type Raw = { error: Error };
+export ${definition}`
+      );
+      expect(implementationReturnsResult.check(source, path)).toHaveLength(1);
+      expect(
+        noRedundantResultErrorWrap.check(
+          source.replace(
+            'return station;',
+            'return Result.err(station.error);'
+          ),
+          path
+        )
+      ).toHaveLength(0);
+    }
+  );
+
+  test('a type parameter does not shadow the namespace in a qualified Result', () => {
+    const { source, path } = fixture();
+    writeFileSync(
+      join(root, 'client.ts'),
+      `import type * as Trails from '@ontrails/core';
+export class Client<Trails = unknown> {
+  read(): Trails.Result<string, Error> { return null as never; }
+}`
+    );
+    expect(implementationReturnsResult.check(source, path)).toHaveLength(0);
+  });
+
+  test.each([
+    '({ next: identity } = input);',
+    '[{ next: identity = input.other }] = input.items;',
+    'for (identity of input.items) {}',
+  ])('invalidates receiver bindings written by %s', (setup) => {
+    const { source, path } = fixture({ setup });
+    const candidate = source.replace('const identity =', 'let identity =');
+    expect(implementationReturnsResult.check(candidate, path)).toHaveLength(1);
+    expect(
+      noRedundantResultErrorWrap.check(
+        candidate.replace(
+          'return station;',
+          'return Result.err(station.error);'
+        ),
+        path
+      )
+    ).toHaveLength(0);
+  });
+
+  test('does not invalidate a receiver used only as a pattern key', () => {
+    expect(
+      check({ setup: 'let target; ({ identity: target } = input);' }).returns
+    ).toHaveLength(0);
+  });
+
+  test.each(['direct export', 'aliased export', 'local'] as const)(
+    'does not use a replaced module resource (%s)',
+    (binding) => {
+      const { source, path } = fixture();
+      const declarations = `import { resource } from '@ontrails/core';
+import { Client } from './client.js';
+${binding === 'direct export' ? 'export ' : ''}let store = resource<Client>('store', {});
+store = { from: () => ({ read: () => ({ error: new Error() }) }) };
+${binding === 'aliased export' ? 'export { store };' : ''}`;
+      writeFileSync(join(root, 'resource.ts'), declarations);
+      const candidate =
+        binding === 'local'
+          ? source
+              .replace(
+                "import { store as identityStoreResource } from './resource.js';",
+                declarations
+              )
+              .replace('identityStoreResource.from(ctx)', 'store.from(ctx)')
+          : source;
+      expect(implementationReturnsResult.check(candidate, path)).toHaveLength(
+        1
+      );
+      expect(
+        noRedundantResultErrorWrap.check(
+          candidate.replace(
+            'return station;',
+            'return Result.err(station.error);'
+          ),
+          path
+        )
+      ).toHaveLength(0);
+    }
+  );
+
   test('rejects optional method declarations for both Result rules', () => {
     const { source, path } = fixture({ rewrap: true });
     writeFileSync(

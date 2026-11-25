@@ -1,14 +1,49 @@
 import { expect, test } from 'bun:test';
 import {
+  collectPatternBindingNames,
   getNodeCallee,
   getNodeOptional,
+  getNodeLeft,
   getNodeStatic,
   getNodeTypeArguments,
   getNodeTypeName,
+  getNodeTypeParameterNames,
   identifierName,
   parse,
   walk,
 } from '../index.js';
+
+test('returns declared type parameter names without looking at constraints', () => {
+  const ast = parse(
+    'parameters.ts',
+    'class Client<T> { read<Result extends T, Value = Result>() {} }'
+  );
+  const names: (readonly string[])[] = [];
+  walk(ast, (node) => {
+    if (
+      node.type === 'ClassDeclaration' ||
+      node.type === 'FunctionExpression'
+    ) {
+      names.push(getNodeTypeParameterNames(node));
+    }
+  });
+  expect(names).toEqual([['T'], ['Result', 'Value']]);
+  expect(getNodeTypeParameterNames()).toEqual([]);
+});
+
+test('collects assignment binding targets without counting member names or defaults', () => {
+  const ast = parse(
+    'pattern.ts',
+    '({ key: [, target = use(defaultValue), object.member], ...rest } = input);'
+  );
+  walk(ast, (node) => {
+    if (node.type === 'AssignmentExpression') {
+      expect(collectPatternBindingNames(getNodeLeft(node))).toEqual(
+        new Set(['target', 'rest'])
+      );
+    }
+  });
+});
 
 test('generic accessors preserve explicit class and qualified Result type nodes', () => {
   const ast = parse(

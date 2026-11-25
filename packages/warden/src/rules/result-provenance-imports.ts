@@ -6,6 +6,7 @@ import {
   getNodeDeclaration,
   getNodeDeclarations,
   getNodeId,
+  getNodeKind,
   getNodeExported,
   getNodeImported,
   getNodeLocal,
@@ -17,6 +18,13 @@ import {
   identifierName,
 } from '@ontrails/source';
 import type { AstNode } from '@ontrails/source';
+
+type InitializerPolicy = 'all' | 'const-only';
+
+const acceptsInitializers = (
+  declaration: AstNode,
+  policy: InitializerPolicy
+): boolean => policy === 'all' || getNodeKind(declaration) === 'const';
 
 /**
  * Resolve a relative import source specifier to an absolute on-disk file path,
@@ -62,7 +70,8 @@ export const resolveRelativeImportPath = (
 
 /** Index only a module's own declarations; no transitive or inferred bindings. */
 export const collectModuleDeclarations = (
-  ast: AstNode
+  ast: AstNode,
+  initializerPolicy: InitializerPolicy = 'all'
 ): ReadonlyMap<string, AstNode> => {
   const declarations = new Map<string, AstNode>();
   for (const statement of getNodeBodyStatements(ast)) {
@@ -74,6 +83,9 @@ export const collectModuleDeclarations = (
       continue;
     }
     if (declaration.type === 'VariableDeclaration') {
+      if (!acceptsInitializers(declaration, initializerPolicy)) {
+        continue;
+      }
       for (const variable of getNodeDeclarations(declaration)) {
         const name = identifierName(getNodeId(variable));
         const init = getNodeInit(variable);
@@ -106,9 +118,10 @@ export const imports = (module: ModuleSource) =>
 
 const exportedDeclaration = (
   module: ModuleSource,
-  name: string
+  name: string,
+  initializerPolicy: InitializerPolicy
 ): AstNode | undefined => {
-  const locals = collectModuleDeclarations(module.ast);
+  const locals = collectModuleDeclarations(module.ast, initializerPolicy);
   for (const statement of getNodeBodyStatements(module.ast)) {
     if (
       statement.type !== 'ExportNamedDeclaration' ||
@@ -121,9 +134,11 @@ const exportedDeclaration = (
       if (identifierName(getNodeId(declaration)) === name) {
         return declaration;
       }
-      for (const variable of getNodeDeclarations(declaration)) {
-        if (identifierName(getNodeId(variable)) === name) {
-          return getNodeInit(variable);
+      if (acceptsInitializers(declaration, initializerPolicy)) {
+        for (const variable of getNodeDeclarations(declaration)) {
+          if (identifierName(getNodeId(variable)) === name) {
+            return getNodeInit(variable);
+          }
         }
       }
     }
@@ -139,7 +154,9 @@ const exportedDeclaration = (
 };
 
 /** Resolve a direct local or named relative import without following re-export chains. */
-export const createDirectBindingResolver = () => {
+export const createDirectBindingResolver = (
+  initializerPolicy: InitializerPolicy
+) => {
   const files = new Map<string, ModuleSource | null>();
   const load = (
     sourcePath: string,
@@ -163,7 +180,9 @@ export const createDirectBindingResolver = () => {
     }
   };
   const binding = (module: ModuleSource, name: string): Binding | null => {
-    const local = collectModuleDeclarations(module.ast).get(name);
+    const local = collectModuleDeclarations(module.ast, initializerPolicy).get(
+      name
+    );
     if (local) {
       return { module, node: local };
     }
@@ -180,7 +199,7 @@ export const createDirectBindingResolver = () => {
         const target = typeof origin === 'string' ? load(origin, module) : null;
         const node =
           target && imported
-            ? exportedDeclaration(target, imported)
+            ? exportedDeclaration(target, imported, initializerPolicy)
             : undefined;
         if (target && node) {
           return { module: target, node };

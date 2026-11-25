@@ -158,6 +158,15 @@ const addPatternBindingNames = (
   }
 };
 
+/** Collect identifier targets in a binding or assignment pattern. */
+export const collectPatternBindingNames = (
+  pattern: AstNode | undefined
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  addPatternBindingNames(pattern, names);
+  return names;
+};
+
 const addVarDeclarationBindingNames = (
   decl: AstNode,
   into: Set<string>

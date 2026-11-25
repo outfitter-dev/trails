@@ -1,5 +1,6 @@
 /** Explicit resource/client witnesses, shared by the two Result rules. */
 import {
+  collectPatternBindingNames,
   collectScopeFrameBindings,
   getNodeArgument,
   getNodeArguments,
@@ -27,6 +28,7 @@ import {
   getNodeTypeAnnotation,
   getNodeTypeArguments,
   getNodeTypeName,
+  getNodeTypeParameterNames,
   getNodeValue,
   getNodeValueNode,
   identifierName,
@@ -99,14 +101,28 @@ const isCoreReference = (
 /** Require an exact authored Result or Promise<Result> signature, not a type-name substring. */
 const returnKind = (
   module: ModuleSource,
-  method: AstNode
+  method: AstNode,
+  classTypeParameters: readonly string[]
 ): ResultKind | null => {
+  const shadowed = new Set([
+    ...classTypeParameters,
+    ...getNodeTypeParameterNames(method),
+  ]);
+  const isResultType = (type: AstNode | undefined): boolean => {
+    const name = getNodeTypeName(type);
+    const local = identifierName(name);
+    return (
+      (local === null || !shadowed.has(local)) &&
+      isCoreReference(module, name, 'Result')
+    );
+  };
   const annotation = getNodeTypeAnnotation(getNodeReturnType(method));
-  if (isCoreReference(module, getNodeTypeName(annotation), 'Result')) {
+  if (isResultType(annotation)) {
     return 'sync';
   }
   if (
     identifierName(getNodeTypeName(annotation)) !== 'Promise' ||
+    shadowed.has('Promise') ||
     collectModuleDeclarations(module.ast).has('Promise') ||
     imports(module).some((declaration) =>
       getNodeSpecifiers(declaration).some(
@@ -117,10 +133,23 @@ const returnKind = (
     return null;
   }
   const args = getNodeTypeArguments(annotation);
-  return args.length === 1 &&
-    isCoreReference(module, getNodeTypeName(args[0]), 'Result')
-    ? 'async'
-    : null;
+  return args.length === 1 && isResultType(args[0]) ? 'async' : null;
+};
+
+const writtenTarget = (node: AstNode): AstNode | undefined => {
+  switch (node.type) {
+    case 'AssignmentExpression':
+    case 'ForInStatement':
+    case 'ForOfStatement': {
+      return getNodeLeft(node);
+    }
+    case 'UpdateExpression': {
+      return getNodeArgument(node);
+    }
+    default: {
+      return undefined;
+    }
+  }
 };
 
 const member = (
@@ -137,7 +166,7 @@ const member = (
 /** Build per-function witnesses. File loads are bounded to direct resource and class imports. */
 export const createResultMethodProvenance = (ast: AstNode, path: string) => {
   const entry = { ast, path };
-  const binding = createDirectBindingResolver();
+  const binding = createDirectBindingResolver('const-only');
   const resourceMethods = (name: string): Methods | null => {
     const resource = binding(entry, name);
     if (
@@ -161,6 +190,7 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
     }
     const methods = new Map<string, ResultKind>();
     const seen = new Set<string>();
+    const classTypeParameters = getNodeTypeParameterNames(client.node);
     for (const method of getNodeBodyStatements(getNodeBodyNode(client.node))) {
       if (
         method.type !== 'MethodDefinition' ||
@@ -180,7 +210,9 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
         seen.add(methodName);
       }
       const value = getNodeValueNode(method);
-      const kind = value ? returnKind(client.module, value) : null;
+      const kind = value
+        ? returnKind(client.module, value, classTypeParameters)
+        : null;
       if (methodName && kind) {
         methods.set(methodName, kind);
       }
@@ -250,23 +282,16 @@ export const createResultMethodProvenance = (ast: AstNode, path: string) => {
         if (node.type === 'VariableDeclarator') {
           trackReceiver(node, scopes);
         }
-        if (
-          node.type === 'AssignmentExpression' ||
-          node.type === 'UpdateExpression'
-        ) {
-          const name = identifierName(
-            node.type === 'AssignmentExpression'
-              ? getNodeLeft(node)
-              : getNodeArgument(node)
-          );
-          const scope = name
-            ? scopes.find((frame) => frame.has(name))
-            : undefined;
-          if (name === contextName && scope === contextScope) {
-            contextValid = false;
-          }
-          if (name && scope) {
-            receivers.get(scope)?.delete(name);
+        const target = writtenTarget(node);
+        if (target) {
+          for (const name of collectPatternBindingNames(target)) {
+            const scope = scopes.find((frame) => frame.has(name));
+            if (name === contextName && scope === contextScope) {
+              contextValid = false;
+            }
+            if (scope) {
+              receivers.get(scope)?.delete(name);
+            }
           }
         }
         if (node.type === 'CallExpression' && !getNodeOptional(node)) {

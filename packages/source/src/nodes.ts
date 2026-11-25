@@ -300,6 +300,7 @@ export interface AstFieldView {
   readonly test?: AstNode;
   readonly typeAnnotation?: AstNode;
   readonly typeArguments?: AstNode;
+  readonly typeParameters?: AstNode;
   readonly typeName?: AstNode;
   readonly static?: boolean;
   readonly optional?: boolean;
@@ -656,6 +657,19 @@ export const getNodeTypeArguments = (
 ): readonly AstNode[] => {
   const argumentsNode = deriveAstFieldView(node)?.typeArguments;
   return deriveAstFieldView(argumentsNode)?.params ?? [];
+};
+
+/** Return the names of explicitly declared TypeScript type parameters. */
+export const getNodeTypeParameterNames = (
+  node: AstNode | null | undefined
+): readonly string[] => {
+  const parameters = deriveAstFieldView(node)?.typeParameters;
+  return (deriveAstFieldView(parameters)?.params ?? []).flatMap((parameter) => {
+    const { name } = parameter;
+    return isAstNode(name) && isIdentifier(name) && name.name
+      ? [name.name]
+      : [];
+  });
 };
 
 /** Return the authored name of a TypeScript type reference. */
