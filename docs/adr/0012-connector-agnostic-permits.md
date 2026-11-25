@@ -178,7 +178,7 @@ No cookies. No session-based auth at the framework level. Session management via
   first-adapter choice with separate Better Auth and Clerk packages. The
   provider-agnostic JWT/JWKS verifier remains in permits.
 
-- 2026-10-29: TRL-1561 makes the credential input the only door for a permit
+- 2026-10-29: [TRL-1561] makes the credential input the only door for a permit
   on a surface. `@ontrails/permits` owns one reconciliation (`reconcilePermit`)
   that every surface calls with its candidates and posture; it stamps explicit
   admission evidence (`verified`, `asserted`, `synthetic`, plus the responsible
@@ -186,8 +186,8 @@ No cookies. No session-based auth at the framework level. Session management via
   are refused on network surfaces and admitted in process only under host
   policy derived from the topo or declared in app config. The CLI is the first
   caller; stdio MCP, the fetch handler and HTTP follow. The resource-server ADR
-  (TRL-1429) carries the normative per-surface matrix.
-- 2026-10-28: TRL-1435 implements the promised provider-agnostic JWT/JWKS path
+  ([TRL-1429]) carries the normative per-surface matrix.
+- 2026-10-28: [TRL-1435] implements the promised provider-agnostic JWT/JWKS path
   in `@ontrails/permits/jwt` with native WebCrypto. A configured secret preserves
   HS256 behavior, including optional issuer/audience checks; issuer without a
   secret selects discovery and requires audience and expiration verification.
@@ -200,3 +200,7 @@ No cookies. No session-based auth at the framework level. Session management via
 - 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
   examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
   stable.
+
+[TRL-1429]: https://linear.app/outfitter/issue/TRL-1429
+[TRL-1435]: https://linear.app/outfitter/issue/TRL-1435
+[TRL-1561]: https://linear.app/outfitter/issue/TRL-1561
