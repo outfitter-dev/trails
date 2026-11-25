@@ -143,6 +143,31 @@ export { read };`
     const withHelper = `import { read } from './helper.js';\n${source}`;
     expect(implementationReturnsResult.check(withHelper, path)).toHaveLength(0);
   });
+  test('keeps default resource imports outside method provenance', () => {
+    const { source, path } = fixture();
+    writeFileSync(
+      join(root, 'resource.ts'),
+      `import { resource } from '@ontrails/core';
+import { Client } from './client.js';
+export default resource<Client>('store', { create: () => null });`
+    );
+    const withDefaultResource = source.replace(
+      '{ store as identityStoreResource }',
+      'identityStoreResource'
+    );
+    expect(
+      implementationReturnsResult.check(withDefaultResource, path)
+    ).toHaveLength(1);
+    expect(
+      noRedundantResultErrorWrap.check(
+        withDefaultResource.replace(
+          'return station;',
+          'return Result.err(station.error);'
+        ),
+        path
+      )
+    ).toHaveLength(0);
+  });
   test('does not treat unawaited Promise<Result> as a Result', () => {
     expect(
       check({ signature: 'Promise<Trails.Result<string, Error>>' }).returns
