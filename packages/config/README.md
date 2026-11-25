@@ -231,6 +231,10 @@ A complete derivation describes declared metadata for the selected supported sha
   coercions, accessor-backed object fields, selections or metadata, recursive
   objects, and structured or annotated array elements are incomplete.
   Metadata-free scalar-element arrays are inspectable leaves.
+- Discriminated unions need object branches (which may be readonly) with
+  non-secret, unwrapped literal tags. Tag values must be distinct across
+  branches; only the selected branch's other fields and annotations are
+  inspected.
 - Every present non-undefined catchall is incomplete at its containing object,
   including strict and loose objects and annotated `unknown`/`never` schemas.
   Plain objects and `.strip()` with no catchall remain supported. The helper

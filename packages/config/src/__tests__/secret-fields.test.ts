@@ -268,6 +268,68 @@ describe('deriveConfigSecretFields', () => {
     });
   });
 
+  test('rejects overlapping discriminator claims even outside the selected branch', () => {
+    const selected = z.object({ kind: z.literal('selected') });
+    const cases = [
+      z.discriminatedUnion('kind', [
+        selected,
+        z.object({ kind: z.literal(['one', 'duplicate']) }),
+        z.object({ kind: z.literal(['two', 'duplicate']) }),
+      ]),
+      z.discriminatedUnion('kind', [
+        selected,
+        z.object({ kind: z.literal('other').nullable() }),
+        z.object({ kind: z.literal(null) }),
+      ]),
+      z.discriminatedUnion('kind', [
+        selected,
+        z
+          .object({ kind: z.literal('wrapped') })
+          .optional() as unknown as typeof selected,
+      ]),
+    ];
+    for (const schema of cases) {
+      expect(
+        deriveConfigSecretFields(schema, {
+          discriminants: { kind: 'selected' },
+        })
+      ).toEqual({
+        complete: false,
+        path: 'kind',
+        reason: 'unsupported-schema',
+      });
+    }
+  });
+
+  test('selects distinct multi-value and null literals without evaluating arrays', () => {
+    const literals = ['key', 'other'] as const;
+    const schema = z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal(literals), token: secret(z.string()) }),
+      z.object({ kind: z.literal(null) }),
+    ]);
+    let calls = 0;
+    Object.defineProperty(literals, '0', {
+      get() {
+        calls += 1;
+        return 'key';
+      },
+    });
+    const result = deriveConfigSecretFields(schema, {
+      discriminants: { kind: 'key' },
+    });
+    expect(calls).toBe(0);
+    expect(result).toEqual({
+      complete: true,
+      fields: [{ ancestors: [], path: 'token', required: true, secret: true }],
+    });
+    expect(
+      deriveConfigSecretFields(schema, { discriminants: { kind: null } })
+    ).toEqual({
+      complete: true,
+      fields: [],
+    });
+  });
+
   test('rejects every present catchall instead of omitting dynamic metadata', () => {
     for (const catchall of [
       secret(env(z.string(), 'DYNAMIC_SECRET')),
@@ -569,6 +631,26 @@ describe('deriveConfigSecretFields', () => {
     expect(results).toEqual([complete, complete]);
   });
 
+  test('fails closed for prototype-backed annotations without reading getters', () => {
+    let calls = 0;
+    const token = z.string();
+    globalRegistry.add(
+      token,
+      Object.create({
+        get secret() {
+          calls += 1;
+          return true;
+        },
+      })
+    );
+    expect(deriveConfigSecretFields(z.object({ token }))).toEqual({
+      complete: false,
+      path: 'token',
+      reason: 'unsupported-schema',
+    });
+    expect(calls).toBe(0);
+  });
+
   test('ignores non-enumerable object fields before and after Zod reads the shape', () => {
     let calls = 0;
     const shape = { visible: z.string() };
@@ -634,6 +716,35 @@ describe('deriveConfigSecretFields', () => {
     expect(
       deriveConfigSecretFields(schema, { discriminants: { kind: 'none' } })
     ).toEqual({ complete: true, fields: [] });
+    expect(calls).toBe(0);
+  });
+
+  test('does not inspect annotations on an unselected branch object', () => {
+    let calls = 0;
+    const unselected = z.object({ kind: z.literal('key') });
+    globalRegistry.add(unselected, {
+      get secret() {
+        calls += 1;
+        return true;
+      },
+    });
+    const schema = z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('none') }),
+      unselected,
+    ]);
+    expect(
+      deriveConfigSecretFields(schema, { discriminants: { kind: 'none' } })
+    ).toEqual({
+      complete: true,
+      fields: [],
+    });
+    expect(
+      deriveConfigSecretFields(schema, { discriminants: { kind: 'key' } })
+    ).toEqual({
+      complete: false,
+      path: '',
+      reason: 'unsupported-schema',
+    });
     expect(calls).toBe(0);
   });
 

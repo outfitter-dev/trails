@@ -25,11 +25,22 @@ const readMetadataDescriptors = (schema: z.ZodType) => {
     node = node._zod.parent
   ) {
     const raw: unknown = map.get(node);
-    if (!raw || typeof raw !== 'object') {
+    if (raw === undefined) {
       continue;
     }
+    if (raw === null || typeof raw !== 'object') {
+      return;
+    }
+    const prototype: unknown = Object.getPrototypeOf(raw);
+    if (prototype !== null && prototype !== Object.prototype) {
+      return;
+    }
     for (const key of keys) {
-      const descriptor = Object.getOwnPropertyDescriptor(raw, key);
+      const descriptor =
+        Object.getOwnPropertyDescriptor(raw, key) ??
+        (!inherits && prototype === Object.prototype
+          ? Object.getOwnPropertyDescriptor(Object.prototype, key)
+          : undefined);
       if (descriptor && (!inherits || descriptor.enumerable)) {
         descriptors[key] ??= descriptor;
       }
@@ -90,6 +101,29 @@ export const unwrapSecretField = (schema: z.ZodType) => {
   }
 };
 
+const literalValues = (schema: z.ZodType): ReadonlySet<unknown> | undefined => {
+  if (zodDef(schema)['type'] !== 'literal') {
+    return;
+  }
+  // Zod records the values it actually accepts at construction, not on read.
+  const values: unknown = Object.getOwnPropertyDescriptor(
+    schema._zod,
+    'values'
+  )?.value;
+  if (!(values instanceof Set) || values.size === 0) {
+    return;
+  }
+  for (const value of values) {
+    if (
+      value !== null &&
+      !['string', 'number', 'boolean'].includes(typeof value)
+    ) {
+      return;
+    }
+  }
+  return values;
+};
+
 export const isSecretScalar = (schema: z.ZodType): boolean => {
   const def = zodDef(schema);
   if (def['coerce']) {
@@ -98,14 +132,7 @@ export const isSecretScalar = (schema: z.ZodType): boolean => {
   if (SCALARS.has(def['type'] as string)) {
     return true;
   }
-  return (
-    def['type'] === 'literal' &&
-    Array.isArray(def['values']) &&
-    def['values'].every(
-      (value: unknown) =>
-        value === null || ['string', 'number', 'boolean'].includes(typeof value)
-    )
-  );
+  return literalValues(schema) !== undefined;
 };
 
 /** Scalar arrays are inspectable leaves only when their elements add no secrets. */
@@ -173,41 +200,46 @@ export type SecretBranchSelection =
   | { readonly kind: 'selected'; readonly schema: z.ZodType }
   | { readonly kind: 'invalid' | 'unsupported' };
 
+const branchObject = (schema: z.ZodType): z.ZodType | undefined => {
+  let branch = schema;
+  let def = zodDef(branch);
+  // Only readonly forwards an object's discriminator claims unchanged.
+  while (def['type'] === 'readonly') {
+    branch = def['innerType'] as z.ZodType;
+    def = zodDef(branch);
+  }
+  return def['type'] === 'object' ? branch : undefined;
+};
+
 /** Inspect only branch discriminators, never fields from unselected branches. */
 export const selectSecretBranch = (
   options: readonly z.ZodType[],
   discriminator: string,
   value: unknown
 ): SecretBranchSelection => {
-  const matches: z.ZodType[] = [];
+  const claims = new Map<unknown, z.ZodType>();
   for (const option of options) {
-    const branch = unwrapSecretField(option);
-    if (!branch || zodDef(branch.base)['type'] !== 'object') {
+    const branch = branchObject(option);
+    if (!branch) {
       return { kind: 'unsupported' };
     }
-    const field = secretDiscriminator(branch.base, discriminator);
+    const field = secretDiscriminator(branch, discriminator);
     if (!field) {
       return { kind: 'unsupported' };
     }
-    const shape = unwrapSecretField(field);
-    if (!shape) {
+    const values = literalValues(field);
+    const meta = readSecretFieldMeta(field);
+    if (!values || meta === false || meta?.secret) {
       return { kind: 'unsupported' };
     }
-    const literal = zodDef(shape.base);
-    if (shape.meta?.secret) {
-      return { kind: 'unsupported' };
-    }
-    if (literal['type'] !== 'literal' || !Array.isArray(literal['values'])) {
-      return { kind: 'unsupported' };
-    }
-    if (literal['values'].includes(value)) {
-      matches.push(option);
+    for (const literal of values) {
+      if (claims.has(literal)) {
+        return { kind: 'unsupported' };
+      }
+      claims.set(literal, option);
     }
   }
-  const [selected] = matches;
-  if (matches.length > 1) {
-    return { kind: 'unsupported' };
-  }
+  const selected = claims.get(value);
   return selected
     ? { kind: 'selected', schema: selected }
     : { kind: 'invalid' };
