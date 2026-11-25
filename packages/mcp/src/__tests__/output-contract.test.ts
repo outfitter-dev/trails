@@ -1,3 +1,4 @@
+import { surfaceOverlay } from '@ontrails/core';
 import {
   Client,
   StreamableHTTPClientTransport,
@@ -196,5 +197,37 @@ describe('MCP negotiated output contract', () => {
     expect(call?.structuredContent).toEqual({
       data: { data: 'branch' },
     });
+  });
+
+  test('standalone tool schemas can be customized independently of aliases', () => {
+    const result = deriveMcpTools(outputApp, {
+      overlays: [
+        surfaceOverlay({
+          mcp: { first: 'shape.text', second: 'shape.text' },
+        }),
+      ],
+    });
+    if (result.isErr()) {
+      throw result.error;
+    }
+    const first = result.value.find(({ name }) => name === 'first');
+    const others = result.value.filter(
+      ({ name, trailId }) => trailId === 'shape.text' && name !== 'first'
+    );
+    if (first?.outputSchema === undefined) {
+      throw new Error('Expected a schema on the first alias');
+    }
+    expect(others).toHaveLength(2);
+    const before = others.map(({ inputSchema, outputSchema }) =>
+      structuredClone({ inputSchema, outputSchema })
+    );
+    first.inputSchema['title'] = 'custom input';
+    first.outputSchema['properties'] = { custom: { type: 'string' } };
+    expect(
+      others.map(({ inputSchema, outputSchema }) => ({
+        inputSchema,
+        outputSchema,
+      }))
+    ).toEqual(before);
   });
 });

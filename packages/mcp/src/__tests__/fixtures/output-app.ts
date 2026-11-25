@@ -50,6 +50,7 @@ const nested = Object.fromEntries(
   ])
 );
 
+// Exercises compatibility for callers that predate the output-schema requirement.
 const implicit = trail('shape.implicit', {
   implementation: () => Result.ok([1, 2]),
   input: z.object({}),

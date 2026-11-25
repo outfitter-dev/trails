@@ -1421,11 +1421,10 @@ const registerTrailheads = (
 
 /**
  * Register overlay tool synonyms: additional MCP tools whose names are the
- * scalar binding names, sharing the target trail's schema, annotations, and
- * handler.
+ * scalar binding names, with independently customizable schemas.
  */
 const registerSynonymTools = (
-  recordFor: ToolRecordFor,
+  buildRecord: ToolRecordFor,
   availableTrails: readonly Trail<unknown, unknown, unknown>[],
   synonyms: Readonly<Record<string, string>>,
   nameToSourceId: Map<string, string>,
@@ -1452,7 +1451,7 @@ const registerSynonymTools = (
       );
     }
     nameToSourceId.set(name, `binding:${name}`);
-    const record = recordFor(trailItem);
+    const record = buildRecord(trailItem);
     tools.push({
       legacy: { ...record.legacy, name },
       modern: { ...record.modern, name },
@@ -1468,13 +1467,15 @@ const registerTools = (
 ): Result<McpToolRecord[], Error> => {
   const tools: McpToolRecord[] = [];
   const nameToSourceId = new Map<string, string>();
+  const buildRecord: ToolRecordFor = (trail) =>
+    buildToolRecord(graph, trail, layers, options);
   const recordsByTrail = new Map<string, McpToolRecord>();
   const recordFor: ToolRecordFor = (trail) => {
     const existing = recordsByTrail.get(trail.id);
     if (existing !== undefined) {
       return existing;
     }
-    const record = buildToolRecord(graph, trail, layers, options);
+    const record = buildRecord(trail);
     recordsByTrail.set(trail.id, record);
     return record;
   };
@@ -1517,7 +1518,7 @@ const registerTools = (
   }
 
   const registeredSynonyms = registerSynonymTools(
-    recordFor,
+    buildRecord,
     availableTrails,
     expansion.value?.synonyms ?? {},
     nameToSourceId,
