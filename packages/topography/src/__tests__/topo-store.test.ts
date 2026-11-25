@@ -159,7 +159,11 @@ const exampleApp = () => {
     implementation: (input: { readonly name: string }) =>
       Result.ok({ id: input.name.toLowerCase(), ok: true }),
     input: z.object({ name: z.string() }),
-    meta: { owner: 'core', tags: ['write', 'entity'] },
+    meta: {
+      ['__proto__']: 'authored fact',
+      owner: 'core',
+      tags: ['write', 'entity'],
+    },
     output: z.object({ id: z.string(), ok: z.boolean() }),
     resources: [dbMain, searchIndex],
   });
@@ -374,6 +378,7 @@ const expectDerivedFixtureRows = (
       idempotent: 0,
       intent: 'write',
       meta: JSON.stringify({
+        ['__proto__']: 'authored fact',
         owner: 'core',
         tags: ['write', 'entity'],
       }),
@@ -701,6 +706,7 @@ describe('topo store derivation', () => {
           (entry as { id?: unknown }).id === 'entity.add'
       ) as { examples?: unknown; meta?: unknown } | undefined;
       expect(trailEntry?.meta).toEqual({
+        ['__proto__']: 'authored fact',
         owner: 'core',
         tags: ['write', 'entity'],
       });

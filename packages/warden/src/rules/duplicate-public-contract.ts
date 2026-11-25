@@ -43,7 +43,10 @@ const contractFingerprint = (entry: TopoGraphEntry): string =>
       idempotent: entry.idempotent,
       input: entry.input,
       intent: entry.intent,
-      meta: entry.meta,
+      meta:
+        entry.meta && Object.keys(entry.meta).length > 0
+          ? entry.meta
+          : undefined,
       on: entry.on,
       output: entry.output,
       permit: entry.permit,

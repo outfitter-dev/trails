@@ -99,14 +99,15 @@ const canonicalLeaf = (value: unknown): unknown => {
 const canonicalObject = (
   value: Record<string, unknown>,
   visit: (value: unknown) => unknown
-): Record<string, unknown> => {
-  const sorted: Record<string, unknown> = {};
-  for (const key of Object.keys(value).toSorted()) {
-    const next = value[key];
-    sorted[key] = next === undefined ? '[Undefined]' : visit(next);
-  }
-  return sorted;
-};
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.keys(value)
+      .toSorted()
+      .map((key) => {
+        const next = value[key];
+        return [key, next === undefined ? '[Undefined]' : visit(next)];
+      })
+  );
 
 const canonicalize = (value: unknown): unknown => {
   if (Array.isArray(value)) {

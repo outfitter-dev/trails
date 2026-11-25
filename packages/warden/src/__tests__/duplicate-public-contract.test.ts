@@ -258,6 +258,7 @@ describe('duplicate-public-contract', () => {
 describe('authored semantic metadata through normal graph derivation', () => {
   for (const [shape, firstMeta, secondMeta, expected] of [
     ['absent', undefined, undefined, 1],
+    ['empty versus absent', {}, undefined, 1],
     [
       'identical',
       { correspondenceFact: 'read' },

@@ -19,11 +19,12 @@ const canonicalize = (value: unknown): unknown => {
     return value.map(canonicalize);
   }
   if (value !== null && typeof value === 'object') {
-    const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(value).toSorted()) {
-      sorted[key] = canonicalize((value as Record<string, unknown>)[key]);
-    }
-    return sorted;
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(record)
+        .toSorted()
+        .map((key) => [key, canonicalize(record[key])])
+    );
   }
   return value;
 };

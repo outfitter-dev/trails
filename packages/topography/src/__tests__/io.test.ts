@@ -523,11 +523,17 @@ describe('readWorkspaceTrailIndex', () => {
 });
 
 test('generated trail metadata survives root-lock readback and force-history carry-forward', async () => {
+  const meta = {
+    ['__proto__']: 'authored fact',
+    correspondenceFact: 'ack',
+    detail: { ['__proto__']: 'nested fact', a: 1, z: 2 },
+  };
   const record = trail('message.ack', {
     implementation: () => Result.ok(null),
-    meta: { correspondenceFact: 'ack', detail: { a: 1, z: 2 } },
+    meta,
   });
   const graph = deriveTopoGraph(topo('semantic-meta', { record }));
+  expect(graph.entries[0]?.meta).toEqual(meta);
   const force: TopoGraphForceEntry = {
     acceptedAt: '2026-10-28T00:00:00Z',
     change: 'modified',
@@ -548,10 +554,7 @@ test('generated trail metadata survives root-lock readback and force-history car
   const originalBytes = await readFile(path, 'utf8');
   const loaded = await readTrailsLock({ dir: tempDir });
   const loadedGraph = await readTopoGraph({ dir: tempDir });
-  expect(loadedGraph?.entries[0]?.meta).toEqual({
-    correspondenceFact: 'ack',
-    detail: { a: 1, z: 2 },
-  });
+  expect(loadedGraph?.entries[0]?.meta).toEqual(meta);
   expect(loadedGraph?.entries[0]?.forces).toEqual([force]);
   expect(loaded?.topoGraphHash).toBe(deriveTopoGraphHash(regenerated));
   expect(loaded).not.toBeNull();

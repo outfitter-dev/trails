@@ -2,6 +2,7 @@
  * Types for topo graphs, diffing, and lock files.
  */
 
+import { isPlainObject } from '@ontrails/core';
 import type {
   CliCommandRoute,
   OverlayProvenance,
@@ -425,6 +426,11 @@ const topoGraphEntityReferenceSchema = z
 
 const openFactBagSchema = z.record(z.string(), z.unknown());
 
+const topoGraphEntryMetaSchema = z.unknown().refine(isPlainObject).meta({
+  additionalProperties: {},
+  type: 'object',
+});
+
 const topoGraphWhereSchema = z
   .object({
     predicate: z.literal(true),
@@ -634,7 +640,7 @@ const topoGraphEntrySchema = z
     kind: z.enum(['entity', 'trail', 'signal', 'resource']),
     layers: z.array(topoGraphLayerReferenceSchema).optional(),
     marker: z.string().optional(),
-    meta: openFactBagSchema.optional(),
+    meta: topoGraphEntryMetaSchema.optional(),
     on: z.array(z.string()).optional(),
     output: openFactBagSchema.optional(),
     pattern: z.string().optional(),

@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 
 import { deriveTopoGraphDiff } from '../diff.js';
+import { deriveTopoGraphHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import type { TopoGraph, TopoGraphEntry } from '../types.js';
 
@@ -64,6 +65,20 @@ describe('deriveTopoGraphDiff', () => {
     ]);
 
     expect(deriveTopoGraphDiff(before, after).entries).toEqual([]);
+  });
+
+  test('includes every own JSON key in metadata hashes and diffs', () => {
+    const withFact = (value: string) =>
+      topoGraph([
+        entry({ id: 'message.read', meta: { ['__proto__']: value } }),
+      ]);
+    const before = withFact('read');
+    const after = withFact('ack');
+
+    expect(deriveTopoGraphHash(before)).not.toBe(deriveTopoGraphHash(after));
+    expect(deriveTopoGraphDiff(before, after).entries).toMatchObject([
+      { details: ['Trail metadata changed'], severity: 'info' },
+    ]);
   });
 
   describe('top-level changes', () => {
