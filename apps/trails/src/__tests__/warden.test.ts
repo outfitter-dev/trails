@@ -59,6 +59,7 @@ interface WardenJsonOutput {
     readonly severity: 'error' | 'warn';
   }[];
   readonly passed: boolean;
+  readonly executedAppId?: string;
   readonly project?: unknown;
   readonly summary: {
     readonly errors: number;
@@ -473,6 +474,131 @@ describe('trails warden', () => {
       'trails,demo',
     ]);
   });
+
+  test.each([
+    ['standalone', 'topo', 'evaluated-standalone'],
+    ['legacy-module', 'topo', 'evaluated-standalone'],
+    ['configured-app', 'topo', 'alpha'],
+    ['workspace', 'topo', undefined],
+    ['source', 'source', undefined],
+    ['configured-source-fix', 'source', undefined],
+    ['configured-project-fix', 'project', undefined],
+  ] as const)(
+    'records only the app actually evaluated by a one-app run (%s)',
+    async (selection, depth, expectedAppId) => {
+      const dir = makeTempDir();
+      const fix =
+        selection === 'configured-source-fix' ||
+        selection === 'configured-project-fix';
+      try {
+        if (
+          selection === 'configured-app' ||
+          selection === 'workspace' ||
+          fix
+        ) {
+          writeConfiguredWorkspaceFixture(dir);
+          if (fix) {
+            await writeAppRootLock(
+              join(dir, 'apps/alpha'),
+              'alpha',
+              deriveTopoGraph(topo('alpha', []))
+            );
+          }
+          if (selection === 'workspace') {
+            writeFileSync(
+              join(dir, 'trails.config.json'),
+              JSON.stringify({
+                workspace: { apps: { alpha: { root: 'apps/alpha' } } },
+              })
+            );
+          }
+        } else {
+          mkdirSync(join(dir, 'src'), { recursive: true });
+          writeFileSync(
+            join(dir, 'src', 'app.ts'),
+            `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const app = topo('evaluated-standalone', []);\n`
+          );
+        }
+        const result = await wardenTrail.implementation(
+          {
+            ...(selection === 'configured-app' || fix ? { app: 'alpha' } : {}),
+            ...(selection === 'legacy-module'
+              ? { apps: ['./src/app.ts'] }
+              : {}),
+            depth,
+            fix,
+            format: 'json',
+            ...(fix ? {} : { lock: 'skip' as const }),
+            rootDir: dir,
+          },
+          { cwd: dir, env: {} } as never
+        );
+        expect(result.isOk()).toBe(true);
+        if (result.isErr()) {
+          throw result.error;
+        }
+        expect(result.value.passed).toBe(true);
+        expect(result.value.diagnostics).toEqual([]);
+        const outputs = [
+          result.value,
+          wardenTrail.output.parse(result.value),
+          JSON.parse(result.value.formatted),
+        ];
+        for (const output of outputs) {
+          if (expectedAppId === undefined) {
+            expect(output).not.toHaveProperty('executedAppId');
+          } else {
+            expect(output).toHaveProperty('executedAppId', expectedAppId);
+          }
+        }
+        if (fix) {
+          const cli = runCli(
+            trailsBinPath,
+            [
+              'warden',
+              '--depth',
+              depth,
+              '--fix',
+              '--app',
+              'alpha',
+              '--json',
+              '--root-dir',
+              dir,
+            ],
+            repoRoot
+          );
+          expect(cli.exitCode).toBe(0);
+          expect(cli.json).not.toHaveProperty('executedAppId');
+        }
+        if (selection === 'standalone' || selection === 'legacy-module') {
+          const args = [
+            '--depth',
+            'topo',
+            '--lock',
+            'skip',
+            ...(selection === 'legacy-module'
+              ? ['--apps', './src/app.ts']
+              : []),
+            '--root-dir',
+            dir,
+            '--format',
+            'json',
+          ];
+          const operator = runCli(trailsBinPath, ['warden', ...args], repoRoot);
+          const direct = runCli(wardenBinPath, args, repoRoot);
+          expect(operator.exitCode).toBe(0);
+          expect(direct.exitCode).toBe(0);
+          expect(direct.json).not.toHaveProperty('executedAppId');
+          const { project, executedAppId, ...report } = operator.json;
+          expect(executedAppId).toBe(expectedAppId);
+          expect(project).toMatchObject({ selectedExtent: 'standalone-app' });
+          expect(report).toEqual(direct.json);
+        }
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    }
+  );
 
   test('runs through the shared Warden command and returns formatted output', async () => {
     const dir = makeTempDir();
