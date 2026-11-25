@@ -41,6 +41,7 @@ const moduleDir = dirname(fileURLToPath(import.meta.url));
 const entitySourcePath = resolve(moduleDir, '../src/trails/entity.ts');
 const notifySourcePath = resolve(moduleDir, '../src/trails/notify.ts');
 const entityWritePermit = {
+  actors: [],
   id: 'test-permit',
   scopes: ['entity:write'],
 } as const;

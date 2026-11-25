@@ -913,7 +913,7 @@ export const resolveWardenTopoTargets = async ({
   }
 };
 
-const effectiveConfigNeedsTopo = (depth: WardenDepth): boolean =>
+const effectiveConfigNeedsTopo = (depth: WardenDepth | undefined): boolean =>
   depth === 'topo' || depth === 'all';
 
 interface WorkspaceTopoSelection {
@@ -1071,6 +1071,8 @@ export const formatWardenCommandOutput = (report: WardenReport): string => {
 
 export interface WardenCommandResult {
   readonly exitCode: 0 | 1;
+  /** Canonical topo ID when exactly one topo is inspected at topo-aware depth. */
+  readonly evaluatedTopoId?: string | undefined;
   readonly output: string;
   readonly preflightError?: ValidationError | undefined;
   readonly report: WardenReport;
@@ -1153,9 +1155,15 @@ export const runWardenCommand = async ({
     ...loadedConfig.diagnostics,
     ...topoResolution.diagnostics,
   ]);
+  const evaluatedTopoId =
+    effectiveConfigNeedsTopo(finalReport.effectiveConfig?.depth) &&
+    topoResolution.topos.length === 1
+      ? topoResolution.topos[0]?.topo.name
+      : undefined;
 
   return {
     exitCode: finalReport.passed ? 0 : 1,
+    ...(evaluatedTopoId === undefined ? {} : { evaluatedTopoId }),
     output: formatWardenCommandOutput(finalReport),
     ...(topoResolution.preflightError === undefined
       ? {}

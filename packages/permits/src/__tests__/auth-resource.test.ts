@@ -87,12 +87,14 @@ describe('authResource', () => {
     );
     expect(authResult.isOk()).toBe(true);
     expect(authResult.unwrap()).toEqual({
+      actors: [],
+      expiresAt: (now + 3600) * 1000,
       id: 'user-42',
       scopes: ['read', 'write'],
     });
   });
 
-  test('JWT config requires the implemented secret-backed adapter path', () => {
+  test('JWT config requires a secret or both issuer and expected audience', () => {
     const parsed = authResourceConfigSchema.safeParse({
       adapter: 'jwt',
       jwksUrl: 'https://example.com/.well-known/jwks.json',

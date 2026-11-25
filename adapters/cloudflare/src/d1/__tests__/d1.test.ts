@@ -158,6 +158,7 @@ const contractCases = createStoreAccessorContractCases({
   async createSubject() {
     const { database, dispose, tablePrefix } = await nextD1Fixture();
     const connection = connectD1(userStore, database, {
+      autoCreate: true,
       generateIdentity: () => 'user-contract-id',
       tablePrefix,
     });
@@ -201,6 +202,7 @@ describe('connectD1', () => {
   test('enforces optimistic concurrency on versioned tables', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
       const connection = connectD1(versionedDocumentStore, database, {
+        autoCreate: true,
         tablePrefix,
       });
 
@@ -246,7 +248,7 @@ describe('connectD1', () => {
         return statement;
       },
     };
-    const connection = connectD1(userStore, database);
+    const connection = connectD1(userStore, database, { autoCreate: true });
 
     expect(await connection.users.remove('missing')).toEqual({
       deleted: false,
@@ -287,7 +289,9 @@ describe('connectD1', () => {
         return statement;
       },
     };
-    const connection = connectD1(versionedDocumentStore, database);
+    const connection = connectD1(versionedDocumentStore, database, {
+      autoCreate: true,
+    });
 
     await expect(
       connection.documents.upsert({
@@ -303,6 +307,7 @@ describe('connectD1', () => {
   test('applies runtime seed rows during lazy initialization', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
       const connection = connectD1(userStore, database, {
+        autoCreate: true,
         seed: { users: [{ email: 'seed@example.com', id: 'seeded' }] },
         tablePrefix,
       });
@@ -317,6 +322,7 @@ describe('connectD1', () => {
   test('treats versioned runtime seed rows as initial state', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
       const connection = connectD1(versionedDocumentStore, database, {
+        autoCreate: true,
         seed: {
           documents: [{ body: 'seed body', id: 'seeded', version: 3 }],
         },
@@ -334,6 +340,7 @@ describe('connectD1', () => {
   test('runtime seed rematerialization preserves user edits', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
       const options = {
+        autoCreate: true,
         seed: { users: [{ email: 'seed@example.com', id: 'seeded' }] },
         tablePrefix,
       } as const;
@@ -359,6 +366,7 @@ describe('connectD1', () => {
   test('runtime seed rows require stable identities', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
       const connection = connectD1(userStore, database, {
+        autoCreate: true,
         seed: { users: [{ email: 'seed@example.com' }] },
         tablePrefix,
       });
@@ -441,6 +449,7 @@ describe('cloudflareD1 resource', () => {
       },
     };
     const db = cloudflareD1(userStore, {
+      autoCreate: true,
       binding: 'DB',
       id: 'users.store',
       tablePrefix: 'legacy',
@@ -519,6 +528,7 @@ describe('cloudflareD1 resource', () => {
         id: 'signal.store',
       });
       const connection = connectD1(db.store, database, {
+        autoCreate: true,
         generateIdentity: () => 'signal-user',
         tablePrefix,
       });
@@ -558,7 +568,10 @@ describe('cloudflareD1 resource', () => {
         binding: 'DB',
         id: 'race.store',
       });
-      const connection = connectD1(db.store, database, { tablePrefix });
+      const connection = connectD1(db.store, database, {
+        autoCreate: true,
+        tablePrefix,
+      });
       const signalIds: string[] = [];
       const ctx = createTrailContext({
         abortSignal: new AbortController().signal,
@@ -584,7 +597,10 @@ describe('cloudflareD1 resource', () => {
 
   test('upsert emits created when a concurrent remove wins before commit', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
-      const base = connectD1(userStore, database, { tablePrefix });
+      const base = connectD1(userStore, database, {
+        autoCreate: true,
+        tablePrefix,
+      });
       await base.users.upsert({ email: 'before@example.com', id: 'same' });
       let removed = false;
       const racingDatabase = interceptD1(database, {
@@ -600,7 +616,10 @@ describe('cloudflareD1 resource', () => {
         id: 'recreate.store',
         tablePrefix,
       });
-      const connection = connectD1(userStore, racingDatabase, { tablePrefix });
+      const connection = connectD1(userStore, racingDatabase, {
+        autoCreate: true,
+        tablePrefix,
+      });
       const events: string[] = [];
       const ctx = createTrailContext({
         abortSignal: new AbortController().signal,
@@ -622,7 +641,10 @@ describe('cloudflareD1 resource', () => {
 
   test('remove signal carries the row deleted after a concurrent update', async () => {
     await withD1Fixture(async ({ database, tablePrefix }) => {
-      const base = connectD1(userStore, database, { tablePrefix });
+      const base = connectD1(userStore, database, {
+        autoCreate: true,
+        tablePrefix,
+      });
       await base.users.upsert({ email: 'before@example.com', id: 'same' });
       let updated = false;
       const racingDatabase = interceptD1(database, {
@@ -638,7 +660,10 @@ describe('cloudflareD1 resource', () => {
         id: 'remove.store',
         tablePrefix,
       });
-      const connection = connectD1(userStore, racingDatabase, { tablePrefix });
+      const connection = connectD1(userStore, racingDatabase, {
+        autoCreate: true,
+        tablePrefix,
+      });
       const events: unknown[] = [];
       const ctx = createTrailContext({
         abortSignal: new AbortController().signal,
@@ -661,7 +686,10 @@ describe('cloudflareD1 resource', () => {
         binding: 'DB',
         id: 'dated.store',
       });
-      const connection = connectD1(db.store, database, { tablePrefix });
+      const connection = connectD1(db.store, database, {
+        autoCreate: true,
+        tablePrefix,
+      });
       const signalIds: string[] = [];
       const ctx = createTrailContext({
         abortSignal: new AbortController().signal,
@@ -695,7 +723,10 @@ describe('cloudflareD1 resource', () => {
         binding: 'DB',
         id: 'dated.filter.store',
       });
-      const connection = connectD1(db.store, database, { tablePrefix });
+      const connection = connectD1(db.store, database, {
+        autoCreate: true,
+        tablePrefix,
+      });
       const ctx = createTrailContext({
         abortSignal: new AbortController().signal,
         extensions: { [db.id]: connection },

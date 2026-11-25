@@ -25,10 +25,11 @@ Release confidence smokes use the neighboring `release.smoke` trail:
 ```bash
 trails release smoke --check packed-artifacts
 trails release smoke --check wayfinder-dogfood
+trails release smoke --check mcp-http
 trails release smoke --check all
 ```
 
-In this repo, `bun run dogfood:packed` and `bun run wayfinder:dogfood` remain package-script wrappers around those trail commands. The Wayfinder smoke is intentionally semantic: it exercises saved operator and demo topo artifacts, resources, signals, errors, relation views, invalid grammar, and artifact provenance around rejected compiles.
+In this repo, `bun run dogfood:packed`, `bun run wayfinder:dogfood`, and `bun run mcp:http-smoke` remain package-script wrappers around those trail commands. The MCP-over-HTTP smoke serves the demo app through the fetch-shaped MCP handler, drives it with the official SDK client on the legacy and 2026-07-28 protocol eras, exercises the network credential posture (anonymous callers refused on protected trails, a verified bearer admitted), and probes the Host and Origin boundary with raw requests; CI's Governance job runs it. The Wayfinder smoke is intentionally semantic: it exercises saved operator and demo topo artifacts, resources, signals, errors, relation views, invalid grammar, and artifact provenance around rejected compiles.
 
 ## Facts
 
@@ -78,7 +79,18 @@ The check also validates package names in every current Changesets-readable file
 
 Retained prerelease changesets are validated too: Changesets validates workspace package names before it filters consumed prerelease IDs. Valid consumed history stays untouched. When removing or renaming a package, remove its stale frontmatter rows through the existing retirement cleanup; do not hide them behind `.changeset/pre.json`. Deleted changesets have no remaining package references to validate.
 
-When release-check discovery returns no workspaces, changeset-name validation uses the pinned Changesets package reader to distinguish root-only repositories from pnpm, Bolt, and Lerna workspaces and collect their package names. This fallback only supplies names for changeset validation; release-fact discovery is unchanged. Malformed workspace configuration produces a package-inventory validation error instead of a root-package fallback.
+When release-check discovery returns no workspaces, changeset-name validation uses the directly pinned `@manypkg/get-packages` reader to distinguish root-only repositories from pnpm, Bolt, and Lerna workspaces and collect their package names. This fallback only supplies names for changeset validation; release-fact discovery is unchanged. Malformed workspace configuration produces a package-inventory validation error instead of a root-package fallback.
+
+The [TRL-1396](https://linear.app/outfitter/issue/TRL-1396/audit-manypkg-31-release-package-discovery-without-changing-release) audit retains the direct `1.1.3` pin. Candidate `3.1.0` uses ESM, declares Node >=20, and replaces the tool-name string with a `Tool` object; this caller consumes only `.packages`. Under the pinned Bun 1.4.2 runtime, Bun/npm/Yarn fixtures with their lock markers, pnpm, Lerna, and single-package fixtures preserve their package-name inventories. These probes do not establish a new runtime floor.
+
+The candidate does not preserve the ownership contract in these disposable counterexamples:
+
+| Fixture | Reader 1.1.3 | Candidate 3.1.0 |
+| --- | --- | --- |
+| Root manifest with `bolt.workspaces: ["packages/*"]` and a named child | `.packages` contains the child, excludes the root | `.packages` contains only the root |
+| Root manifest with `workspaces: ["packages/*"]`, no matching children, and no package-manager lock marker | `.packages` is empty | `.packages` contains the root |
+
+The fallback therefore accepts an invalid workspace-root changeset and rejects a valid Bolt child with the candidate. The adjacent pending-changeset tests preserve child acceptance, root exclusion, and empty-workspace behavior. Keep the current pin until a candidate preserves those contracts; the newer transitive reader used by Changesets does not qualify this direct dependency.
 
 ## Stacked Pull Requests
 
@@ -172,6 +184,16 @@ The policy log separates three facts:
 `publish:manual` never publishes from the push event that merges the generated release PR. After the generated PR is merged and the Release workflow policy resolves to `manual`, an operator must dispatch the Release workflow from `main` with `publish=true`. Protected npm environment approval may add another gate, but the workflow does not rely on environment protection as the only manual-publish guard.
 
 Publication policy selects the commit that introduced the current package version, even when later repository-only commits have advanced `main`, so it reads the generated version PR's labels. npm jobs check out the immutable workflow commit on `main` and retain GitHub's source SHA for OIDC provenance. Before publication, a Git diff guard requires `apps`, `adapters`, `packages`, and `bun.lock` to be unchanged from the prepared release commit. Later repository-only fixes can advance the workflow without changing package sources. Both npm jobs pass the policy-approved dist-tag explicitly to publication and registry verification, so later changes to `.changeset/pre.json` cannot redirect a prerelease to `latest`. Release intent, registry checks, and protected npm environments still apply.
+
+### Publish GitHub Release Archives
+
+The Release workflow builds and checksums all four CLI archives from the prepared release commit. On protected `main`, a release that passes the automatic policy and its GitHub CI proof publishes those exact archives after automatic npm publication succeeds or the policy confirms npm is already complete. It does not ask for a separate archive approval. The **Stage and checksum GitHub archives** summary records the source commit, artifact, and checksums.
+
+If the policy routes to manual approval, open that summary and paste the exact comment into **Review deployments** for `npm`. One review covers the archives and any manual npm publication in that run. If npm is already complete, the workflow asks for approval in a job with no npm publishing permissions. An empty comment, a review for another artifact, or an unprotected environment cannot authorize the manual upload. Keep the `npm` environment restricted to `main`, with individually named required reviewers and no environment secrets. The archive publisher does not use an npm environment or request an npm OIDC token.
+
+This gate controls publication to GitHub Releases; staged Actions artifacts in this public repository are not private.
+
+If archive staging or publication fails, choose **Re-run all jobs** or start a new eligible Release run. Do not use **Re-run failed jobs** to retry the archive upload. The retry reevaluates release policy and stages a fresh artifact; the manual path needs a new review even when the tag and checksums match. The publisher verifies the manifest and archive bytes, then checks the stored draft's complete asset list and digests before making it public. It never replaces assets on a published release. For a Homebrew-only retry after the release is public, follow the [Homebrew handoff runbook](stable-cutover.md#homebrew-handoff-recovery-boundary).
 
 ## Warden And Wayfinder
 

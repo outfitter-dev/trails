@@ -89,6 +89,39 @@ describe('parseWardenCommandArgs', () => {
 });
 
 describe('runWardenCommand', () => {
+  test.each(['flag', 'env'])(
+    'reports an evaluated topo ID separately from a %s selector label',
+    async (selection) => {
+      const dir = makeTempDir();
+      const selector = './src/app.ts';
+      try {
+        mkdirSync(join(dir, 'src'), { recursive: true });
+        writeFileSync(
+          join(dir, selector),
+          `import { topo } from ${JSON.stringify(coreModuleUrl)};\nexport const graph = topo('actual-app', []);\n`
+        );
+
+        const result = await runWardenCommand({
+          args: [
+            ...(selection === 'flag' ? ['--apps', selector] : []),
+            '--depth',
+            'topo',
+            '--lock',
+            'skip',
+          ],
+          cwd: dir,
+          env: selection === 'env' ? { TRAILS_APPS: selector } : {},
+        });
+
+        expect(result.exitCode).toBe(0);
+        expect(result.evaluatedTopoId).toBe('actual-app');
+        expect(result.report.topoNames).toEqual([selector]);
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    }
+  );
+
   test('pre-push preset is permissive when no app topo can be discovered', async () => {
     const dir = makeTempDir();
     try {
@@ -217,6 +250,7 @@ describe('runWardenCommand', () => {
 
       expect(result.preflightError).toBeUndefined();
       expect(result.report.topoNames).toEqual(['alpha']);
+      expect(result).not.toHaveProperty('evaluatedTopoId');
       expect(result.report.fixes).toMatchObject({
         applied: 1,
         filesChanged: 1,
@@ -548,6 +582,7 @@ export default {
       });
 
       expect(result.report.topoNames).toEqual(['admin', 'alpha']);
+      expect(result).not.toHaveProperty('evaluatedTopoId');
       expect(result.report.effectiveConfig?.apps).toBeUndefined();
       expect(result.report.diagnostics).not.toContainEqual(
         expect.objectContaining({ rule: 'topo-load' })

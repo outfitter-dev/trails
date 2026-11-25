@@ -7,6 +7,21 @@ import { runWarden } from '@ontrails/warden';
 import { v1RetiredApiVocabulary } from '../../.trails/rules/v1-retired-api-vocabulary.js';
 
 describe('v1 retired API vocabulary rule', () => {
+  test('distinguishes native Fetch signals from retired context field types', () => {
+    const diagnostics = v1RetiredApiVocabulary.check(
+      [
+        'fetch(url, { signal: AbortSignal.timeout(5000) });',
+        'fetch(url, { signal: AbortSignal . any(signals) });',
+        'type Other = { signal: AbortSignalLike };',
+        'interface Legacy { readonly signal: AbortSignal }',
+        'type OptionalLegacy = { signal: AbortSignal | undefined };',
+      ].join('\n'),
+      'packages/example/src/native-fetch.ts'
+    );
+
+    expect(diagnostics.map((diagnostic) => diagnostic.line)).toEqual([4, 5]);
+  });
+
   test('reports every retired API form', () => {
     const diagnostics = v1RetiredApiVocabulary.check(
       [

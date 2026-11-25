@@ -6,8 +6,12 @@
  * Results to MCP responses.
  */
 
+import type {
+  EmbeddedResource,
+  ImageContent,
+  TextContent,
+} from '@modelcontextprotocol/server';
 import {
-  AuthError,
   InternalError,
   Result,
   ValidationError,
@@ -49,8 +53,21 @@ import type {
 
 import type { McpAnnotations } from './annotations.js';
 import { deriveAnnotations } from './annotations.js';
+import {
+  resolveMcpPermit,
+  surfaceContextFactory,
+} from './permit-resolution.js';
 import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
+import {
+  deriveMcpOutputRendering,
+  renderLegacyMcpResult,
+} from './output-rendering.js';
+import type {
+  McpOutputRendering,
+  McpRuntimeResult,
+  McpToolRecord,
+} from './output-rendering.js';
 
 /**
  * Metadata key used for structured trail examples on derived MCP tools.
@@ -129,7 +146,23 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
+  /**
+   * Where callers reach this surface from.
+   *
+   * `host` (the default) is the in-process posture: the launching process is
+   * the caller, so a `createContext` permit and a host-supplied `extra.permit`
+   * are accepted as the host's own policy. `network` is the posture the
+   * fetch-shaped entry sets: identity enters only through `resolvePermit`,
+   * a `createContext` permit is discarded at runtime with a diagnostic,
+   * `extra.permit` is ignored, a presented bearer with no resolver is an
+   * `AuthError`, and protected trails without a resolver are refused at
+   * build time.
+   */
+  readonly credentialPosture?: McpCredentialPosture | undefined;
 }
+
+/** See {@link DeriveMcpToolsOptions.credentialPosture}. */
+export type McpCredentialPosture = 'host' | 'network';
 
 export type McpSurfaceTrailheadTrailSelector = string | readonly string[];
 
@@ -151,10 +184,11 @@ export type McpSurfaceTrailheadMap = Readonly<
   Record<string, McpSurfaceTrailheadDefinition>
 >;
 
+/** Untrusted request credential candidates; the configured resolver owns verification. */
 export interface ResolveMcpPermitInput {
+  readonly _meta?: Readonly<Record<string, unknown>> | undefined;
   readonly authorization?: string | undefined;
   readonly bearerToken?: string | undefined;
-  readonly sessionId?: string | undefined;
 }
 
 export type ResolveMcpPermit = (
@@ -182,6 +216,8 @@ export interface McpToolDefinition {
 }
 
 export interface McpExtra {
+  /** Application metadata from this request, never proof of identity by itself. */
+  readonly _meta?: Readonly<Record<string, unknown>> | undefined;
   readonly authorization?: string | undefined;
   readonly progressToken?: string | number | undefined;
   readonly sendProgress?:
@@ -189,7 +225,6 @@ export interface McpExtra {
     | undefined;
   readonly abortSignal?: AbortSignal | undefined;
   readonly permit?: BasePermit | undefined;
-  readonly sessionId?: string | undefined;
 }
 
 export interface McpToolResult {
@@ -203,13 +238,8 @@ export type McpToolErrorMeta = Omit<SurfaceErrorRendering, 'surface'> & {
   readonly surface: 'mcp';
 };
 
-export interface McpContent {
-  readonly data?: string | undefined;
-  readonly mimeType?: string | undefined;
-  readonly text?: string | undefined;
-  readonly type: 'text' | 'image' | 'resource';
-  readonly uri?: string | undefined;
-}
+/** MCP content emitted from trail results, validated by the SDK wire boundary. */
+export type McpContent = TextContent | ImageContent | EmbeddedResource;
 
 // ---------------------------------------------------------------------------
 // Internal helpers (defined before use)
@@ -274,20 +304,20 @@ const blobToContent = async (
   blob: BlobRef,
   resolveData: BlobDataResolver = resolveBlobData
 ): Promise<McpContent> => {
+  const bytes = await resolveData(blob);
+  const data = uint8ArrayToBase64(bytes);
   if (!blob.mimeType.startsWith('image/')) {
     return {
-      mimeType: blob.mimeType,
+      resource: {
+        blob: data,
+        mimeType: blob.mimeType,
+        uri: `blob://${blob.name}`,
+      },
       type: 'resource',
-      uri: `blob://${blob.name}`,
     };
   }
 
-  const bytes = await resolveData(blob);
-  return {
-    data: uint8ArrayToBase64(bytes),
-    mimeType: blob.mimeType,
-    type: 'image',
-  };
+  return { data, mimeType: blob.mimeType, type: 'image' };
 };
 
 type BlobContentResolver = (blob: BlobRef) => Promise<McpContent>;
@@ -489,39 +519,6 @@ const serializeOutput = async (
     }
   }
   return [{ text: JSON.stringify(value), type: 'text' }];
-};
-
-// `wrapAsData` is decided at build time from the schema shape (see
-// `buildMcpOutputSchemaRendering`). It must be threaded through to the runtime
-// because the schema's wrap decision and the runtime value's wrap decision
-// can diverge — e.g. for `z.union([z.object(...), z.string()])` or
-// `z.any()`, the schema declares a `{ data: ... }` envelope but a runtime
-// object value would otherwise be returned unwrapped, breaking the
-// outputSchema/structuredContent contract.
-const toStructuredContent = (
-  value: unknown,
-  wrapAsData: boolean
-): Record<string, unknown> | undefined => {
-  const structuredValue = containsBlobRef(value)
-    ? toStructuredValue(value)
-    : value;
-  if (wrapAsData) {
-    return { data: structuredValue };
-  }
-  if (
-    structuredValue !== null &&
-    typeof structuredValue === 'object' &&
-    !Array.isArray(structuredValue)
-  ) {
-    return structuredValue as Record<string, unknown>;
-  }
-  // When wrapAsData is false the schema's top-level type is `'object'`, and
-  // output validation has already constrained the runtime value to that
-  // shape — a primitive or array reaching this branch indicates the
-  // validation contract was bypassed. Return `undefined` so any future
-  // bypass surfaces as a missing `structuredContent` rather than a silently
-  // wrapped envelope that contradicts the published `outputSchema`.
-  return undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -827,65 +824,18 @@ const withMcpSurface = (
     progressCb === undefined ? {} : { progress: progressCb }
   );
 
-const parseBearerAuthorization = (
-  authorization: string | undefined
-): Result<string | undefined, Error> => {
-  if (authorization === undefined || authorization.length === 0) {
-    return Result.ok();
-  }
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
-  const token = match?.[1]?.trim();
-  if (token === undefined || token.length === 0) {
-    return Result.err(
-      new AuthError('Malformed MCP authorization; expected Bearer token', {
-        context: { code: 'invalid_authorization_header' },
-      })
-    );
-  }
-  return Result.ok(token);
-};
-
-const resolveMcpPermit = async (
-  options: DeriveMcpToolsOptions,
-  extra: McpExtra
-): Promise<Result<BasePermit | undefined, Error>> => {
-  if (extra.permit !== undefined) {
-    return Result.ok(extra.permit);
-  }
-  const token = parseBearerAuthorization(extra.authorization);
-  if (token.isErr()) {
-    return token;
-  }
-  if (token.value === undefined) {
-    return Result.ok();
-  }
-  if (options.resolvePermit === undefined) {
-    return Result.ok();
-  }
-  const resolved = await options.resolvePermit({
-    authorization: extra.authorization,
-    bearerToken: token.value,
-    sessionId: extra.sessionId,
-  });
-  if (resolved.isErr()) {
-    return resolved;
-  }
-  return Result.ok(resolved.value ?? undefined);
-};
-
 const createHandler =
   (
     graph: Topo,
     t: Trail<unknown, unknown, unknown>,
     layers: readonly Layer[],
     options: DeriveMcpToolsOptions,
-    wrapAsData: boolean,
     layerRenderings: readonly McpLayerInputRendering[]
   ): ((
     args: Record<string, unknown>,
     extra: McpExtra
-  ) => Promise<McpToolResult>) =>
-  async (args, extra): Promise<McpToolResult> => {
+  ) => Promise<McpRuntimeResult>) =>
+  async (args, extra): Promise<McpRuntimeResult> => {
     const progressCb = createMcpProgressCallback(extra);
     const versionedArgs =
       t.version === undefined
@@ -903,7 +853,7 @@ const createHandler =
     const result = await executeTrail(t, trailInput, {
       abortSignal: extra.abortSignal,
       configValues: options.configValues,
-      createContext: options.createContext,
+      createContext: surfaceContextFactory(options),
       ctx: withMcpSurface(progressCb, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
@@ -916,12 +866,15 @@ const createHandler =
         : { version: versionedArgs.version }),
     });
     if (result.isOk()) {
+      let structuredContent: unknown;
+      if (t.output !== undefined) {
+        structuredContent = containsBlobRef(result.value)
+          ? toStructuredValue(result.value)
+          : result.value;
+      }
       return {
         content: await serializeOutput(result.value),
-        structuredContent:
-          t.output === undefined
-            ? undefined
-            : toStructuredContent(result.value, wrapAsData),
+        structuredContent,
       };
     }
     return mcpError(result.error);
@@ -945,44 +898,12 @@ const buildDescription = (
   trail: Trail<unknown, unknown, unknown>
 ): string | undefined => trail.description;
 
-// MCP requires `outputSchema` to have literal `type: "object"` at the root
-// (see `@modelcontextprotocol/sdk` Tool schema — `outputSchema: z.object({
-// type: z.literal('object'), ... })`). Object-shaped unions like
-// `z.discriminatedUnion(...)` emit as `{ anyOf: [...] }` from
-// `zodToJsonSchema` with no top-level `type`, so we publish them under the
-// data envelope. The shape of `structuredContent` then flows from the
-// `wrapAsData` flag, keeping the runtime aligned with what the schema
-// declares.
-const isMcpStructuredObjectSchema = (
-  schema: Record<string, unknown>
-): boolean => schema['type'] === 'object';
-
-interface McpOutputSchemaRendering {
-  readonly schema: Record<string, unknown>;
-  readonly wrapAsData: boolean;
-}
-
-const renderMcpOutputSchema = (
-  schema: Parameters<typeof zodToJsonSchema>[0]
-): McpOutputSchemaRendering => {
-  const raw = zodToJsonSchema(schema);
-  if (isMcpStructuredObjectSchema(raw)) {
-    return { schema: raw, wrapAsData: false };
-  }
-  return {
-    schema: {
-      properties: { data: raw },
-      required: ['data'],
-      type: 'object',
-    },
-    wrapAsData: true,
-  };
-};
-
 const buildMcpOutputSchemaRendering = (
   trail: Trail<unknown, unknown, unknown>
-): McpOutputSchemaRendering | undefined =>
-  trail.output === undefined ? undefined : renderMcpOutputSchema(trail.output);
+): McpOutputRendering | undefined =>
+  trail.output === undefined
+    ? undefined
+    : deriveMcpOutputRendering(trail.output);
 
 const buildMeta = (
   trail: Trail<unknown, unknown, unknown>
@@ -1004,13 +925,13 @@ const mergeMeta = (
   return Object.keys(merged).length > 0 ? merged : undefined;
 };
 
-/** Build a single MCP tool definition from a trail. */
-const buildToolDefinition = (
+/** Derive one authored trail's shared execution and protocol renderings. */
+const buildToolRecord = (
   graph: Topo,
   trail: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
   options: DeriveMcpToolsOptions
-): McpToolDefinition => {
+): McpToolRecord => {
   const rawAnnotations = deriveAnnotations(trail);
   const annotations =
     Object.keys(rawAnnotations).length > 0 ? rawAnnotations : undefined;
@@ -1023,25 +944,34 @@ const buildToolDefinition = (
   const inputRendering = renderMcpInputSchema(trail, attachedLayers);
   const inputSchema = addMcpVersionInputSchema(trail, inputRendering.schema);
   const versions = deriveSurfaceTrailVersionRenderings(trail);
-  return {
+  const common = {
     _meta: buildMeta(trail),
     annotations,
     description: buildDescription(trail),
-    handler: createHandler(
-      graph,
-      trail,
-      layers,
-      options,
-      rendering?.wrapAsData ?? false,
-      inputRendering.renderings
-    ),
     inputSchema,
     name: deriveToolName(graph.name, trail.id),
-    outputSchema: rendering?.schema,
     trailId: trail.id,
     ...(versions === undefined ? {} : { versions }),
   };
+  const execute = createHandler(
+    graph,
+    trail,
+    layers,
+    options,
+    inputRendering.renderings
+  );
+  return {
+    legacy: {
+      ...common,
+      handler: async (args, extra) =>
+        renderLegacyMcpResult(await execute(args, extra), rendering),
+      outputSchema: rendering?.legacySchema,
+    },
+    modern: { ...common, handler: execute, outputSchema: rendering?.schema },
+  };
 };
+
+type ToolRecordFor = (trail: Trail<unknown, unknown, unknown>) => McpToolRecord;
 
 const trailheadSelectors = (
   selector: McpSurfaceTrailheadTrailSelector
@@ -1056,7 +986,7 @@ const matchesTrailheadSelector = (
   );
 
 interface TrailheadMemberTool {
-  readonly tool: McpToolDefinition;
+  readonly record: McpToolRecord;
   readonly trail: Trail<unknown, unknown, unknown>;
 }
 
@@ -1066,9 +996,9 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const buildTrailheadInputSchema = (
   members: readonly TrailheadMemberTool[]
 ): Record<string, unknown> => ({
-  anyOf: members.map(({ tool, trail }) => ({
+  anyOf: members.map(({ record, trail }) => ({
     properties: {
-      input: tool.inputSchema,
+      input: record.legacy.inputSchema,
       trail: { const: trail.id },
     },
     required: ['trail', 'input'],
@@ -1086,9 +1016,12 @@ const buildTrailheadInputSchema = (
 });
 
 const buildTrailheadOutputSchema = (
-  members: readonly TrailheadMemberTool[]
+  members: readonly TrailheadMemberTool[],
+  view: keyof McpToolRecord
 ): Record<string, unknown> => {
-  const outputSchemas = members.map(({ tool }) => tool.outputSchema ?? {});
+  const outputSchemas = members.map(
+    ({ record }) => record[view].outputSchema ?? {}
+  );
   return {
     properties: {
       output:
@@ -1121,13 +1054,15 @@ const parseJsonTextContent = (
 
 const wrapTrailheadResult = (
   trailId: string,
-  result: McpToolResult
+  result: McpRuntimeResult
 ): McpToolResult => {
   if (result.isError === true) {
-    return result;
+    return renderLegacyMcpResult(result);
   }
   const output =
-    result.structuredContent ?? parseJsonTextContent(result.content) ?? null;
+    result.structuredContent === undefined
+      ? (parseJsonTextContent(result.content) ?? null)
+      : result.structuredContent;
   const envelope = { output, trail: trailId };
   return {
     ...(result._meta === undefined ? {} : { _meta: result._meta }),
@@ -1141,10 +1076,11 @@ const wrapTrailheadResult = (
 
 const createTrailheadHandler = (
   trailheadId: string,
-  members: readonly TrailheadMemberTool[]
+  members: readonly TrailheadMemberTool[],
+  view: keyof McpToolRecord
 ): McpToolDefinition['handler'] => {
   const byTrailId = new Map(
-    members.map((member) => [member.trail.id, member.tool])
+    members.map((member) => [member.trail.id, member.record[view]])
   );
 
   return async (args, extra): Promise<McpToolResult> => {
@@ -1215,23 +1151,33 @@ const buildTrailheadMeta = (
       : undefined
   );
 
-const buildTrailheadToolDefinition = (
+const buildTrailheadToolRecord = (
   graph: Topo,
   trailheadId: string,
   definition: McpSurfaceTrailheadDefinition,
   members: readonly TrailheadMemberTool[]
-): McpToolDefinition => {
+): McpToolRecord => {
   const memberTrailIds = members.map(({ trail }) => trail.id);
-  return {
+  const common = {
     _meta: buildTrailheadMeta(trailheadId, definition, memberTrailIds),
     annotations: deriveTrailheadAnnotations(definition, members),
     description: definition.description,
-    handler: createTrailheadHandler(trailheadId, members),
     inputSchema: buildTrailheadInputSchema(members),
     memberTrailIds,
     name: deriveToolName(graph.name, trailheadId),
-    outputSchema: buildTrailheadOutputSchema(members),
     trailheadId,
+  };
+  return {
+    legacy: {
+      ...common,
+      handler: createTrailheadHandler(trailheadId, members, 'legacy'),
+      outputSchema: buildTrailheadOutputSchema(members, 'legacy'),
+    },
+    modern: {
+      ...common,
+      handler: createTrailheadHandler(trailheadId, members, 'modern'),
+      outputSchema: buildTrailheadOutputSchema(members, 'modern'),
+    },
   };
 };
 
@@ -1239,10 +1185,9 @@ const buildTrailheadToolDefinition = (
 const registerTool = (
   graph: Topo,
   trailItem: Trail<unknown, unknown, unknown>,
-  layers: readonly Layer[],
-  options: DeriveMcpToolsOptions,
+  recordFor: ToolRecordFor,
   nameToSourceId: Map<string, string>,
-  tools: McpToolDefinition[]
+  tools: McpToolRecord[]
 ): Result<void, Error> => {
   const toolName = deriveToolName(graph.name, trailItem.id);
   const existingId = nameToSourceId.get(toolName);
@@ -1254,7 +1199,7 @@ const registerTool = (
     );
   }
   nameToSourceId.set(toolName, `trail:${trailItem.id}`);
-  tools.push(buildToolDefinition(graph, trailItem, layers, options));
+  tools.push(recordFor(trailItem));
   return Result.ok();
 };
 
@@ -1269,24 +1214,65 @@ const eligibleTrails = (
     intent: options.intent,
   });
 
+const requiresVerifiedPermit = (
+  trailItem: Trail<unknown, unknown, unknown>
+): boolean => trailItem.permit !== undefined && trailItem.permit !== 'public';
+
+/**
+ * A network surface with protected trails and no verifier would fail every
+ * protected call at runtime; refuse at build time so the gap teaches.
+ */
+const validateNetworkVerifier = (
+  graph: Topo,
+  options: DeriveMcpToolsOptions
+): Result<void, Error> => {
+  if (
+    options.credentialPosture !== 'network' ||
+    options.resolvePermit !== undefined
+  ) {
+    return Result.ok();
+  }
+  const protectedIds = eligibleTrails(graph, options)
+    .filter((trailItem) => requiresVerifiedPermit(trailItem))
+    .map((trailItem) => trailItem.id);
+  if (protectedIds.length === 0) {
+    return Result.ok();
+  }
+  return Result.err(
+    new ValidationError(
+      `MCP network surface exposes protected trails without a permit resolver: ${protectedIds.join(', ')}. Configure resolvePermit with a verifier, or exclude those trails from this surface. A createContext permit is not an identity source on a network surface.`,
+      {
+        context: {
+          code: 'network_surface_missing_verifier',
+          trailIds: protectedIds,
+        },
+      }
+    )
+  );
+};
+
 const validateToolBuild = (
   graph: Topo,
   options: DeriveMcpToolsOptions
-): Result<void, Error> => validateSurfaceTopo(graph, options);
+): Result<void, Error> => {
+  const validated = validateSurfaceTopo(graph, options);
+  if (validated.isErr()) {
+    return validated;
+  }
+  return validateNetworkVerifier(graph, options);
+};
 
 const collectTrailheadMembers = (
-  graph: Topo,
   definition: McpSurfaceTrailheadDefinition,
   availableTrails: readonly Trail<unknown, unknown, unknown>[],
-  layers: readonly Layer[],
-  options: DeriveMcpToolsOptions
+  recordFor: ToolRecordFor
 ): readonly TrailheadMemberTool[] =>
   availableTrails
     .filter((trailItem) =>
       matchesTrailheadSelector(trailItem.id, definition.trails)
     )
     .map((trailItem) => ({
-      tool: buildToolDefinition(graph, trailItem, layers, options),
+      record: recordFor(trailItem),
       trail: trailItem,
     }));
 
@@ -1296,7 +1282,7 @@ const registerTrailhead = (
   definition: McpSurfaceTrailheadDefinition,
   members: readonly TrailheadMemberTool[],
   nameToSourceId: Map<string, string>,
-  tools: McpToolDefinition[]
+  tools: McpToolRecord[]
 ): Result<void, Error> => {
   if (members.length === 0) {
     return Result.err(
@@ -1317,9 +1303,7 @@ const registerTrailhead = (
   }
 
   nameToSourceId.set(toolName, `trailhead:${trailheadId}`);
-  tools.push(
-    buildTrailheadToolDefinition(graph, trailheadId, definition, members)
-  );
+  tools.push(buildTrailheadToolRecord(graph, trailheadId, definition, members));
   return Result.ok();
 };
 
@@ -1386,11 +1370,10 @@ const trailheadDefinitionsFromOverlay = (
 const registerTrailheads = (
   graph: Topo,
   trailheads: McpSurfaceTrailheadMap | undefined,
-  options: DeriveMcpToolsOptions,
-  layers: readonly Layer[],
+  recordFor: ToolRecordFor,
   availableTrails: readonly Trail<unknown, unknown, unknown>[],
   nameToSourceId: Map<string, string>,
-  tools: McpToolDefinition[]
+  tools: McpToolRecord[]
 ): Result<ReadonlySet<string>, Error> => {
   const consumedTrailIds = new Set<string>();
   const ownerByTrailId = new Map<string, string>();
@@ -1403,11 +1386,9 @@ const registerTrailheads = (
     trailheads
   ).toSorted()) {
     const members = collectTrailheadMembers(
-      graph,
       definition,
       availableTrails,
-      layers,
-      options
+      recordFor
     );
     for (const { trail: memberTrail } of members) {
       const previous = ownerByTrailId.get(memberTrail.id);
@@ -1440,17 +1421,14 @@ const registerTrailheads = (
 
 /**
  * Register overlay tool synonyms: additional MCP tools whose names are the
- * scalar binding names, sharing the target trail's schema, annotations, and
- * handler.
+ * scalar binding names, with independently customizable schemas.
  */
 const registerSynonymTools = (
-  graph: Topo,
-  options: DeriveMcpToolsOptions,
-  layers: readonly Layer[],
+  buildRecord: ToolRecordFor,
   availableTrails: readonly Trail<unknown, unknown, unknown>[],
   synonyms: Readonly<Record<string, string>>,
   nameToSourceId: Map<string, string>,
-  tools: McpToolDefinition[]
+  tools: McpToolRecord[]
 ): Result<void, Error> => {
   const trailById = new Map(
     availableTrails.map((trailItem) => [trailItem.id, trailItem])
@@ -1473,9 +1451,10 @@ const registerSynonymTools = (
       );
     }
     nameToSourceId.set(name, `binding:${name}`);
+    const record = buildRecord(trailItem);
     tools.push({
-      ...buildToolDefinition(graph, trailItem, layers, options),
-      name,
+      legacy: { ...record.legacy, name },
+      modern: { ...record.modern, name },
     });
   }
   return Result.ok();
@@ -1485,9 +1464,21 @@ const registerTools = (
   graph: Topo,
   options: DeriveMcpToolsOptions,
   layers: readonly Layer[]
-): Result<McpToolDefinition[], Error> => {
-  const tools: McpToolDefinition[] = [];
+): Result<McpToolRecord[], Error> => {
+  const tools: McpToolRecord[] = [];
   const nameToSourceId = new Map<string, string>();
+  const buildRecord: ToolRecordFor = (trail) =>
+    buildToolRecord(graph, trail, layers, options);
+  const recordsByTrail = new Map<string, McpToolRecord>();
+  const recordFor: ToolRecordFor = (trail) => {
+    const existing = recordsByTrail.get(trail.id);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const record = buildRecord(trail);
+    recordsByTrail.set(trail.id, record);
+    return record;
+  };
   const availableTrails = eligibleTrails(graph, options);
   const expansion = resolveOverlayBindingExpansion(options, availableTrails);
   if (expansion.isErr()) {
@@ -1500,8 +1491,7 @@ const registerTools = (
   const registeredTrailheads = registerTrailheads(
     graph,
     trailheads,
-    options,
-    layers,
+    recordFor,
     availableTrails,
     nameToSourceId,
     tools
@@ -1518,8 +1508,7 @@ const registerTools = (
     const registered = registerTool(
       graph,
       trailItem,
-      layers,
-      options,
+      recordFor,
       nameToSourceId,
       tools
     );
@@ -1529,9 +1518,7 @@ const registerTools = (
   }
 
   const registeredSynonyms = registerSynonymTools(
-    graph,
-    options,
-    layers,
+    buildRecord,
     availableTrails,
     expansion.value?.synonyms ?? {},
     nameToSourceId,
@@ -1542,6 +1529,18 @@ const registerTools = (
   }
 
   return Result.ok(tools);
+};
+
+/** Derive package-private protocol views from one canonical tool build. @internal */
+export const deriveMcpToolRecords = (
+  graph: Topo,
+  options: DeriveMcpToolsOptions = {}
+): Result<McpToolRecord[], Error> => {
+  const validation = validateToolBuild(graph, options);
+  if (validation.isErr()) {
+    return validation;
+  }
+  return registerTools(graph, options, options.layers ?? []);
 };
 
 /**
@@ -1563,10 +1562,8 @@ export const deriveMcpTools = (
   graph: Topo,
   options: DeriveMcpToolsOptions = {}
 ): Result<McpToolDefinition[], Error> => {
-  const validation = validateToolBuild(graph, options);
-  if (validation.isErr()) {
-    return validation;
-  }
-
-  return registerTools(graph, options, options.layers ?? []);
+  const records = deriveMcpToolRecords(graph, options);
+  return records.isErr()
+    ? records
+    : Result.ok(records.value.map((record) => record.legacy));
 };

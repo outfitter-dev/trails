@@ -2,6 +2,9 @@ import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Result, topo, trail } from '@ontrails/core';
+import { deriveTopoGraph } from '../derive.js';
+import { carryForwardTopoGraphForces } from '../forces.js';
 
 import {
   writeTopoGraph,
@@ -17,8 +20,14 @@ import { deriveTopoGraphHash } from '../hash.js';
 import {
   LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
+  TRAIL_METADATA_HASH_VERSION,
 } from '../types.js';
-import type { LockManifest, TopoGraph, TrailsLock } from '../types.js';
+import type {
+  LockManifest,
+  TopoGraph,
+  TrailsLock,
+  TopoGraphForceEntry,
+} from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -126,6 +135,37 @@ describe('writeTopoGraph / readTopoGraph', () => {
     expect(result).toEqual(map);
   });
 
+  test('keeps legacy signal metadata parsing even on marked trail graphs', async () => {
+    const graph: TopoGraph = {
+      ...makeTopoGraph(),
+      entries: [
+        {
+          exampleCount: 0,
+          id: 'user.created',
+          kind: 'signal',
+          meta: { ['__proto__']: 'fact', owner: 'accounts' },
+          surfaces: [],
+        },
+        {
+          exampleCount: 0,
+          id: 'user.create',
+          kind: 'trail',
+          meta: { ['__proto__']: 'fact', owner: 'accounts' },
+          surfaces: [],
+        },
+      ],
+      trailMetadataHashVersion: TRAIL_METADATA_HASH_VERSION,
+    };
+    await writeTopoGraph(graph, { dir: tempDir });
+    const loaded = await readTopoGraph({ dir: tempDir });
+    const [signal, record] = loaded?.entries ?? [];
+    expect(signal?.meta).toEqual({ owner: 'accounts' });
+    expect(record?.meta).toEqual({ ['__proto__']: 'fact', owner: 'accounts' });
+    expect(loaded && deriveTopoGraphHash(loaded)).toBe(
+      deriveTopoGraphHash(graph)
+    );
+  });
+
   test('round-trips topo trailhead metadata', async () => {
     const map: TopoGraph = {
       ...makeTopoGraph(),
@@ -168,7 +208,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -183,7 +223,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -209,12 +249,24 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 });
 
 describe('isTopoArtifactRegenerationError', () => {
+  test('continues recognizing previously emitted unsupported-format diagnostics', () => {
+    for (const name of ['trails.lock', 'topo.lock']) {
+      expect(
+        isTopoArtifactRegenerationError(
+          new Error(
+            `Unsupported ${name} format; regenerate with \`trails compile\`.`
+          )
+        )
+      ).toBe(true);
+    }
+  });
+
   test('recognizes unsupported topo artifact read errors', async () => {
     await Bun.write(join(tempDir, 'topo.lock'), '{}\n');
     const topoError = await captureError(() => readTopoGraph({ dir: tempDir }));
@@ -263,7 +315,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -279,7 +331,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -305,7 +357,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -316,7 +368,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -324,7 +376,7 @@ describe('writeLockManifest / readLockManifest', () => {
     await Bun.write(join(tempDir, 'trails.lock'), `${'a'.repeat(64)}\n`);
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -363,6 +415,27 @@ describe('writeTrailsLock / readTrailsLock', () => {
     );
   });
 
+  test.each([[null], [[]], ['invalid']] as const)(
+    'reports malformed entry metadata (%j) as a recoverable lock error',
+    async (meta) => {
+      const topoGraph = makeTopoGraph();
+      const malformedLock = {
+        ...makeTrailsLock(topoGraph),
+        topoGraph: {
+          ...topoGraph,
+          entries: topoGraph.entries.map((entry) => ({ ...entry, meta })),
+        },
+      };
+      await Bun.write(
+        join(tempDir, 'trails.lock'),
+        JSON.stringify(malformedLock)
+      );
+
+      const error = await captureError(() => readTrailsLock({ dir: tempDir }));
+      expect(isTopoArtifactRegenerationError(error)).toBe(true);
+    }
+  );
+
   test('derives v5 root locks back to v4 manifests for compatibility', async () => {
     const topoGraph = makeTopoGraph();
     const trailsLock = makeTrailsLock(topoGraph);
@@ -399,7 +472,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     );
 
     await expect(readTrailsLock({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -411,7 +484,7 @@ describe('writeTrailsLock / readTrailsLock', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 });
@@ -490,7 +563,7 @@ describe('readWorkspaceTrailIndex', () => {
     await Bun.write(join(tempDir, 'trails.lock'), `${hash}\n`);
 
     await expect(readWorkspaceTrailIndex({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails compile`'
+      'Restore a verified copy from Git'
     );
   });
 
@@ -500,4 +573,51 @@ describe('readWorkspaceTrailIndex', () => {
     });
     expect(result).toBeNull();
   });
+});
+
+test('generated trail metadata survives root-lock readback and force-history carry-forward', async () => {
+  const meta = {
+    ['__proto__']: 'authored fact',
+    correspondenceFact: 'ack',
+    detail: { ['__proto__']: 'nested fact', a: 1, z: 2 },
+  };
+  const record = trail('message.ack', {
+    implementation: () => Result.ok(null),
+    meta,
+  });
+  const graph = deriveTopoGraph(topo('semantic-meta', { record }));
+  expect(graph.entries[0]?.meta).toEqual(meta);
+  expect(graph.trailMetadataHashVersion).toBe(TRAIL_METADATA_HASH_VERSION);
+  const force: TopoGraphForceEntry = {
+    acceptedAt: '2026-10-28T00:00:00Z',
+    change: 'modified',
+    detail: 'prior accepted contract change',
+    id: 'message.ack',
+    kind: 'trail',
+    reason: 'historical acceptance',
+    severity: 'breaking',
+    source: 'trails compile --force',
+  };
+  const previous: TopoGraph = {
+    ...graph,
+    entries: graph.entries.map((entry) => ({ ...entry, forces: [force] })),
+  };
+  const regenerated = carryForwardTopoGraphForces(previous, graph);
+  const lock = makeTrailsLock(regenerated);
+  const path = await writeTrailsLock(lock, { dir: tempDir });
+  const originalBytes = await readFile(path, 'utf8');
+  const loaded = await readTrailsLock({ dir: tempDir });
+  const loadedGraph = await readTopoGraph({ dir: tempDir });
+  expect(loadedGraph?.entries[0]?.meta).toEqual(meta);
+  expect(loadedGraph?.trailMetadataHashVersion).toBe(
+    TRAIL_METADATA_HASH_VERSION
+  );
+  expect(loadedGraph?.entries[0]?.forces).toEqual([force]);
+  expect(loaded?.topoGraphHash).toBe(deriveTopoGraphHash(regenerated));
+  expect(loaded).not.toBeNull();
+  if (!loaded) {
+    throw new Error('Expected generated root lock');
+  }
+  await writeTrailsLock(loaded, { dir: tempDir });
+  expect(await readFile(path, 'utf8')).toBe(originalBytes);
 });

@@ -561,12 +561,14 @@ const builtinWardenRuleMetadataInput = {
       ],
       steps: [
         'Declare the permit required for the destructive trail.',
+        'Declare every scope required by reachable composed trails on the parent, including through public or undeclared intermediate trails.',
         'If the write is intentionally development-only, keep the dev permit out of committed runtime source.',
       ],
       summary:
-        'Make destructive trail authorization visible on the trail contract.',
+        'Keep destructive trails protected and composing trails explicit about required scopes.',
     },
-    invariant: 'Destroy trails declare explicit permit requirements.',
+    invariant:
+      'Trails declare permit requirements for destructive intent and reachable composition.',
     tier: 'topo-aware',
   },
   'prefer-schema-inference': {

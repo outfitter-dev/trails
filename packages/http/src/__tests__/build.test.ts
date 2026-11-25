@@ -1428,8 +1428,8 @@ describe('deriveHttpRoutes', () => {
         resolvePermit: ({ bearerToken }) =>
           Result.ok(
             bearerToken === 'good'
-              ? { id: 'user-1', scopes: ['thing:read'] }
-              : { id: 'user-1', scopes: [] }
+              ? { actors: [], id: 'user-1', scopes: ['thing:read'] }
+              : { actors: [], id: 'user-1', scopes: [] }
           ),
       });
 
@@ -1443,7 +1443,12 @@ describe('deriveHttpRoutes', () => {
       });
 
       expect(result?.isOk()).toBe(true);
-      expect(observedPermit).toEqual({ id: 'user-1', scopes: ['thing:read'] });
+      expect(observedPermit).toEqual({
+        actors: [],
+        admission: { by: 'resolvePermit', kind: 'verified' },
+        id: 'user-1',
+        scopes: ['thing:read'],
+      });
     });
 
     test('missing Authorization on a protected route falls through to PermitError', async () => {
@@ -1455,8 +1460,7 @@ describe('deriveHttpRoutes', () => {
       });
       const app = topo('permit-http', { protectedTrail });
       const buildResult = deriveHttpRoutes(app, {
-        resolvePermit: () =>
-          Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
+        resolvePermit: () => Result.ok(null),
       });
 
       expect(buildResult.isOk()).toBe(true);
@@ -1473,7 +1477,7 @@ describe('deriveHttpRoutes', () => {
       expect(result.error).toBeInstanceOf(PermitError);
     });
 
-    test('Bearer Authorization without a resolver falls through for public routes', async () => {
+    test('Bearer Authorization without a resolver is refused even on public routes', async () => {
       const app = topo('permit-http', { echoTrail });
       const buildResult = deriveHttpRoutes(app);
 
@@ -1491,19 +1495,22 @@ describe('deriveHttpRoutes', () => {
         }
       );
 
-      expect(result?.isOk()).toBe(true);
-      if (result?.isOk()) {
-        expect(result.value).toEqual({ reply: 'hello' });
+      // One door: a presented credential nobody can verify is never absence.
+      // The host posture answers a ValidationError; the network posture an AuthError.
+      expect(result?.isErr()).toBe(true);
+      if (result?.isErr()) {
+        expect(result.error).toBeInstanceOf(ValidationError);
+        expect(result.error.message).toContain('no permit resolver');
       }
     });
 
-    test('non-Bearer Authorization on public routes is ignored before permit resolution', async () => {
+    test('non-Bearer Authorization on public routes reaches the configured policy', async () => {
       let resolveCalled = false;
       const app = topo('permit-http', { echoTrail });
       const buildResult = deriveHttpRoutes(app, {
         resolvePermit: () => {
           resolveCalled = true;
-          return Result.ok({ id: 'user-1', scopes: [] });
+          return Result.ok({ actors: [], id: 'user-1', scopes: [] });
         },
       });
 
@@ -1525,10 +1532,41 @@ describe('deriveHttpRoutes', () => {
       if (result?.isOk()) {
         expect(result.value).toEqual({ reply: 'hello' });
       }
-      expect(resolveCalled).toBe(false);
+      expect(resolveCalled).toBe(true);
     });
 
-    test('Bearer Authorization without a resolver still lets protected routes fail at the permit gate', async () => {
+    test('record-form headers reach the resolver as Headers', async () => {
+      let observed: { apiKey?: string; headers?: unknown } | undefined;
+      const app = topo('permit-http', { echoTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: ({ apiKey, headers }) => {
+          observed = { apiKey, headers };
+          return Result.ok({ actors: [], id: 'user-1', scopes: [] });
+        },
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute(
+        { message: 'hello' },
+        'req-1',
+        undefined,
+        {
+          headers: { 'x-api-key': 'trusted', 'x-tenant-id': ['a', 'b'] },
+        }
+      );
+
+      expect(result?.isOk()).toBe(true);
+      expect(observed?.apiKey).toBe('trusted');
+      expect(observed?.headers).toBeInstanceOf(Headers);
+      const headers = observed?.headers as Headers;
+      expect(headers.get('x-tenant-id')).toBe('a, b');
+    });
+
+    test('Bearer Authorization without a resolver is refused before the permit gate on protected routes', async () => {
       const protectedTrail = trail('permit.no-resolver', {
         implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
@@ -1549,11 +1587,11 @@ describe('deriveHttpRoutes', () => {
 
       expect(result?.isErr()).toBe(true);
       if (result?.isErr()) {
-        expect(result.error).toBeInstanceOf(PermitError);
+        expect(result.error).toBeInstanceOf(ValidationError);
       }
     });
 
-    test('malformed Authorization header fails before execution', async () => {
+    test('a configured policy can reject Authorization before execution', async () => {
       let invoked = false;
       const protectedTrail = trail('permit.malformed', {
         implementation: () => {
@@ -1567,7 +1605,7 @@ describe('deriveHttpRoutes', () => {
       const app = topo('permit-http', { protectedTrail });
       const buildResult = deriveHttpRoutes(app, {
         resolvePermit: () =>
-          Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
+          Result.err(new AuthError('Rejected Authorization scheme')),
       });
 
       expect(buildResult.isOk()).toBe(true);
@@ -1596,7 +1634,8 @@ describe('deriveHttpRoutes', () => {
       });
       const app = topo('permit-http', { protectedTrail });
       const buildResult = deriveHttpRoutes(app, {
-        resolvePermit: () => Result.ok({ id: 'user-1', scopes: [] }),
+        resolvePermit: () =>
+          Result.ok({ actors: [], id: 'user-1', scopes: [] }),
       });
 
       expect(buildResult.isOk()).toBe(true);

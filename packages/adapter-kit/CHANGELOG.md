@@ -1,5 +1,11 @@
 # @ontrails/adapter-kit
 
+## 0.3.0
+
+### Patch Changes
+
+- [`3cb8617`](https://github.com/outfitter-dev/trails/commit/3cb861758b897562c7e32d9ad01a6d6f217d780d): Allow adapter packages to use their peer-provided owner as a local development dependency while continuing to reject development-only owner declarations.
+
 ## 0.2.5
 
 No changes in this release.

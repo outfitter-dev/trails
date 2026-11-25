@@ -55,7 +55,11 @@ const compile = (root: string, configured: boolean, force = false): void => {
   const result = run(root, trailsBin, [
     'compile',
     '--permit',
-    JSON.stringify({ id: 'warden-force-audit-test', scopes: ['topo:write'] }),
+    JSON.stringify({
+      actors: [],
+      id: 'warden-force-audit-test',
+      scopes: ['topo:write'],
+    }),
     '--root-dir',
     root,
     ...(configured ? ['--app', 'audit'] : []),

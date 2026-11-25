@@ -6,7 +6,7 @@ This guide is temporary. Deprecate it after Matt's projects and downstream consu
 
 ## Overview
 
-The framework now consistently uses `surface` for CLI, MCP, HTTP, and WebSocket exposure. Historical prose may still mention `trailhead`, but active API names, generated records, query schemas, and extension keys use `surface`.
+The framework now consistently uses `surface` for CLI, MCP, HTTP, and RPC exposure. Historical prose may still mention `trailhead`, but active API names, generated records, query schemas, and extension keys use `surface`.
 
 ## Rename Map
 

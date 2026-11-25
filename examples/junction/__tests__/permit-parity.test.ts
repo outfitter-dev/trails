@@ -82,6 +82,20 @@ describe('HTTP surface', () => {
     expect(response.status).toBe(200);
   });
 
+  test('an anonymous request can read the public status trail', async () => {
+    const app = createServerApp({ resources: mockResources() });
+    const response = await app.request('/api/status/health');
+    expect(response.status).toBe(200);
+  });
+
+  test('a non-Bearer credential is rejected, not treated as anonymous', async () => {
+    const app = createServerApp({ resources: mockResources() });
+    const response = await app.request('/api/status/health', {
+      headers: { authorization: 'Basic nope' },
+    });
+    expect(response.status).toBe(401);
+  });
+
   test('a missing token cannot mutate', async () => {
     const app = createServerApp({ resources: mockResources() });
     const response = await postJson(app, '/api/endpoint/disable', {

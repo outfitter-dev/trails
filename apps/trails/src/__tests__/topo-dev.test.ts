@@ -256,7 +256,7 @@ describe('topo and dev trails', () => {
           cwd: dir,
         } as never)
       );
-      expect(verifyError.message).toContain('regenerate with `trails compile`');
+      expect(verifyError.message).toContain('Restore a verified copy from Git');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
     } finally {
       rmSync(dir, { force: true, recursive: true });

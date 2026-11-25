@@ -9,7 +9,7 @@ import {
   renderPublicSurfaceError,
   ValidationError,
 } from '@ontrails/core';
-import type { BlobRef, Topo } from '@ontrails/core';
+import type { BlobRef, ResourceOverrideMap, Topo } from '@ontrails/core';
 
 import { isBlobOutputSchema } from './blob-output.js';
 import { deriveHttpRoutes, resolveHttpQueryInput } from './build.js';
@@ -20,8 +20,25 @@ export interface CreateRouteHandlerOptions {
   readonly maxJsonBodyBytes?: number | undefined;
 }
 
+/**
+ * Options for the Web Fetch kernel. It always builds on the `network`
+ * credential posture (see `DeriveHttpRoutesOptions.credentialPosture`); the
+ * posture is not configurable here.
+ */
 export interface CreateFetchHandlerOptions
-  extends DeriveHttpRoutesOptions, CreateRouteHandlerOptions {}
+  extends
+    Omit<DeriveHttpRoutesOptions, 'credentialPosture' | 'resources'>,
+    CreateRouteHandlerOptions {
+  /** Called only when no HTTP method/path route matches, including webhooks. */
+  readonly onUnmatched?:
+    | ((request: Request) => Response | Promise<Response>)
+    | undefined;
+  /** A factory is called for route execution, not dispatch misses. */
+  readonly resources?:
+    | ResourceOverrideMap
+    | (() => ResourceOverrideMap)
+    | undefined;
+}
 
 interface RuntimeOptions {
   readonly maxJsonBodyBytes: number;
@@ -211,15 +228,13 @@ const convertQueryValue = (
   if (conversion === undefined) {
     return value;
   }
-  if (!Array.isArray(value)) {
-    return conversion.kind === 'scalar'
-      ? convertQueryScalar(value, conversion.scalarKind)
-      : value;
+  if (conversion.kind === 'array') {
+    const items = Array.isArray(value) ? value : [value];
+    return items.map((item) => convertQueryScalar(item, conversion.itemKind));
   }
-  if (conversion.kind !== 'array') {
-    return value;
-  }
-  return value.map((item) => convertQueryScalar(item, conversion.itemKind));
+  return Array.isArray(value)
+    ? value
+    : convertQueryScalar(value, conversion.scalarKind);
 };
 
 const queryRequiredFields = (
@@ -990,12 +1005,17 @@ export const createFetchHandler = (
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
+    credentialPosture: 'network',
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,
     layers: options.layers,
     resolvePermit: options.resolvePermit,
-    resources: options.resources,
+    get resources() {
+      return typeof options.resources === 'function'
+        ? options.resources()
+        : options.resources;
+    },
     validate: options.validate,
   });
 
@@ -1042,6 +1062,6 @@ export const createFetchHandler = (
         return candidate.handler(request);
       }
     }
-    return notFoundResponse(request);
+    return options.onUnmatched?.(request) ?? notFoundResponse(request);
   };
 };

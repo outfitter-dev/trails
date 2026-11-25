@@ -734,3 +734,20 @@ export const cloudflareR2 = (
   });
   return definition;
 };
+
+/**
+ * Bind portable blob storage to native R2 with an explicit stream buffering cap.
+ * @example
+ * ```ts
+ * const client = createCloudflareBlobBinding(env['BUCKET'], { maxBufferedBytes: 1_048_576 });
+ * ```
+ */
+export { createCloudflareBlobBinding } from './binding.js';
+/**
+ * Required stream-write payload budget in bytes.
+ * @example
+ * ```ts
+ * const options: CloudflareBlobBindingOptions = { maxBufferedBytes: 1_048_576 };
+ * ```
+ */
+export type { CloudflareBlobBindingOptions } from './binding.js';

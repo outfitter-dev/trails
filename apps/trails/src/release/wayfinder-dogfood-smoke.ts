@@ -547,7 +547,7 @@ export const runWayfinderDogfoodSmoke =
         '--module',
         './src/demo-app.ts',
         '--permit',
-        '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
+        '{"actors":[],"id":"wayfinder-dogfood","scopes":["topo:write"]}',
       ]);
 
       const demoResources = unwrapWayfindResult(
@@ -613,7 +613,7 @@ export const runWayfinderDogfoodSmoke =
           '--module',
           './src/app.ts',
           '--permit',
-          '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
+          '{"actors":[],"id":"wayfinder-dogfood","scopes":["topo:write"]}',
         ]),
         'breaking change'
       );
@@ -633,7 +633,7 @@ export const runWayfinderDogfoodSmoke =
         './src/app.ts',
         '--force',
         '--permit',
-        '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
+        '{"actors":[],"id":"wayfinder-dogfood","scopes":["topo:write"]}',
       ]);
 
       const overview = unwrapWayfindResult(

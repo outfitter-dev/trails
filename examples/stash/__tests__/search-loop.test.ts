@@ -26,7 +26,7 @@ const options = (
 ) => ({
   ctx: {
     extensions: { [db.id]: conn },
-    permit: { id: subject, scopes: [...scopes] },
+    permit: { actors: [], id: subject, scopes: [...scopes] },
   },
 });
 

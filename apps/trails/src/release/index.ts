@@ -173,6 +173,11 @@ export {
   type LockRoundtripSmokeResult,
 } from './lock-roundtrip-smoke.js';
 export {
+  isMcpHttpSmokeResult,
+  runMcpHttpSmoke,
+  type McpHttpSmokeResult,
+} from './mcp-http-smoke.js';
+export {
   runPackedArtifactsSmoke,
   type PackedArtifactsSmokeResult,
 } from './packed-artifacts-smoke.js';

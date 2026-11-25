@@ -64,6 +64,48 @@ describe('pending changeset workspace names', () => {
     ]);
   });
 
+  test.each(['bun', 'npm', 'yarn', 'bolt'] as const)(
+    'fallback inventory accepts %s children and excludes the workspace root',
+    (manager) => {
+      const repoRoot = fixture();
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({
+          name: 'workspace-root',
+          version: '1.0.0',
+          ...(manager === 'bolt'
+            ? { bolt: { workspaces: ['modules/*'] } }
+            : { workspaces: ['modules/*'] }),
+        })
+      );
+      const marker = {
+        bolt: null,
+        bun: 'bun.lock',
+        npm: 'package-lock.json',
+        yarn: 'yarn.lock',
+      }[manager];
+      if (marker !== null) {
+        writeFileSync(join(repoRoot, marker), '{}');
+      }
+      mkdirSync(join(repoRoot, 'modules/child'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'modules/child/package.json'),
+        JSON.stringify({
+          name: '@fixture/private-child',
+          private: true,
+          version: '1.0.0',
+        })
+      );
+      writeChangeset(repoRoot, 'child', "'@fixture/private-child': patch");
+      const input = { changedFiles: [], repoRoot, workspaces: [] };
+      expect(checkReleaseRules(input).errors).toEqual([]);
+      writeChangeset(repoRoot, 'root', "'workspace-root': patch");
+      expect(checkReleaseRules(input).errors).toEqual([
+        "Changeset '.changeset/root.md' references unknown workspace package 'workspace-root'.",
+      ]);
+    }
+  );
+
   test.each(['pnpm-workspace.yaml', 'lerna.json'])(
     'reports malformed %s as a validation error',
     (filename) => {

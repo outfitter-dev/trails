@@ -4,13 +4,17 @@ slug: connector-agnostic-permits
 title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
-updated: 2026-05-19
+updated: 2026-11-25
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0012: Adapter-Agnostic Permits
 
 The historical slug is preserved for reference stability. The 2026-05-08 amendment renames the current auth boundary from connector vocabulary to adapter vocabulary.
+
+[ADR-0056](0056-permits-as-oauth-resource-server.md#decision) amends this decision's auth boundary: Trails is an OAuth resource server, surfaces normalize supported credentials, and shared permit policy owns verification, challenges and effective scopes. The bearer-only and informational-role descriptions below record the earlier model; they do not override ADR-0056 or establish that its implementations have shipped. [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-request) still owns stateless MCP authorization. Exact-match scope enforcement and explicit permit declarations remain foundational.
+
+[ADR-0060](0060-cli-credentials-and-app-login.md#decision) adds provider-backed remote CLI login and credential storage, with conditional CLI-only auth trails and coherent login/logout shortcuts. It preserves local permit flags and environment behavior and keeps token issuance at the provider; it does not turn Trails into an authorization server or claim the client implementation already ships.
 
 ## Context
 
@@ -20,7 +24,7 @@ The historical slug is preserved for reference stability. The 2026-05-08 amendme
 
 ### Surfaces resolve auth differently
 
-HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the blaze shouldn't know or care which one ran. The blaze needs a single, surface-agnostic permit — or the knowledge that no permit was required.
+HTTP reads a bearer token from the `Authorization` header. MCP HTTP credentials must be resolved per request under [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-request), with bearer credentials and untrusted application `_meta`. A protocol session or transport handshake does not grant MCP authority. Stdio remains outside OAuth and may use explicit local host permit configuration. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the blaze shouldn't know or care which one ran. The blaze needs a single, surface-agnostic permit — or the knowledge that no permit was required.
 
 ### Auth is a resource + layer hybrid
 
@@ -86,13 +90,16 @@ The permit model separates into three distinct responsibilities:
 interface PermitExtractionInput {
   readonly surface: 'http' | 'mcp' | 'cli';
   readonly bearerToken?: string;
+  /** Optional legacy host context; MCP protocol sessions do not grant authority. */
   readonly sessionId?: string;
   readonly headers?: Headers;
   readonly requestId: string;
 }
 ```
 
-Surfaces do raw extraction — pulling tokens from headers, sessions, or environment. The auth adapter receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
+This is the generic `@ontrails/permits` adapter port. Its optional `sessionId` remains available as legacy host context; removing MCP protocol-session input does not remove that generic field or prescribe app-cookie handling. The MCP-specific `ResolveMcpPermitInput` carries `authorization`, `bearerToken`, and per-request `_meta`, with no `sessionId`. `_meta` is untrusted credential context at the MCP boundary; it is not a field of this normalized adapter input.
+
+Surfaces do raw extraction — pulling credentials from headers, adapter-owned application context, or environment. The auth adapter receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
 
 ### Auth adapter interface
 
@@ -110,7 +117,7 @@ The port is deliberately narrow. No session management, no token refresh, no use
 
 `ctx.compose()` doesn't bypass auth. If a parent trail composes a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
 
-The warden statically validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, the parent must hold both. This is a compile-time guarantee, not a runtime hope.
+[Warden's composition scope coverage rule](../warden.md#composition-scope-coverage) warns when a parent's declared scopes omit scopes from any reachable trail. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, it should declare both. The check ([TRL-1450](https://linear.app/outfitter/issue/TRL-1450)) is a topo-aware warning, not a compile-time or runtime authorization guarantee.
 
 ### Warden governance
 
@@ -135,7 +142,7 @@ Strict mode disables auto-minting entirely. Tests must provide explicit permits,
 
 Built-in: JWT/JWKS verification, provider-agnostic. Validates tokens, extracts claims, maps to `Permit`. No provider lock-in.
 
-First external adapter target: BetterAuth or Clerk, depending on which ships a cleaner token contract. OpenAuth later, once the adapter pattern is proven.
+[ADR-0057](0057-auth-adapter-packaging.md#the-selected-targets-have-concrete-homes) selects Better Auth and Clerk as the first extracted provider adapters. It records the package boundaries and criteria for adding other adapters; this does not commit to an OpenAuth adapter.
 
 ### Bearer-only for v1
 
@@ -171,6 +178,44 @@ No cookies. No session-based auth at the framework level. Session management via
 
 ## Amendment log
 
+- 2026-11-25: [ADR-0057](0057-auth-adapter-packaging.md) replaces the provisional
+  first-adapter choice with separate Better Auth and Clerk packages. The
+  provider-agnostic JWT/JWKS verifier remains in permits.
+
+- 2026-10-29: [TRL-1561] makes the credential input the only door for a permit
+  on a surface. `@ontrails/permits` owns one reconciliation (`reconcilePermit`)
+  that every surface calls with its candidates and posture; it stamps explicit
+  admission evidence (`verified`, `asserted`, `synthetic`, plus the responsible
+  verifier or policy) on the permit. Asserted kinds (`--permit`, `--dev-permit`)
+  are refused on network surfaces and admitted in process only under host
+  policy derived from the topo or declared in app config. CLI and HTTP call
+  the shared reconciliation; MCP integration is still pending.
+  [ADR-0056](0056-permits-as-oauth-resource-server.md#the-credential-input-is-the-only-way-to-admit-a-permit)
+  carries the normative per-surface matrix adopted through [TRL-1429].
+- 2026-10-28: [ADR-0060](0060-cli-credentials-and-app-login.md#decision)
+  amends the bearer-only CLI stance with provider-backed remote login, a
+  credentials resource and CLI-only auth trails. Local in-process permit use
+  remains; provider issuance and resource-server verification stay separate.
+- 2026-10-28: [ADR-0056](0056-permits-as-oauth-resource-server.md#decision)
+  establishes the OAuth resource-server boundary, generalized credential
+  extraction, per-request MCP authorization, role/actor policy and bounded
+  long-lived authorization. It preserves explicit scopes and separates accepted
+  direction from the implementing issues; provider packaging and CLI login keep
+  their own decisions.
+- 2026-10-28: [TRL-1435] implements the promised provider-agnostic JWT/JWKS path
+  in `@ontrails/permits/jwt` with native WebCrypto. A configured secret preserves
+  HS256 behavior, including optional issuer/audience checks; issuer without a
+  secret selects discovery and requires audience and expiration verification.
+  RS256, ES256 (P-256), and EdDSA (Ed25519) use cached public keys with bounded
+  refresh on key rotation. Sender-constrained tokens are rejected because this
+  adapter does not verify their proof. The existing Permit shape is unchanged;
+  resource-server doctrine and provider packaging amendments remain separate.
+- 2026-10-28: MCP permits resolve per request under ADR-0055. The MCP-specific session input is removed; the generic adapter context seam remains available without implying MCP protocol-session authority.
+
 - 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
   examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
   stable.
+
+[TRL-1429]: https://linear.app/outfitter/issue/TRL-1429
+[TRL-1435]: https://linear.app/outfitter/issue/TRL-1435
+[TRL-1561]: https://linear.app/outfitter/issue/TRL-1561

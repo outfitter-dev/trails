@@ -119,6 +119,7 @@ const buildEnvelope = (
 });
 
 const trailsRunPermit = {
+  actors: [],
   id: 'test-permit',
   scopes: ['trails:run'],
 } as const;
@@ -128,7 +129,7 @@ const executeRunExampleTrail = async (
   scopes: readonly string[] = trailsRunPermit.scopes
 ): Promise<Result<unknown, Error>> =>
   await executeTrail(runExampleTrail, input, {
-    ctx: { permit: { id: trailsRunPermit.id, scopes } },
+    ctx: { permit: { actors: [], id: trailsRunPermit.id, scopes } },
   });
 
 // ---------------------------------------------------------------------------

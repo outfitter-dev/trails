@@ -93,6 +93,8 @@ Generates a `contract` describe block containing:
 - **Contract checks** via `testContracts`
 - **Detour contract validation** via `testDetours`
 
+When a case expects success but receives a `Result.err()`, the test report names the trail and example and shows the redacted error name and message. For a missing resource, check the topo registration and test overrides. For `PermitError: No permit provided`, supply a test permit in the context.
+
 For most apps, `testAll` is the only test call you need. Reach for the individual helpers below when you need finer control.
 
 ## `testExamples(graph)`
@@ -357,14 +359,17 @@ Surface harnesses are opt-in subpaths. Root `@ontrails/testing` stays focused on
 Execute CLI commands in-process and capture stdout/stderr:
 
 ```typescript
+import { outputModePreset } from '@ontrails/cli';
 import { createCliHarness } from '@ontrails/testing/cli';
 
-const harness = createCliHarness({ graph });
+const harness = createCliHarness({ graph, presets: [outputModePreset()] });
 const result = await harness.run('entity show --name Alpha --output json');
 
 expect(result.exitCode).toBe(0);
 expect(result.json).toMatchObject({ name: 'Alpha' });
 ```
+
+Pass the same `presets` as your real CLI. Unknown flags, including `--output` and `--json` without `outputModePreset()`, fail before the trail runs. For an object result, `result.json` also parses the default output, so a CLI without output flags can use `harness.run('entity show --name Alpha')`. Existing harness tests that used unregistered output flags must either omit those flags or configure the same output preset on the harness and CLI.
 
 ### MCP Harness
 
