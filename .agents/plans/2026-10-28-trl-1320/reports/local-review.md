@@ -1,6 +1,6 @@
 # Independent local review
 
-Read-only reviewer `review_trl1417` reviewed the complete TRL-1320 candidate against e67d90f5c1679daf4bc490f00d1879ec7c109bfa, full issue acceptance and ADR-0054. No P0–P2 findings. No source, Git or tracker writes by reviewer.
+Read-only reviewer `review_trl1417` reviewed the complete [TRL-1320](https://linear.app/outfitter/issue/TRL-1320/record-evaluated-app-identity-in-warden-results-executedappid) candidate against e67d90f5c1679daf4bc490f00d1879ec7c109bfa, full issue acceptance and ADR-0054. No P0–P2 findings. No source, Git or tracker writes by reviewer.
 
 Confirmed the actual single evaluated topo is the sole identity source; workspace-wide observations omit the field even with one configured app, and source-only observations omit it. Structured result, output-schema parse, formatted JSON and actual CLI JSON agree. Existing selection, safe-fix, errors, diagnostics and human formats are unchanged.
 

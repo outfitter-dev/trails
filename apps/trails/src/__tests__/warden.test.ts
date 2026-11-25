@@ -59,6 +59,7 @@ interface WardenJsonOutput {
     readonly severity: 'error' | 'warn';
   }[];
   readonly passed: boolean;
+  readonly executedAppId?: string;
   readonly project?: unknown;
   readonly summary: {
     readonly errors: number;
@@ -570,25 +571,28 @@ describe('trails warden', () => {
           expect(cli.json).not.toHaveProperty('executedAppId');
         }
         if (selection === 'standalone' || selection === 'legacy-module') {
-          const cli = runCli(
-            trailsBinPath,
-            [
-              'warden',
-              '--depth',
-              'topo',
-              '--lock',
-              'skip',
-              ...(selection === 'legacy-module'
-                ? ['--apps', './src/app.ts']
-                : []),
-              '--json',
-              '--root-dir',
-              dir,
-            ],
-            repoRoot
-          );
-          expect(cli.exitCode).toBe(0);
-          expect(cli.json).toHaveProperty('executedAppId', expectedAppId);
+          const args = [
+            '--depth',
+            'topo',
+            '--lock',
+            'skip',
+            ...(selection === 'legacy-module'
+              ? ['--apps', './src/app.ts']
+              : []),
+            '--root-dir',
+            dir,
+            '--format',
+            'json',
+          ];
+          const operator = runCli(trailsBinPath, ['warden', ...args], repoRoot);
+          const direct = runCli(wardenBinPath, args, repoRoot);
+          expect(operator.exitCode).toBe(0);
+          expect(direct.exitCode).toBe(0);
+          expect(direct.json).not.toHaveProperty('executedAppId');
+          const { project, executedAppId, ...report } = operator.json;
+          expect(executedAppId).toBe(expectedAppId);
+          expect(project).toMatchObject({ selectedExtent: 'standalone-app' });
+          expect(report).toEqual(direct.json);
         }
       } finally {
         rmSync(dir, { force: true, recursive: true });
