@@ -237,10 +237,12 @@ Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Pr
   (including Zod overwrite checks), coercions, accessor-backed object fields,
   selections or metadata, recursive objects, and structured or annotated array
   elements are incomplete.
-  Built-in scalar and length validations and plain `.refine()` are supported
-  without evaluating them. Opaque payload-level checks, including custom
-  `.check()`, `.superRefine()`, and `.refine()` with a `when` callback, are
-  incomplete, as are nonstandard check containers.
+  Only known value-preserving checks are supported, such as numeric bounds,
+  length checks, email, UUID, and regex. Plain `.refine()` on an unwrapped
+  scalar is supported without running the callback. A format that normalizes
+  input (including URL), an opaque payload-level check, or a refinement on a
+  container returns incomplete. Supported wrappers never substitute defaults
+  for an explicit selector.
   Metadata-free scalar-element arrays are inspectable leaves.
 - Discriminated unions need object branches (which may be readonly) with
   non-secret, unwrapped literal tags. Tag values must be distinct across

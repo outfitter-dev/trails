@@ -6,22 +6,6 @@ import { zodDef } from './zod-utils.js';
 
 const WRAPPERS = new Set(['optional', 'default', 'nullable', 'readonly']);
 const SCALARS = new Set(['string', 'number', 'boolean', 'enum', 'null']);
-const BUILTIN_VALIDATIONS = new Set([
-  'bigint_format',
-  'greater_than',
-  'length_equals',
-  'less_than',
-  'max_length',
-  'max_size',
-  'mime_type',
-  'min_length',
-  'min_size',
-  'multiple_of',
-  'number_format',
-  'size_equals',
-  'string_format',
-]);
-
 const ownData = (target: unknown, key: PropertyKey): unknown =>
   target !== null && typeof target === 'object'
     ? Object.getOwnPropertyDescriptor(target, key)?.value
@@ -32,26 +16,88 @@ const isOrdinaryArray = (value: unknown): value is unknown[] =>
   Object.getPrototypeOf(value) === Array.prototype &&
   !Object.hasOwn(value, Symbol.iterator);
 
-const isValidationCheck = (check: unknown): boolean => {
-  const internals = ownData(check, '_zod');
-  const def = ownData(internals, 'def');
-  const kind = ownData(def, 'check');
-  if (kind !== 'custom') {
-    return typeof kind === 'string' && BUILTIN_VALIDATIONS.has(kind);
-  }
-  // Payload-level checks can rewrite parsed values; ordinary refine cannot
-  // replace the payload. Its optional when callback does receive the payload.
+const NUMBER_VALIDATIONS = new Map([
+  ['greater_than', '$ZodCheckGreaterThan'],
+  ['less_than', '$ZodCheckLessThan'],
+  ['multiple_of', '$ZodCheckMultipleOf'],
+  ['number_format', '$ZodCheckNumberFormat'],
+]);
+const STRING_VALIDATIONS = new Map([
+  ['email', '$ZodEmail'],
+  ['ends_with', '$ZodCheckEndsWith'],
+  ['guid', '$ZodGUID'],
+  ['includes', '$ZodCheckIncludes'],
+  ['lowercase', '$ZodCheckLowerCase'],
+  ['regex', '$ZodCheckRegex'],
+  ['starts_with', '$ZodCheckStartsWith'],
+  ['uppercase', '$ZodCheckUpperCase'],
+  ['uuid', '$ZodUUID'],
+]);
+const LENGTH_VALIDATIONS = new Map<string, { trait: string; when: unknown }>(
+  (
+    [
+      ['length_equals', '$ZodCheckLengthEquals', z.string().length(1)],
+      ['max_length', '$ZodCheckMaxLength', z.string().max(1)],
+      ['min_length', '$ZodCheckMinLength', z.string().min(1)],
+    ] as const
+  ).map(([kind, trait, exemplar]) => [
+    kind,
+    {
+      trait,
+      when: exemplar.def.checks?.[0]?._zod.def.when,
+    },
+  ])
+);
+
+const hasCheckTrait = (internals: unknown, trait: string): boolean => {
   const traits = ownData(internals, 'traits');
-  return (
-    traits instanceof Set &&
-    Set.prototype.has.call(traits, '$ZodCustom') &&
-    def !== null &&
-    typeof def === 'object' &&
-    !('when' in def)
-  );
+  return traits instanceof Set && Set.prototype.has.call(traits, trait);
 };
 
-const supportsChecks = (def: Record<string, unknown>): boolean => {
+// Check kinds alone are not proof: a string format can normalize input, or a
+// predicate can mutate a container. Allow only known value-preserving checks.
+const preservesValue = (internals: unknown, type: unknown): boolean => {
+  const def = ownData(internals, 'def');
+  const kind = ownData(def, 'check');
+  if (def === null || typeof def !== 'object' || typeof kind !== 'string') {
+    return false;
+  }
+  const length = LENGTH_VALIDATIONS.get(kind);
+  if (length) {
+    return (
+      (type === 'string' || type === 'array' || type === 'literal') &&
+      hasCheckTrait(internals, length.trait) &&
+      Object.getOwnPropertyDescriptor(def, 'when')?.value === length.when &&
+      length.when !== undefined
+    );
+  }
+  if ('when' in def) {
+    return false;
+  }
+  if (kind === 'custom') {
+    // A plain refine receives the value, not the payload. Only primitive
+    // outputs prevent it from mutating that value by reference.
+    return (
+      (type === 'literal' || (typeof type === 'string' && SCALARS.has(type))) &&
+      hasCheckTrait(internals, '$ZodCustom')
+    );
+  }
+  const format = ownData(def, 'format');
+  const trait =
+    kind === 'string_format' && typeof format === 'string'
+      ? STRING_VALIDATIONS.get(format)
+      : NUMBER_VALIDATIONS.get(kind);
+  return trait !== undefined && hasCheckTrait(internals, trait);
+};
+
+const supportsChecks = (
+  schema: z.ZodType,
+  def: Record<string, unknown>
+): boolean => {
+  const type = ownData(def, 'type');
+  if ('check' in def && !preservesValue(ownData(schema, '_zod'), type)) {
+    return false;
+  }
   const descriptor = Object.getOwnPropertyDescriptor(def, 'checks');
   if (!descriptor) {
     return !('checks' in def);
@@ -64,7 +110,7 @@ const supportsChecks = (def: Record<string, unknown>): boolean => {
     return false;
   }
   for (let index = 0; index < checks.length; index += 1) {
-    if (!isValidationCheck(ownData(checks, index))) {
+    if (!preservesValue(ownData(ownData(checks, index), '_zod'), type)) {
       return false;
     }
   }
@@ -147,7 +193,7 @@ export const unwrapSecretField = (schema: z.ZodType) => {
   let meta: ConfigFieldMeta | undefined;
   for (;;) {
     const def = zodDef(base);
-    if (!supportsChecks(def)) {
+    if (!supportsChecks(base, def)) {
       return;
     }
     const own = readSecretFieldMeta(base);
@@ -169,7 +215,7 @@ export const unwrapSecretField = (schema: z.ZodType) => {
 
 const literalValues = (schema: z.ZodType): ReadonlySet<unknown> | undefined => {
   const def = zodDef(schema);
-  if (def['type'] !== 'literal' || !supportsChecks(def)) {
+  if (def['type'] !== 'literal' || !supportsChecks(schema, def)) {
     return;
   }
   // Zod records the values it actually accepts at construction, not on read.

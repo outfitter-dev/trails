@@ -122,8 +122,7 @@ describe('deriveConfigSecretFields', () => {
       ).toEqual({ complete: true, fields: [] });
     });
 
-    test('matches optional JWT-secret metadata without executing cross-field refinement', () => {
-      let refinements = 0;
+    test('matches optional JWT-secret metadata for a declared branch', () => {
       const schema = z
         .discriminatedUnion('adapter', [
           z.object({ adapter: z.literal('none') }).readonly(),
@@ -137,10 +136,6 @@ describe('deriveConfigSecretFields', () => {
               audience: z.string().optional(),
               issuer: z.string().optional(),
               secret: secret(env(z.string(), 'JWT_SECRET')).optional(),
-            })
-            .refine(() => {
-              refinements += 1;
-              return false;
             })
             .readonly(),
         ])
@@ -162,7 +157,6 @@ describe('deriveConfigSecretFields', () => {
           },
         ],
       });
-      expect(refinements).toBe(0);
     });
 
     test('selects nested branches by full field path', () => {
@@ -513,6 +507,88 @@ describe('deriveConfigSecretFields', () => {
   });
 
   describe('supported shapes and metadata', () => {
+    test('fails closed when an intrinsic or attached format can rewrite a value', () => {
+      const original = ' https://example.com ';
+      const replacement = 'https://example.com/';
+      const kind = z.literal(original).check(z.url({ normalize: true }));
+      const auth = z.discriminatedUnion('kind', [
+        z.object({ kind }),
+        z.object({ kind: z.literal(replacement), token: secret(z.string()) }),
+      ]);
+      expect(
+        deriveConfigSecretFields(auth, { discriminants: { kind: original } })
+      ).toEqual({
+        complete: false,
+        path: 'kind',
+        reason: 'unsupported-schema',
+      });
+      expect(kind.parse(original)).toBe(replacement);
+      for (const token of [z.url(), z.string().url()]) {
+        expect(deriveConfigSecretFields(z.object({ token }))).toEqual({
+          complete: false,
+          path: 'token',
+          reason: 'unsupported-schema',
+        });
+        expect(token.parse(original)).toBe(original.trim());
+      }
+    });
+
+    test('fails closed on refinements that can mutate selectors by reference', () => {
+      let calls = 0;
+      const none = z.object({ kind: z.literal('none') }).refine((value) => {
+        calls += 1;
+        Object.assign(value, { kind: 'key' });
+        return true;
+      });
+      const key = z.object({
+        kind: z.literal('key'),
+        token: secret(z.string()),
+      });
+      const auth = z.discriminatedUnion('kind', [none, key]);
+      const plain = z.discriminatedUnion('kind', [
+        z.object({ kind: z.literal('none') }),
+        key,
+      ]);
+      const ancestor = z.object({ auth: plain }).refine((value) => {
+        calls += 1;
+        Object.assign(value.auth, { kind: 'key' });
+        return true;
+      });
+      for (const schema of [
+        auth,
+        plain.refine(() => true),
+        plain.optional().refine(() => true),
+        ancestor,
+      ]) {
+        expect(
+          deriveConfigSecretFields(schema, {
+            discriminants: { 'auth.kind': 'none', kind: 'none' },
+          })
+        ).toEqual({ complete: false, path: '', reason: 'unsupported-schema' });
+      }
+      expect(calls).toBe(0);
+      expect(auth.parse({ kind: 'none' })).toEqual({ kind: 'key' });
+    });
+
+    test('supports known validation-only formats, numeric and length checks', () => {
+      const schema = z.object({
+        email: secret(z.email()),
+        list: secret(z.array(z.number().int().min(1)).min(1)),
+        token: secret(
+          z
+            .string()
+            .regex(/^token/)
+            .min(2)
+        ),
+      });
+      const result = deriveConfigSecretFields(schema);
+      expect(result.complete && result.fields.map(({ path }) => path)).toEqual([
+        'email',
+        'list',
+        'token',
+      ]);
+    });
+
     test('rejects payload-level checks while allowing ordinary validation', () => {
       let calls = 0;
       const kind = z.literal('none').check(
