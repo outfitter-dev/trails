@@ -61,7 +61,15 @@ describe('deriveTopoGraphDiff', () => {
       entry({ id: 'message.read', meta: { facts: { ack: true, read: true } } }),
     ]);
     const after = topoGraph([
-      entry({ id: 'message.read', meta: { facts: { ack: true, read: true } } }),
+      entry({
+        id: 'message.read',
+        meta: {
+          facts: Object.fromEntries([
+            ['read', true],
+            ['ack', true],
+          ]),
+        },
+      }),
     ]);
 
     expect(deriveTopoGraphDiff(before, after).entries).toEqual([]);

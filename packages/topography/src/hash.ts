@@ -6,6 +6,11 @@
 
 import type { TopoGraph, TopoGraphEntry } from './types.js';
 
+type GraphEntry = Pick<TopoGraphEntry, 'kind'>;
+type GraphHashInput = Pick<TopoGraph, 'generatedAt'> & {
+  readonly entries: readonly GraphEntry[];
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -14,19 +19,43 @@ import type { TopoGraph, TopoGraphEntry } from './types.js';
  * Recursively sort all object keys for deterministic JSON serialization.
  * Arrays preserve order; primitives pass through.
  */
-const canonicalize = (value: unknown): unknown => {
+const canonicalizeRecord = (
+  value: object,
+  visit: (key: string, field: unknown) => unknown,
+  includeAllKeys = false
+): Record<string, unknown> => {
+  const record = value as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.keys(record)
+      .filter((key) => includeAllKeys || key !== '__proto__')
+      .toSorted()
+      .map((key) => [key, visit(key, record[key])])
+  );
+};
+
+const canonicalize = (value: unknown, includeAllKeys = false): unknown => {
   if (Array.isArray(value)) {
-    return value.map(canonicalize);
+    return value.map((item) => canonicalize(item, includeAllKeys));
   }
   if (value !== null && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return Object.fromEntries(
-      Object.keys(record)
-        .toSorted()
-        .map((key) => [key, canonicalize(record[key])])
+    return canonicalizeRecord(
+      value,
+      (_key, field) => canonicalize(field, includeAllKeys),
+      includeAllKeys
     );
   }
   return value;
+};
+
+const canonicalizeEntry = (entry: GraphEntry) =>
+  canonicalizeRecord(entry, (key, field) =>
+    canonicalize(field, entry.kind === 'trail' && key === 'meta')
+  );
+
+const hashCanonical = (canonical: unknown): string => {
+  const hasher = new Bun.CryptoHasher('sha256');
+  hasher.update(JSON.stringify(canonical));
+  return hasher.digest('hex');
 };
 
 // ---------------------------------------------------------------------------
@@ -36,22 +65,30 @@ const canonicalize = (value: unknown): unknown => {
 /**
  * Compute a stable SHA-256 hash of a JSON-serializable value.
  */
-export const deriveStableHash = (value: unknown): string => {
-  const canonical = canonicalize(value);
-  const json = JSON.stringify(canonical);
+export const deriveStableHash = (value: unknown): string =>
+  hashCanonical(canonicalize(value));
 
-  const hasher = new Bun.CryptoHasher('sha256');
-  hasher.update(json);
-  return hasher.digest('hex');
+export const deriveTrailMetadataHash = (meta: TopoGraphEntry['meta']): string =>
+  hashCanonical(canonicalize({ meta }, true));
+
+/** Share the checksum between public and store-backed graphs. */
+export const deriveTopoGraphRecordHash = (
+  topoGraph: GraphHashInput
+): string => {
+  const { generatedAt: _unused, ...rest } = topoGraph;
+
+  return hashCanonical(
+    canonicalizeRecord(rest, (key, field) =>
+      key === 'entries'
+        ? topoGraph.entries.map(canonicalizeEntry)
+        : canonicalize(field)
+    )
+  );
 };
 
 /** Derive a stable graph hash without its generation timestamp. */
-export const deriveTopoGraphHash = (topoGraph: TopoGraph): string => {
-  // Strip generatedAt before hashing
-  const { generatedAt: _unused, ...rest } = topoGraph;
-
-  return deriveStableHash(rest);
-};
+export const deriveTopoGraphHash = (topoGraph: TopoGraph): string =>
+  deriveTopoGraphRecordHash(topoGraph);
 
 /**
  * Derive a stable SHA-256 hash of one complete TopoGraph entry.
@@ -67,4 +104,4 @@ export const deriveTopoGraphHash = (topoGraph: TopoGraph): string => {
  * ```
  */
 export const deriveTopoGraphEntryHash = (entry: TopoGraphEntry): string =>
-  deriveStableHash(entry);
+  hashCanonical(canonicalizeEntry(entry));

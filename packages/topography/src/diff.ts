@@ -3,7 +3,7 @@
  */
 
 import { deriveTopoGraphForceIdentity } from './forces.js';
-import { deriveStableHash } from './hash.js';
+import { deriveTrailMetadataHash } from './hash.js';
 import type {
   DiffEntry,
   DiffResult,
@@ -945,9 +945,9 @@ const diffTrailEntryDetails = (
   curr: TopoGraphEntry
 ): void => {
   if (
+    curr.kind === 'trail' &&
     prev.meta !== curr.meta &&
-    deriveStableHash({ meta: prev.meta }) !==
-      deriveStableHash({ meta: curr.meta })
+    deriveTrailMetadataHash(prev.meta) !== deriveTrailMetadataHash(curr.meta)
   ) {
     addDetail(acc, 'info', 'Trail metadata changed');
   }
