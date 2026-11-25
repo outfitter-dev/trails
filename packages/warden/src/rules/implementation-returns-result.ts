@@ -6,8 +6,7 @@
  * or a tracked Result-typed variable.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, isAbsolute, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { escapeRegExp } from '@ontrails/core';
 import {
   collectScopeFrameBindings,
@@ -24,6 +23,7 @@ import {
   getNodeId,
   getNodeImported,
   getNodeInit,
+  getNodeIntersectionTypes,
   getNodeLocal,
   getNodeLeft,
   getNodeName,
@@ -31,7 +31,10 @@ import {
   getNodeReturnType,
   getNodeRight,
   getNodeSource,
+  getNodeSpecifiers,
   getNodeTypeAnnotation,
+  getNodeTypeArguments,
+  getNodeTypeName,
   getNodeValue,
   identifierName,
   offsetToLine,
@@ -40,12 +43,21 @@ import {
   walkWithScopes,
 } from '@ontrails/source';
 import type { AstNode } from '@ontrails/source';
+import {
+  createResultMethodProvenance,
+  isResultMethodExpression,
+} from './result-method-provenance.js';
+import type { ResultMethodExpressions } from './result-method-provenance.js';
+import {
+  collectModuleDeclarations,
+  resolveRelativeImportPath,
+} from './result-provenance-imports.js';
 import { getMemberExpression } from './source/stores.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const buildUnrecognizedResultMessage = (label: string, id: string): string =>
-  `${label} "${id}": return value is not a recognized Result expression. Return Result.ok(...), Result.err(...), or a Result-producing expression such as await ctx.compose(...). If you are returning a composed/helper Result, keep the provenance visible or add a Result return annotation Warden can trace.`;
+  `${label} "${id}": return value is not a recognized Result expression. Return Result.ok(...), Result.err(...), or a Result-producing expression such as await ctx.compose(...). If you are returning a composed/helper Result, keep the provenance visible or add a Result return annotation Warden can trace. For unresolved resource/helper calls, annotate the local result variable (const result: Result<Value, Error> = call()); an enclosing implementation annotation alone does not establish local provenance.`;
 
 // ---------------------------------------------------------------------------
 // Member expression helpers
@@ -212,8 +224,9 @@ const resolveIdentifierName = (node: AstNode): string | null => {
   return null;
 };
 
-const unwrapReturnExpression = (node: AstNode): AstNode => {
+const unwrapReturnExpression = (node: AstNode, inheritedAwait: boolean) => {
   let current = node;
+  let awaited = inheritedAwait;
   while (
     current.type === 'AwaitExpression' ||
     current.type === 'ParenthesizedExpression'
@@ -223,11 +236,12 @@ const unwrapReturnExpression = (node: AstNode): AstNode => {
         ? getNodeArgument(current)
         : getNodeExpression(current);
     if (!next) {
-      return current;
+      break;
     }
+    awaited ||= current.type === 'AwaitExpression';
     current = next;
   }
-  return current;
+  return { awaited, target: current };
 };
 
 /** Check whether an expression has visible Result-producing provenance. */
@@ -237,9 +251,14 @@ export const isResultProducingExpression = (
   resultVars: ScopedResultVariableMap,
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[] = [],
-  scopedHelpers: ScopedHelperMap = new Map()
+  scopedHelpers: ScopedHelperMap = new Map(),
+  methodResults: ResultMethodExpressions = new Map(),
+  inheritedAwait = false
 ): boolean => {
-  const target = unwrapReturnExpression(argument);
+  const { awaited, target } = unwrapReturnExpression(argument, inheritedAwait);
+  if (isResultMethodExpression(target, methodResults, awaited)) {
+    return true;
+  }
   if (target.type === 'ConditionalExpression') {
     const alternate = getNodeAlternate(target);
     const consequent = getNodeConsequent(target);
@@ -252,7 +271,9 @@ export const isResultProducingExpression = (
         resultVars,
         namespaceHelpers,
         scopes,
-        scopedHelpers
+        scopedHelpers,
+        methodResults,
+        awaited
       ) &&
       isResultProducingExpression(
         alternate,
@@ -260,7 +281,9 @@ export const isResultProducingExpression = (
         resultVars,
         namespaceHelpers,
         scopes,
-        scopedHelpers
+        scopedHelpers,
+        methodResults,
+        awaited
       )
     );
   }
@@ -310,9 +333,13 @@ export const collectResultTypeNames = (ast: AstNode): ReadonlySet<string> => {
     ) {
       return;
     }
-    const specifiers =
-      (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
-    for (const specifier of specifiers) {
+    for (const specifier of getNodeSpecifiers(node)) {
+      if (specifier.type === 'ImportNamespaceSpecifier') {
+        const namespace = identifierName(getNodeLocal(specifier));
+        if (namespace !== null) {
+          names.add(`${namespace}.Result`);
+        }
+      }
       if (specifier.type !== 'ImportSpecifier') {
         continue;
       }
@@ -413,26 +440,46 @@ export const trackScopedResultHelperDeclaration = (
 // Variable tracking
 // ---------------------------------------------------------------------------
 
-const hasResultVariableAnnotation = (
-  node: AstNode,
-  sourceCode: string,
+const isResultVariableType = (
+  annotation: AstNode | undefined,
   resultTypeNames: ReadonlySet<string>
 ): boolean => {
-  const typeAnnotation = getNodeTypeAnnotation(node);
-  if (!typeAnnotation) {
+  if (annotation?.type === 'TSParenthesizedType') {
+    return isResultVariableType(
+      getNodeTypeAnnotation(annotation),
+      resultTypeNames
+    );
+  }
+  if (annotation?.type === 'TSIntersectionType') {
+    return getNodeIntersectionTypes(annotation).some((type) =>
+      isResultVariableType(type, resultTypeNames)
+    );
+  }
+  const ref = getNodeTypeName(annotation);
+  if (getNodeTypeArguments(annotation).length === 0) {
     return false;
   }
-  const annotationText = sourceCode.slice(
-    typeAnnotation.start,
-    typeAnnotation.end
-  );
-  for (const name of resultTypeNames) {
-    if (hasGenericTypeReference(annotationText, name)) {
-      return true;
-    }
+  if (ref?.type === 'TSQualifiedName') {
+    const namespace = identifierName(getNodeLeft(ref));
+    const name = identifierName(getNodeRight(ref));
+    return (
+      namespace !== null &&
+      name !== null &&
+      resultTypeNames.has(`${namespace}.${name}`)
+    );
   }
-  return false;
+  const local = identifierName(ref);
+  return local !== null && resultTypeNames.has(local);
 };
+
+export const hasResultVariableAnnotation = (
+  node: AstNode,
+  resultTypeNames: ReadonlySet<string>
+): boolean =>
+  isResultVariableType(
+    getNodeTypeAnnotation(getNodeTypeAnnotation(node)),
+    resultTypeNames
+  );
 
 /** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
 const trackResultVariable = (
@@ -442,8 +489,8 @@ const trackResultVariable = (
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[],
   scopedHelpers: ScopedHelperMap,
-  sourceCode: string,
-  resultTypeNames: ReadonlySet<string>
+  resultTypeNames: ReadonlySet<string>,
+  methodResults: ResultMethodExpressions
 ): void => {
   const init = getNodeInit(node);
   const id = getNodeId(node);
@@ -453,14 +500,15 @@ const trackResultVariable = (
       return;
     }
     if (
-      hasResultVariableAnnotation(id, sourceCode, resultTypeNames) ||
+      hasResultVariableAnnotation(id, resultTypeNames) ||
       isResultProducingExpression(
         init,
         helperNames,
         resultVars,
         namespaceHelpers,
         scopes,
-        scopedHelpers
+        scopedHelpers,
+        methodResults
       )
     ) {
       const bindingScope = findNearestBindingScope(name, scopes);
@@ -494,7 +542,8 @@ const trackResultAssignment = (
   namespaceHelpers: NamespaceHelperMap,
   directAssignments: ReadonlySet<AstNode>,
   scopes: readonly ReadonlySet<string>[],
-  scopedHelpers: ScopedHelperMap
+  scopedHelpers: ScopedHelperMap,
+  methodResults: ResultMethodExpressions
 ): void => {
   const left = getNodeLeft(node);
   const name = identifierName(left);
@@ -515,7 +564,8 @@ const trackResultAssignment = (
       resultVars,
       namespaceHelpers,
       scopes,
-      scopedHelpers
+      scopedHelpers,
+      methodResults
     );
   if (
     resultRhs &&
@@ -542,7 +592,8 @@ const checkReturnStatements = (
   namespaceHelpers: NamespaceHelperMap,
   resultTypeNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[],
-  implScope: ReadonlySet<string> = new Set<string>()
+  implScope: ReadonlySet<string> = new Set<string>(),
+  methodResults: ResultMethodExpressions = new Map()
 ): void => {
   const resultVars: MutableScopedResultVariableMap = new Map();
   const scopedHelpers: MutableScopedHelperMap = new Map();
@@ -567,8 +618,8 @@ const checkReturnStatements = (
           namespaceHelpers,
           currentScopes,
           scopedHelpers,
-          sourceCode,
-          resultTypeNames
+          resultTypeNames,
+          methodResults
         );
       }
 
@@ -580,7 +631,8 @@ const checkReturnStatements = (
           namespaceHelpers,
           directAssignments,
           currentScopes,
-          scopedHelpers
+          scopedHelpers,
+          methodResults
         );
       }
 
@@ -601,7 +653,8 @@ const checkReturnStatements = (
           resultVars,
           namespaceHelpers,
           currentScopes,
-          scopedHelpers
+          scopedHelpers,
+          methodResults
         )
       ) {
         return;
@@ -776,48 +829,6 @@ const collectResolvableImports = (ast: AstNode): readonly ImportBinding[] => {
   return imports;
 };
 
-/**
- * Resolve a relative import source specifier to an absolute on-disk file path,
- * or null when the source is not a relative path we can resolve locally.
- *
- * Handles `.js` -> `.ts` rewriting (the convention in this repo), plain `.ts`
- * imports, and extensionless paths.
- */
-const buildResolutionCandidates = (resolved: string): readonly string[] => {
-  if (resolved.endsWith('.ts') || resolved.endsWith('.tsx')) {
-    return [resolved];
-  }
-  if (resolved.endsWith('.js')) {
-    return [
-      resolved.replace(/\.js$/, '.ts'),
-      resolved.replace(/\.js$/, '.tsx'),
-      resolved,
-    ];
-  }
-  if (resolved.endsWith('.jsx')) {
-    return [resolved.replace(/\.jsx$/, '.tsx'), resolved];
-  }
-  return [`${resolved}.ts`, `${resolved}.tsx`];
-};
-
-const resolveRelativeImportPath = (
-  source: string,
-  fromFile: string
-): string | null => {
-  if (!(source.startsWith('./') || source.startsWith('../'))) {
-    return null;
-  }
-  const baseDir = isAbsolute(fromFile)
-    ? dirname(fromFile)
-    : dirname(resolve(fromFile));
-  const resolved = resolve(baseDir, source);
-  return (
-    buildResolutionCandidates(resolved).find((candidate) =>
-      existsSync(candidate)
-    ) ?? null
-  );
-};
-
 /** Extract the declaration wrapped by an ExportNamedDeclaration, if any. */
 const getExportedDeclaration = (node: AstNode): AstNode | null => {
   if (node.type !== 'ExportNamedDeclaration') {
@@ -876,65 +887,14 @@ const addExportedFunctionResultHelper = (
  */
 type DeclarationIndex = ReadonlyMap<string, AstNode>;
 
-const indexVariableDeclarationInto = (
-  decl: AstNode,
-  index: Map<string, AstNode>
-): void => {
-  const declarators =
-    (decl['declarations'] as readonly AstNode[] | undefined) ?? [];
-  for (const declarator of declarators) {
-    const id = getNodeId(declarator);
-    const init = getNodeInit(declarator);
-    const name = extractIdentifierName(id);
-    if (name && init && isFunctionLikeExpression(init)) {
-      index.set(name, init);
-    }
-  }
-};
-
-const indexFunctionDeclarationInto = (
-  decl: AstNode,
-  index: Map<string, AstNode>
-): void => {
-  const name = extractIdentifierName(getNodeId(decl));
-  if (name) {
-    index.set(name, decl);
-  }
-};
-
-const indexDeclarationInto = (
-  decl: AstNode | null | undefined,
-  index: Map<string, AstNode>
-): void => {
-  if (!decl) {
-    return;
-  }
-  if (decl.type === 'VariableDeclaration') {
-    indexVariableDeclarationInto(decl, index);
-  } else if (decl.type === 'FunctionDeclaration') {
-    indexFunctionDeclarationInto(decl, index);
-  }
-};
-
-const indexBodyNodeInto = (
-  node: AstNode,
-  index: Map<string, AstNode>
-): void => {
-  if (node.type === 'ExportNamedDeclaration') {
-    indexDeclarationInto(getExportedDeclaration(node), index);
-    return;
-  }
-  indexDeclarationInto(node, index);
-};
-
-const indexLocalDeclarations = (ast: AstNode): DeclarationIndex => {
-  const index = new Map<string, AstNode>();
-  const bodyNodes = getNodeBodyStatements(ast);
-  for (const node of bodyNodes) {
-    indexBodyNodeInto(node, index);
-  }
-  return index;
-};
+const indexLocalDeclarations = (ast: AstNode): DeclarationIndex =>
+  collectModuleDeclarations(
+    ast,
+    'all',
+    (declaration) =>
+      isFunctionLikeExpression(declaration) ||
+      declaration.type === 'FunctionDeclaration'
+  );
 
 // ---------------------------------------------------------------------------
 // Export-specifier handling
@@ -1621,8 +1581,10 @@ const checkImplementation = (
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   resultTypeNames: ReadonlySet<string>,
-  diagnostics: WardenDiagnostic[]
+  diagnostics: WardenDiagnostic[],
+  methodProvenance: ReturnType<typeof createResultMethodProvenance>
 ): void => {
+  const methodResults = methodProvenance(implValue);
   const fnBody = getNodeBodyNode(implValue);
   if (!fnBody) {
     return;
@@ -1642,31 +1604,25 @@ const checkImplementation = (
       namespaceHelpers,
       resultTypeNames,
       diagnostics,
-      implScope
+      implScope,
+      methodResults
     );
     return;
   }
 
   const conciseScopes: readonly ReadonlySet<string>[] =
     implScope.size > 0 ? [implScope] : [];
-  const isConciseResultBody = (node: AstNode): boolean => {
-    const target = unwrapReturnExpression(node);
-    if (target.type === 'ConditionalExpression') {
-      const alternate = getNodeAlternate(target);
-      const consequent = getNodeConsequent(target);
-      return (
-        consequent !== undefined &&
-        alternate !== undefined &&
-        isConciseResultBody(consequent) &&
-        isConciseResultBody(alternate)
-      );
-    }
-    return (
-      isResultExpression(target) ||
-      isHelperCall(target, helperNames, namespaceHelpers, conciseScopes)
-    );
-  };
-  if (!isConciseResultBody(fnBody)) {
+  if (
+    !isResultProducingExpression(
+      fnBody,
+      helperNames,
+      new Map(),
+      namespaceHelpers,
+      conciseScopes,
+      new Map(),
+      methodResults
+    )
+  ) {
     diagnostics.push({
       filePath,
       line: offsetToLine(sourceCode, implValue.start),
@@ -1687,6 +1643,7 @@ const checkAllDefinitions = (
   sourceCode: string
 ): WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
+  const methodProvenance = createResultMethodProvenance(ast, filePath);
   const helperNames = collectAllResultHelperNames(ast, sourceCode, filePath);
   const namespaceHelpers = collectNamespaceHelperImports(ast, filePath);
   const resultTypeNames = collectResultTypeNames(ast);
@@ -1702,7 +1659,8 @@ const checkAllDefinitions = (
         helperNames,
         namespaceHelpers,
         resultTypeNames,
-        diagnostics
+        diagnostics,
+        methodProvenance
       );
     }
   }

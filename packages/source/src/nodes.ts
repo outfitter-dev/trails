@@ -299,6 +299,12 @@ export interface AstFieldView {
   readonly superClass?: AstNode;
   readonly test?: AstNode;
   readonly typeAnnotation?: AstNode;
+  readonly typeArguments?: AstNode;
+  readonly typeParameters?: AstNode;
+  readonly typeName?: AstNode;
+  readonly types?: readonly AstNode[];
+  readonly static?: boolean;
+  readonly optional?: boolean;
   readonly value?: unknown;
 }
 
@@ -645,6 +651,48 @@ export const getNodeSuperClass = (
 export const getNodeTest = (
   node: AstNode | null | undefined
 ): AstNode | undefined => deriveAstFieldView(node)?.test;
+
+/** Return explicit generic type arguments on calls and type references. */
+export const getNodeTypeArguments = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => {
+  const argumentsNode = deriveAstFieldView(node)?.typeArguments;
+  return deriveAstFieldView(argumentsNode)?.params ?? [];
+};
+
+/** Return the names of explicitly declared TypeScript type parameters. */
+export const getNodeTypeParameterNames = (
+  node: AstNode | null | undefined
+): readonly string[] => {
+  const parameters = deriveAstFieldView(node)?.typeParameters;
+  return (deriveAstFieldView(parameters)?.params ?? []).flatMap((parameter) => {
+    const { name } = parameter;
+    return isAstNode(name) && isIdentifier(name) && name.name
+      ? [name.name]
+      : [];
+  });
+};
+
+/** Return the authored name of a TypeScript type reference. */
+export const getNodeTypeName = (
+  node: AstNode | null | undefined
+): AstNode | undefined => deriveAstFieldView(node)?.typeName;
+
+/** Return only the immediate members of a TypeScript intersection. */
+export const getNodeIntersectionTypes = (
+  node: AstNode | null | undefined
+): readonly AstNode[] =>
+  node?.type === 'TSIntersectionType'
+    ? (deriveAstFieldView(node)?.types ?? [])
+    : [];
+
+/** Whether a call or member access uses optional chaining. */
+export const getNodeOptional = (node: AstNode | null | undefined): boolean =>
+  deriveAstFieldView(node)?.optional === true;
+
+/** Whether a class member belongs to the class rather than its instances. */
+export const getNodeStatic = (node: AstNode | null | undefined): boolean =>
+  deriveAstFieldView(node)?.static === true;
 
 export const getNodeTypeAnnotation = (
   node: AstNode | null | undefined

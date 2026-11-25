@@ -57,6 +57,7 @@ const expectedRuntimeExportKeys = [
   'SCOPE_FRAME_COLLECTORS',
   'applySourceEdits',
   'buildFrameworkNamespaceContext',
+  'collectPatternBindingNames',
   'collectScopeFrameBindings',
   'collectSourceTree',
   'createSourceEdit',
@@ -96,6 +97,7 @@ const expectedRuntimeExportKeys = [
   'getNodeImportKind',
   'getNodeImported',
   'getNodeInit',
+  'getNodeIntersectionTypes',
   'getNodeKey',
   'getNodeKind',
   'getNodeLeft',
@@ -103,6 +105,7 @@ const expectedRuntimeExportKeys = [
   'getNodeName',
   'getNodeObject',
   'getNodeOperator',
+  'getNodeOptional',
   'getNodeParam',
   'getNodeParams',
   'getNodeProperties',
@@ -111,9 +114,13 @@ const expectedRuntimeExportKeys = [
   'getNodeRight',
   'getNodeSource',
   'getNodeSpecifiers',
+  'getNodeStatic',
   'getNodeSuperClass',
   'getNodeTest',
   'getNodeTypeAnnotation',
+  'getNodeTypeArguments',
+  'getNodeTypeName',
+  'getNodeTypeParameterNames',
   'getNodeValue',
   'getNodeValueNode',
   'getPropertyName',
@@ -226,7 +233,7 @@ const assertSourceTypeExportContract = <T extends SourceTypeExportContract>() =>
 describe('@ontrails/source public API', () => {
   test('keeps the exact sorted runtime export keys', () => {
     expect(Object.keys(source).toSorted()).toEqual(expectedRuntimeExportKeys);
-    expect(expectedRuntimeExportKeys).toHaveLength(112);
+    expect(expectedRuntimeExportKeys).toHaveLength(119);
   });
 
   test('keeps every public type export resolvable at compile time', () => {

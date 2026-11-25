@@ -158,6 +158,15 @@ const addPatternBindingNames = (
   }
 };
 
+/** Collect identifier targets in a binding or assignment pattern. */
+export const collectPatternBindingNames = (
+  pattern: AstNode | undefined
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  addPatternBindingNames(pattern, names);
+  return names;
+};
+
 const addVarDeclarationBindingNames = (
   decl: AstNode,
   into: Set<string>
@@ -190,6 +199,7 @@ const addBlockStatementBindings = (stmt: AstNode, into: Set<string>): void => {
     stmt.type === 'FunctionDeclaration' ||
     stmt.type === 'ClassDeclaration' ||
     stmt.type === 'TSEnumDeclaration' ||
+    stmt.type === 'TSImportEqualsDeclaration' ||
     stmt.type === 'TSModuleDeclaration'
   ) {
     addFunctionOrClassBindingName(stmt, into);
@@ -281,7 +291,10 @@ const visitForHoisted = (
   into: Set<string>,
   inNestedBlock: boolean
 ): void => {
-  if (!isRoot && FUNCTION_BOUNDARY_TYPES.has(node.type)) {
+  if (
+    !isRoot &&
+    (FUNCTION_BOUNDARY_TYPES.has(node.type) || node.type === 'TSModuleBlock')
+  ) {
     return;
   }
   recordHoistedBinding(node, into, inNestedBlock);
@@ -313,7 +326,15 @@ const collectProgramFrame: FrameCollector = (node, into) => {
   }
 };
 
+const collectNamespaceFrame: FrameCollector = (node, into) => {
+  collectProgramFrame(node, into);
+  collectHoistedVarAndFunctionBindings(node, into);
+};
+
 const collectFunctionFrame: FrameCollector = (node, into) => {
+  if (node.type === 'FunctionExpression') {
+    addFunctionOrClassBindingName(node, into);
+  }
   const params =
     (node as unknown as { params?: readonly AstNode[] }).params ?? [];
   for (const param of params) {
@@ -393,6 +414,7 @@ export const SCOPE_FRAME_COLLECTORS: Record<string, FrameCollector> = {
   Program: collectProgramFrame,
   StaticBlock: collectBlockFrame,
   SwitchStatement: collectSwitchStatementFrame,
+  TSModuleBlock: collectNamespaceFrame,
 };
 
 /**

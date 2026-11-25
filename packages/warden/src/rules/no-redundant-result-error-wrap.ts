@@ -1,3 +1,5 @@
+import { createResultMethodProvenance } from './result-method-provenance.js';
+import type { ResultMethodExpressions } from './result-method-provenance.js';
 import { getMemberExpression } from './source/stores.js';
 import {
   collectScopeFrameBindings,
@@ -23,6 +25,7 @@ import {
 import type { AstNode, AstParentContext } from '@ontrails/source';
 import {
   collectAllResultHelperNames,
+  hasResultVariableAnnotation,
   collectDirectResultAssignments,
   collectNamespaceHelperImports,
   collectResultTypeNames,
@@ -131,7 +134,9 @@ const trackVariableDeclarator = (
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   scopedHelpers: ScopedHelperMap,
-  scopes: readonly ReadonlySet<string>[]
+  scopes: readonly ReadonlySet<string>[],
+  methodResults: ResultMethodExpressions,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   const id = getNodeId(node);
   const init = getNodeInit(node);
@@ -144,15 +149,17 @@ const trackVariableDeclarator = (
     return;
   }
   if (
-    init &&
-    isResultProducingExpression(
-      init,
-      helperNames,
-      provenance,
-      namespaceHelpers,
-      scopes,
-      scopedHelpers
-    )
+    (id && hasResultVariableAnnotation(id, resultTypeNames)) ||
+    (init &&
+      isResultProducingExpression(
+        init,
+        helperNames,
+        provenance,
+        namespaceHelpers,
+        scopes,
+        scopedHelpers,
+        methodResults
+      ))
   ) {
     markResultVariable(provenance, scope, name);
     return;
@@ -167,7 +174,8 @@ const trackAssignmentExpression = (
   namespaceHelpers: NamespaceHelperMap,
   scopedHelpers: ScopedHelperMap,
   directAssignments: ReadonlySet<AstNode>,
-  scopes: readonly ReadonlySet<string>[]
+  scopes: readonly ReadonlySet<string>[],
+  methodResults: ResultMethodExpressions
 ): void => {
   const left = getNodeLeft(node);
   const name = identifierName(left);
@@ -188,7 +196,8 @@ const trackAssignmentExpression = (
       provenance,
       namespaceHelpers,
       scopes,
-      scopedHelpers
+      scopedHelpers,
+      methodResults
     );
   if (
     resultRhs &&
@@ -243,8 +252,10 @@ const checkFunctionBody = (
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   resultTypeNames: ReadonlySet<string>,
-  diagnostics: WardenDiagnostic[]
+  diagnostics: WardenDiagnostic[],
+  methodProvenance: ReturnType<typeof createResultMethodProvenance>
 ): void => {
+  const methodResults = methodProvenance(owner);
   const body = functionBody(owner);
   if (!body) {
     return;
@@ -273,7 +284,9 @@ const checkFunctionBody = (
           helperNames,
           namespaceHelpers,
           scopedHelpers,
-          scopes
+          scopes,
+          methodResults,
+          resultTypeNames
         );
         return;
       }
@@ -285,7 +298,8 @@ const checkFunctionBody = (
           namespaceHelpers,
           scopedHelpers,
           directAssignments,
-          scopes
+          scopes,
+          methodResults
         );
         return;
       }
@@ -339,6 +353,7 @@ export const noRedundantResultErrorWrap: WardenRule = {
     }
 
     const diagnostics: WardenDiagnostic[] = [];
+    const methodProvenance = createResultMethodProvenance(ast, filePath);
     const helperNames = collectAllResultHelperNames(ast, sourceCode, filePath);
     const namespaceHelpers = collectNamespaceHelperImports(ast, filePath);
     const resultTypeNames = collectResultTypeNames(ast);
@@ -354,7 +369,8 @@ export const noRedundantResultErrorWrap: WardenRule = {
           helperNames,
           namespaceHelpers,
           resultTypeNames,
-          diagnostics
+          diagnostics,
+          methodProvenance
         );
       }
     }
@@ -370,7 +386,8 @@ export const noRedundantResultErrorWrap: WardenRule = {
         helperNames,
         namespaceHelpers,
         resultTypeNames,
-        diagnostics
+        diagnostics,
+        methodProvenance
       );
     });
     return diagnostics;

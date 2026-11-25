@@ -15,6 +15,8 @@ Shared source-code machinery for Trails packages and repo tooling.
 - Source locations, source edits, literal extraction, and generic Trails syntax recognition.
 - Generic trail/entity discovery helpers such as `findTrailDefinitions`, `findImplementationBodies`, `findEntityDefinitions`, and `isImplementationCall`.
 
+`getNodeTypeArguments`, `getNodeTypeName`, `getNodeTypeParameterNames`, and `getNodeIntersectionTypes` expose authored type syntax. `getNodeStatic` and `getNodeOptional` expose member/call flags. `collectPatternBindingNames` extracts identifier targets from binding and assignment patterns. These helpers preserve AST facts without resolving types or assigning Result/resource semantics, which remain with Warden.
+
 The package root is the public API. Import from `@ontrails/source`; there are no supported `/ast`, `/trails`, or `/utils` subpaths.
 
 ## Package Admission Test
