@@ -172,6 +172,11 @@ const supportsSecretField = (schema: z.ZodType, type: unknown): boolean =>
 /**
  * Derive declared secret fields without reading values or evaluating schemas.
  *
+ * Pass only trusted, application-owned Zod schemas and ordinary inputs. No
+ * object in the inspected schema, metadata, or options graph may be a Proxy.
+ * This helper is not a sandbox and does not detect Proxies. Inputs outside
+ * this contract are not guaranteed to return typed incompleteness.
+ *
  * Select discriminated unions explicitly; defaults never choose a branch.
  * Optional/defaulted leaves are not locally required; nullable alone is required.
  * Ancestor flags do not model wrapper order, default contents, or refinements.

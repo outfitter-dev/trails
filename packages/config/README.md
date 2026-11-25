@@ -219,6 +219,8 @@ const derivation = deriveConfigSecretFields(authSchema, {
 
 A complete derivation describes declared metadata for the selected supported shape. It does not prove that every effective profile secret is provisioned. Profile and binding selection remain the caller's responsibility.
 
+Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Proxies anywhere in the inspected schema, metadata, or options graph. This helper is not a sandbox or a Proxy detector: reflection can invoke Proxy traps, and inputs outside the contract need not return typed incompleteness. Do not derive metadata from arbitrary schema objects whose provenance you cannot establish.
+
 - `required` describes the field's own declaration: optional/defaulted fields are
   false; nullable alone remains true.
 - `ancestors` records optional/defaulted/nullable wrappers, with an empty path for
@@ -234,14 +236,15 @@ A complete derivation describes declared metadata for the selected supported sha
 - Discriminated unions need object branches (which may be readonly) with
   non-secret, unwrapped literal tags. Tag values must be distinct across
   branches; only the selected branch's other fields and annotations are
-  inspected. Custom option arrays and annotations that declare `secret` or
-  `env` on both the union and its selected branch are incomplete.
+  inspected. Ordinary option arrays with unsupported structure and annotations
+  that declare `secret` or `env` on both the union and its selected branch are
+  incomplete.
 - Every present non-undefined catchall is incomplete at its containing object,
   including strict and loose objects and annotated `unknown`/`never` schemas.
   Plain objects and `.strip()` with no catchall remain supported. The helper
   does not infer arbitrary-key secret paths or evaluate catchall accessors.
 
-The derivation never evaluates defaults, refinements, transforms, or resource factories. It returns no defaults, examples, descriptions, schema objects, discriminant values, credential values, or value hashes. Use the existing `secret(env(...))` annotations; no separate secret-name list is authored.
+For inputs within this contract, the derivation does not evaluate defaults, getters, refinements, transforms, or resource factories. It returns no defaults, examples, descriptions, schema objects, discriminant values, credential values, or value hashes. Use the existing `secret(env(...))` annotations; no separate secret-name list is authored.
 
 Object inspection requires the installed Zod version's public `util.rawShape` capability. Complete object derivation is qualified on Zod 4.6.7; exact Zod 4.3.5 remains supported by the package and returns `complete: false` with `unsupported-schema` for object inspection. The capability is checked at runtime; its introduction version and intermediate-version behavior are not established here. No shape getter is evaluated as a fallback, even if a caller previously accessed the schema. Consumers must treat incomplete metadata as a blocked derivation, never as an empty list of required secrets.
 
