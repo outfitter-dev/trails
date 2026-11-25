@@ -13,6 +13,7 @@ import type {
 import { z } from 'zod';
 
 export const TOPO_GRAPH_SCHEMA_VERSION = 4;
+export const TRAIL_METADATA_HASH_VERSION = 1;
 export const LOCK_MANIFEST_SCHEMA_VERSION = 4;
 export const TRAILS_LOCK_SCHEMA_VERSION = 5;
 
@@ -265,6 +266,9 @@ export interface TopoGraphEntry {
 
 export interface TopoGraph {
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
+  readonly trailMetadataHashVersion?:
+    | typeof TRAIL_METADATA_HASH_VERSION
+    | undefined;
   readonly activationGraph: TopoGraphActivationGraph;
   readonly activationSources: Readonly<
     Record<string, TopoGraphActivationSource>
@@ -424,6 +428,13 @@ const topoGraphEntityReferenceSchema = z
   .strict();
 
 const openFactBagSchema = z.record(z.string(), z.unknown());
+
+// Validate like a record without dropping authored JSON keys during parsing.
+const topoGraphEntryMetaSchema = z
+  .unknown()
+  .refine(z.util.isPlainObject, { abort: true })
+  .overwrite((meta) => Object.fromEntries(Object.entries(meta)))
+  .meta({ additionalProperties: {}, type: 'object' });
 
 const topoGraphWhereSchema = z
   .object({
@@ -634,7 +645,7 @@ const topoGraphEntrySchema = z
     kind: z.enum(['entity', 'trail', 'signal', 'resource']),
     layers: z.array(topoGraphLayerReferenceSchema).optional(),
     marker: z.string().optional(),
-    meta: openFactBagSchema.optional(),
+    meta: topoGraphEntryMetaSchema.optional(),
     on: z.array(z.string()).optional(),
     output: openFactBagSchema.optional(),
     pattern: z.string().optional(),
@@ -652,7 +663,12 @@ const topoGraphEntrySchema = z
     version: z.number().int().positive().optional(),
     versions: z.record(z.string(), topoGraphVersionEntrySchema).optional(),
   })
-  .strict();
+  .strict()
+  .overwrite((entry) =>
+    entry.kind === 'trail' || entry.meta === undefined
+      ? entry
+      : { ...entry, meta: openFactBagSchema.parse(entry.meta) }
+  );
 
 export const topoGraphSchema = z
   .object({
@@ -664,6 +680,7 @@ export const topoGraphSchema = z
     library: topoGraphLibraryDerivedSchema.optional(),
     overlays: z.record(z.string(), z.unknown()).optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
+    trailMetadataHashVersion: z.literal(TRAIL_METADATA_HASH_VERSION).optional(),
     trailheads: z.array(topoGraphTrailheadEntrySchema).optional(),
     workspace: workspaceTopoMetadataSchema.optional(),
   })

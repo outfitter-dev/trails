@@ -1,7 +1,11 @@
 import { describe, test, expect } from 'bun:test';
 
 import { deriveTopoGraphDiff } from '../diff.js';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import { deriveTopoGraphHash } from '../hash.js';
+import {
+  TOPO_GRAPH_SCHEMA_VERSION,
+  TRAIL_METADATA_HASH_VERSION,
+} from '../types.js';
 import type { TopoGraph, TopoGraphEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +40,60 @@ const topoGraph = (entries: TopoGraphEntry[]): TopoGraph => ({
 // ---------------------------------------------------------------------------
 
 describe('deriveTopoGraphDiff', () => {
+  test('reports changed authored trail metadata without treating it as breaking', () => {
+    const before = topoGraph([
+      entry({ id: 'message.read', meta: { facts: ['read', 'ack'] } }),
+    ]);
+    const after = topoGraph([
+      entry({ id: 'message.read', meta: { facts: ['ack', 'read'] } }),
+    ]);
+
+    expect(deriveTopoGraphDiff(before, after).entries).toEqual([
+      {
+        change: 'modified',
+        details: ['Trail metadata changed'],
+        id: 'message.read',
+        kind: 'trail',
+        severity: 'info',
+      },
+    ]);
+  });
+
+  test('ignores object key order in authored trail metadata', () => {
+    const before = topoGraph([
+      entry({ id: 'message.read', meta: { facts: { ack: true, read: true } } }),
+    ]);
+    const after = topoGraph([
+      entry({
+        id: 'message.read',
+        meta: {
+          facts: Object.fromEntries([
+            ['read', true],
+            ['ack', true],
+          ]),
+        },
+      }),
+    ]);
+
+    expect(deriveTopoGraphDiff(before, after).entries).toEqual([]);
+  });
+
+  test('includes every own JSON key in metadata hashes and diffs', () => {
+    const withFact = (value: string) => ({
+      ...topoGraph([
+        entry({ id: 'message.read', meta: { ['__proto__']: value } }),
+      ]),
+      trailMetadataHashVersion: TRAIL_METADATA_HASH_VERSION,
+    });
+    const before = withFact('read');
+    const after = withFact('ack');
+
+    expect(deriveTopoGraphHash(before)).not.toBe(deriveTopoGraphHash(after));
+    expect(deriveTopoGraphDiff(before, after).entries).toMatchObject([
+      { details: ['Trail metadata changed'], severity: 'info' },
+    ]);
+  });
+
   describe('top-level changes', () => {
     test('empty diff for identical maps', () => {
       const e = entry({ id: 'user.create' });
