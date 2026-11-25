@@ -6,28 +6,65 @@ import { zodDef } from './zod-utils.js';
 
 const WRAPPERS = new Set(['optional', 'default', 'nullable', 'readonly']);
 const SCALARS = new Set(['string', 'number', 'boolean', 'enum', 'null']);
+const BUILTIN_VALIDATIONS = new Set([
+  'bigint_format',
+  'greater_than',
+  'length_equals',
+  'less_than',
+  'max_length',
+  'max_size',
+  'mime_type',
+  'min_length',
+  'min_size',
+  'multiple_of',
+  'number_format',
+  'size_equals',
+  'string_format',
+]);
 
 const ownData = (target: unknown, key: PropertyKey): unknown =>
   target !== null && typeof target === 'object'
     ? Object.getOwnPropertyDescriptor(target, key)?.value
     : undefined;
 
+const isOrdinaryArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value) &&
+  Object.getPrototypeOf(value) === Array.prototype &&
+  !Object.hasOwn(value, Symbol.iterator);
+
+const isValidationCheck = (check: unknown): boolean => {
+  const internals = ownData(check, '_zod');
+  const def = ownData(internals, 'def');
+  const kind = ownData(def, 'check');
+  if (kind !== 'custom') {
+    return typeof kind === 'string' && BUILTIN_VALIDATIONS.has(kind);
+  }
+  // Payload-level checks can rewrite parsed values; ordinary refine cannot
+  // replace the payload. Its optional when callback does receive the payload.
+  const traits = ownData(internals, 'traits');
+  return (
+    traits instanceof Set &&
+    Set.prototype.has.call(traits, '$ZodCustom') &&
+    def !== null &&
+    typeof def === 'object' &&
+    !('when' in def)
+  );
+};
+
 const supportsChecks = (def: Record<string, unknown>): boolean => {
   const descriptor = Object.getOwnPropertyDescriptor(def, 'checks');
-  if (
-    !descriptor ||
-    ('value' in descriptor && descriptor.value === undefined)
-  ) {
+  if (!descriptor) {
+    return !('checks' in def);
+  }
+  if ('value' in descriptor && descriptor.value === undefined) {
     return true;
   }
   const checks: unknown = descriptor.value;
-  if (!Array.isArray(checks)) {
+  if (!isOrdinaryArray(checks)) {
     return false;
   }
   for (let index = 0; index < checks.length; index += 1) {
-    const check = ownData(checks, index);
-    const kind = ownData(ownData(ownData(check, '_zod'), 'def'), 'check');
-    if (typeof kind !== 'string' || kind === 'overwrite') {
+    if (!isValidationCheck(ownData(checks, index))) {
       return false;
     }
   }
@@ -242,11 +279,7 @@ const branchObject = (schema: z.ZodType): z.ZodType | undefined => {
 };
 
 const readBranchOptions = (options: unknown): z.ZodType[] | undefined => {
-  if (
-    !Array.isArray(options) ||
-    Object.getPrototypeOf(options) !== Array.prototype ||
-    Object.hasOwn(options, Symbol.iterator)
-  ) {
+  if (!isOrdinaryArray(options)) {
     return;
   }
   const branches: z.ZodType[] = [];

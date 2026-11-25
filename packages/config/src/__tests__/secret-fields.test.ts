@@ -513,6 +513,66 @@ describe('deriveConfigSecretFields', () => {
   });
 
   describe('supported shapes and metadata', () => {
+    test('rejects payload-level checks while allowing ordinary validation', () => {
+      let calls = 0;
+      const kind = z.literal('none').check(
+        z.check<string>((payload) => {
+          calls += 1;
+          payload.value = 'key';
+        })
+      );
+      const auth = z.discriminatedUnion('kind', [
+        z.object({ kind }),
+        z.object({ kind: z.literal('key'), token: secret(z.string()) }),
+      ]);
+      expect(
+        deriveConfigSecretFields(auth, { discriminants: { kind: 'none' } })
+      ).toEqual({
+        complete: false,
+        path: 'kind',
+        reason: 'unsupported-schema',
+      });
+      for (const token of [
+        z.string().check((payload) => {
+          calls += 1;
+          payload.value = '';
+        }),
+        z.string().superRefine(() => {
+          calls += 1;
+        }),
+        z.string().refine(() => true, {
+          when(payload) {
+            calls += 1;
+            payload.value = '';
+            return true;
+          },
+        }),
+      ]) {
+        expect(deriveConfigSecretFields(z.object({ token }))).toEqual({
+          complete: false,
+          path: 'token',
+          reason: 'unsupported-schema',
+        });
+      }
+      const token = secret(
+        z
+          .string()
+          .min(1)
+          .refine(() => {
+            calls += 1;
+            return true;
+          })
+      );
+      expect(deriveConfigSecretFields(z.object({ token }))).toEqual({
+        complete: true,
+        fields: [
+          { ancestors: [], path: 'token', required: true, secret: true },
+        ],
+      });
+      expect(calls).toBe(0);
+      expect(kind.parse('none')).toBe('key');
+    });
+
     test('rejects every present catchall instead of omitting dynamic metadata', () => {
       for (const catchall of [
         secret(env(z.string(), 'DYNAMIC_SECRET')),
@@ -716,6 +776,41 @@ describe('deriveConfigSecretFields', () => {
   });
 
   describe('descriptor-safe inspection', () => {
+    test('rejects nonstandard check arrays and inherited checks', () => {
+      const schema = z.string().min(1);
+      let iterators = 0;
+      const rewrite = z.overwrite<string>(() => 'changed');
+      const checks = [...(schema.def.checks ?? [])];
+      Object.defineProperty(checks, Symbol.iterator, {
+        *value() {
+          iterators += 1;
+          yield rewrite;
+        },
+      });
+      const special = schema.clone({ ...schema.def, checks });
+      const inherited: typeof schema.def = Object.assign(
+        Object.create({ checks: [rewrite] }),
+        { type: 'string' }
+      );
+      const subclass = schema.clone({
+        ...schema.def,
+        checks: Object.setPrototypeOf(
+          [rewrite],
+          Object.create(Array.prototype)
+        ),
+      });
+      const before = iterators;
+      for (const token of [special, schema.clone(inherited), subclass]) {
+        expect(deriveConfigSecretFields(z.object({ token }))).toEqual({
+          complete: false,
+          path: 'token',
+          reason: 'unsupported-schema',
+        });
+        expect(token.parse('token')).toBe('changed');
+      }
+      expect(iterators).toBe(before);
+    });
+
     test('rejects check accessors without evaluating them', () => {
       let reads = 0;
       const schema = z.string().min(1);
