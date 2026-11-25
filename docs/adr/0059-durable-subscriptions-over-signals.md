@@ -17,7 +17,7 @@ depends_on: [0, 6, 12, 26, 38, 39, 47, 52]
 
 Matt's October 27 decision, recorded in [TRL-1497], is to build the primitive rather than one host's flavor: durable subscriptions over signals, with at-least-once delivery and replay. Exactly-once delivery is not promised. The MCP catch-up plan's shared failure model grounds this decision; the RPC plan renders it rather than redefining it.[^model][^rpc]
 
-This ADR accepts the model, not an implementation. The [RPC kernel](https://github.com/outfitter-dev/trails/pull/1147) and [Bun WebSocket host](https://github.com/outfitter-dev/trails/pull/1150) have landed without durable subscriptions. The host reports `subscribe: false` by default. A caller can override that flag, but doing so neither advertises subscription methods nor enables durable delivery or replay. Discoverable signal IDs and request-scoped progress are not delivery or replay. This ADR claims no outbox, grant entity, durable host integration, or channel conformance.
+This ADR accepts the model, not an implementation. The RPC kernel ([#1147](https://github.com/outfitter-dev/trails/pull/1147)) and Bun WebSocket host ([#1150](https://github.com/outfitter-dev/trails/pull/1150)) have landed without durable subscriptions. The host reports `subscribe: false` by default. A caller can override that flag, but doing so neither advertises subscription methods nor enables durable delivery or replay. Discoverable signal IDs and request-scoped progress are not delivery or replay. This ADR claims no outbox, grant entity, durable host integration, or channel conformance.
 
 ## Decision
 
@@ -42,7 +42,7 @@ A checkpoint is opaque to clients and has two server-owned components:
 | Component | Meaning |
 | --- | --- |
 | `seq` | The subscription's contiguous admitted delivery sequence. |
-| `scan` | The global outbox position through which every relevant signal consumer has completed admission or rejection for that subscription. |
+| `scan` | The global outbox position through which every relevant signal consumer has completed admission or rejection for that subscription, excluding only explicitly accepted retention loss. |
 
 A standalone checkpoint can advance `scan` while leaving `seq` unchanged. Thousands of filtered-out events therefore do not strand an idle subscription's retention position. Measuring retention from its last admitted event would make an otherwise healthy filtered subscriber lose continuity.
 
@@ -50,7 +50,7 @@ Replay follows delivery-sequence order, never event-ID order. Parallel consumers
 
 ### A checkpoint certifies a safe prefix
 
-Emit a checkpoint only after all admitted events covered by its sequence boundary have been sent on that stream and its scan watermark is safe across all relevant consumers. A live frame may carry a checkpoint when those conditions hold; a later or standalone checkpoint can certify the completed prefix. If cross-signal live delivery sends sequence 8 before 7, it cannot certify 8 while 7 is missing. This requires admission/frontier accounting, not an RPC-specific payload reorder buffer.
+Emit a checkpoint only after all surviving admitted events covered since the starting cursor have been sent on that stream and its scan watermark is safe across all relevant consumers. A live frame may carry a checkpoint when those conditions hold; a later or standalone checkpoint can certify the completed prefix. If cross-signal live delivery sends sequence 8 before 7, it cannot certify 8 while 7 is missing. This requires admission/frontier accounting, not an RPC-specific payload reorder buffer.
 
 Clients advance their stored checkpoint only after processing everything it covers. Sending and receiving are not processing. Resume is exclusive: `after: C` delivers the tail after C. Already processed events after the last saved checkpoint may recur; stable event IDs allow the consumer to deduplicate them. Every replay frame carries its own safe checkpoint.
 
@@ -72,7 +72,9 @@ The grant's default lifetime is 30 days, with an expiring signal three days befo
 
 Outbox and delivery-log retention defaults to 33 days: the 30-day grant lifetime plus three days' renewal notice. Applications may declare shorter or longer retention. Continuous authorization renewal does not guarantee replay continuity; a consumer that falls behind retention still encounters a gap.
 
-If the checkpoint's `scan` predates the retained range, return typed `replay_gap` with an opaque `resumeAfter` checkpoint immediately before the oldest retained admitted event. Internally its sequence is that event's sequence minus one and its scan is the preceding outbox position. `after: resumeAfter` therefore returns the oldest retained admitted event first, without an off-by-one skip. Never return a raw sequence as the recovery cursor. The subscriber chooses that recovery or a new start and uses trails to rebuild state that retention no longer covers.
+If retention removes outbox positions still needed for admission or delivery sequences still needed for replay, return typed `replay_gap` with an opaque, subscription-bound `resumeAfter`, even when no retained delivery matches. The server records the prior checkpoint and the proven pruned prefixes of the outbox and delivery log independently. Presenting `after: resumeAfter` accepts those losses and replays exclusively after the greater of the prior cursor's sequence and the pruned delivery prefix. The first surviving unprocessed delivery remains eligible; its outbox position does not establish the scan boundary. Never return a raw sequence as the recovery cursor. The subscriber chooses that recovery or a new start and uses trails to rebuild state retention no longer covers.
+
+Keep accepted loss separate from completed admission and processed delivery. Accepting a recovery token does not advance `scan` or the acknowledged cursor. Consumers still admit or reject every unfinished retained outbox position; a later checkpoint may advance `scan` only when all relevant consumers finish the retained range it covers. Subsequent checkpoints retain the accepted loss boundary, so only new loss can cause another gap. For named subscriptions, record accepted loss separately from the acknowledged server cursor; for client-held cursors, the client retains the recovery token until it stores a subsequent checkpoint. Recovery still checks the current grant and does not clear an `authorization_gap`.
 
 ### Channels share checkpoints and failures
 
@@ -92,6 +94,8 @@ The common conformance cases must run on every implemented channel:
 | Idle filter | Unrelated events advance the scan watermark without changing admitted sequence; the subscription stays inside retention. |
 | Reversed admission | Event 101 admitted as sequence 7 before event 100 as 8 replays in sequence order: 101, then 100. |
 | Retention boundary | With oldest retained admitted event at sequence 50, resuming after `resumeAfter` delivers 50 first and once in that replay, rather than skipping to 51. |
+| Lagging consumer | If sequence 50 is at outbox position 101 and another consumer has not processed retained position 100, recovery replays 50 and still admits or rejects 100. It cannot certify `scan` through 100 before that work finishes. |
+| Empty retained filter | A stale filtered subscription with no surviving matches gets `resumeAfter`. Accept it, resume without an event or a repeated gap for the same loss, then deliver the first subsequent eligible event. |
 | Cross-signal live prefix | Sending sequence 8 before 7 cannot expose a checkpoint or acknowledgment that skips the missing sequence. |
 | Authorization lapse | Renewal cannot replay the lapsed authorization span; it reports `authorization_gap` separately from retention loss. |
 

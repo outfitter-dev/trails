@@ -18,7 +18,7 @@ The October 27 decisions recorded in [TRL-1166] and the WebSocket plan choose an
 
 ## What exists today
 
-The [RPC kernel](https://github.com/outfitter-dev/trails/pull/1147), [cancellation and progress](https://github.com/outfitter-dev/trails/pull/1148), [Bun WebSocket host](https://github.com/outfitter-dev/trails/pull/1150), and [base host conformance suite](https://github.com/outfitter-dev/trails/pull/1151) have landed. The [package README](../../../packages/rpc/README.md) describes the implemented API. Bun carries trail requests, discovery, cancellation, request-scoped progress, and graceful draining over `trails.v1`.
+The RPC kernel ([#1147](https://github.com/outfitter-dev/trails/pull/1147)), cancellation and progress ([#1148](https://github.com/outfitter-dev/trails/pull/1148)), Bun WebSocket host ([#1150](https://github.com/outfitter-dev/trails/pull/1150)), and base host conformance suite ([#1151](https://github.com/outfitter-dev/trails/pull/1151)) have landed. The [package README](../../../packages/rpc/README.md) describes the implemented API. Bun carries trail requests, discovery, cancellation, request-scoped progress, and graceful draining over `trails.v1`.
 
 By default, Bun's `trails.discover` reports `progress: true`, `subscribe: false`, and `input: false`. The host passes caller capability overrides through to the kernel. Setting `subscribe: true` changes the reported flag but does not advertise or enable any subscription method. Discovery lists the trails this permit can invoke and the topo's signal IDs; signal IDs are channel candidates, not grant-checked subscriptions. The host does not implement durable delivery, acknowledgments, checkpoints, replay, or `trails.auth` refresh.
 
@@ -44,7 +44,7 @@ The method directions and kinds come from the plan's concrete method table:
 | --- | --- | --- | --- |
 | `<trail id>` | Client to server | Request | Implemented. Run the trail through the shared pipeline. |
 | `trails.discover` | Client to server | Request | Implemented. Return permit-scoped trails with schemas, examples, and intent, plus topo signal IDs and host capabilities. |
-| `trails.subscribe` | Client to server | Request | Proposed. Open or resume with `{ signals, after? }`; return `{ subscriptionId, checkpoint }`. |
+| `trails.subscribe` | Client to server | Request | Proposed. Open or resume a client-held subscription with `{ signals, after? }`, or reconnect a named subscription with `{ subscriptionId, after? }`; return `{ subscriptionId, checkpoint }`. |
 | `trails.unsubscribe` | Client to server | Request | Proposed. Close a subscription. |
 | `trails.event` | Server to client | Notification | Proposed. Deliver `{ subscriptionId, eventId, signal, payload, firedAt, checkpoint? }`. |
 | `trails.checkpoint` | Server to client | Notification | Proposed. Send `{ subscriptionId, checkpoint }` without an event payload. |
@@ -92,13 +92,15 @@ Identity keys on `(iss, sub, tenant)`, with tenant where applicable. A first-fra
 
 ### Subscriptions render one durable model
 
-[ADR-0059](../0059-durable-subscriptions-over-signals.md) owns recording, replay, checkpoints, authorization gaps, retention, and identity. For the proposed RPC rendering ([TRL-1441]), the signal ID is the channel name. RPC does not invent a ring buffer or use an outbox event ID as a resume cursor. Resume uses an opaque server-issued checkpoint and exclusive `after`; named subscriptions advance the server-held cursor only through `trails.ack`, meaning processed rather than merely received. `replay_gap` returns the shared opaque `resumeAfter` checkpoint.
+[ADR-0059](../0059-durable-subscriptions-over-signals.md) owns recording, replay, checkpoints, authorization gaps, retention, and identity. For the proposed RPC rendering ([TRL-1441]), the signal ID is the channel name. RPC does not invent a ring buffer or use an outbox event ID as a resume cursor. Client-held resume uses an opaque server-issued checkpoint and exclusive `after`. On `replay_gap`, pass the shared opaque `resumeAfter` as `after` to accept only the reported retention loss, not to certify completed admission or acknowledge delivery. Recovery works even when no retained delivery matches.
+
+Use the existing `subscriptionId` to reconnect a named subscription; signals do not select or change it. The server checks its existing ownership, tenant, and current grant before resuming from its server-held cursor. In this form `after` is only for the `resumeAfter` returned for that subscription, not for overriding the named cursor. Reconnecting does not acknowledge delivery; only `trails.ack` of processed delivery advances the acknowledged cursor.
 
 Replay follows per-subscription delivery-sequence order. Live delivery guarantees order per signal within a subscription only; it promises no total order across signals. This explicitly replaces revision 24's stronger “Replay and live” ordering sentence with the shared primitive's settled guarantee. Do not add an RPC-only reorder buffer or advertise a stronger host guarantee.
 
 Checkpoint safety is separate from live arrival order. If sequence 8 arrives before 7 across two signals, no checkpoint may certify 8 until all covered admissions have been sent and the scan watermark is safe across relevant consumers. Once that prefix is complete, a later or standalone checkpoint may certify it. The client advances only after processing everything covered; processing 8 alone cannot acknowledge past missing 7. Replay still returns 7 then 8.
 
-A standalone `trails.checkpoint` may advance `scan` while leaving `seq` unchanged, keeping a filtered idle subscription within retention. Stable event IDs support deduplication. Share the primitive's conformance cases: unprocessed tail, idle filtered subscription, reversed admission order, and retention-boundary recovery. Auth owns grant intervals and typed `authorization_gap`; the RPC rendering must not conflate it with `replay_gap`.
+A standalone `trails.checkpoint` may advance `scan` while leaving `seq` unchanged, keeping a filtered idle subscription within retention. Stable event IDs support deduplication. Run the primitive's conformance cases, including retention recovery with a lagging consumer or no retained matches. Also reconnect one of two named subscriptions watching the same signals: select by its ID, reject an unauthorized caller, and replay its unacknowledged tail without advancing its server cursor. Auth owns grant intervals and typed `authorization_gap`; the RPC rendering must not conflate it with `replay_gap`.
 
 Every delivery remains in durable storage. At a soft backpressure threshold, stop pushing; at a hard limit, close 1013 and let the client resume. Do not silently drop lower-priority records. An offline-host delivery attempt may end without an acknowledgment, but it cannot advance the cursor or discard the durable replay record.
 
