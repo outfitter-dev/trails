@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   executeTrail,
+  InternalError,
   Result,
   topo,
   trail,
@@ -144,7 +145,7 @@ describe('compose scope coverage', () => {
           composes: [leaf],
           implementation: async (_input, ctx) =>
             (await ctx.compose?.(leaf, {})) ??
-            Result.err(new Error('Expected composition context')),
+            Result.err(new InternalError('Expected composition context')),
           input: z.object({}),
           output: z.object({}),
         },
@@ -177,7 +178,7 @@ describe('compose scope coverage', () => {
           composes: [leaf.id],
           implementation: async (_input, ctx) =>
             (await ctx.compose?.(leaf.id, {})) ??
-            Result.err(new Error('Expected composition context')),
+            Result.err(new InternalError('Expected composition context')),
           input: z.object({}),
           output: z.object({}),
         },
