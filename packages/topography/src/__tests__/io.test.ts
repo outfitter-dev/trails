@@ -20,6 +20,7 @@ import { deriveTopoGraphHash } from '../hash.js';
 import {
   LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
+  TRAIL_METADATA_HASH_VERSION,
 } from '../types.js';
 import type {
   LockManifest,
@@ -555,6 +556,7 @@ test('generated trail metadata survives root-lock readback and force-history car
   });
   const graph = deriveTopoGraph(topo('semantic-meta', { record }));
   expect(graph.entries[0]?.meta).toEqual(meta);
+  expect(graph.trailMetadataHashVersion).toBe(TRAIL_METADATA_HASH_VERSION);
   const force: TopoGraphForceEntry = {
     acceptedAt: '2026-10-28T00:00:00Z',
     change: 'modified',
@@ -576,6 +578,9 @@ test('generated trail metadata survives root-lock readback and force-history car
   const loaded = await readTrailsLock({ dir: tempDir });
   const loadedGraph = await readTopoGraph({ dir: tempDir });
   expect(loadedGraph?.entries[0]?.meta).toEqual(meta);
+  expect(loadedGraph?.trailMetadataHashVersion).toBe(
+    TRAIL_METADATA_HASH_VERSION
+  );
   expect(loadedGraph?.entries[0]?.forces).toEqual([force]);
   expect(loaded?.topoGraphHash).toBe(deriveTopoGraphHash(regenerated));
   expect(loaded).not.toBeNull();

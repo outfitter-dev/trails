@@ -13,6 +13,7 @@ import type {
 import { z } from 'zod';
 
 export const TOPO_GRAPH_SCHEMA_VERSION = 4;
+export const TRAIL_METADATA_HASH_VERSION = 1;
 export const LOCK_MANIFEST_SCHEMA_VERSION = 4;
 export const TRAILS_LOCK_SCHEMA_VERSION = 5;
 
@@ -265,6 +266,9 @@ export interface TopoGraphEntry {
 
 export interface TopoGraph {
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
+  readonly trailMetadataHashVersion?:
+    | typeof TRAIL_METADATA_HASH_VERSION
+    | undefined;
   readonly activationGraph: TopoGraphActivationGraph;
   readonly activationSources: Readonly<
     Record<string, TopoGraphActivationSource>
@@ -671,6 +675,7 @@ export const topoGraphSchema = z
     library: topoGraphLibraryDerivedSchema.optional(),
     overlays: z.record(z.string(), z.unknown()).optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
+    trailMetadataHashVersion: z.literal(TRAIL_METADATA_HASH_VERSION).optional(),
     trailheads: z.array(topoGraphTrailheadEntrySchema).optional(),
     workspace: workspaceTopoMetadataSchema.optional(),
   })

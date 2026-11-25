@@ -34,7 +34,10 @@ import {
   resolveCliAliasInputsFromOverlays,
   resolveTrailheadEntriesFromOverlays,
 } from '../surface-bindings.js';
-import { deriveTopoGraphRecordHash } from '../hash.js';
+import {
+  deriveTopoGraphRecordHash,
+  deriveTrailMetadataHashMarker,
+} from '../hash.js';
 import {
   LOCK_MANIFEST_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
@@ -44,6 +47,7 @@ import type {
   LockManifest,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
+  TopoGraph,
   TopoGraphLibraryDerived,
   TopoGraphOverlays,
   TopoGraphTrailheadEntry,
@@ -73,7 +77,8 @@ type TopoGraphRecord = Readonly<{
   readonly overlays?: TopoGraphOverlays | undefined;
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
   readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
-}>;
+}> &
+  Pick<TopoGraph, 'trailMetadataHashVersion'>;
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 type ZodSchemaInput = Parameters<typeof zodToJsonSchema>[0];
@@ -1309,6 +1314,7 @@ const buildTopoGraph = (
     library: deriveTopoGraphLibrary(topo),
     ...(overlays === undefined ? {} : { overlays }),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    ...deriveTrailMetadataHashMarker(entries),
     ...(trailheads === undefined ? {} : { trailheads }),
   };
 };

@@ -2,7 +2,10 @@ import { describe, test, expect } from 'bun:test';
 
 import { deriveTopoGraphDiff } from '../diff.js';
 import { deriveTopoGraphHash } from '../hash.js';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import {
+  TOPO_GRAPH_SCHEMA_VERSION,
+  TRAIL_METADATA_HASH_VERSION,
+} from '../types.js';
 import type { TopoGraph, TopoGraphEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -76,10 +79,12 @@ describe('deriveTopoGraphDiff', () => {
   });
 
   test('includes every own JSON key in metadata hashes and diffs', () => {
-    const withFact = (value: string) =>
-      topoGraph([
+    const withFact = (value: string) => ({
+      ...topoGraph([
         entry({ id: 'message.read', meta: { ['__proto__']: value } }),
-      ]);
+      ]),
+      trailMetadataHashVersion: TRAIL_METADATA_HASH_VERSION,
+    });
     const before = withFact('read');
     const after = withFact('ack');
 

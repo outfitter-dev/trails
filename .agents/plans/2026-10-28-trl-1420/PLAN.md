@@ -1,6 +1,6 @@
 # TRL-1420 execution contract
 
-Issue <https://linear.app/outfitter/issue/TRL-1420/preserve-authored-trail-meta-in-topograph-for-duplicate>. Owned branch trl-1420-preserve-authored-trail-meta-in-topograph-for-duplicate in /Users/mg/.codex/worktrees/0b34/trails. Initial base4973f97442db7bc950e059d438c04c5bc433abac. A1421 qualified unmerged d26c3ff88a843e45c8a505cd614963f11ca471e8 is a genuine commit-path prerequisite; coordinate operator parent integration before normal commit, preserving exact WIP. No ancestry dependency on1417 or1416.
+Issue [TRL-1420](https://linear.app/outfitter/issue/TRL-1420/preserve-authored-trail-meta-in-topograph-for-duplicate). Owned branch trl-1420-preserve-authored-trail-meta-in-topograph-for-duplicate in /Users/mg/.codex/worktrees/0b34/trails. Initial base4973f97442db7bc950e059d438c04c5bc433abac. A1421 qualified unmerged d26c3ff88a843e45c8a505cd614963f11ca471e8 is a genuine commit-path prerequisite; coordinate operator parent integration before normal commit, preserving exact WIP. No ancestry dependency on1417 or1416.
 
 Standing rolling LaneE authority permits necessary source/docs/tests/changesets, owned commits/push and draft PR after independent local review. No tracker/readiness/merge/publication/deploy/auth or other-repository mutation. Draft PR and current-head handoff are this execution checkpoint; only complete merged acceptance closes the issue.
 

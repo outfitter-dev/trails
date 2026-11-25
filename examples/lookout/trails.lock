@@ -6255,8 +6255,9 @@
         }
       ]
     },
-    "topoGraphSchemaVersion": 4
+    "topoGraphSchemaVersion": 4,
+    "trailMetadataHashVersion": 1
   },
-  "topoGraphHash": "b9ebb6356021c18d862156d22530da7047727f26efea14792a7e82c8fad2bb3c",
+  "topoGraphHash": "b2aa77878195534b71d70348260ce1d6309c51adf444b8f4f166b86dfd7a3130",
   "version": 5
 }

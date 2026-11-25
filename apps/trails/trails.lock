@@ -43173,6 +43173,7 @@
       }
     },
     "topoGraphSchemaVersion": 4,
+    "trailMetadataHashVersion": 1,
     "trailheads": [
       {
         "description": "Grouped MCP entry over: guide, survey, survey.brief, survey.diff, survey.resource, survey.signal, survey.surfaces, survey.trail, topo, topo.history.",
@@ -43196,6 +43197,6 @@
       }
     ]
   },
-  "topoGraphHash": "0b0d09f772bc3ac1702b814b4f47c8f2ffe397ca46c410309361a973c38c4a97",
+  "topoGraphHash": "f52270217f02186ba674e9c1206efcc317d39361656311d0e0c9c0622c0543d7",
   "version": 5
 }

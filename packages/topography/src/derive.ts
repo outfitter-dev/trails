@@ -28,6 +28,7 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from './permit.js';
+import { deriveTrailMetadataHashMarker } from './hash.js';
 import { deriveTopoGraphLibrary } from './library-derivation.js';
 import { collectTopoGraphOverlays } from './overlays.js';
 import {
@@ -683,5 +684,6 @@ export const deriveTopoGraph = (
     generatedAt: new Date().toISOString(),
     library,
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    ...deriveTrailMetadataHashMarker(sorted),
   };
 };

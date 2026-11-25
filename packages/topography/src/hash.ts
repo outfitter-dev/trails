@@ -5,9 +5,13 @@
  */
 
 import type { TopoGraph, TopoGraphEntry } from './types.js';
+import { TRAIL_METADATA_HASH_VERSION } from './types.js';
 
-type GraphEntry = Pick<TopoGraphEntry, 'kind'>;
-type GraphHashInput = Pick<TopoGraph, 'generatedAt'> & {
+type GraphEntry = Pick<TopoGraphEntry, 'kind'> & { readonly meta?: unknown };
+type GraphHashInput = Pick<
+  TopoGraph,
+  'generatedAt' | 'trailMetadataHashVersion'
+> & {
   readonly entries: readonly GraphEntry[];
 };
 
@@ -71,11 +75,21 @@ export const deriveStableHash = (value: unknown): string =>
 export const deriveTrailMetadataHash = (meta: TopoGraphEntry['meta']): string =>
   hashCanonical(canonicalize({ meta }, true));
 
+export const deriveTrailMetadataHashMarker = (
+  entries: readonly GraphEntry[]
+): Pick<TopoGraph, 'trailMetadataHashVersion'> =>
+  entries.some((entry) => entry.kind === 'trail' && entry.meta !== undefined)
+    ? { trailMetadataHashVersion: TRAIL_METADATA_HASH_VERSION }
+    : {};
+
 /** Share the checksum between public and store-backed graphs. */
 export const deriveTopoGraphRecordHash = (
   topoGraph: GraphHashInput
 ): string => {
   const { generatedAt: _unused, ...rest } = topoGraph;
+  if (rest.trailMetadataHashVersion !== TRAIL_METADATA_HASH_VERSION) {
+    return deriveStableHash(rest);
+  }
 
   return hashCanonical(
     canonicalizeRecord(rest, (key, field) =>
