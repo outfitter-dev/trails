@@ -14,6 +14,8 @@ The historical slug is preserved for reference stability. The 2026-05-08 amendme
 
 [ADR-0056](0056-permits-as-oauth-resource-server.md#decision) amends this decision's auth boundary: Trails is an OAuth resource server, surfaces normalize supported credentials, and shared permit policy owns verification, challenges and effective scopes. The bearer-only and informational-role descriptions below record the earlier model; they do not override ADR-0056 or establish that its implementations have shipped. [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-request) still owns stateless MCP authorization. Exact-match scope enforcement and explicit permit declarations remain foundational.
 
+[ADR-0060](0060-cli-credentials-and-app-login.md#decision) adds provider-backed remote CLI login and credential storage, with conditional CLI-only auth trails and coherent login/logout shortcuts. It preserves local permit flags and environment behavior and keeps token issuance at the provider; it does not turn Trails into an authorization server or claim the client implementation already ships.
+
 ## Context
 
 ### The vocabulary is already reserved
@@ -190,6 +192,10 @@ No cookies. No session-based auth at the framework level. Session management via
   the shared reconciliation; MCP integration is still pending.
   [ADR-0056](0056-permits-as-oauth-resource-server.md#the-credential-input-is-the-only-way-to-admit-a-permit)
   carries the normative per-surface matrix adopted through [TRL-1429].
+- 2026-10-28: [ADR-0060](0060-cli-credentials-and-app-login.md#decision)
+  amends the bearer-only CLI stance with provider-backed remote login, a
+  credentials resource and CLI-only auth trails. Local in-process permit use
+  remains; provider issuance and resource-server verification stay separate.
 - 2026-10-28: [ADR-0056](0056-permits-as-oauth-resource-server.md#decision)
   establishes the OAuth resource-server boundary, generalized credential
   extraction, per-request MCP authorization, role/actor policy and bounded
