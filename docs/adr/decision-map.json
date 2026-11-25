@@ -3270,6 +3270,11 @@
           "fromPath": "docs/adr/0010-native-infrastructure.md"
         },
         {
+          "context": "[ADR-0057](0057-auth-adapter-packaging.md#the-selected-targets-have-concrete-homes) selects Better Auth and Clerk as the first extracted provider adapters. It records the package boundaries and criter",
+          "from": "0012",
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        },
+        {
           "context": "- 2026-10-28: [ADR-0057](0057-auth-adapter-packaging.md#decision) applies the",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"

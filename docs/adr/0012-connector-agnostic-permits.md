@@ -138,7 +138,7 @@ Strict mode disables auto-minting entirely. Tests must provide explicit permits,
 
 Built-in: JWT/JWKS verification, provider-agnostic. Validates tokens, extracts claims, maps to `Permit`. No provider lock-in.
 
-First external adapter target: BetterAuth or Clerk, depending on which ships a cleaner token contract. OpenAuth later, once the adapter pattern is proven.
+[ADR-0057](0057-auth-adapter-packaging.md#the-selected-targets-have-concrete-homes) selects Better Auth and Clerk as the first extracted provider adapters. It records the package boundaries and criteria for adding other adapters; this does not commit to an OpenAuth adapter.
 
 ### Bearer-only for v1
 
@@ -173,6 +173,10 @@ No cookies. No session-based auth at the framework level. Session management via
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — auth layer follows the shared layer model for cross-cutting enforcement
 
 ## Amendment log
+
+- 2026-11-25: [ADR-0057](0057-auth-adapter-packaging.md) replaces the provisional
+  first-adapter choice with separate Better Auth and Clerk packages. The
+  provider-agnostic JWT/JWKS verifier remains in permits.
 
 - 2026-10-29: TRL-1561 makes the credential input the only door for a permit
   on a surface. `@ontrails/permits` owns one reconciliation (`reconcilePermit`)

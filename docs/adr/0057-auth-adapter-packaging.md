@@ -86,4 +86,4 @@ The explicitly selected Better Auth and Clerk packages add maintenance and distr
 [TRL-1491]: https://linear.app/outfitter/issue/TRL-1491
 [TRL-1493]: https://linear.app/outfitter/issue/TRL-1493
 
-[^plan]: [Connected auth and RBAC plan](https://app.notion.com/p/4061b36f46cb8195a0f8f35043857f3b), “Adapter candidates and priority” and the October 27 packaging decision in “Open questions for Matt”; [connected resource-server draft](https://app.notion.com/p/4061b36f46cb81b08730dceafbbc5d26), “Provider adapters ship as their own packages.” Live TRL-1432/1482/1493 preserve the named target decisions and the general admission criterion; this ADR makes their reconciliation explicit.
+[^plan]: [Connected auth and RBAC plan](https://app.notion.com/p/4061b36f46cb8195a0f8f35043857f3b), “Adapter candidates and priority” and the October 27 packaging decision in “Open questions for Matt”; [connected resource-server draft](https://app.notion.com/p/4061b36f46cb81b08730dceafbbc5d26), “Provider adapters ship as their own packages.” [TRL-1432], [TRL-1482], and [TRL-1493] record the named targets and the general admission criterion; this ADR reconciles them.
