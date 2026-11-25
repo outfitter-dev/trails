@@ -62,6 +62,9 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0053](0053-regrade-moves-governed-contract-change.md) | Regrade Moves Governed Contract Change | Accepted |
 | [0054](0054-project-substrate-names-its-truth.md) | Project Substrate Names Its Truth | Accepted |
 | [0055](0055-mcp-stateless-core-on-sdk-v2.md) | MCP Targets the Stateless Core on SDK v2 | Accepted |
+| [0056](0056-permits-as-oauth-resource-server.md) | Permits Make Trails an OAuth Resource Server | Accepted |
 | [0057](0057-auth-adapter-packaging.md) | Provider Auth Adapters Own Their Package Boundaries | Accepted |
 | [0059](0059-durable-subscriptions-over-signals.md) | Durable Subscriptions Share One Delivery Model | Accepted |
+| [0060](0060-cli-credentials-and-app-login.md) | CLIs Sign In Through the App's Provider | Accepted |
+| [0061](0061-skills-as-a-served-guidance-surface.md) | Skills Are a Served Guidance Surface | Accepted |
 | [0062](0062-documentation-architecture.md) | Documentation Architecture | Accepted |
