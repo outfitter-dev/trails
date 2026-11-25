@@ -944,13 +944,6 @@ const diffTrailEntryDetails = (
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
 ): void => {
-  if (
-    curr.kind === 'trail' &&
-    prev.meta !== curr.meta &&
-    deriveTrailMetadataHash(prev.meta) !== deriveTrailMetadataHash(curr.meta)
-  ) {
-    addDetail(acc, 'info', 'Trail metadata changed');
-  }
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
   diffCliPath(acc, prev, curr);
@@ -960,6 +953,16 @@ const diffTrailEntryDetails = (
   diffVersionEntries(acc, prev, curr);
   diffVersionExampleCoverage(acc, prev, curr);
   diffForces(acc, prev, curr);
+
+  // Breaking details become persisted force reasons, not annotations.
+  if (
+    acc.severity !== 'breaking' &&
+    curr.kind === 'trail' &&
+    prev.meta !== curr.meta &&
+    deriveTrailMetadataHash(prev.meta) !== deriveTrailMetadataHash(curr.meta)
+  ) {
+    addDetail(acc, 'info', 'Trail metadata changed');
+  }
 };
 
 const diffEntryDetails = (
