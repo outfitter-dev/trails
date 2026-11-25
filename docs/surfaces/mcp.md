@@ -66,7 +66,9 @@ Produces the JSON Schema:
 
 ## Output Schema and Examples
 
-When a trail declares `output`, the MCP tool definition includes an `outputSchema` derived from that Zod schema. Schemas whose JSON representation has a top-level `type: "object"` render directly into `structuredContent`. All other schemas -- arrays, scalars, discriminated unions (`anyOf`), intersections (`allOf`), and `z.any()` -- are wrapped in `{ data: ... }` because MCP requires the root of `outputSchema` to be `type: "object"`.
+When a trail declares `output`, modern MCP (`2026-07-28`) advertises the authored JSON Schema as `outputSchema` and returns the value directly in `structuredContent`. An array stays an array, and a scalar or `null` stays a scalar or `null`.
+
+Legacy MCP and the standalone `deriveMcpTools()` helper still require an object-root schema. If the authored schema has no top-level `type: "object"`, the advertised schema and the returned structured value both use `{ data: ... }`. That includes unions even when the selected value is an object. The schema shown in `trails://surface-map` matches `tools/list` in both eras.
 
 Trail examples are exposed as structured tool metadata under `_meta["ontrails/examples"]`. Each example keeps the authored input, expected output or error, a success/error kind, and provenance pointing back to `trail.examples`; clients do not need to scrape example JSON from prose descriptions.
 
@@ -78,7 +80,7 @@ Dense MCP surfaces can use trailheads to group related trails into fewer agent-f
 - optionally pass a call-site trailhead map in MCP surface options when the running surface needs richer metadata (description, deferred loading) — the call-site map is an override-in-context and wins at runtime;
 - each trailhead becomes one MCP tool;
 - call the trailhead with `{ trail, input }`;
-- successful responses return `{ trail, output }`;
+- successful responses return `{ trail, output }`, with the selected member's protocol-specific value nested under `output`;
 - inspect `trails://surface-map` for trailhead IDs, member trail IDs, schemas, and deferred-loading hints, and use `trails://examples/<trailId>` for member examples.
 
 ## Overlay Bindings
@@ -350,7 +352,7 @@ The SDK may construct a discovery probe before pinning the connection instance, 
 
 Non-image `BlobRef` results now contain SDK-valid embedded binary resources: `{ type: 'resource', resource: { uri, mimeType, blob } }`, where `blob` is base64. The old flat resource entry was invalid. This change reads and buffers non-image streams as well as image streams; it does not advertise a `blob://` resource reader. Custom content consumers must read the nested `resource` object. Trail output descriptors in `structuredContent` keep their existing shape.
 
-This migration covers stdio and the SDK dependency. The fetch-shaped handler, modern scalar and array output envelopes, and temporary adopter migration skill remain separate implementations. It does not advertise subscriptions or additional-input exchanges.
+The SDK migration covered stdio and the SDK dependency. The [fetch-shaped handler](mcp-http.md) and negotiated output rendering described above also use SDK v2. Trails does not advertise subscriptions or additional-input exchanges.
 
 SDK 2.4.0's client can lose its `onprogress` callback when one pipe read contains a progress notification and its tool result: notification dispatch is deferred while the result removes the callback. The server's stdio tests validate progress payloads and ordering on the wire. This migration does not patch the client SDK.
 
