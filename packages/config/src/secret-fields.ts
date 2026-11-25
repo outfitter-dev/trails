@@ -52,7 +52,10 @@ interface WalkEntry {
   readonly ancestors: readonly ConfigSecretAncestor[];
   readonly parent: VisitedSchema | undefined;
   readonly unionHasMeta?: boolean;
+  readonly unionWrappers?: WrapperFacts;
 }
+
+type WrapperFacts = Omit<ConfigSecretAncestor, 'path'>;
 
 interface VisitedSchema {
   readonly schema: z.ZodType;
@@ -149,19 +152,20 @@ const queueBranch = (
 
 const ancestorFacts = (
   entry: WalkEntry,
-  shape: NonNullable<ReturnType<typeof unwrapSecretField>>
+  facts: WrapperFacts
 ): readonly ConfigSecretAncestor[] =>
-  shape.optional || shape.defaulted || shape.nullable
-    ? [
-        ...entry.ancestors,
-        {
-          defaulted: shape.defaulted,
-          nullable: shape.nullable,
-          optional: shape.optional,
-          path: entry.path,
-        },
-      ]
+  facts.optional || facts.defaulted || facts.nullable
+    ? [...entry.ancestors, { ...facts, path: entry.path }]
     : entry.ancestors;
+
+const localWrappers = (
+  shape: WrapperFacts,
+  union: WrapperFacts | undefined
+): WrapperFacts => ({
+  defaulted: shape.defaulted || union?.defaulted === true,
+  nullable: shape.nullable || union?.nullable === true,
+  optional: shape.optional || union?.optional === true,
+});
 
 const supportsSecretField = (schema: z.ZodType, type: unknown): boolean =>
   type === 'object' ||
@@ -212,27 +216,31 @@ export const deriveConfigSecretFields = (
     if (entry.unionHasMeta && hasMeta) {
       return incomplete(entry.path);
     }
+    const wrappers = localWrappers(shape, entry.unionWrappers);
     if (meta?.secret) {
       fields.push({
         ...(meta.env === undefined ? {} : { env: meta.env }),
         ancestors: entry.ancestors,
         path: entry.path,
-        required: !shape.optional && !shape.defaulted,
+        required: !wrappers.optional && !wrappers.defaulted,
         secret: true,
       });
     }
     const childEntry = {
-      ancestors: ancestorFacts(entry, shape),
+      ancestors: entry.ancestors,
       parent: { parent: entry.parent, schema: shape.base },
       path: entry.path,
       schema: shape.base,
     };
     let issue: ReturnType<typeof incomplete> | null = null;
     if (type === 'object') {
-      issue = queueObject(childEntry, queue);
+      issue = queueObject(
+        { ...childEntry, ancestors: ancestorFacts(entry, wrappers) },
+        queue
+      );
     } else if (type === 'union') {
       issue = queueBranch(
-        { ...childEntry, unionHasMeta: hasMeta },
+        { ...childEntry, unionHasMeta: hasMeta, unionWrappers: wrappers },
         queue,
         options
       );

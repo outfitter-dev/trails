@@ -7,6 +7,33 @@ import { zodDef } from './zod-utils.js';
 const WRAPPERS = new Set(['optional', 'default', 'nullable', 'readonly']);
 const SCALARS = new Set(['string', 'number', 'boolean', 'enum', 'null']);
 
+const ownData = (target: unknown, key: PropertyKey): unknown =>
+  target !== null && typeof target === 'object'
+    ? Object.getOwnPropertyDescriptor(target, key)?.value
+    : undefined;
+
+const supportsChecks = (def: Record<string, unknown>): boolean => {
+  const descriptor = Object.getOwnPropertyDescriptor(def, 'checks');
+  if (
+    !descriptor ||
+    ('value' in descriptor && descriptor.value === undefined)
+  ) {
+    return true;
+  }
+  const checks: unknown = descriptor.value;
+  if (!Array.isArray(checks)) {
+    return false;
+  }
+  for (let index = 0; index < checks.length; index += 1) {
+    const check = ownData(checks, index);
+    const kind = ownData(ownData(ownData(check, '_zod'), 'def'), 'check');
+    if (typeof kind !== 'string' || kind === 'overwrite') {
+      return false;
+    }
+  }
+  return true;
+};
+
 const readMetadataDescriptors = (schema: z.ZodType) => {
   // Registry.get spreads cloned metadata, which reads even unrelated getters.
   const map = Object.getOwnPropertyDescriptor(globalRegistry, '_map')?.value;
@@ -82,6 +109,10 @@ export const unwrapSecretField = (schema: z.ZodType) => {
   let nullable = false;
   let meta: ConfigFieldMeta | undefined;
   for (;;) {
+    const def = zodDef(base);
+    if (!supportsChecks(def)) {
+      return;
+    }
     const own = readSecretFieldMeta(base);
     if (own === false) {
       return;
@@ -89,7 +120,6 @@ export const unwrapSecretField = (schema: z.ZodType) => {
     if (own) {
       meta = Object.assign(own, meta);
     }
-    const def = zodDef(base);
     if (!WRAPPERS.has(def['type'] as string)) {
       return { base, defaulted, meta, nullable, optional };
     }
@@ -101,7 +131,8 @@ export const unwrapSecretField = (schema: z.ZodType) => {
 };
 
 const literalValues = (schema: z.ZodType): ReadonlySet<unknown> | undefined => {
-  if (zodDef(schema)['type'] !== 'literal') {
+  const def = zodDef(schema);
+  if (def['type'] !== 'literal' || !supportsChecks(def)) {
     return;
   }
   // Zod records the values it actually accepts at construction, not on read.

@@ -228,10 +228,15 @@ Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Pr
   order, default contents, and refinements can affect runtime applicability.
 - A secret field without `env` remains sensitive but declares no environment
   name. An environment binding without explicit `secret: true` is not included.
+  For consistent discovery across Config APIs, put both annotations on the same
+  schema, for example `secret(env(z.string(), 'TOKEN'))`. This helper combines
+  annotations across supported wrappers; Config's general metadata collector
+  uses the first annotated wrapper instead.
 - Missing/invalid union selections and unsupported shapes return
-  `complete: false` with a path and typed reason. Ordinary unions, transforms,
-  coercions, accessor-backed object fields, selections or metadata, recursive
-  objects, and structured or annotated array elements are incomplete.
+  `complete: false` with a path and typed reason. Ordinary unions, transforms
+  (including Zod overwrite checks), coercions, accessor-backed object fields,
+  selections or metadata, recursive objects, and structured or annotated array
+  elements are incomplete.
   Metadata-free scalar-element arrays are inspectable leaves.
 - Discriminated unions need object branches (which may be readonly) with
   non-secret, unwrapped literal tags. Tag values must be distinct across
