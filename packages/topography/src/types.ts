@@ -663,7 +663,12 @@ const topoGraphEntrySchema = z
     version: z.number().int().positive().optional(),
     versions: z.record(z.string(), topoGraphVersionEntrySchema).optional(),
   })
-  .strict();
+  .strict()
+  .overwrite((entry) =>
+    entry.kind === 'trail' || entry.meta === undefined
+      ? entry
+      : { ...entry, meta: openFactBagSchema.parse(entry.meta) }
+  );
 
 export const topoGraphSchema = z
   .object({

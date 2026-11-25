@@ -135,6 +135,37 @@ describe('writeTopoGraph / readTopoGraph', () => {
     expect(result).toEqual(map);
   });
 
+  test('keeps legacy signal metadata parsing even on marked trail graphs', async () => {
+    const graph: TopoGraph = {
+      ...makeTopoGraph(),
+      entries: [
+        {
+          exampleCount: 0,
+          id: 'user.created',
+          kind: 'signal',
+          meta: { ['__proto__']: 'fact', owner: 'accounts' },
+          surfaces: [],
+        },
+        {
+          exampleCount: 0,
+          id: 'user.create',
+          kind: 'trail',
+          meta: { ['__proto__']: 'fact', owner: 'accounts' },
+          surfaces: [],
+        },
+      ],
+      trailMetadataHashVersion: TRAIL_METADATA_HASH_VERSION,
+    };
+    await writeTopoGraph(graph, { dir: tempDir });
+    const loaded = await readTopoGraph({ dir: tempDir });
+    const [signal, record] = loaded?.entries ?? [];
+    expect(signal?.meta).toEqual({ owner: 'accounts' });
+    expect(record?.meta).toEqual({ ['__proto__']: 'fact', owner: 'accounts' });
+    expect(loaded && deriveTopoGraphHash(loaded)).toBe(
+      deriveTopoGraphHash(graph)
+    );
+  });
+
   test('round-trips topo trailhead metadata', async () => {
     const map: TopoGraph = {
       ...makeTopoGraph(),
