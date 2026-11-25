@@ -217,7 +217,7 @@ const derivation = deriveConfigSecretFields(authSchema, {
 });
 ```
 
-A complete derivation describes declared metadata for the selected supported shape. It does not prove that every effective profile secret is provisioned. Profile and binding selection remain the caller's responsibility.
+A complete derivation describes declared metadata for the selected supported shape. It does not validate config values: even a matching discriminator literal may be rejected by a refinement during parsing. It does not prove that every effective profile secret is provisioned. Profile and binding selection remain the caller's responsibility.
 
 Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Proxies anywhere in the inspected schema, metadata, or options graph. This helper is not a sandbox or a Proxy detector: reflection can invoke Proxy traps, and inputs outside the contract need not return typed incompleteness. Do not derive metadata from arbitrary schema objects whose provenance you cannot establish.
 
@@ -245,8 +245,9 @@ Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Pr
   for an explicit selector.
   A `__proto__` selector or path segment is incomplete because Zod drops that
   key from parsed objects.
-  Length checks are qualified on Zod 4.6.7. Exact Zod 4.3.5 returns incomplete
-  for those checks because their internal guards cannot be identified.
+  Length checks are qualified with the same loaded Zod 4.6.7 build as Config.
+  They return incomplete when Config cannot identify the built-in guard, including
+  with exact Zod 4.3.5 or when ESM Config receives checks from CommonJS Zod.
   Metadata-free scalar-element arrays are inspectable leaves.
 - Discriminated unions need object branches (which may be readonly) with
   non-secret, unwrapped literal tags. Tag values must be distinct across

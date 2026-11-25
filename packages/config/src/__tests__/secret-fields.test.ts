@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { createRequire } from 'node:module';
 import { globalRegistry, z } from 'zod';
 
 import { deriveConfigSecretFields } from '../index.js';
@@ -189,6 +190,28 @@ describe('deriveConfigSecretFields', () => {
   });
 
   describe('explicit branch selection', () => {
+    test('selects by the declared literal without validating a refinement', () => {
+      let calls = 0;
+      const schema = z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('key').refine(() => {
+            calls += 1;
+            return false;
+          }),
+          token: secret(z.string()),
+        }),
+        z.object({ kind: z.literal('none') }),
+      ]);
+      expect(
+        deriveConfigSecretFields(schema, { discriminants: { kind: 'key' } })
+      ).toMatchObject({ complete: true, fields: [{ path: 'token' }] });
+      expect(calls).toBe(0);
+      expect(schema.safeParse({ kind: 'key', token: 'input' }).success).toBe(
+        false
+      );
+      expect(calls).toBe(1);
+    });
+
     test('reports missing and invalid branch selections without echoing literals', () => {
       const schema = z.discriminatedUnion('kind', [
         z.object({ kind: z.literal('none') }),
@@ -1173,6 +1196,30 @@ describe('deriveConfigSecretFields', () => {
   });
 
   describe('Zod compatibility', () => {
+    test('fails closed on length checks from the CommonJS Zod build', () => {
+      const requireZod = createRequire(import.meta.url);
+      const { z: commonJsZod } = requireZod('zod') as { z: typeof z };
+      const esm = z.object({ token: secret(z.string().min(1)) });
+      const mixed = commonJsZod.object({
+        token: secret(commonJsZod.string().min(1)),
+      });
+      const plain = commonJsZod.object({ token: secret(commonJsZod.string()) });
+      expect(mixed.safeParse({ token: 'input' }).success).toBe(true);
+      expect(deriveConfigSecretFields(esm)).toMatchObject({
+        complete: true,
+        fields: [{ path: 'token' }],
+      });
+      expect(deriveConfigSecretFields(mixed)).toEqual({
+        complete: false,
+        path: 'token',
+        reason: 'unsupported-schema',
+      });
+      expect(deriveConfigSecretFields(plain)).toMatchObject({
+        complete: true,
+        fields: [{ path: 'token' }],
+      });
+    });
+
     test('imports and fails closed when descriptor-safe object inspection is unavailable', () => {
       const moduleUrl = new URL('../secret-fields.ts', import.meta.url).href;
       const result = Bun.spawnSync(

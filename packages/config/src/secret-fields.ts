@@ -183,6 +183,7 @@ const supportsSecretField = (schema: z.ZodType, type: unknown): boolean =>
  *
  * Select discriminated unions explicitly; defaults never choose a branch.
  * Inspection accepts only known value-preserving checks and ancestor shapes.
+ * Selecting a branch by its literal does not validate its selector or config.
  * Optional/defaulted leaves are not locally required; nullable alone is required.
  * Ancestor flags do not model wrapper order, default contents, or refinements.
  * Profile owners must derive effective provisioning from their selected context.
