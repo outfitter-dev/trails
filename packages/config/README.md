@@ -227,9 +227,10 @@ A complete derivation describes declared metadata for the selected supported sha
 - A secret field without `env` remains sensitive but declares no environment
   name. An environment binding without explicit `secret: true` is not included.
 - Missing/invalid union selections and unsupported shapes return
-  `complete: false` with a path and typed reason. Ordinary unions, transforms, coercions,
-  accessor-backed objects, and structured or annotated array elements are
-  incomplete; metadata-free scalar-element arrays are inspectable leaves.
+  `complete: false` with a path and typed reason. Ordinary unions, transforms,
+  coercions, accessor-backed object fields, selections or metadata, recursive
+  objects, and structured or annotated array elements are incomplete.
+  Metadata-free scalar-element arrays are inspectable leaves.
 - Every present non-undefined catchall is incomplete at its containing object,
   including strict and loose objects and annotated `unknown`/`never` schemas.
   Plain objects and `.strip()` with no catchall remain supported. The helper

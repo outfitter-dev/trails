@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { z } from 'zod';
+import { globalRegistry, z } from 'zod';
 
 import { deriveConfigSecretFields } from '../index.js';
 import { deprecated, env, secret } from '../extensions.js';
@@ -492,6 +492,131 @@ describe('deriveConfigSecretFields', () => {
       deriveConfigSecretFields(schema, { discriminants: { kind: 'none' } })
     ).toEqual({ complete: false, path: 'kind', reason: 'unsupported-schema' });
     expect(calls).toBe(before);
+  });
+
+  test('rejects accessor-backed selections without reading them', () => {
+    const schema = z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('key'), token: secret(z.string()) }),
+      z.object({ kind: z.literal('none') }),
+    ]);
+    let calls = 0;
+    const selections = {
+      get kind(): 'key' {
+        calls += 1;
+        return 'key';
+      },
+    };
+    const results = [
+      deriveConfigSecretFields(schema, { discriminants: selections }),
+      deriveConfigSecretFields(schema, {
+        get discriminants() {
+          calls += 1;
+          return { kind: 'key' };
+        },
+      }),
+    ];
+    expect(calls).toBe(0);
+    const incomplete = {
+      complete: false,
+      path: 'kind',
+      reason: 'unsupported-schema',
+    };
+    expect(results).toEqual([incomplete, incomplete]);
+  });
+
+  test('rejects accessor-backed secret metadata through registry inheritance without reading it', () => {
+    let calls = 0;
+    const token = z.string();
+    const clone = token.describe('token');
+    globalRegistry.add(token, {
+      get secret() {
+        calls += 1;
+        return true;
+      },
+    });
+    const results = [token, clone].map((field) =>
+      deriveConfigSecretFields(z.object({ token: field }))
+    );
+    expect(calls).toBe(0);
+    expect(results).toEqual(
+      Array.from({ length: 2 }, () => ({
+        complete: false,
+        path: 'token',
+        reason: 'unsupported-schema',
+      }))
+    );
+  });
+
+  test('does not read excluded registry metadata', () => {
+    let calls = 0;
+    const token = z.string();
+    const clone = token.describe('token');
+    globalRegistry.add(token, {
+      get deprecationMessage() {
+        calls += 1;
+        return 'unused';
+      },
+      secret: true,
+    });
+    const results = [token, clone].map((schema) =>
+      deriveConfigSecretFields(schema)
+    );
+    expect(calls).toBe(0);
+    const complete = {
+      complete: true,
+      fields: [{ ancestors: [], path: '', required: true, secret: true }],
+    };
+    expect(results).toEqual([complete, complete]);
+  });
+
+  test('ignores non-enumerable object fields before and after Zod reads the shape', () => {
+    let calls = 0;
+    const shape = { visible: z.string() };
+    Object.defineProperties(shape, {
+      hidden: { value: secret(z.string()) },
+      ignored: {
+        get() {
+          calls += 1;
+          return secret(z.string());
+        },
+      },
+    });
+    const schema = z.object(shape);
+    expect(deriveConfigSecretFields(schema)).toEqual({
+      complete: true,
+      fields: [],
+    });
+    void schema.shape;
+    expect(deriveConfigSecretFields(schema)).toEqual({
+      complete: true,
+      fields: [],
+    });
+    expect(calls).toBe(0);
+  });
+
+  test('rejects cycles in materialized object shapes without rejecting shared schemas', () => {
+    const recursive = z.object({
+      get child(): z.ZodOptional<z.ZodType> {
+        return recursive.optional();
+      },
+    });
+    void recursive.shape;
+    expect(deriveConfigSecretFields(recursive)).toEqual({
+      complete: false,
+      path: 'child',
+      reason: 'unsupported-schema',
+    });
+
+    const shared = z.object({ token: secret(z.string()) });
+    expect(
+      deriveConfigSecretFields(z.object({ a: shared, b: shared }))
+    ).toEqual({
+      complete: true,
+      fields: [
+        { ancestors: [], path: 'a.token', required: true, secret: true },
+        { ancestors: [], path: 'b.token', required: true, secret: true },
+      ],
+    });
   });
 
   test('does not inspect getters in an unselected branch', () => {

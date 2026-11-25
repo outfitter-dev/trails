@@ -42,11 +42,6 @@ const pickConfigMeta = (
     : undefined;
 };
 
-/** Read only the existing Config metadata allowlist on this schema node. */
-export const readOwnConfigMeta = (
-  schema: z.ZodType
-): ConfigFieldMeta | undefined => pickConfigMeta(globalRegistry.get(schema));
-
 /**
  * Extract `ConfigFieldMeta` from a schema, unwrapping through
  * `.default()`, `.optional()`, `.nullable()` wrappers as needed.
@@ -55,7 +50,7 @@ const extractConfigMeta = (schema: z.ZodType): ConfigFieldMeta | undefined => {
   let current: z.ZodType | undefined = schema;
 
   while (current) {
-    const meta = readOwnConfigMeta(current);
+    const meta = pickConfigMeta(globalRegistry.get(current));
     if (meta) {
       return meta;
     }

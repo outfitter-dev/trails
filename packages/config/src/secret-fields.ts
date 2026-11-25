@@ -50,7 +50,22 @@ interface WalkEntry {
   readonly schema: z.ZodType;
   readonly path: string;
   readonly ancestors: readonly ConfigSecretAncestor[];
+  readonly parent: VisitedSchema | undefined;
 }
+
+interface VisitedSchema {
+  readonly schema: z.ZodType;
+  readonly parent: VisitedSchema | undefined;
+}
+
+const hasAncestor = (schema: z.ZodType, parent: VisitedSchema | undefined) => {
+  for (let entry = parent; entry; entry = entry.parent) {
+    if (schema === entry.schema) {
+      return true;
+    }
+  }
+  return false;
+};
 
 const supportedSegment = (key: string): boolean =>
   key.length > 0 && !key.includes('.');
@@ -78,6 +93,7 @@ const queueObject = (entry: WalkEntry, queue: WalkEntry[]) => {
     }
     queue.push({
       ancestors: entry.ancestors,
+      parent: entry.parent,
       path: entry.path ? `${entry.path}.${key}` : key,
       schema,
     });
@@ -100,13 +116,24 @@ const queueBranch = (
     return incomplete(entry.path);
   }
   const path = entry.path ? `${entry.path}.${discriminator}` : discriminator;
-  if (!Object.hasOwn(options.discriminants ?? {}, path)) {
+  const selections = Object.getOwnPropertyDescriptor(options, 'discriminants');
+  if (selections && !('value' in selections)) {
+    return incomplete(path);
+  }
+  const selection = Object.getOwnPropertyDescriptor(
+    selections?.value ?? {},
+    path
+  );
+  if (!selection) {
     return incomplete(path, 'missing-discriminant');
+  }
+  if (!('value' in selection)) {
+    return incomplete(path);
   }
   const selected = selectSecretBranch(
     def['options'],
     discriminator,
-    options.discriminants?.[path]
+    selection.value
   );
   if (selected.kind !== 'selected') {
     return incomplete(
@@ -122,7 +149,7 @@ const queueBranch = (
 
 const ancestorFacts = (
   entry: WalkEntry,
-  shape: ReturnType<typeof unwrapSecretField>
+  shape: NonNullable<ReturnType<typeof unwrapSecretField>>
 ): readonly ConfigSecretAncestor[] =>
   shape.optional || shape.defaulted || shape.nullable
     ? [
@@ -156,9 +183,14 @@ export const deriveConfigSecretFields = (
   options: DeriveConfigSecretFieldsOptions = {}
 ): ConfigSecretFieldDerivation => {
   const fields: ConfigSecretField[] = [];
-  const queue: WalkEntry[] = [{ ancestors: [], path: '', schema }];
+  const queue: WalkEntry[] = [
+    { ancestors: [], parent: undefined, path: '', schema },
+  ];
   for (let entry = queue.pop(); entry; entry = queue.pop()) {
     const shape = unwrapSecretField(entry.schema);
+    if (!shape || hasAncestor(shape.base, entry.parent)) {
+      return incomplete(entry.path);
+    }
     const def = zodDef(shape.base);
     const { type } = def;
     const supported =
@@ -181,6 +213,7 @@ export const deriveConfigSecretFields = (
     }
     const childEntry = {
       ancestors: ancestorFacts(entry, shape),
+      parent: { parent: entry.parent, schema: shape.base },
       path: entry.path,
       schema: shape.base,
     };

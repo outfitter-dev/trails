@@ -1,12 +1,68 @@
+import { globalRegistry } from 'zod';
 import type { z } from 'zod';
 import { util as zodUtil } from 'zod/v4/core';
 
-import { readOwnConfigMeta } from './collect.js';
 import type { ConfigFieldMeta } from './extensions.js';
 import { zodDef } from './zod-utils.js';
 
 const WRAPPERS = new Set(['optional', 'default', 'nullable', 'readonly']);
 const SCALARS = new Set(['string', 'number', 'boolean', 'enum', 'null']);
+
+const readMetadataDescriptors = (schema: z.ZodType) => {
+  // Registry.get spreads cloned metadata, which reads even unrelated getters.
+  const map = Object.getOwnPropertyDescriptor(globalRegistry, '_map')?.value;
+  if (!(map instanceof WeakMap)) {
+    return;
+  }
+  const keys = ['env', 'secret', 'deprecationMessage'] as const;
+  const descriptors: Partial<
+    Record<(typeof keys)[number], PropertyDescriptor>
+  > = {};
+  const inherits = schema._zod.parent !== undefined;
+  for (
+    let node: typeof schema._zod.parent = schema;
+    node;
+    node = node._zod.parent
+  ) {
+    const raw: unknown = map.get(node);
+    if (!raw || typeof raw !== 'object') {
+      continue;
+    }
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(raw, key);
+      if (descriptor && (!inherits || descriptor.enumerable)) {
+        descriptors[key] ??= descriptor;
+      }
+    }
+  }
+  return descriptors;
+};
+
+const readSecretFieldMeta = (
+  schema: z.ZodType
+): ConfigFieldMeta | undefined | false => {
+  const descriptors = readMetadataDescriptors(schema);
+  if (!descriptors) {
+    return false;
+  }
+  const { env, secret, deprecationMessage } = descriptors;
+  if ((env && !('value' in env)) || (secret && !('value' in secret))) {
+    return false;
+  }
+  const envName: unknown = env?.value;
+  const sensitive = secret?.value === true;
+  const hasDeprecation =
+    deprecationMessage !== undefined &&
+    (!('value' in deprecationMessage) ||
+      typeof deprecationMessage.value === 'string');
+  if (typeof envName === 'string' || sensitive || hasDeprecation) {
+    return {
+      ...(typeof envName === 'string' ? { env: envName } : {}),
+      ...(sensitive ? { secret: true } : {}),
+    };
+  }
+  return undefined;
+};
 
 /** Presence facts only; never reads a default value or evaluates a schema. */
 export const unwrapSecretField = (schema: z.ZodType) => {
@@ -16,7 +72,10 @@ export const unwrapSecretField = (schema: z.ZodType) => {
   let nullable = false;
   let meta: ConfigFieldMeta | undefined;
   for (;;) {
-    const own = readOwnConfigMeta(base);
+    const own = readSecretFieldMeta(base);
+    if (own === false) {
+      return;
+    }
     if (own) {
       meta = Object.assign(own, meta);
     }
@@ -52,8 +111,12 @@ export const isSecretScalar = (schema: z.ZodType): boolean => {
 /** Scalar arrays are inspectable leaves only when their elements add no secrets. */
 export const isInspectableSecretArray = (schema: z.ZodType): boolean => {
   const element = zodDef(schema)['element'] as z.ZodType;
-  const { base, meta } = unwrapSecretField(element);
-  return isSecretScalar(base) && meta === undefined;
+  const shape = unwrapSecretField(element);
+  return (
+    shape !== undefined &&
+    isSecretScalar(shape.base) &&
+    shape.meta === undefined
+  );
 };
 
 type RawShapeReader = (
@@ -81,17 +144,14 @@ export const secretObjectShape = (
   if (!shape) {
     return undefined;
   }
-  const descriptors = Object.getOwnPropertyDescriptors(shape);
-  if (
-    Object.values(descriptors).some((descriptor) => !('value' in descriptor))
-  ) {
+  const fields = Object.entries(Object.getOwnPropertyDescriptors(shape)).filter(
+    ([, descriptor]) => descriptor.enumerable
+  );
+  if (fields.some(([, descriptor]) => !('value' in descriptor))) {
     return undefined;
   }
   return Object.fromEntries(
-    Object.entries(descriptors).map(([key, descriptor]) => [
-      key,
-      descriptor.value as z.ZodType,
-    ])
+    fields.map(([key, descriptor]) => [key, descriptor.value as z.ZodType])
   );
 };
 
@@ -104,7 +164,7 @@ const secretDiscriminator = (
     return undefined;
   }
   const descriptor = Object.getOwnPropertyDescriptor(shape, key);
-  return descriptor && 'value' in descriptor
+  return descriptor?.enumerable && 'value' in descriptor
     ? (descriptor.value as z.ZodType)
     : undefined;
 };
@@ -121,15 +181,18 @@ export const selectSecretBranch = (
 ): SecretBranchSelection => {
   const matches: z.ZodType[] = [];
   for (const option of options) {
-    const { base } = unwrapSecretField(option);
-    if (zodDef(base)['type'] !== 'object') {
+    const branch = unwrapSecretField(option);
+    if (!branch || zodDef(branch.base)['type'] !== 'object') {
       return { kind: 'unsupported' };
     }
-    const field = secretDiscriminator(base, discriminator);
+    const field = secretDiscriminator(branch.base, discriminator);
     if (!field) {
       return { kind: 'unsupported' };
     }
     const shape = unwrapSecretField(field);
+    if (!shape) {
+      return { kind: 'unsupported' };
+    }
     const literal = zodDef(shape.base);
     if (shape.meta?.secret) {
       return { kind: 'unsupported' };
