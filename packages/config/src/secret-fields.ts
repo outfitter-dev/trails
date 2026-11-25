@@ -72,7 +72,7 @@ const hasAncestor = (schema: z.ZodType, parent: VisitedSchema | undefined) => {
 };
 
 const supportedSegment = (key: string): boolean =>
-  key.length > 0 && !key.includes('.');
+  key.length > 0 && !key.includes('.') && key !== '__proto__';
 
 const incomplete = (
   path: string,

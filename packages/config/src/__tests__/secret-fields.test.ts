@@ -310,6 +310,37 @@ describe('deriveConfigSecretFields', () => {
       });
     });
 
+    test('rejects object keys Zod can drop, including selector ancestors', () => {
+      const selector = z.discriminatedUnion('__proto__', [
+        z.object({ ['__proto__']: z.literal('none') }),
+        z.object({
+          ['__proto__']: z.literal('key'),
+          token: secret(z.string()),
+        }),
+      ]);
+      expect(
+        deriveConfigSecretFields(selector, {
+          discriminants: { ['__proto__']: 'none' },
+        })
+      ).toEqual({ complete: false, path: '', reason: 'unsupported-schema' });
+      expect(selector.parse({ ['__proto__']: 'none' })).toEqual({});
+
+      const nested = z.object({
+        ['__proto__']: z.discriminatedUnion('kind', [
+          z.object({ kind: z.literal('none') }),
+          z.object({ kind: z.literal('key'), token: secret(z.string()) }),
+        ]),
+      });
+      expect(
+        deriveConfigSecretFields(nested, {
+          discriminants: { '__proto__.kind': 'key' },
+        })
+      ).toEqual({ complete: false, path: '', reason: 'unsupported-schema' });
+      expect(
+        nested.parse({ ['__proto__']: { kind: 'key', token: 'input' } })
+      ).toEqual({});
+    });
+
     test('rejects overlapping discriminator claims even outside the selected branch', () => {
       const selected = z.object({ kind: z.literal('selected') });
       const cases = [

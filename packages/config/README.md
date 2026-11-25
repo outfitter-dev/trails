@@ -243,6 +243,10 @@ Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Pr
   input (including URL), an opaque payload-level check, or a refinement on a
   container returns incomplete. Supported wrappers never substitute defaults
   for an explicit selector.
+  A `__proto__` selector or path segment is incomplete because Zod drops that
+  key from parsed objects.
+  Length checks are qualified on Zod 4.6.7. Exact Zod 4.3.5 returns incomplete
+  for those checks because their internal guards cannot be identified.
   Metadata-free scalar-element arrays are inspectable leaves.
 - Discriminated unions need object branches (which may be readonly) with
   non-secret, unwrapped literal tags. Tag values must be distinct across
