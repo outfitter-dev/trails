@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/cloudflare",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/outfitter-dev/trails.git",
@@ -22,6 +22,7 @@
     "./d1": "./src/d1/index.ts",
     "./r2": "./src/r2/index.ts",
     "./queues": "./src/queues/index.ts",
+    "./schedules": "./src/schedules/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -36,11 +37,19 @@
   },
   "devDependencies": {
     "@ontrails/adapter-kit": "workspace:^",
+    "@ontrails/blob": "workspace:^",
+    "@ontrails/http": "workspace:^",
+    "@ontrails/kv": "workspace:^",
+    "@ontrails/queue": "workspace:^",
+    "@ontrails/store": "workspace:^",
     "@ontrails/testing": "workspace:^",
     "miniflare": "^4.20250617.4"
   },
   "peerDependencies": {
+    "@ontrails/blob": "workspace:^",
     "@ontrails/http": "workspace:^",
+    "@ontrails/kv": "workspace:^",
+    "@ontrails/queue": "workspace:^",
     "@ontrails/store": "workspace:^",
     "zod": "catalog:"
   },

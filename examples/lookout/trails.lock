@@ -4495,6 +4495,48 @@
                   "parentId": {
                     "type": "string"
                   },
+                  "permit": {
+                    "properties": {
+                      "actors": {
+                        "items": {
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "issuer": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "verified": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "kind",
+                            "verified"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "type": "object"
+                  },
                   "rootId": {
                     "type": "string"
                   },
@@ -6004,6 +6046,48 @@
                     "parentId": {
                       "type": "string"
                     },
+                    "permit": {
+                      "properties": {
+                        "actors": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "issuer": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "verified": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "kind",
+                              "verified"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "issuer": {
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ],
+                      "type": "object"
+                    },
                     "rootId": {
                       "type": "string"
                     },
@@ -6173,6 +6257,6 @@
     },
     "topoGraphSchemaVersion": 4
   },
-  "topoGraphHash": "aec99ac12d1bea33536f94747010295c01785d4d68877648eb352cfd5a5dc28e",
+  "topoGraphHash": "b9ebb6356021c18d862156d22530da7047727f26efea14792a7e82c8fad2bb3c",
   "version": 5
 }

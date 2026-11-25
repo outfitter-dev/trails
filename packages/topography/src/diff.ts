@@ -2,6 +2,8 @@
  * Semantic diffing of topo graphs.
  */
 
+import { deriveTopoGraphForceIdentity } from './forces.js';
+import { deriveStableHash } from './hash.js';
 import type {
   DiffEntry,
   DiffResult,
@@ -638,27 +640,22 @@ const diffVersionExampleCoverage = (
   }
 };
 
-const forceKey = (force: TopoGraphForceEntry): string =>
-  stableStringify({
-    change: force.change,
-    detail: force.detail,
-    id: force.id,
-    kind: force.kind,
-    reason: force.reason,
-    severity: force.severity,
-    source: force.source,
-  });
-
 const diffForces = (
   acc: DetailAccumulator,
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
 ): void => {
   const prevForces = new Map(
-    (prev.forces ?? []).map((force) => [forceKey(force), force])
+    (prev.forces ?? []).map((force) => [
+      deriveTopoGraphForceIdentity(force),
+      force,
+    ])
   );
   const currForces = new Map(
-    (curr.forces ?? []).map((force) => [forceKey(force), force])
+    (curr.forces ?? []).map((force) => [
+      deriveTopoGraphForceIdentity(force),
+      force,
+    ])
   );
 
   for (const [key, force] of [...currForces].toSorted(([left], [right]) =>
@@ -699,10 +696,16 @@ const forceDiffEntry = (
 
 const diffGraphForces = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
   const prevForces = new Map(
-    (prev.forces ?? []).map((force) => [forceKey(force), force])
+    (prev.forces ?? []).map((force) => [
+      deriveTopoGraphForceIdentity(force),
+      force,
+    ])
   );
   const currForces = new Map(
-    (curr.forces ?? []).map((force) => [forceKey(force), force])
+    (curr.forces ?? []).map((force) => [
+      deriveTopoGraphForceIdentity(force),
+      force,
+    ])
   );
   const entries: DiffEntry[] = [];
 
@@ -941,6 +944,13 @@ const diffTrailEntryDetails = (
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
 ): void => {
+  if (
+    prev.meta !== curr.meta &&
+    deriveStableHash({ meta: prev.meta }) !==
+      deriveStableHash({ meta: curr.meta })
+  ) {
+    addDetail(acc, 'info', 'Trail metadata changed');
+  }
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
   diffCliPath(acc, prev, curr);

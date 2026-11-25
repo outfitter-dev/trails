@@ -48,7 +48,7 @@ The review question:
 | Tracing dev-state store | `@ontrails/observability/dev` | tracing query/status trails, local dev tooling | `owned` | SQLite dev store, trace store registry, cleanup helpers, and query/status trails are developer-state tooling, not production sink contracts. |
 | OpenTelemetry trace adapter | `@ontrails/observability/otel` for v1 | users exporting traces | `owned` | ADR-0041 keeps the v1 OTel adapter at the observability subpath. It is an adapter boundary, not a memory-sink contract. |
 | Activation graph derived facts | `@ontrails/topography` | Trails app topo reports | `owned` | Prior cleanup moved activation-derived facts to Topography so app reports do not rederive the activation graph. |
-| Stable topo hashing | `@ontrails/topography` | watch mode, topo artifacts | `proposal` | `apps/trails/src/run-watch.ts` has carried stable JSON hashing parallel to `packages/topography/src/hash.ts`. Proposed extraction: expose the Topography-owned stable hash needed by watch mode. |
+| Stable topo hashing | `@ontrails/topography` | watch mode, topo artifacts | `owned` | `deriveTopoGraphHash` owns graph identity and `deriveTopoGraphEntryHash` owns entry identity. Watch mode consumes the entry helper instead of copying canonicalization and hashing. |
 | Adapter source scanning | `@ontrails/adapter-kit` | adapter generator, adapter checks/catalog | `owned` | `packages/adapter-kit/src/source.ts` owns reusable source export scanning; `create.adapter` and adapter catalog conformance checks consume that shared contract. |
 | Public/internal export-map boundary checks | `@ontrails/warden` plus source facts from packages | repo governance | `proposal` | Warden should encode the durable rule, but packages own their export maps. Do not move package export truth into Warden. |
 | Topo summary facts for read/report trails | likely Trails app or Topography, depending on fact | Trails CLI reports, Wayfinder | `unknown` | `buildCurrentTopo*` naming drift was identified, but the ownership split still needs a focused pass: pure graph facts belong lower; presentation-specific summaries may remain app-owned. |
@@ -66,11 +66,7 @@ Moving a captured kernel into `@ontrails/source` is conditional. The machinery m
 
 ## Proposed Extractions
 
-These are open findings from the map. They are not newly created Linear issues in this branch.
-
-| Finding | Proposed extraction | Why it belongs there |
-| --- | --- | --- |
-| Stable topo hash duplicate | Expose or consume the Topography-owned stable hash from watch mode. | Topography owns topo artifact identity. |
+The stable topo hash extraction is complete: watch mode consumes the Topography-owned entry hash. Other proposals remain marked in the capability map above.
 
 ## Tracked Unknowns
 

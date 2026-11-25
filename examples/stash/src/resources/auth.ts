@@ -34,6 +34,10 @@ export const createStashAuthAdapter = (conn: StashConnection): AuthAdapter => ({
     if (token === undefined || token.revoked) {
       return Result.ok(null);
     }
-    return Result.ok({ id: token.userId, scopes: [...token.scopes] });
+    return Result.ok({
+      actors: [],
+      id: token.userId,
+      scopes: [...token.scopes],
+    });
   },
 });

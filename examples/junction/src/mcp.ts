@@ -5,26 +5,22 @@
  * as HTTP and CLI. Stdio transports carry no per-request Authorization, so
  * the operator supplies a JWT through `JUNCTION_MCP_TOKEN` when launching
  * the server; it resolves through the same JWT boundary as the other two
- * surfaces and becomes the session permit. HTTP-transported MCP clients
- * with OAuth still resolve per-request through `resolvePermit`.
+ * surfaces and becomes the host-configured permit. This is local host policy;
+ * stdio is outside OAuth and creates no protocol session authority.
  */
 
 import type { BasePermit } from '@ontrails/core';
 import { surface } from '@ontrails/mcp';
-import { resolvePermitFromBearerToken } from '@ontrails/permits';
 
 import { graph } from './app.js';
 import { authConfigValues, resolveMcpPermit } from './permits.js';
 
 const token = process.env['JUNCTION_MCP_TOKEN'];
-let sessionPermit: BasePermit | undefined;
+let configuredPermit: BasePermit | undefined;
 if (token !== undefined) {
-  const resolved = await resolvePermitFromBearerToken({
+  const resolved = await resolveMcpPermit({
+    authorization: `Bearer ${token}`,
     bearerToken: token,
-    configValues: authConfigValues(),
-    graph,
-    requestId: 'mcp-stdio-session',
-    surface: 'mcp',
   });
   if (resolved.isErr()) {
     process.stderr.write(
@@ -32,10 +28,10 @@ if (token !== undefined) {
     );
     process.exit(9);
   }
-  sessionPermit = resolved.value;
+  configuredPermit = resolved.value ?? undefined;
 }
 
-const permit = sessionPermit;
+const permit = configuredPermit;
 
 // oxlint-disable-next-line require-hook -- MCP entry point, not a test file
 await surface(graph, {
@@ -46,8 +42,7 @@ await surface(graph, {
         createContext: () => ({
           abortSignal: new AbortController().signal,
           permit,
-          requestId: 'mcp-stdio-session',
+          requestId: crypto.randomUUID(),
         }),
       }),
-  resolvePermit: resolveMcpPermit,
 });

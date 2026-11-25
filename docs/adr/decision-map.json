@@ -150,6 +150,11 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
+          "context": "- [ADR-0000](0000-core-premise.md): contract-owned derivation.",
+          "from": "0062",
+          "fromPath": "docs/adr/0062-documentation-architecture.md"
+        },
+        {
           "context": "- docs/adr/0000-core-premise.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -1130,7 +1135,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Adapter-Agnostic Permits",
-      "updated": "2026-05-19"
+      "updated": "2026-10-28"
     },
     {
       "created": "2026-03-30",
@@ -1536,6 +1541,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) - resolved graph inspection and drift protection",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
+        },
+        {
+          "context": "- [ADR-0017](../0017-serialized-topo-graph.md): historical durable serialized graph contract.",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
         },
         {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
@@ -2848,6 +2858,11 @@
           "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         },
         {
+          "context": "- [ADR-0046](../0046-lock-v3-artifact-family.md): historical artifact layout, superseded by ADR-0054.",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
+        },
+        {
           "context": "Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
           "from": "topo-store-reference",
           "fromPath": "docs/topo-store-reference.md"
@@ -3068,6 +3083,11 @@
           "context": "[ADR-0051](0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a voc",
           "from": "0052",
           "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
+        },
+        {
+          "context": "- [ADR-0051](0051-package-ownership-follows-natural-altitude.md): natural fact ownership.",
+          "from": "0062",
+          "fromPath": "docs/adr/0062-documentation-architecture.md"
         }
       ],
       "number": "0051",
@@ -3102,6 +3122,11 @@
           "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
+        },
+        {
+          "context": "- [ADR-0052](../0052-overlays-one-extension-mechanism.md#the-category-question): one overlay mechanism and tolerant preservation of unknown facts.",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
         }
       ],
       "number": "0052",
@@ -3167,9 +3192,19 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "- [ADR-0054](0054-project-substrate-names-its-truth.md): one app-root lock and substrate truth boundaries.",
+          "from": "0062",
+          "fromPath": "docs/adr/0062-documentation-architecture.md"
+        },
+        {
           "context": "- docs/adr/0054-project-substrate-names-its-truth.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
+        },
+        {
+          "context": "- [ADR-0054](../0054-project-substrate-names-its-truth.md#one-app-owns-one-app-lock): current app-root lock ownership; [workspace view](../0054-project-substrate-names-its-truth.md#a-workspace-derives",
+          "from": "20261028",
+          "fromPath": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md"
         }
       ],
       "number": "0054",
@@ -3184,7 +3219,18 @@
     {
       "created": "2026-10-28",
       "depends_on": ["0", "5", "6", "26", "35", "47", "50", "52"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "HTTP reads a bearer token from the `Authorization` header. MCP HTTP credentials must be resolved per request under [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-r",
+          "from": "0012",
+          "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
+        },
+        {
+          "context": "Application state uses explicit handles. A trail that creates state returns a handle in its output schema; subsequent trails accept that handle in their input schemas and check the caller's permit aga",
+          "from": "mcp",
+          "fromPath": "docs/surfaces/mcp.md"
+        }
+      ],
       "number": "0055",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md",
@@ -3192,6 +3238,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "MCP Targets the Stateless Core on SDK v2",
+      "updated": "2026-10-28"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["0", "51"],
+      "inbound": [
+        {
+          "context": "> Superseded proposal: [ADR-0062](../0062-documentation-architecture.md) owns the documentation architecture. The draft body and its original implementation-era metadata remain here as historical prop",
+          "from": "20260406",
+          "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
+        }
+      ],
+      "number": "0062",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0062-documentation-architecture.md",
+      "slug": "documentation-architecture",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Documentation Architecture",
       "updated": "2026-10-28"
     }
   ],

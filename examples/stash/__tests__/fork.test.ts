@@ -15,7 +15,11 @@ const options = (
 ) => ({
   ctx: {
     extensions: { [db.id]: conn },
-    permit: { id: subject, scopes: ['snippet:write', 'snippet:interact'] },
+    permit: {
+      actors: [],
+      id: subject,
+      scopes: ['snippet:write', 'snippet:interact'],
+    },
   },
 });
 

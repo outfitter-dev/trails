@@ -4,7 +4,7 @@
  * Uses Bun.CryptoHasher for native hashing.
  */
 
-import type { TopoGraph } from './types.js';
+import type { TopoGraph, TopoGraphEntry } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,10 +33,7 @@ const canonicalize = (value: unknown): unknown => {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a SHA-256 hash of a topo graph.
- *
- * The `generatedAt` field is excluded so that identical topos always
- * produce the same hash regardless of when they were generated.
+ * Compute a stable SHA-256 hash of a JSON-serializable value.
  */
 export const deriveStableHash = (value: unknown): string => {
   const canonical = canonicalize(value);
@@ -47,9 +44,26 @@ export const deriveStableHash = (value: unknown): string => {
   return hasher.digest('hex');
 };
 
+/** Derive a stable graph hash without its generation timestamp. */
 export const deriveTopoGraphHash = (topoGraph: TopoGraph): string => {
   // Strip generatedAt before hashing
   const { generatedAt: _unused, ...rest } = topoGraph;
 
   return deriveStableHash(rest);
 };
+
+/**
+ * Derive a stable SHA-256 hash of one complete TopoGraph entry.
+ *
+ * Object key order is normalized recursively; array order and every entry
+ * field remain significant.
+ *
+ * @example
+ * ```ts
+ * for (const entry of topoGraph.entries) {
+ *   const hash = deriveTopoGraphEntryHash(entry);
+ * }
+ * ```
+ */
+export const deriveTopoGraphEntryHash = (entry: TopoGraphEntry): string =>
+  deriveStableHash(entry);

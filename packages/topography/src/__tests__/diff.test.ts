@@ -36,6 +36,36 @@ const topoGraph = (entries: TopoGraphEntry[]): TopoGraph => ({
 // ---------------------------------------------------------------------------
 
 describe('deriveTopoGraphDiff', () => {
+  test('reports changed authored trail metadata without treating it as breaking', () => {
+    const before = topoGraph([
+      entry({ id: 'message.read', meta: { facts: ['read', 'ack'] } }),
+    ]);
+    const after = topoGraph([
+      entry({ id: 'message.read', meta: { facts: ['ack', 'read'] } }),
+    ]);
+
+    expect(deriveTopoGraphDiff(before, after).entries).toEqual([
+      {
+        change: 'modified',
+        details: ['Trail metadata changed'],
+        id: 'message.read',
+        kind: 'trail',
+        severity: 'info',
+      },
+    ]);
+  });
+
+  test('ignores object key order in authored trail metadata', () => {
+    const before = topoGraph([
+      entry({ id: 'message.read', meta: { facts: { ack: true, read: true } } }),
+    ]);
+    const after = topoGraph([
+      entry({ id: 'message.read', meta: { facts: { ack: true, read: true } } }),
+    ]);
+
+    expect(deriveTopoGraphDiff(before, after).entries).toEqual([]);
+  });
+
   describe('top-level changes', () => {
     test('empty diff for identical maps', () => {
       const e = entry({ id: 'user.create' });
@@ -634,6 +664,43 @@ describe('deriveTopoGraphDiff', () => {
       expect(result.warnings[0]?.details).toContain(
         'Force event recorded: removed Trail "bye" removed'
       );
+    });
+
+    test('timestamp-only force changes remain visible at entry and graph level', () => {
+      const original = {
+        acceptedAt: '2026-05-20T00:00:00.000Z',
+        change: 'modified' as const,
+        detail: 'Retained audit event',
+        id: 'hello',
+        kind: 'trail' as const,
+        severity: 'breaking' as const,
+        source: 'trails compile --force' as const,
+      };
+      const retimed = { ...original, acceptedAt: '2026-05-21T00:00:00.000Z' };
+      for (const placement of ['entry', 'graph'] as const) {
+        const before = topoGraph([entry({ id: 'hello' })]);
+        const after = topoGraph([entry({ id: 'hello' })]);
+        const previous =
+          placement === 'entry'
+            ? {
+                ...before,
+                entries: [entry({ forces: [original], id: 'hello' })],
+              }
+            : { ...before, forces: [original] };
+        const current =
+          placement === 'entry'
+            ? { ...after, entries: [entry({ forces: [retimed], id: 'hello' })] }
+            : { ...after, forces: [retimed] };
+        const result = deriveTopoGraphDiff(previous, current);
+        const details = result.warnings.flatMap((change) => change.details);
+        expect(details).toContain(
+          'Force event recorded: modified Retained audit event'
+        );
+        expect(details).toContain(
+          'Force event removed: modified Retained audit event'
+        );
+        expect(result.hasBreaking).toBe(false);
+      }
     });
   });
 

@@ -1,0 +1,15 @@
+# TRL-1517 blob source delivery
+
+Horizon: reviewed source, documentation, memory conformance, release intent, and draft PR after the genuine foundation prerequisite lands. Publication and R2 conformance remain separate gates. No ready, merge, publish, deploy, authentication, or tracker mutation authority. Coordinator owns issue updates.
+
+Worktree: `/Users/mg/.codex/worktrees/23d9/trails`. Branch: `trl-1517-role-level-blob-resource-contract-with-a-mock-and-a-shared`. Qualified foundation base: `d26c3ff88a843e45c8a505cd614963f11ca471e8` (TRL-1421). This is independent of KV; the operator owns feature-only normalization after foundation landing. Do not register sibling work as a linear stack.
+
+Matt's rolling Lane D delegation covers approved inventory source work, exact issue branches, focused commits, normal pushes, and draft PRs after independent local review. D owns `packages/blob/**`, its minor changeset and this packet. D may register the README in `scripts/check-readme-snippets.ts`; A confirmed no overlap. A exclusively owns pinned Bun workspace lock generation and dependency installation in a bounded idle window. Read-only reviewer owns no source or VCS writes. Preserve the untracked readiness packet and previous exact-path ADR RETRO stash.
+
+Success: new `@ontrails/blob` owns contract, schemas, mock and `/testing`; core retains BlobRef/resource. Writes accept BlobRef data, report actual byte size, preserve MIME, consume ordinary streams once. Each read is independent. Lists follow completion with opaque binding/prefix cursors. Infrastructure uses typed Promise rejection; trail boundaries remain Result. Resource overrides and default mocks work through existing primitives.
+
+Implement source and focused tests; document portable versus mock guarantees; obtain A's generated lock and links; run package tests, production/test typechecks and build, scoped lint/format, docs/snippet checks, Warden, release coverage and publication pack validation. Run normal commit/push hooks. Obtain independent acceptance review and fix P0-P2 before push. Operator normalizes only the feature commits onto actual qualified main, then create an ordinary draft. Hosted CI and Devin review remain later gates.
+
+Distribution: README/TSDoc and minor changeset required. No new governance primitive or core role protocol, no generated topo/lock artifacts, no profile behavior. Existing Warden rules govern resource declarations and Result boundaries; new rule/agent vocabulary/migration are not applicable to this additive package. Run Wayfinder dogfood explicitly for the framework addition; no committed trails.lock changes expected. Root snippet registration only checks teaching examples and derives no durable contract facts.
+
+Stop affected work for a conflicting contract or scope, unsupported binding semantics, failed required gates after focused diagnosis, or unauthorized operations; continue other safe approved work. Record actual source/verification/review state in RETRO. R2 conformance and publication acceptance must remain explicitly unfulfilled here.

@@ -6,7 +6,7 @@
     "entities": 0,
     "resources": 0,
     "signals": 0,
-    "trails": 70
+    "trails": 71
   },
   "topoGraph": {
     "activationGraph": {
@@ -6520,7 +6520,9 @@
                               "derivedName": {
                                 "type": "string"
                               },
-                              "method": {},
+                              "method": {
+                                "type": "null"
+                              },
                               "source": {
                                 "enum": [
                                   "authored",
@@ -6550,7 +6552,9 @@
                               "derivedName": {
                                 "type": "string"
                               },
-                              "method": {},
+                              "method": {
+                                "type": "null"
+                              },
                               "source": {
                                 "enum": [
                                   "authored",
@@ -11003,10 +11007,14 @@
                   "check": {
                     "enum": [
                       "lock-roundtrip",
+                      "mcp-http",
                       "packed-artifacts",
                       "wayfinder-dogfood"
                     ],
                     "type": "string"
+                  },
+                  "eras": {
+                    "type": "number"
                   },
                   "lockCount": {
                     "type": "number"
@@ -11019,6 +11027,9 @@
                   },
                   "passed": {
                     "const": true
+                  },
+                  "toolCount": {
+                    "type": "number"
                   },
                   "trailCount": {
                     "type": "number"
@@ -11048,6 +11059,236 @@
           "type": "object"
         },
         "permit": "public",
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "resolve"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "resolve"
+              ],
+              "source": "derived",
+              "target": "resolve"
+            }
+          ]
+        },
+        "description": "Recover generated trails.lock files from resolved sources and verified audit evidence",
+        "exampleCount": 1,
+        "examples": [
+          {
+            "input": {
+              "rootDir": "."
+            },
+            "kind": "success",
+            "name": "Recover selected project locks",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "id": "resolve",
+        "input": {
+          "properties": {
+            "app": {
+              "description": "Configured workspace app ID",
+              "type": "string"
+            },
+            "configPath": {
+              "description": "Explicit project config path",
+              "type": "string"
+            },
+            "force": {
+              "description": "Record genuine breaking changes using existing force governance",
+              "type": "boolean"
+            },
+            "module": {
+              "description": "Path to the app module",
+              "type": "string"
+            },
+            "rootDir": {
+              "description": "App or workspace root directory",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "artifacts": {
+              "items": {
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "lockPath": {
+                    "type": "string"
+                  },
+                  "project": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "appId": {
+                            "type": "string"
+                          },
+                          "appRoot": {
+                            "type": "string"
+                          },
+                          "artifactPath": {
+                            "type": "string"
+                          },
+                          "completeness": {
+                            "const": "complete"
+                          },
+                          "configuredAppIds": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "modulePath": {
+                            "type": "string"
+                          },
+                          "moduleSource": {
+                            "enum": [
+                              "config",
+                              "convention",
+                              "module"
+                            ],
+                            "type": "string"
+                          },
+                          "projectRoot": {
+                            "type": "string"
+                          },
+                          "selectedExtent": {
+                            "const": "configured-app"
+                          },
+                          "selectionProvenance": {
+                            "enum": [
+                              "app",
+                              "config-path",
+                              "cwd",
+                              "root-dir"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configuredAppIds",
+                          "projectRoot",
+                          "selectionProvenance",
+                          "appRoot",
+                          "artifactPath",
+                          "modulePath",
+                          "moduleSource",
+                          "appId",
+                          "completeness",
+                          "selectedExtent"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "appId": {
+                            "type": "string"
+                          },
+                          "appRoot": {
+                            "type": "string"
+                          },
+                          "artifactPath": {
+                            "type": "string"
+                          },
+                          "completeness": {
+                            "const": "complete"
+                          },
+                          "configuredAppIds": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "modulePath": {
+                            "type": "string"
+                          },
+                          "moduleSource": {
+                            "enum": [
+                              "config",
+                              "convention",
+                              "module"
+                            ],
+                            "type": "string"
+                          },
+                          "projectRoot": {
+                            "type": "string"
+                          },
+                          "selectedExtent": {
+                            "const": "standalone-app"
+                          },
+                          "selectionProvenance": {
+                            "enum": [
+                              "app",
+                              "config-path",
+                              "cwd",
+                              "root-dir"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configuredAppIds",
+                          "projectRoot",
+                          "selectionProvenance",
+                          "appRoot",
+                          "artifactPath",
+                          "modulePath",
+                          "moduleSource",
+                          "appId",
+                          "completeness",
+                          "selectedExtent"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "sources": {
+                    "items": {
+                      "enum": [
+                        "ours",
+                        "theirs",
+                        "base",
+                        "worktree"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "hash",
+                  "lockPath",
+                  "project",
+                  "sources"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "artifacts"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "topo:write"
+          ]
+        },
         "surfaces": []
       },
       {
@@ -12763,7 +13004,9 @@
                                         "derivedName": {
                                           "type": "string"
                                         },
-                                        "method": {},
+                                        "method": {
+                                          "type": "null"
+                                        },
                                         "source": {
                                           "enum": [
                                             "authored",
@@ -12793,7 +13036,9 @@
                                         "derivedName": {
                                           "type": "string"
                                         },
-                                        "method": {},
+                                        "method": {
+                                          "type": "null"
+                                        },
                                         "source": {
                                           "enum": [
                                             "authored",
@@ -14029,7 +14274,9 @@
                       "derivedName": {
                         "type": "string"
                       },
-                      "method": {},
+                      "method": {
+                        "type": "null"
+                      },
                       "source": {
                         "enum": [
                           "authored",
@@ -14059,7 +14306,9 @@
                       "derivedName": {
                         "type": "string"
                       },
-                      "method": {},
+                      "method": {
+                        "type": "null"
+                      },
                       "source": {
                         "enum": [
                           "authored",
@@ -14176,7 +14425,9 @@
                             "derivedName": {
                               "type": "string"
                             },
-                            "method": {},
+                            "method": {
+                              "type": "null"
+                            },
                             "source": {
                               "enum": [
                                 "authored",
@@ -14206,7 +14457,9 @@
                             "derivedName": {
                               "type": "string"
                             },
-                            "method": {},
+                            "method": {
+                              "type": "null"
+                            },
                             "source": {
                               "enum": [
                                 "authored",
@@ -14645,7 +14898,9 @@
                       "derivedName": {
                         "type": "string"
                       },
-                      "method": {},
+                      "method": {
+                        "type": "null"
+                      },
                       "source": {
                         "enum": [
                           "authored",
@@ -14675,7 +14930,9 @@
                       "derivedName": {
                         "type": "string"
                       },
-                      "method": {},
+                      "method": {
+                        "type": "null"
+                      },
                       "source": {
                         "enum": [
                           "authored",
@@ -32339,7 +32596,9 @@
                                 "derivedName": {
                                   "type": "string"
                                 },
-                                "method": {},
+                                "method": {
+                                  "type": "null"
+                                },
                                 "source": {
                                   "enum": [
                                     "authored",
@@ -32369,7 +32628,9 @@
                                 "derivedName": {
                                   "type": "string"
                                 },
-                                "method": {},
+                                "method": {
+                                  "type": "null"
+                                },
                                 "source": {
                                   "enum": [
                                     "authored",
@@ -36707,10 +36968,14 @@
                     "check": {
                       "enum": [
                         "lock-roundtrip",
+                        "mcp-http",
                         "packed-artifacts",
                         "wayfinder-dogfood"
                       ],
                       "type": "string"
+                    },
+                    "eras": {
+                      "type": "number"
                     },
                     "lockCount": {
                       "type": "number"
@@ -36723,6 +36988,9 @@
                     },
                     "passed": {
                       "const": true
+                    },
+                    "toolCount": {
+                      "type": "number"
                     },
                     "trailCount": {
                       "type": "number"
@@ -36753,6 +37021,205 @@
           },
           "resources": [],
           "trailId": "release.smoke"
+        },
+        {
+          "description": "Recover generated trails.lock files from resolved sources and verified audit evidence",
+          "exportName": "resolve",
+          "input": {
+            "properties": {
+              "app": {
+                "description": "Configured workspace app ID",
+                "type": "string"
+              },
+              "configPath": {
+                "description": "Explicit project config path",
+                "type": "string"
+              },
+              "force": {
+                "description": "Record genuine breaking changes using existing force governance",
+                "type": "boolean"
+              },
+              "module": {
+                "description": "Path to the app module",
+                "type": "string"
+              },
+              "rootDir": {
+                "description": "App or workspace root directory",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "artifacts": {
+                "items": {
+                  "properties": {
+                    "hash": {
+                      "type": "string"
+                    },
+                    "lockPath": {
+                      "type": "string"
+                    },
+                    "project": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "appId": {
+                              "type": "string"
+                            },
+                            "appRoot": {
+                              "type": "string"
+                            },
+                            "artifactPath": {
+                              "type": "string"
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            },
+                            "configuredAppIds": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "modulePath": {
+                              "type": "string"
+                            },
+                            "moduleSource": {
+                              "enum": [
+                                "config",
+                                "convention",
+                                "module"
+                              ],
+                              "type": "string"
+                            },
+                            "projectRoot": {
+                              "type": "string"
+                            },
+                            "selectedExtent": {
+                              "const": "configured-app"
+                            },
+                            "selectionProvenance": {
+                              "enum": [
+                                "app",
+                                "config-path",
+                                "cwd",
+                                "root-dir"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "configuredAppIds",
+                            "projectRoot",
+                            "selectionProvenance",
+                            "appRoot",
+                            "artifactPath",
+                            "modulePath",
+                            "moduleSource",
+                            "appId",
+                            "completeness",
+                            "selectedExtent"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "appId": {
+                              "type": "string"
+                            },
+                            "appRoot": {
+                              "type": "string"
+                            },
+                            "artifactPath": {
+                              "type": "string"
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            },
+                            "configuredAppIds": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "modulePath": {
+                              "type": "string"
+                            },
+                            "moduleSource": {
+                              "enum": [
+                                "config",
+                                "convention",
+                                "module"
+                              ],
+                              "type": "string"
+                            },
+                            "projectRoot": {
+                              "type": "string"
+                            },
+                            "selectedExtent": {
+                              "const": "standalone-app"
+                            },
+                            "selectionProvenance": {
+                              "enum": [
+                                "app",
+                                "config-path",
+                                "cwd",
+                                "root-dir"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "configuredAppIds",
+                            "projectRoot",
+                            "selectionProvenance",
+                            "appRoot",
+                            "artifactPath",
+                            "modulePath",
+                            "moduleSource",
+                            "appId",
+                            "completeness",
+                            "selectedExtent"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "sources": {
+                      "items": {
+                        "enum": [
+                          "ours",
+                          "theirs",
+                          "base",
+                          "worktree"
+                        ],
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "hash",
+                    "lockPath",
+                    "project",
+                    "sources"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "artifacts"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "resolve"
         },
         {
           "description": "Scaffold the next trail version entry",
@@ -38284,7 +38751,9 @@
                                           "derivedName": {
                                             "type": "string"
                                           },
-                                          "method": {},
+                                          "method": {
+                                            "type": "null"
+                                          },
                                           "source": {
                                             "enum": [
                                               "authored",
@@ -38314,7 +38783,9 @@
                                           "derivedName": {
                                             "type": "string"
                                           },
-                                          "method": {},
+                                          "method": {
+                                            "type": "null"
+                                          },
                                           "source": {
                                             "enum": [
                                               "authored",
@@ -39329,7 +39800,9 @@
                         "derivedName": {
                           "type": "string"
                         },
-                        "method": {},
+                        "method": {
+                          "type": "null"
+                        },
                         "source": {
                           "enum": [
                             "authored",
@@ -39359,7 +39832,9 @@
                         "derivedName": {
                           "type": "string"
                         },
-                        "method": {},
+                        "method": {
+                          "type": "null"
+                        },
                         "source": {
                           "enum": [
                             "authored",
@@ -39476,7 +39951,9 @@
                               "derivedName": {
                                 "type": "string"
                               },
-                              "method": {},
+                              "method": {
+                                "type": "null"
+                              },
                               "source": {
                                 "enum": [
                                   "authored",
@@ -39506,7 +39983,9 @@
                               "derivedName": {
                                 "type": "string"
                               },
-                              "method": {},
+                              "method": {
+                                "type": "null"
+                              },
                               "source": {
                                 "enum": [
                                   "authored",
@@ -39913,7 +40392,9 @@
                         "derivedName": {
                           "type": "string"
                         },
-                        "method": {},
+                        "method": {
+                          "type": "null"
+                        },
                         "source": {
                           "enum": [
                             "authored",
@@ -39943,7 +40424,9 @@
                         "derivedName": {
                           "type": "string"
                         },
-                        "method": {},
+                        "method": {
+                          "type": "null"
+                        },
                         "source": {
                           "enum": [
                             "authored",
@@ -42707,6 +43190,6 @@
       }
     ]
   },
-  "topoGraphHash": "f78d2a81424cc911b8c860542c0d07e65c43d4623ae36b4c1e1a215e9831ff0b",
+  "topoGraphHash": "252af2dfc2ffabbd3ff6bb5d1eda039f22e92b745be95c9d99a42f74fc506bfd",
   "version": 5
 }

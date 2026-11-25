@@ -184,7 +184,7 @@ const buildDraftEntries = (allFiles: AdrFile[]): DecisionMapEntry[] =>
       path: `docs/adr/drafts/${adr.filename}`,
       slug,
       status: String(adr.frontmatter.status ?? 'draft'),
-      superseded_by: null,
+      superseded_by: (adr.frontmatter.superseded_by as string[]) ?? null,
       title: adr.title.replace(/^ADR:\s*/, ''),
       updated: String(
         adr.frontmatter.updated ?? dateFromFilename(adr.filename) ?? ''

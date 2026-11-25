@@ -26,7 +26,7 @@ Shortest:
 | `trail()` | Defines the contract: input, output, intent, examples, relationships, resources, signals, detours, and metadata. |
 | `implementation` | Establishes how the trail is carried out from validated input to `Result` output. |
 | `run()` | Runs a trail through the full Trails runtime pipeline. |
-| `surface()` | Opens the graph to an outside interface such as CLI, MCP, HTTP, or WebSocket. |
+| `surface()` | Opens the graph to an outside interface such as CLI, MCP, HTTP, or the RPC surface hosted on WebSocket. |
 | `topo()` | Assembles trails, signals, resources, entities, and related definitions into a queryable graph. |
 | `detour` | Declares recovery paths when a trail cannot proceed normally. |
 | `compose` / `composes` | Declares and performs trail-to-trail composition. |
@@ -46,7 +46,7 @@ The phrase "blaze a trail" remains useful only as ordinary English. It means est
 - Cutting or establishing a new path where one did not clearly exist before.
 - Marking an existing path so others can recognize and follow it consistently.
 
-Both senses still map cleanly to Trails, but they are no longer framework vocabulary. A `trail()` defines the contract. The `implementation` establishes how that contract is carried out. Once implemented, the trail can be run consistently from CLI, MCP, HTTP, WebSocket, tests, agents, and direct programmatic calls.
+Both senses still map cleanly to Trails, but they are no longer framework vocabulary. A `trail()` defines the contract. The `implementation` establishes how that contract is carried out. Once implemented, the trail can be run consistently from CLI, MCP, HTTP, RPC, tests, agents, and direct programmatic calls.
 
 The key distinction:
 

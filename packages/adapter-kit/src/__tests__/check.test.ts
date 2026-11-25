@@ -678,6 +678,46 @@ describe('checkAdapters', () => {
     ).toContain('peerDependencies');
   });
 
+  test('accepts an owner as both a peer and local development dependency', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root, {
+      devDependencies: {
+        '@ontrails/http': 'workspace:^',
+      },
+    });
+    writeHttpConformanceTest(root);
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  test('reports an owner hidden only in development dependencies', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root, {
+      devDependencies: {
+        '@ontrails/http': 'workspace:^',
+      },
+      peerDependencies: {},
+    });
+    writeHttpConformanceTest(root);
+
+    const report = checkAdapters(root);
+
+    expect(codes(report.diagnostics)).toEqual([
+      'dependency-direction',
+      'dependency-direction',
+    ]);
+    expect(
+      report.diagnostics.map((entry) => entry.message).join('\n')
+    ).toContain('must not hide @ontrails/http in devDependencies');
+    expect(
+      report.diagnostics.map((entry) => entry.message).join('\n')
+    ).toContain('must declare @ontrails/http in peerDependencies');
+  });
+
   test('reports optional owner dependencies as runtime boundary violations', () => {
     const root = makeRoot();
     writeHttpOwner(root);

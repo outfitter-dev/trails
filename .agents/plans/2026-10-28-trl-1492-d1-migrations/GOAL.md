@@ -1,0 +1,3 @@
+# Completion contract
+
+Deliver [TRL-1492](https://linear.app/outfitter/issue/TRL-1492) under the mechanism recorded in its issue before implementation: deterministic create-only D1 physical SQL, Wrangler-owned migration execution/history, no DDL or automatic runtime seeds by default, explicit autoCreate dev/test escape hatch with typed seed guard, unchanged mocks, prefix/quoting parity, actual local baseline/CRUD/additive/adoption/missing-schema proofs, compatibility docs/changeset, independent review and normal qualified draft. No indexes, inferred entity-data migration, remote migration, deployment or publication.

@@ -156,7 +156,7 @@ const checkSingleLock = async (
   const appModule = resolveAppModule(appDir);
   const committedBytes = readFileSync(absoluteLockPath, 'utf8');
   const stateHome = await mkdtemp(join(tmpdir(), 'lock-roundtrip-'));
-  const fixCommand = `bun apps/trails/bin/trails.ts compile --module ${appModule} --root-dir ${relativeAppDir} --permit '{"id":"lock-refresh","scopes":["topo:write"]}'`;
+  const fixCommand = `bun apps/trails/bin/trails.ts compile --module ${appModule} --root-dir ${relativeAppDir} --permit '{"actors":[],"id":"lock-refresh","scopes":["topo:write"]}'`;
   const remediation = `Fix: run \`${fixCommand}\` and commit the refreshed trails.lock. Never hand-edit the lock.`;
 
   try {
@@ -167,7 +167,7 @@ const checkSingleLock = async (
       '--root-dir',
       relativeAppDir,
       '--permit',
-      '{"id":"lock-roundtrip-gate","scopes":["topo:write"]}',
+      '{"actors":[],"id":"lock-roundtrip-gate","scopes":["topo:write"]}',
       '--json',
     ]);
     if (compileResult.exitCode !== 0) {

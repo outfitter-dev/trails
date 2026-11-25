@@ -33,7 +33,7 @@ For direct local lint and format validation, prefer the repo scripts (`bun run l
 
 ## Project Overview
 
-Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and meta, then surface it on CLI, MCP, HTTP, or plain TypeScript library calls today. WebSocket is planned on the same contract-first model.
+Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and meta, then surface it on CLI, MCP, HTTP, or plain TypeScript library calls today. The RPC surface (JSON-RPC 2.0, hosted on WebSocket first) is landing on the same contract-first model.
 
 The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned surfaces. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 
@@ -243,6 +243,10 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 <!-- warden-guide:end -->
 
+## Generated Lock Recovery
+
+During a rebase, resolve authored conflicts before generated locks. With a Skillset version that supports it, run `skillset resolve --yes`, then `trails resolve` with the existing `topo:write` permit, review and stage explicit generated paths, and only then run `git rebase --continue`. This checkout's Skillset 0.27 still requires its documented base-lock regeneration workflow. See [Trails Lock Recovery](docs/contributing/trails-lock-recovery.md) for evidence requirements, app selection, verification, abort/restore, and stale rerere. Neither lock uses a `.gitattributes` merge driver or `merge=union` here.
+
 ## Draft State
 
 - `_draft.` is the reserved marker for draft IDs.
@@ -267,6 +271,7 @@ Before calling an issue done or moving a PR out of draft, check the affected dis
 - **Release path:** satisfy release rules on the owning branch. Add a branch-local changeset for publishable package changes, including public trail additions/removals, visibility transitions, input/output changes, and surface exposure changes, or use the compatibility `release:none` override only when the package-touching change is truly not user-visible and carries a reason.
 - **Release-pack coherence:** package version and changelog branches must pack with coherent first-party dependency ranges. The local pre-push guard checks `bun.lock` workspace metadata for generated release branches and package release metadata changes; CI's **Release Pack** check runs the full `bun run publish:check` validation before merge.
 - **Wayfinder dogfood:** run `trails release smoke --check wayfinder-dogfood` or the repo wrapper `bun run wayfinder:dogfood` when a branch changes framework surfaces, the Trails operator topo exposure, Topography artifact export, Wayfinder queries, or fresh app loading. This is the repo's semantic graph-navigation smoke: it checks operator and demo topo facts, resources, signals, errors, relation views, invalid grammar, and artifact provenance after rejected compiles. If it is not applicable, say why in the PR or handoff.
+- **MCP over HTTP smoke:** run `trails release smoke --check mcp-http` or the repo wrapper `bun run mcp:http-smoke` when a branch changes the MCP package, its fetch-shaped handler, the Streamable HTTP boundary, or the network credential posture. It serves the demo app through `createFetchHandler`, lists and calls tools, reads a resource on both protocol eras, and checks the Host and Origin refusals. CI's Governance job runs it.
 - **Lock round-trip:** every committed `trails.lock` must recompile against a cold store (temp state home) to a byte-identical file with `trails validate` green. `trails release smoke --check lock-roundtrip` (repo wrapper `bun run lock:roundtrip`) enforces this in `bun run check` and CI's Governance job. When it fails, run the `trails compile` command from the failure output and commit the refreshed lock — hand-editing a lock is never the remediation.
 - **Migration path:** document commands, compatibility windows, bridge steps, or intentional non-support when existing apps may have committed artifacts or source that need to move.
 - **Publication readiness:** run `bun run publish:check` for package-impacting work and record any first-time package, dist-tag, registry, or auth considerations before release.

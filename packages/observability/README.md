@@ -38,3 +38,9 @@ Pino and LogTape are foreign-library boundaries, so they live in extracted adapt
 ## Migration from `@ontrails/logging`
 
 `@ontrails/logging` was retired before v1. Move sink contracts, console/file sinks, formatters, and bounded memory sinks to `@ontrails/observability`. Use `@ontrails/logtape` for LogTape forwarding, `@ontrails/pino` for Pino forwarding, `@ontrails/observability/dev` for developer-state tooling, and `@ontrails/core` for intrinsic trace contracts.
+
+## Permit evidence
+
+Trace storage and public trace queries retain the permit attester and the complete ordered actor chain from Core's trace contract. The developer SQLite store upgrades version 2 to version 3 by adding nullable issuer and actor columns while retaining existing records. Historical SQL `NULL` means unknown actors; JSON `[]` means a newly authored empty chain. Corrupt stored actor JSON fails validation instead of becoming an empty chain.
+
+The OTel adapter exports `trails.permit.issuer` and `trails.permit.actors`, with the actor chain encoded as an ordered JSON string. Existing stable-attribute protection prevents arbitrary trace attributes from replacing these values. No expiry, scopes, roles, or permit metadata are added to this identity rendering. See [permit identity migration](../../docs/migration/permit-identity.md).
