@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, topo, trail, validateTopo } from '@ontrails/core';
+import {
+  executeTrail,
+  Result,
+  topo,
+  trail,
+  validateTopo,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { validatePermits } from '../rules.js';
@@ -124,7 +130,7 @@ describe('compose scope coverage', () => {
     expect(diagnostics[0]?.message).toContain('entity:read, entity:write.');
   });
 
-  test('checks a directly callable live historical fork', () => {
+  test('checks a directly callable live historical fork', async () => {
     const leaf = makeTrail('entity.remove', ['entity:remove']);
     const parent = trail('entity.archive', {
       implementation: () => Result.ok({}),
@@ -136,16 +142,22 @@ describe('compose scope coverage', () => {
       versions: {
         1: {
           composes: [leaf],
-          implementation: () => Result.ok({}),
+          implementation: async (_input, ctx) =>
+            (await ctx.compose?.(leaf, {})) ??
+            Result.err(new Error('Expected composition context')),
           input: z.object({}),
           output: z.object({}),
         },
       },
     });
 
-    expect(
-      validateTopo(topo('live-fork-scopes', { leaf, parent })).isOk()
-    ).toBe(true);
+    const app = topo('live-fork-scopes', { leaf, parent });
+    expect(validateTopo(app).isOk()).toBe(true);
+    const fork = await executeTrail(parent, {}, { topo: app, version: 1 });
+    expect(fork.isErr()).toBe(true);
+    if (fork.isErr()) {
+      expect(fork.error.message).toContain('No permit provided');
+    }
     expect(check([parent, leaf])).toEqual([
       expect.objectContaining({ trailId: parent.id }),
     ]);
@@ -163,7 +175,9 @@ describe('compose scope coverage', () => {
       versions: {
         1: {
           composes: [leaf.id],
-          implementation: () => Result.ok({}),
+          implementation: async (_input, ctx) =>
+            (await ctx.compose?.(leaf.id, {})) ??
+            Result.err(new Error('Expected composition context')),
           input: z.object({}),
           output: z.object({}),
         },

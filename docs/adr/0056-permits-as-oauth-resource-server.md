@@ -164,7 +164,7 @@ The `auth` resource declares secret names, never values. Issuer, protected-resou
 
 Challenge scopes are derived facts on each trail's own lock entry. `scopes_supported` is rendered from those entries, not stored as an aggregate conflict point. The only auth overlay namespace introduced by this decision is `permits.roles`. [TRL-1475] owns challenge-fact storage; the lock-v6 decision remains its prerequisite. No extra namespace or per-kind lock extension is authorized here.
 
-Build the compose-scope Warden check promised by ADR-0012: a composing trail declares every scope required by the trails it composes. [TRL-1450] owns that implementation; accepting either ADR is not evidence that the rule already runs. Runtime composition still enforces each trail's permit.
+[Warden's composition scope coverage rule](../warden.md#composition-scope-coverage) implements the ADR-0012 check under [TRL-1450]. It warns when a composing trail omits scopes required by a reachable trail. Runtime composition still enforces each trail's permit.
 
 Provider adapters remain thin presets or claim mappers over the two verification paths. First targets are Better Auth with its Workers recipe, designed alongside Cloudflare Access, then Clerk. WorkOS, Auth0 and Supabase begin as documented JWKS presets. [TRL-1432] owns exact packages/subpaths and optional SDK dependencies; this ADR does not duplicate that packaging decision.
 
