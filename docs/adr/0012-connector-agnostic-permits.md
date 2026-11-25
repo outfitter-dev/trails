@@ -4,13 +4,15 @@ slug: connector-agnostic-permits
 title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
-updated: 2026-10-28
+updated: 2026-11-25
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
 # ADR-0012: Adapter-Agnostic Permits
 
 The historical slug is preserved for reference stability. The 2026-05-08 amendment renames the current auth boundary from connector vocabulary to adapter vocabulary.
+
+[ADR-0056](0056-permits-as-oauth-resource-server.md#decision) amends this decision's auth boundary: Trails is an OAuth resource server, surfaces normalize supported credentials, and shared permit policy owns verification, challenges and effective scopes. The bearer-only and informational-role descriptions below record the earlier model; they do not override ADR-0056 or establish that its implementations have shipped. [ADR-0055](0055-mcp-stateless-core-on-sdk-v2.md#authorization-is-resolved-for-every-request) still owns stateless MCP authorization. Exact-match scope enforcement and explicit permit declarations remain foundational.
 
 ## Context
 
@@ -113,7 +115,7 @@ The port is deliberately narrow. No session management, no token refresh, no use
 
 `ctx.compose()` doesn't bypass auth. If a parent trail composes a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
 
-The warden statically validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, the parent must hold both. This is a compile-time guarantee, not a runtime hope.
+The intended Warden check validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, the parent must hold both. This check is required under [TRL-1450](https://linear.app/outfitter/issue/TRL-1450), not a shipped compile-time guarantee.
 
 ### Warden governance
 
@@ -184,9 +186,16 @@ No cookies. No session-based auth at the framework level. Session management via
   admission evidence (`verified`, `asserted`, `synthetic`, plus the responsible
   verifier or policy) on the permit. Asserted kinds (`--permit`, `--dev-permit`)
   are refused on network surfaces and admitted in process only under host
-  policy derived from the topo or declared in app config. The CLI is the first
-  caller; stdio MCP, the fetch handler and HTTP follow. The resource-server ADR
-  ([TRL-1429]) carries the normative per-surface matrix.
+  policy derived from the topo or declared in app config. CLI and HTTP call
+  the shared reconciliation; MCP integration is still pending.
+  [ADR-0056](0056-permits-as-oauth-resource-server.md#the-credential-input-is-the-only-way-to-admit-a-permit)
+  carries the normative per-surface matrix adopted through [TRL-1429].
+- 2026-10-28: [ADR-0056](0056-permits-as-oauth-resource-server.md#decision)
+  establishes the OAuth resource-server boundary, generalized credential
+  extraction, per-request MCP authorization, role/actor policy and bounded
+  long-lived authorization. It preserves explicit scopes and separates accepted
+  direction from the implementing issues; provider packaging and CLI login keep
+  their own decisions.
 - 2026-10-28: [TRL-1435] implements the promised provider-agnostic JWT/JWKS path
   in `@ontrails/permits/jwt` with native WebCrypto. A configured secret preserves
   HS256 behavior, including optional issuer/audience checks; issuer without a
