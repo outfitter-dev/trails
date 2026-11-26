@@ -150,6 +150,11 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
+          "context": "- [ADR-0000](0000-core-premise.md#decision) — one authored contract, many renderings.",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
+        },
+        {
           "context": "A trail's contract makes its schemas, examples, errors and composition inspectable. An agent also needs workflow guidance: which capability to start with, how to combine calls, and where an app's conv",
           "from": "0061",
           "fromPath": "docs/adr/0061-skills-as-a-served-guidance-surface.md"
@@ -180,9 +185,9 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"trailheads are peers\"; WebSocket is the fourth trailhead, following the same patterns as CLI, MCP, and HTTP",
+          "context": "Trail failures render as JSON-RPC error responses with codes from core's `codesByCategory` and `data.category`, `data.retryable`, and `data.name`. The `jsonRpc` column retains its name. `not_found` de",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "- docs/adr/0000-core-premise.md",
@@ -694,6 +699,11 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
+          "context": "- [ADR-0006](0006-shared-execution-pipeline.md#decision) — trail runtime behavior and Result boundaries.",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
+        },
+        {
           "context": "- docs/adr/0006-shared-execution-pipeline.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -704,9 +714,9 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- trail invocations over WebSocket execute through the pipeline",
+          "context": "- [ADR-0006](../0006-shared-execution-pipeline.md#decision) — shared execution and Result behavior.",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "- docs/adr/0006-shared-execution-pipeline.md",
@@ -880,11 +890,6 @@
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- survey output provides the contract snapshots",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- trail IDs map to WebSocket method names; future delivery would map signal IDs to signal channels",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
           "context": "- docs/adr/0008-deterministic-trailhead-derivation.md",
@@ -1257,11 +1262,6 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
           "context": "- docs/adr/0013-tracing.md",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
@@ -1556,11 +1556,6 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
           "context": "- docs/adr/0017-serialized-topo-graph.md",
@@ -2004,9 +1999,14 @@
           "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
         },
         {
-          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
+          "context": "- [ADR-0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md#decision) — shared failure categories.",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
+        },
+        {
+          "context": "On MCP, a trail failure remains an `isError` tool result with `_meta['ontrails/error']`; only protocol failures become JSON-RPC errors. This RPC surface is different because the trail itself is the in",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "[adr-0026]: ../0026-error-taxonomy-as-transport-independent-behavior-contract.md",
@@ -2056,11 +2056,6 @@
           "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) -- rigged SDK wrapper packs use `visibility: 'internal'`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- [ADR-0027: Trail Visibility and Trailhead Filtering](../0027-visibility-and-filtering.md) -- visibility and intent filtering apply to WebSocket trail discovery and invocation",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
           "context": "- docs/adr/0027-visibility-and-filtering.md",
@@ -2313,11 +2308,6 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed signals to WebSocket subscribers",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
           "context": "- docs/adr/0032-derivetrail-and-trail-factories.md",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
@@ -2439,6 +2429,11 @@
           "fromPath": "docs/adr/0061-skills-as-a-served-guidance-surface.md"
         },
         {
+          "context": "The API follows [ADR-0035](../0035-surface-apis-render-the-graph.md#decision): derive a method/channel table as a `Result` without opening anything, create a host-independent kernel and upgrade check,",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
+        },
+        {
           "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` rendering ladder",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -2556,14 +2551,19 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "A subscription is a store entity: signal selection, filter, delivery target, secret, cursor, and TTL. Derive subscribe, unsubscribe, list, and renew trails from that entity. Delivery is a derived cons",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
+        },
+        {
           "context": "- [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md) -- rigged trails can fire signals via `ctx.fire(signal, payload)`; the \"observe and announce\" pattern",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- docs/adr/0038-typed-signal-emission.md",
+          "context": "- [ADR-0038](../0038-typed-signal-emission.md#decision) and [ADR-0039](../0039-reactive-trail-activation.md#decision) — typed signals and activation.",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "| `fires` | **keep** | The plural declaration `fires: [...]` mirrors the runtime verb `ctx.fire(...)` and pairs with consumer-side `on: [...]`; the [lexicon](../lexicon.md#fires) teaches that producer",
@@ -2605,6 +2605,11 @@
           "fromPath": "docs/adr/0041-unified-observability.md"
         },
         {
+          "context": "A subscription is a store entity: signal selection, filter, delivery target, secret, cursor, and TTL. Derive subscribe, unsubscribe, list, and renew trails from that entity. Delivery is a derived cons",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
+        },
+        {
           "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- rigged trails with schedule activation sources become periodic monitoring probes",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -2615,9 +2620,9 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md) -- activation sources and WebSocket subscriptions would both consume typed signal contracts",
+          "context": "- [ADR-0038](../0038-typed-signal-emission.md#decision) and [ADR-0039](../0039-reactive-trail-activation.md#decision) — typed signals and activation.",
           "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "`testAll(app)` can check producer examples with `signals` assertions. A firing assertion observes emission; awaiting `ctx.fire()` is not a completion barrier for every consumer. See [Typed Signal Emis",
@@ -2681,11 +2686,6 @@
           "context": "- docs/adr/0041-unified-observability.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- tracing system that provides WebSocket connection observability",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
         },
         {
           "context": "- docs/adr/0041-unified-observability.md",
@@ -3028,6 +3028,11 @@
           "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
+          "context": "A trail ID is the method name and `params` carries its input. `_meta.version` selects a trail version under [ADR-0048](../0048-trail-versioning-v3.md); omission selects the latest version. `_meta.idem",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
+        },
+        {
           "context": "- docs/adr/0048-trail-versioning-v3.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
@@ -3104,6 +3109,11 @@
           "context": "- [ADR-0050](0050-surface-accommodations-preserve-trail-identity.md#core-rule) — guidance does not obscure the invoked trail's identity.",
           "from": "0061",
           "fromPath": "docs/adr/0061-skills-as-a-served-guidance-surface.md"
+        },
+        {
+          "context": "A trail ID is the method name and `params` carries its input. `_meta.version` selects a trail version under [ADR-0048](../0048-trail-versioning-v3.md); omission selects the latest version. `_meta.idem",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test",
@@ -3204,6 +3214,11 @@
           "fromPath": "docs/adr/0056-permits-as-oauth-resource-server.md"
         },
         {
+          "context": "[TRL-1505] owns the outbox, delivery log, and checkpoints; [TRL-1507] owns the durable declaration and Warden materialization check. [TRL-1503] owns the subscription entity and its initial derived tra",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
+        },
+        {
           "context": "- [ADR-0052](0052-overlays-one-extension-mechanism.md) — app-authored bindings and overlay provenance.",
           "from": "0060",
           "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
@@ -3212,6 +3227,11 @@
           "context": "These facts enter `trails.lock` through the existing overlay mechanism in [ADR-0052](0052-overlays-one-extension-mechanism.md#decision). [TRL-1478] owns the concrete narrow namespace/schema with [TRL-",
           "from": "0061",
           "fromPath": "docs/adr/0061-skills-as-a-served-guidance-surface.md"
+        },
+        {
+          "context": "A trail ID is the method name and `params` carries its input. `_meta.version` selects a trail version under [ADR-0048](../0048-trail-versioning-v3.md); omission selects the latest version. `_meta.idem",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
           "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
@@ -3416,6 +3436,25 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Provider Auth Adapters Own Their Package Boundaries",
+      "updated": "2026-11-25"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["0", "6", "12", "26", "38", "39", "47", "52"],
+      "inbound": [
+        {
+          "context": "[ADR-0059](../0059-durable-subscriptions-over-signals.md) owns recording, replay, checkpoints, authorization gaps, retention, and identity. For the proposed RPC rendering ([TRL-1441]), the signal ID i",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
+        }
+      ],
+      "number": "0059",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0059-durable-subscriptions-over-signals.md",
+      "slug": "durable-subscriptions-over-signals",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Durable Subscriptions Share One Delivery Model",
       "updated": "2026-11-25"
     },
     {

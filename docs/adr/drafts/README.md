@@ -16,8 +16,8 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
   - depends on [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
 - [Packs as Namespace Boundaries](20260331-packs-namespace-boundaries.md)
   - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md)
-- [WebSocket Trailhead](20260331-websocket-trailhead.md)
-  - depends on [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md)
+- [RPC Is a Surface Hosted on WebSocket](20260331-rpc-surface-hosted-on-websocket.md)
+  - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0005: Framework-Agnostic HTTP Route Model](../0005-framework-agnostic-http-route-model.md), [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0012: Adapter-Agnostic Permits](../0012-connector-agnostic-permits.md), [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md), [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md), [ADR-0038: Typed Signal Emission](../0038-typed-signal-emission.md), [ADR-0039: Reactive Trail Activation](../0039-reactive-trail-activation.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md), [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md), [ADR-0052: Overlays Are the Lock's One Extension Mechanism](../0052-overlays-one-extension-mechanism.md), [ADR-0059: Durable Subscriptions Share One Delivery Model](../0059-durable-subscriptions-over-signals.md)
 
 ## 2026-04
 
