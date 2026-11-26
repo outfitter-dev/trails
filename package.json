@@ -90,6 +90,7 @@
     "micromark": "4.0.3",
     "micromark-extension-gfm-footnote": "2.1.0",
     "micromark-extension-gfm-table": "2.1.2",
+    "micromark-util-decode-string": "2.0.1",
     "oxfmt": "0.47.0",
     "oxlint": "1.62.0",
     "turbo": "^2.11.10",

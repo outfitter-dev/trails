@@ -300,7 +300,7 @@
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
           "ref": "devin/1795708271-adr-micromark-local",
-          "sha": "c439aef36b6e6f31e943255e502c93ad70502fb0",
+          "sha": "e5d2a6f67636226cb5cd182b4d4ad856c66e829b",
           "sourceKind": "current"
         }
       },
@@ -332,7 +332,6 @@
           "plugin-dev/skills/trails-adrs/scripts/lib/frontmatter.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/git.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/index.ts",
-          "plugin-dev/skills/trails-adrs/scripts/lib/markdown-destinations.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/markdown-links.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt",
           "plugin-dev/skills/trails-adrs/scripts/lib/markdown-parser.generated.js",
@@ -394,7 +393,6 @@
             "plugin-dev/skills/trails-adrs/scripts/lib/frontmatter.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/git.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/index.ts",
-            "plugin-dev/skills/trails-adrs/scripts/lib/markdown-destinations.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/markdown-links.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt",
             "plugin-dev/skills/trails-adrs/scripts/lib/markdown-parser.generated.js",
@@ -426,14 +424,14 @@
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
           "ref": "devin/1795708271-adr-micromark-local",
-          "sha": "c439aef36b6e6f31e943255e502c93ad70502fb0",
+          "sha": "e5d2a6f67636226cb5cd182b4d4ad856c66e829b",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:6e02ca2a45b6017bf904748e2393d0c025ab7a1b23bce45fa57b5faf2e0a215b",
+  "provenanceHash": "sha256:0a5fce9eb33ca2a4ec4200592d825bb18d19cb5afbf138e0dc93ecf14324c3b5",
   "renderResults": [
     {
       "destination": "changelog",

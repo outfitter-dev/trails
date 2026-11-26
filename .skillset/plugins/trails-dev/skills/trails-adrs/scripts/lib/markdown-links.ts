@@ -1,6 +1,6 @@
 import { markdownDestinationSpans } from './markdown-parser.generated.js';
 
-export { unescapeMarkdownTarget } from './markdown-destinations.ts';
+export { decodeMarkdownDestination } from './markdown-parser.generated.js';
 
 /** Markdown link scanning shared by ADR operations and repository link validation. */
 export interface MarkdownLink {

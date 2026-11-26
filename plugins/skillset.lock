@@ -140,7 +140,6 @@
         "trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts": "0644",
-        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-destinations.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-links.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.generated.js": "0644",
@@ -162,7 +161,6 @@
         "trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts",
-        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-destinations.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-links.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.generated.js",
@@ -172,13 +170,13 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:b6ca9e03623e64ef19865eb4b680c451461f0fa3d5dc3390dba2bcfaf4b13fb0",
+      "outputHash": "sha256:50473ffd204b6136e01f248111c2e98d8e191320d3b5dd4bae10fe3d657da027",
       "outputPath": "trails-dev/agents/skills/trails-adrs/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "plugin": "trails-dev",
-      "sourceHash": "sha256:a2b3714c9fc258e074f1088caa198c43e4b4b1dcbf6999cf15541fc3d9a53588",
+      "sourceHash": "sha256:69cea33aa2b06e53a914e1e4d99877362bca92cf338176799922632c437328b0",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -579,7 +577,7 @@
     }
   ],
   "outputRoot": "plugins",
-  "provenanceHash": "sha256:68b9baeb627f7b9048e5f40740388d67e5062abd2c85c2a673d31d4165900a9a",
+  "provenanceHash": "sha256:b2d6898ab642a3e55c02985326780ab7d43e2a1f059c0ddb0f7ea5188563f6f0",
   "renderResults": [
     {
       "destination": "plugin-manifest",
@@ -812,10 +810,6 @@
         {
           "kind": "plugin-skill",
           "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-destinations.ts"
         },
         {
           "kind": "plugin-skill",

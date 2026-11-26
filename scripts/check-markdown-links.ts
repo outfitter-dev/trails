@@ -9,8 +9,8 @@ import {
 } from 'node:path';
 
 import {
+  decodeMarkdownDestination,
   extractMarkdownLinks,
-  unescapeMarkdownTarget,
 } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
 import type { MarkdownLink } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
 export { extractMarkdownLinks } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
@@ -213,7 +213,7 @@ export const checkMarkdownDocumentLinks = (
   const anchorsForPath = options.readAnchors ?? readAnchors;
 
   for (const link of extractMarkdownLinks(markdown)) {
-    const normalized = unescapeMarkdownTarget(link.target);
+    const normalized = decodeMarkdownDestination(link.target);
     if (isExternalTarget(normalized) || normalized.length === 0) {
       continue;
     }

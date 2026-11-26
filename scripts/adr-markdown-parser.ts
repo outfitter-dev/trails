@@ -2,6 +2,8 @@ import { parse, postprocess, preprocess } from 'micromark';
 import { gfmFootnote } from 'micromark-extension-gfm-footnote';
 import { gfmTable } from 'micromark-extension-gfm-table';
 
+export { decodeString as decodeMarkdownDestination } from 'micromark-util-decode-string';
+
 interface DestinationSpan {
   readonly start: number;
   readonly end: number;

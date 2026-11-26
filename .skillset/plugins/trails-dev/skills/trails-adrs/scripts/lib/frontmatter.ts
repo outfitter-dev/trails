@@ -24,17 +24,18 @@ export interface AdrFile {
 
 export const parseFrontmatter = (
   raw: string
-): { frontmatter: Frontmatter; body: string } => {
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+): { frontmatter: Frontmatter; body: string; bodyLineOffset: number } => {
+  const match = raw.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
   if (!match) {
-    return { body: raw, frontmatter: {} };
+    return { body: raw, bodyLineOffset: 0, frontmatter: {} };
   }
 
   const yaml = match[1] ?? '';
   const body = match[2] ?? '';
   const frontmatter: Frontmatter = {};
 
-  for (const line of yaml.split('\n')) {
+  const lines = yaml.split(/\r?\n/);
+  for (const line of lines) {
     const kv = line.match(/^(\w[\w_]*):\s*(.*)$/);
     if (!kv) {
       continue;
@@ -69,7 +70,7 @@ export const parseFrontmatter = (
     frontmatter.superseded_by = frontmatter.superseded_by.map(String);
   }
 
-  return { body, frontmatter };
+  return { body, bodyLineOffset: lines.length + 2, frontmatter };
 };
 
 export const serializeFrontmatter = (fm: Frontmatter): string => {
@@ -105,6 +106,17 @@ export const serializeFrontmatter = (fm: Frontmatter): string => {
   }
   lines.push('---');
   return lines.join('\n');
+};
+
+export const serializeAdrDocument = (
+  raw: string,
+  fm: Frontmatter,
+  body: string
+): string => {
+  const header = `${serializeFrontmatter(fm)}\n`;
+  const bom = raw.startsWith('\uFEFF') ? '\uFEFF' : '';
+  const crlf = raw[raw.indexOf('\n') - 1] === '\r';
+  return bom + (crlf ? header.replaceAll('\n', '\r\n') : header) + body;
 };
 
 export const extractTitle = (body: string): string => {

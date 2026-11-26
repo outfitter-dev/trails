@@ -359,7 +359,6 @@
         "trails-adrs/scripts/lib/frontmatter.ts": "0644",
         "trails-adrs/scripts/lib/git.ts": "0644",
         "trails-adrs/scripts/lib/index.ts": "0644",
-        "trails-adrs/scripts/lib/markdown-destinations.ts": "0644",
         "trails-adrs/scripts/lib/markdown-links.ts": "0644",
         "trails-adrs/scripts/lib/markdown-parser.LICENSE.txt": "0644",
         "trails-adrs/scripts/lib/markdown-parser.generated.js": "0644",
@@ -381,7 +380,6 @@
         "trails-adrs/scripts/lib/frontmatter.ts",
         "trails-adrs/scripts/lib/git.ts",
         "trails-adrs/scripts/lib/index.ts",
-        "trails-adrs/scripts/lib/markdown-destinations.ts",
         "trails-adrs/scripts/lib/markdown-links.ts",
         "trails-adrs/scripts/lib/markdown-parser.LICENSE.txt",
         "trails-adrs/scripts/lib/markdown-parser.generated.js",
@@ -391,13 +389,13 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:20033c47fa8ea30d483043daf437ce23ccdad1f426608daac6a878c9af0cd5a8",
+      "outputHash": "sha256:2852cdeeb2237bbd8ef4a360cfde33da5ac84b98a96eeec953417d9434599f8d",
       "outputPath": "trails-adrs/SKILL.md",
       "owner": {
         "standardProfile": "agent-skills"
       },
       "plugin": "trails-dev",
-      "sourceHash": "sha256:a2b3714c9fc258e074f1088caa198c43e4b4b1dcbf6999cf15541fc3d9a53588",
+      "sourceHash": "sha256:69cea33aa2b06e53a914e1e4d99877362bca92cf338176799922632c437328b0",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -869,7 +867,7 @@
     }
   ],
   "outputRoot": ".agents/skills",
-  "provenanceHash": "sha256:929328032984da99f5a79e33cb7dd3235057dda0654874ff6450ba58cfad0ca0",
+  "provenanceHash": "sha256:927e89cdef2b10c7781f50aa91b59c3790aa274ac66b8fb8e6f1ecb112d9b3f6",
   "renderResults": [
     {
       "destination": "skill",
@@ -1015,10 +1013,6 @@
         {
           "kind": "plugin-skill",
           "path": ".agents/skills/trails-adrs/scripts/lib/index.ts"
-        },
-        {
-          "kind": "plugin-skill",
-          "path": ".agents/skills/trails-adrs/scripts/lib/markdown-destinations.ts"
         },
         {
           "kind": "plugin-skill",

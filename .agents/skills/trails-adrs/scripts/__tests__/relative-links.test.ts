@@ -101,6 +101,82 @@ Use \`\`\`[Triple](../../not-a-target.md)\`\`\`
 `;
 
 describe('ADR relative links', () => {
+  test('resolves rendered escapes, entities, and dot paths before moving', () => {
+    const root = fixture(String.raw`[Escaped](..\/../tenets.md)
+[Encoded](%2e%2e/../tenets.md)
+[Entities](../../a&amp;b.md)
+[Colon](../notes:extra.md)
+[Self][self]
+
+[self]: 20261028-mov&#105;ng.md`);
+    writeFileSync(join(root, 'docs/a&b.md'), '# Entity');
+    writeFileSync(join(root, 'docs/adr/notes:extra.md'), '# Colon');
+    expect(run(root, 'map').code).toBe(0);
+    const checked = run(root, 'check');
+    expect(checked.code, checked.output).toBe(0);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const result = readFileSync(join(root, 'docs/adr/0002-moving.md'), 'utf8');
+    expect(result).toContain(
+      '[Escaped](../tenets.md)\n[Encoded](../tenets.md)'
+    );
+    expect(result).toContain('[Entities](../a&amp;b.md)');
+    expect(result).toContain('[Colon](./notes:extra.md)');
+    expect(result).toContain('[self]: 0002-moving.md');
+    expect(run(root, 'check').code).toBe(0);
+  });
+
+  test('rewrites inbound destinations, not external URLs, code, or metadata', () => {
+    const root = fixture('');
+    const draft = '20261028-moving.md';
+    const untouched = `[Web](https://example.com/${draft}) \`[Code](adr/drafts/${draft})\``;
+    const guide = join(root, 'docs/guide.md');
+    const header = `---\ntitle: "[Metadata](adr/drafts/${draft})"\n---\n\n`;
+    writeFileSync(
+      guide,
+      `${header}[Draft](/docs/adr/drafts/${draft}#decision)\n${untouched}`
+    );
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    expect(readFileSync(guide, 'utf8')).toBe(
+      `${header}[Draft](/docs/adr/0002-moving.md#decision)\n${untouched}`
+    );
+    expect(run(root, 'demote', '0002', '--yes').code).toBe(0);
+    const demoted = readdirSync(join(root, 'docs/adr/drafts')).find((name) =>
+      name.endsWith('-moving.md')
+    );
+    expect(readFileSync(guide, 'utf8')).toBe(
+      `${header}[Draft](/docs/adr/drafts/${demoted}#decision)\n${untouched}`
+    );
+  });
+
+  test('checks the body at its original line and preserves whole-document CRLF', () => {
+    const root = fixture('');
+    const source = join(root, 'docs/adr/drafts/20261028-moving.md');
+    const draft = document(true, '[Tenets](../../tenets.md)')
+      .replace('title: Moving', 'title: "[Metadata](missing.md)"')
+      .replaceAll('\n', '\r\n');
+    writeFileSync(source, draft);
+    expect(run(root, 'map').code).toBe(0);
+    const checked = run(root, 'check');
+    expect(checked.code, checked.output).toBe(0);
+    const broken = draft.replace('tenets.md', 'missing.md');
+    writeFileSync(source, broken);
+    const line =
+      broken.split('\r\n').findIndex((text) => text.includes('[Tenets]')) + 1;
+    expect(run(root, 'check').output).toContain(
+      `at line ${line}: ../../missing.md`
+    );
+    writeFileSync(source, draft);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const promoted = readFileSync(
+      join(root, 'docs/adr/0002-moving.md'),
+      'utf8'
+    );
+    expect(promoted).not.toMatch(/(?<!\r)\n/);
+    expect(promoted).toContain('\r\ncreated: 2026-10-28\r\n');
+    expect(promoted).toContain('[Tenets](../tenets.md)\r\n');
+    expect(run(root, 'check').code).toBe(0);
+  });
+
   test('promotion preserves targets and demotion restores relative destinations', () => {
     const root = fixture(body);
     expect(run(root, 'map').code).toBe(0);

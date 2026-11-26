@@ -39,7 +39,12 @@ import {
   today,
   todayCompact,
 } from './lib/discovery.ts';
-import { extractTitle, serializeFrontmatter } from './lib/frontmatter.ts';
+import {
+  extractTitle,
+  parseFrontmatter,
+  serializeAdrDocument,
+  serializeFrontmatter,
+} from './lib/frontmatter.ts';
 import type { Frontmatter } from './lib/frontmatter.ts';
 import { gitMove } from './lib/git.ts';
 import { rebuildIndex } from './lib/index.ts';
@@ -179,13 +184,17 @@ const cmdPromote = (args: Args): void => {
     /^#\s+ADR:\s*/m,
     `# ADR-${padded}: `
   );
-  const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
+  const content = serializeAdrDocument(
+    adr.raw,
+    updatedFm as Frontmatter,
+    updatedBody
+  );
   gitMove(adr.path, newPath);
   writeFileSync(newPath, content, 'utf8');
 
   // Rewrite all references from draft filename to new numbered filename
   console.log('Rewriting draft references...');
-  rewriteDraftLinks(adr.filename, newFilename);
+  rewriteDraftLinks(adr.path, newPath);
 
   // Rewrite frontmatter depends_on/superseded_by references in peer drafts
   // from the promoted slug to the new numeric id, so the decision map keeps
@@ -255,9 +264,14 @@ const cmdDemote = (args: Args): void => {
     /^#\s+ADR-\d+:\s*/m,
     '# ADR: '
   );
-  const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
+  const content = serializeAdrDocument(
+    adr.raw,
+    updatedFm as Frontmatter,
+    updatedBody
+  );
   gitMove(adr.path, newPath);
   writeFileSync(newPath, content, 'utf8');
+  rewriteDraftLinks(adr.path, newPath);
 
   rebuildIndex();
   writeDecisionMap();
@@ -291,14 +305,14 @@ const cmdCheck = (args: Args): void => {
   ) => {
     const fm = adr.frontmatter;
 
-    for (const link of missingRelativeLinks(
-      readFileSync(adr.path, 'utf8'),
-      adr.path
-    )) {
+    const { body, bodyLineOffset } = parseFrontmatter(
+      readFileSync(adr.path, 'utf8')
+    );
+    for (const link of missingRelativeLinks(body, adr.path)) {
       report(
         'error',
         adr.filename,
-        `relative link target does not exist at line ${link.line}: ${link.target}`
+        `relative link target does not exist at line ${link.line + bodyLineOffset}: ${link.target}`
       );
     }
 
