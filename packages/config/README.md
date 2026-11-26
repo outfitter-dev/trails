@@ -196,6 +196,74 @@ const schema = z.object({
 });
 ```
 
+## Declared secret-field metadata
+
+`deriveConfigSecretFields()` derives only field paths, authored environment names, sensitivity, local requiredness, and ancestor wrapper facts. Supply non-secret discriminant literals explicitly when selecting a resource config branch:
+
+```typescript
+import { deriveConfigSecretFields, env, secret } from '@ontrails/config';
+import { z } from 'zod';
+
+const authSchema = z.discriminatedUnion('adapter', [
+  z.object({ adapter: z.literal('none') }),
+  z.object({
+    adapter: z.literal('key'),
+    pepper: secret(env(z.string(), 'API_KEY_PEPPER')),
+  }),
+]).default({ adapter: 'none' });
+
+const derivation = deriveConfigSecretFields(authSchema, {
+  discriminants: { adapter: 'key' },
+});
+```
+
+A complete derivation describes declared metadata for the selected supported shape. It does not validate config values: even a matching discriminator literal may be rejected by a refinement during parsing. It does not prove that every effective profile secret is provisioned. Profile and binding selection remain the caller's responsibility.
+
+Pass only trusted, application-owned Zod schemas and ordinary inputs, with no Proxies anywhere in the inspected schema, metadata, or options graph. This helper is not a sandbox or a Proxy detector: reflection can invoke Proxy traps, and inputs outside the contract need not return typed incompleteness. Do not derive metadata from arbitrary schema objects whose provenance you cannot establish.
+
+- `required` describes the field's own declaration: optional/defaulted fields are
+  false; nullable alone remains true.
+- `ancestors` records optional/defaulted/nullable wrappers, with an empty path for
+  root wrappers. These facts are not an executable presence formula: wrapper
+  order, default contents, and refinements can affect runtime applicability.
+- A secret field without `env` remains sensitive but declares no environment
+  name. An environment binding without explicit `secret: true` is not included.
+  For consistent discovery across Config APIs, put both annotations on the same
+  schema, for example `secret(env(z.string(), 'TOKEN'))`. This helper combines
+  annotations across supported wrappers; Config's general metadata collector
+  uses the first annotated wrapper instead.
+- Missing/invalid union selections and unsupported shapes return
+  `complete: false` with a path and typed reason. Ordinary unions, transforms
+  (including Zod overwrite checks), coercions, accessor-backed object fields,
+  selections or metadata, recursive objects, and structured or annotated array
+  elements are incomplete.
+  Only known value-preserving checks are supported, such as numeric bounds,
+  length checks, email, UUID, and regex. Plain `.refine()` on an unwrapped
+  scalar is supported without running the callback. A format that normalizes
+  input (including URL), an opaque payload-level check, or a refinement on a
+  container returns incomplete. Supported wrappers never substitute defaults
+  for an explicit selector.
+  A `__proto__` selector or path segment is incomplete because Zod drops that
+  key from parsed objects.
+  Length checks are qualified with the same loaded Zod 4.6.7 build as Config.
+  They return incomplete when Config cannot identify the built-in guard, including
+  with exact Zod 4.3.5 or when ESM Config receives checks from CommonJS Zod.
+  Metadata-free scalar-element arrays are inspectable leaves.
+- Discriminated unions need object branches (which may be readonly) with
+  non-secret, unwrapped literal tags. Tag values must be distinct across
+  branches; only the selected branch's other fields and annotations are
+  inspected. Ordinary option arrays with unsupported structure and annotations
+  that declare `secret` or `env` on both the union and its selected branch are
+  incomplete.
+- Every present non-undefined catchall is incomplete at its containing object,
+  including strict and loose objects and annotated `unknown`/`never` schemas.
+  Plain objects and `.strip()` with no catchall remain supported. The helper
+  does not infer arbitrary-key secret paths or evaluate catchall accessors.
+
+For inputs within this contract, the derivation does not evaluate defaults, getters, refinements, transforms, or resource factories. It returns no defaults, examples, descriptions, schema objects, discriminant values, credential values, or value hashes. Use the existing `secret(env(...))` annotations; no separate secret-name list is authored.
+
+Object inspection requires the installed Zod version's public `util.rawShape` capability. Complete object derivation is qualified on Zod 4.6.7; exact Zod 4.3.5 remains supported by the package and returns `complete: false` with `unsupported-schema` for object inspection. The capability is checked at runtime; its introduction version and intermediate-version behavior are not established here. No shape getter is evaluated as a fallback, even if a caller previously accessed the schema. Consumers must treat incomplete metadata as a blocked derivation, never as an empty list of required secrets.
+
 ## The resource
 
 The config resource manages resolved config lifecycle:
