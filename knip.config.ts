@@ -96,6 +96,7 @@ const config: KnipConfig = {
   workspaces: {
     '.': {
       entry: [
+        'scripts/adr-markdown-parser.ts',
         'scripts/bootstrap/main.ts',
         'scripts/migrate-consumer-to-0x.ts',
         'scripts/verify-oxc-resolver-published.ts',
