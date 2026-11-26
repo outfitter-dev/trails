@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { dirname, relative, resolve, sep } from 'node:path';
 
 import {
+  decodeLocalMarkdownPath,
   decodeMarkdownDestination,
   extractMarkdownLinks,
   rewriteMarkdownLinks,
@@ -29,12 +30,11 @@ const parsePath = (raw: string, source: string, root?: string) => {
   if (!(base && (rooted || isRelative(path)))) {
     return null;
   }
-  const pathname = rooted ? path.slice(1) : path;
-  try {
-    return { absolute: resolve(base, decodeURIComponent(pathname)), rooted };
-  } catch {
-    return { absolute: null, rooted };
-  }
+  const pathname = decodeLocalMarkdownPath(rooted ? path.slice(1) : path);
+  return {
+    absolute: pathname === null ? null : resolve(base, pathname),
+    rooted,
+  };
 };
 
 export const resolveMarkdownFile = (
@@ -47,17 +47,41 @@ export const resolveMarkdownFile = (
 const formatRelative = (path: string) =>
   isRelative(decodeMarkdownDestination(path)) ? path : `./${path}`;
 
+const encodeCharacter = (character: string) =>
+  `%${character.codePointAt(0)?.toString(16).padStart(2, '0').toUpperCase()}`;
+
 const encodePath = (path: string) =>
   path
     .split(sep)
     .map((part) =>
-      encodeURIComponent(part).replaceAll(
-        /[!'()*]/g,
-        (character) =>
-          `%${character.codePointAt(0)?.toString(16).toUpperCase()}`
-      )
+      encodeURIComponent(part).replaceAll(/[!'()*]/g, encodeCharacter)
     )
     .join('/');
+
+const parsesAsDestination = (target: string, enclosed: boolean) => {
+  if (/^[a-z\d._:/%#?=&+-]+$/i.test(target)) {
+    return true;
+  }
+  const source = enclosed ? `<${target}>` : target;
+  for (const markdown of [`[x](${source})`, `[x]: ${source}`]) {
+    if (extractMarkdownLinks(markdown)[0]?.target !== target) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const preserveSuffix = (path: string, suffix: string, enclosed: boolean) => {
+  if (parsesAsDestination(path + suffix, enclosed)) {
+    return path + suffix;
+  }
+  return (
+    path +
+    suffix.replaceAll(/\\?[()<>|]|[\t\r\n \\]/g, (unit) =>
+      encodeCharacter(decodeMarkdownDestination(unit))
+    )
+  );
+};
 
 /** Preserve each relative link's target when its document changes directories. */
 export const rebaseRelativeLinks = (
@@ -65,7 +89,7 @@ export const rebaseRelativeLinks = (
   from: string,
   to: string
 ): string =>
-  rewriteMarkdownLinks(markdown, ({ target }) => {
+  rewriteMarkdownLinks(markdown, ({ target }, enclosed) => {
     const { path, suffix } = splitTarget(target);
     const parsed = parsePath(path, from);
     if (!parsed?.absolute) {
@@ -74,17 +98,20 @@ export const rebaseRelativeLinks = (
     const destination = parsed.absolute === from ? to : parsed.absolute;
     const base = dirname(to);
     const raw = formatRelative(
-      relative(base, resolve(dirname(from), path)) || '.'
+      relative(base, resolve(dirname(from), path))
+        .split(sep)
+        .join('/') || '.'
     );
     const rebased =
-      parsePath(raw, to)?.absolute === destination
+      parsePath(raw, to)?.absolute === destination &&
+      parsesAsDestination(raw + suffix, enclosed)
         ? raw
         : formatRelative(encodePath(relative(base, destination)) || '.');
     const trailingSlash =
       decodeMarkdownDestination(path).endsWith('/') && !rebased.endsWith('/')
         ? '/'
         : '';
-    return rebased + trailingSlash + suffix;
+    return preserveSuffix(rebased + trailingSlash, suffix, enclosed);
   });
 
 /** Retarget only links that resolve to the moved document. */
@@ -95,7 +122,7 @@ export const retargetLocalLinks = (
   to: string,
   root: string
 ): string =>
-  rewriteMarkdownLinks(markdown, ({ target }) => {
+  rewriteMarkdownLinks(markdown, ({ target }, enclosed) => {
     const { path, suffix } = splitTarget(target);
     const parsed = parsePath(path, source, root);
     if (parsed?.absolute !== from) {
@@ -103,7 +130,11 @@ export const retargetLocalLinks = (
     }
     const base = parsed.rooted ? root : dirname(source);
     const moved = encodePath(relative(base, to));
-    return (parsed.rooted ? '/' + moved : formatRelative(moved)) + suffix;
+    return preserveSuffix(
+      parsed.rooted ? `/${moved}` : formatRelative(moved),
+      suffix,
+      enclosed
+    );
   });
 
 /** Check local file targets only; heading anchors remain the repository check's responsibility. */

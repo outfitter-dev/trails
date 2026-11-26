@@ -54,8 +54,7 @@ import {
   rebaseRelativeLinks,
 } from './lib/relative-links.ts';
 import {
-  fixCrossReferences,
-  rewriteDraftLinks,
+  rewriteMovedLinks,
   rewriteFrontmatterSlugRefs,
 } from './lib/references.ts';
 
@@ -194,7 +193,7 @@ const cmdPromote = (args: Args): void => {
 
   // Rewrite all references from draft filename to new numbered filename
   console.log('Rewriting draft references...');
-  rewriteDraftLinks(adr.path, newPath);
+  rewriteMovedLinks(adr.path, newPath);
 
   // Rewrite frontmatter depends_on/superseded_by references in peer drafts
   // from the promoted slug to the new numeric id, so the decision map keeps
@@ -271,7 +270,7 @@ const cmdDemote = (args: Args): void => {
   );
   gitMove(adr.path, newPath);
   writeFileSync(newPath, content, 'utf8');
-  rewriteDraftLinks(adr.path, newPath);
+  rewriteMovedLinks(adr.path, newPath);
 
   rebuildIndex();
   writeDecisionMap();
@@ -668,18 +667,16 @@ const cmdFix = (args: Args): void => {
           `# ADR-${padded}:`
         );
         const fm = { ...adr.frontmatter, updated: today() };
-        const content = `${serializeFrontmatter(fm as Frontmatter)}\n${body}`;
-        writeFileSync(adr.path, content, 'utf8');
-
+        const content = serializeAdrDocument(adr.raw, fm as Frontmatter, body);
         gitMove(adr.path, newPath);
+        writeFileSync(newPath, content, 'utf8');
+        rewriteMovedLinks(adr.path, newPath);
       }
       fixes++;
     }
   }
 
   if (apply && fixes > 0) {
-    console.log('Updating cross-references...');
-    fixCrossReferences();
     rebuildIndex();
     writeDecisionMap();
   }

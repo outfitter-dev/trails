@@ -101,6 +101,62 @@ Use \`\`\`[Triple](../../not-a-target.md)\`\`\`
 `;
 
 describe('ADR relative links', () => {
+  test('encodes a rebased destination when its raw spelling would stop parsing', () => {
+    const root = fixture(`[Angle](../<guide>.md)
+[Parens](../balanced(/../tenets).md)
+[Defined][parens]
+
+[parens]: ../balanced(/../tenets).md`);
+    writeFileSync(join(root, 'docs/adr/<guide>.md'), '# Guide');
+    writeFileSync(join(root, 'docs/adr/tenets).md'), '# Tenets');
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(0);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const promoted = readFileSync(
+      join(root, 'docs/adr/0002-moving.md'),
+      'utf8'
+    );
+    expect(promoted).toContain('[Angle](%3Cguide%3E.md)');
+    expect(promoted).toContain('[Parens](tenets%29.md)');
+    expect(promoted).toContain('[parens]: tenets%29.md');
+    expect(run(root, 'check').code).toBe(0);
+  });
+
+  test('does not resolve or rebase percent-encoded path separators', () => {
+    const target = '[Relative](%2Fdocs/adr/0001-existing.md)';
+    const root = fixture(target);
+    expect(run(root, 'check').output).toContain('%2Fdocs/adr/0001-existing.md');
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    expect(
+      readFileSync(join(root, 'docs/adr/0002-moving.md'), 'utf8')
+    ).toContain(target);
+  });
+
+  test('padding retargets exact local links but not links to same-suffix historical files', () => {
+    const filename = '1-existing.md';
+    const root = fixture('');
+    const adr = join(root, 'docs/adr');
+    const history = join(adr, 'historical');
+    mkdirSync(history);
+    writeFileSync(join(history, `X002-${filename}`), '# Historical');
+    rmSync(join(adr, '0001-existing.md'));
+    writeFileSync(
+      join(adr, filename),
+      document(
+        false,
+        `[Self](${filename}) [History](historical/X002-${filename})`
+      )
+    );
+    const guide = join(root, 'docs/guide.md');
+    writeFileSync(guide, `[Active](adr/${filename})`);
+    expect(run(root, 'fix', '--yes').code).toBe(0);
+    expect(readFileSync(join(adr, '0001-existing.md'), 'utf8')).toContain(
+      '[Self](0001-existing.md) [History](historical/X002-1-existing.md)'
+    );
+    expect(readFileSync(guide, 'utf8')).toBe('[Active](adr/0001-existing.md)');
+    expect(run(root, 'check').code).toBe(0);
+  });
+
   test('resolves rendered escapes, entities, and dot paths before moving', () => {
     const root = fixture(String.raw`[Escaped](..\/../tenets.md)
 [Encoded](%2e%2e/../tenets.md)

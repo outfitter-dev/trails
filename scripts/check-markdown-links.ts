@@ -9,6 +9,7 @@ import {
 } from 'node:path';
 
 import {
+  decodeLocalMarkdownPath,
   decodeMarkdownDestination,
   extractMarkdownLinks,
 } from '../.skillset/plugins/trails-dev/skills/trails-adrs/scripts/lib/markdown-links.ts';
@@ -183,8 +184,11 @@ const targetPathFor = (sourcePath: string, targetPath: string) => {
     return sourcePath;
   }
 
-  const decodedPath = decodeURIComponent(targetPath.split('?')[0]);
-  const absoluteTarget = decodedPath.startsWith('/')
+  const decodedPath = decodeLocalMarkdownPath(targetPath.split('?')[0]);
+  if (decodedPath === null) {
+    return null;
+  }
+  const absoluteTarget = targetPath.startsWith('/')
     ? join(repoRoot, decodedPath.slice(1))
     : join(repoRoot, dirname(sourcePath), decodedPath);
 
@@ -220,6 +224,14 @@ export const checkMarkdownDocumentLinks = (
 
     const { anchor, path } = parseTarget(normalized);
     const targetPath = targetPathFor(sourcePath, path);
+    if (targetPath === null) {
+      failures.push({
+        ...link,
+        message: 'target has invalid URL path encoding',
+        sourcePath,
+      });
+      continue;
+    }
 
     if (!targetExists(targetPath)) {
       failures.push({

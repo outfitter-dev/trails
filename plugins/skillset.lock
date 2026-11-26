@@ -170,13 +170,13 @@
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:50473ffd204b6136e01f248111c2e98d8e191320d3b5dd4bae10fe3d657da027",
+      "outputHash": "sha256:281cdd141601e5846030df14221b704feea565ae178d5b6975698ae43daa3c56",
       "outputPath": "trails-dev/agents/skills/trails-adrs/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "plugin": "trails-dev",
-      "sourceHash": "sha256:69cea33aa2b06e53a914e1e4d99877362bca92cf338176799922632c437328b0",
+      "sourceHash": "sha256:129d700b95079c2cf2ccb3b0290a25f995086f9d29f500a3a6f712fa21ae723f",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -577,7 +577,7 @@
     }
   ],
   "outputRoot": "plugins",
-  "provenanceHash": "sha256:b2d6898ab642a3e55c02985326780ab7d43e2a1f059c0ddb0f7ea5188563f6f0",
+  "provenanceHash": "sha256:eb70797e10064eb055e761d7b4bfc3f333354c752384433fc7570657606b1a4a",
   "renderResults": [
     {
       "destination": "plugin-manifest",

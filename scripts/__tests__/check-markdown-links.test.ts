@@ -84,6 +84,20 @@ describe('collectAnchors', () => {
 });
 
 describe('checkMarkdownDocumentLinks', () => {
+  test('does not reinterpret encoded separators as local path boundaries', () => {
+    const failures = checkMarkdownDocumentLinks(
+      'docs/example.md',
+      '[Encoded](%2Fdocs/index.md) [Backslash](folder%5Cindex.md)',
+      {
+        targetExists: () => true,
+      }
+    );
+    expect(failures.map(({ message }) => message)).toEqual([
+      'target has invalid URL path encoding',
+      'target has invalid URL path encoding',
+    ]);
+  });
+
   test('decodes Markdown character references in paths and fragments', () => {
     const documents = new Map([['docs/a&b.md', '# Details\n']]);
     expect(

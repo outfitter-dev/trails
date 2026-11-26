@@ -2,62 +2,11 @@
 
 import { lstatSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { ADR_DIR, ROOT } from './paths.ts';
+import { ROOT } from './paths.ts';
 import { listNumberedAdrs, listDrafts } from './discovery.ts';
 import { parseFrontmatter, serializeAdrDocument } from './frontmatter.ts';
 import type { Frontmatter } from './frontmatter.ts';
 import { retargetLocalLinks } from './relative-links.ts';
-
-/**
- * Fix cross-references after number padding changes.
- * Scans all ADR and draft files, replacing old short-padded filenames with new ones.
- */
-export const fixCrossReferences = (): void => {
-  const allFiles = [...listNumberedAdrs(), ...listDrafts()];
-  const oldToNew = new Map<string, string>();
-
-  for (const adr of readdirSync(ADR_DIR).filter((f) =>
-    /^\d+-.*\.md$/.test(f)
-  )) {
-    const match = adr.match(/^(\d+)-(.+)$/);
-    if (!match) {
-      continue;
-    }
-    const [, numStr, rest] = match;
-    if (!numStr || !rest) {
-      continue;
-    }
-    const shortNum = String(Number(numStr));
-    if (shortNum !== numStr) {
-      oldToNew.set(`${shortNum}-${rest}`, adr);
-    }
-  }
-
-  // Sort old names by length descending to avoid substring collisions
-  const sortedEntries = [...oldToNew.entries()].toSorted(
-    ([a], [b]) => b.length - a.length
-  );
-
-  for (const file of allFiles) {
-    let content = readFileSync(file.path, 'utf8');
-    let fileChanged = false;
-    for (const [oldName, newName] of sortedEntries) {
-      const pattern = new RegExp(
-        `(?<![\\d])${oldName.replaceAll('.', '\\.')}`,
-        'g'
-      );
-      const before = content;
-      content = content.replaceAll(pattern, newName);
-      if (content !== before) {
-        fileChanged = true;
-        console.log(`  ${file.filename}: ${oldName} → ${newName}`);
-      }
-    }
-    if (fileChanged) {
-      writeFileSync(file.path, content, 'utf8');
-    }
-  }
-};
 
 /** Non-ADR documentation that may link to decisions. */
 export const listReferenceDocs = (): { path: string; filename: string }[] => {
@@ -83,7 +32,7 @@ export const listReferenceDocs = (): { path: string; filename: string }[] => {
 };
 
 /** Retarget Markdown links to the exact moved document. */
-export const rewriteDraftLinks = (from: string, to: string): void => {
+export const rewriteMovedLinks = (from: string, to: string): void => {
   for (const file of [
     ...listNumberedAdrs(),
     ...listDrafts(),
