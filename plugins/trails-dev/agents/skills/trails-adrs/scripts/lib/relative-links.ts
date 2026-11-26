@@ -18,6 +18,15 @@ const splitTarget = (target: string) => {
     : { path: target.slice(0, suffixAt), suffix: target.slice(suffixAt) };
 };
 
+const pointsToSource = (rawPath: string, source: string): boolean => {
+  try {
+    const decoded = decodeURIComponent(unescapeMarkdownTarget(rawPath));
+    return resolve(dirname(source), decoded) === resolve(source);
+  } catch {
+    return false;
+  }
+};
+
 /** Preserve each relative link's target when its document changes directories. */
 export const rebaseRelativeLinks = (
   markdown: string,
@@ -33,10 +42,10 @@ export const rebaseRelativeLinks = (
     const escapedSeparator = suffix.length > 0 && slashes % 2 === 1;
     const rawPath = escapedSeparator ? path.slice(0, -1) : path;
     const rawSuffix = escapedSeparator ? `\\${suffix}` : suffix;
-    const originalTarget = resolve(dirname(from), rawPath);
-    const rebased =
-      relative(dirname(to), originalTarget === from ? to : originalTarget) ||
-      '.';
+    const destination = pointsToSource(rawPath, from)
+      ? to
+      : resolve(dirname(from), rawPath);
+    const rebased = relative(dirname(to), destination) || '.';
     const trailingSlash =
       rawPath.endsWith('/') && !rebased.endsWith('/') ? '/' : '';
     return rebased + trailingSlash + rawSuffix;

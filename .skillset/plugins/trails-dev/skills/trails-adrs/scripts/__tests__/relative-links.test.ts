@@ -182,6 +182,19 @@ describe('ADR relative links', () => {
     expect(checked.output).toContain('missing.md');
   });
 
+  test('URL-encoded explicit self links follow the decision', () => {
+    const root = fixture(
+      String.raw`[Self](<%320261028-moving.md\?view=plain#decision> "Self")`
+    );
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    expect(
+      readFileSync(join(root, 'docs/adr/0002-moving.md'), 'utf8')
+    ).toContain(
+      String.raw`[Self](<0002-moving.md\?view=plain#decision> "Self")`
+    );
+    expect(run(root, 'check').code).toBe(0);
+  });
+
   test('even backslashes open code spans and backslashes inside spans stay literal', () => {
     const code = '\\\\`[Code](../../missing.md)`\n`[Code](../../missing.md)\\`';
     const root = fixture(code);
