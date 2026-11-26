@@ -47,6 +47,7 @@ import {
 } from './lib/frontmatter.ts';
 import type { Frontmatter } from './lib/frontmatter.ts';
 import { gitMove } from './lib/git.ts';
+import { requireActivePath } from './lib/active-paths.ts';
 import { rebuildIndex } from './lib/index.ts';
 import { ADR_DIR, DRAFTS_DIR, INDEX_PATH } from './lib/paths.ts';
 import {
@@ -81,10 +82,10 @@ const cmdCreate = (args: Args): void => {
     process.exit(1);
   }
 
-  mkdirSync(DRAFTS_DIR, { recursive: true });
-
   const filename = `${todayCompact()}-${slug}.md`;
   const path = join(DRAFTS_DIR, filename);
+  requireActivePath(path);
+  mkdirSync(DRAFTS_DIR, { recursive: true });
 
   if (existsSync(path)) {
     console.error(`Error: ${path} already exists`);
@@ -146,6 +147,7 @@ const cmdPromote = (args: Args): void => {
   const slug = adr.filename.replace(/^\d+-/, '').replace(/\.md$/, '');
   const newFilename = `${padded}-${slug}.md`;
   const newPath = join(ADR_DIR, newFilename);
+  requireActivePath(newPath);
 
   console.log(`Promote: ${adr.filename} → ${newFilename} (${status})`);
 
@@ -249,8 +251,9 @@ const cmdDemote = (args: Args): void => {
     return;
   }
 
-  mkdirSync(DRAFTS_DIR, { recursive: true });
   const newPath = join(DRAFTS_DIR, newFilename);
+  requireActivePath(newPath);
+  mkdirSync(DRAFTS_DIR, { recursive: true });
 
   const updatedFm = {
     ...adr.frontmatter,
@@ -419,6 +422,7 @@ const cmdCheck = (args: Args): void => {
           const numPrefix = adr.filename.match(/^(\d+)-/)?.[1] ?? '';
           const newFilename = `${numPrefix}-${fm.slug}.md`;
           const newPath = join(dirname(adr.path), newFilename);
+          requireActivePath(newPath);
           gitMove(adr.path, newPath);
           console.log(`    fixed: renamed ${adr.filename} → ${newFilename}`);
           fixes++;
@@ -453,6 +457,7 @@ const cmdCheck = (args: Args): void => {
             .replace(/\.md$/, '');
           const newFilename = `${padded}-${slugPart}.md`;
           const newPath = join(ADR_DIR, newFilename);
+          requireActivePath(newPath);
           gitMove(adr.path, newPath);
           console.log(`    fixed: renamed ${adr.filename} → ${newFilename}`);
           fixes++;
@@ -472,6 +477,7 @@ const cmdCheck = (args: Args): void => {
   }
 
   console.log('Checking index...');
+  requireActivePath(INDEX_PATH);
   if (existsSync(INDEX_PATH)) {
     const indexContent = readFileSync(INDEX_PATH, 'utf8');
     for (const adr of listNumberedAdrs()) {
@@ -495,6 +501,7 @@ const cmdCheck = (args: Args): void => {
 
   console.log('Checking decision map...');
   for (const artifact of buildDecisionMapContents()) {
+    requireActivePath(artifact.path);
     const label = artifact.path.slice(process.cwd().length + 1);
     if (!existsSync(artifact.path)) {
       report('error', label, 'generated ADR artifact is missing');
@@ -549,6 +556,7 @@ const cmdUpdate = (args: Args): void => {
       ? (adr.filename.match(/^(\d+)-/)?.[1] ?? todayCompact())
       : (adr.filename.match(/^(\d+)-/)?.[1] ?? '0000');
     newSlugFilename = `${numPrefix}-${args.slug}.md`;
+    requireActivePath(join(dirname(adr.path), newSlugFilename));
     changes.push(`Slug → "${args.slug}" (${newSlugFilename})`);
   }
   if (args.status) {
@@ -567,6 +575,7 @@ const cmdUpdate = (args: Args): void => {
     const padded = padNumber(newNum);
     const slug = adr.filename.replace(/^\d+-/, '').replace(/\.md$/, '');
     newRenumberFilename = `${padded}-${slug}.md`;
+    requireActivePath(join(ADR_DIR, newRenumberFilename));
     changes.push(`Renumber → ${padded} (${newRenumberFilename})`);
   }
 
@@ -661,6 +670,7 @@ const cmdFix = (args: Args): void => {
       console.log(`  ${adr.filename} → ${newFilename}`);
 
       if (apply) {
+        requireActivePath(newPath);
         const raw = readFileSync(adr.path, 'utf8');
         const { body, frontmatter } = parseFrontmatter(raw);
         const updatedBody = body.replace(
