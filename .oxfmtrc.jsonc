@@ -11,6 +11,6 @@
   "printWidth": 80,
   "ignorePatterns": [
     "**/.trails/regrade/history/**",
-    "**/trails-adrs/scripts/lib/markdown-parser.generated.js"
+    "**/trails-adrs/scripts/lib/markdown-parser.generated.js",
   ],
 }
