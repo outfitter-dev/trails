@@ -44,6 +44,26 @@ export {
   type LoadedTrailsConfigValue,
 } from './trails-config-file.js';
 export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
+/**
+ * Derive declared secret metadata from trusted, application-owned Zod schemas
+ * and ordinary inputs with no Proxies in the inspected graph. This helper is
+ * not a sandbox or a Proxy detector and does not guarantee typed
+ * incompleteness for inputs outside that contract.
+ *
+ * @example
+ * ```ts
+ * const derivation = deriveConfigSecretFields(resourceConfigSchema, {
+ *   discriminants: { adapter: 'jwt' },
+ * });
+ * ```
+ */
+export {
+  deriveConfigSecretFields,
+  type ConfigSecretAncestor,
+  type ConfigSecretField,
+  type ConfigSecretFieldDerivation,
+  type DeriveConfigSecretFieldsOptions,
+} from './secret-fields.js';
 export {
   checkConfig,
   type ConfigReport,

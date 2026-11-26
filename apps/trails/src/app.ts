@@ -19,6 +19,8 @@ import {
   wayfindVersionsTrail,
 } from '@ontrails/topography';
 
+import * as addResource from './trails/add-resource.js';
+import * as addSignal from './trails/add-signal.js';
 import * as addSurface from './trails/add-surface.js';
 import * as addTrail from './trails/add-trail.js';
 import * as addVerify from './trails/add-verify.js';
@@ -89,6 +91,8 @@ export const operatorApp = topo(
   createAdapter,
   createScaffold,
   createVersions,
+  addResource,
+  addSignal,
   addSurface,
   addVerify,
   addTrail,

@@ -6,7 +6,7 @@
     "entities": 0,
     "resources": 0,
     "signals": 0,
-    "trails": 71
+    "trails": 73
   },
   "topoGraph": {
     "activationGraph": {
@@ -251,6 +251,126 @@
           "type": "object"
         },
         "permit": "public",
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "add",
+            "resource"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "add",
+                "resource"
+              ],
+              "source": "derived",
+              "target": "add.resource"
+            }
+          ]
+        },
+        "description": "Scaffold an in-memory resource with config, lifecycle, and mock tests",
+        "exampleCount": 0,
+        "id": "add.resource",
+        "input": {
+          "properties": {
+            "description": {
+              "description": "Resource description",
+              "type": "string"
+            },
+            "id": {
+              "description": "Resource scaffold ID (e.g. db.main); lowercase dotted segments with optional _draft. prefix",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "id"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "created": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "created"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "project:write"
+          ]
+        },
+        "surfaces": []
+      },
+      {
+        "cli": {
+          "path": [
+            "add",
+            "signal"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "add",
+                "signal"
+              ],
+              "source": "derived",
+              "target": "add.signal"
+            }
+          ]
+        },
+        "description": "Scaffold a typed signal declaration with payload tests",
+        "exampleCount": 0,
+        "id": "add.signal",
+        "input": {
+          "properties": {
+            "description": {
+              "description": "Signal description",
+              "type": "string"
+            },
+            "id": {
+              "description": "Signal scaffold ID (e.g. entity.updated); lowercase dotted segments with optional _draft. prefix",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "id"
+          ],
+          "type": "object"
+        },
+        "kind": "trail",
+        "output": {
+          "properties": {
+            "created": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "created"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "project:write"
+          ]
+        },
         "surfaces": []
       },
       {
@@ -27114,6 +27234,84 @@
           "trailId": "adapter.check"
         },
         {
+          "description": "Scaffold an in-memory resource with config, lifecycle, and mock tests",
+          "exportName": "addResource",
+          "input": {
+            "properties": {
+              "description": {
+                "description": "Resource description",
+                "type": "string"
+              },
+              "id": {
+                "description": "Resource scaffold ID (e.g. db.main); lowercase dotted segments with optional _draft. prefix",
+                "type": "string"
+              }
+            },
+            "required": [
+              "description",
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "created": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "created"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "add.resource"
+        },
+        {
+          "description": "Scaffold a typed signal declaration with payload tests",
+          "exportName": "addSignal",
+          "input": {
+            "properties": {
+              "description": {
+                "description": "Signal description",
+                "type": "string"
+              },
+              "id": {
+                "description": "Signal scaffold ID (e.g. entity.updated); lowercase dotted segments with optional _draft. prefix",
+                "type": "string"
+              }
+            },
+            "required": [
+              "description",
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "created": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "created"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "add.signal"
+        },
+        {
           "description": "Add a surface to an existing project",
           "exportName": "addSurface",
           "input": {
@@ -43197,6 +43395,6 @@
       }
     ]
   },
-  "topoGraphHash": "f52270217f02186ba674e9c1206efcc317d39361656311d0e0c9c0622c0543d7",
+  "topoGraphHash": "c5902b31a3b3f006d1f3b37d782c4274ea2cd48b276d6128d8a00403c4e48dd9",
   "version": 5
 }

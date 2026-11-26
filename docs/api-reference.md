@@ -837,6 +837,7 @@ clearConfigState()                   // clear global config state (for tests)
 // Derivation helpers
 deriveConfig(options?)               // resolve config values against schema + sources
 deriveConfigFields(schema)           // field descriptions from the schema
+deriveConfigSecretFields(schema, options?) // declared secret-field metadata, or typed incomplete evidence
 deriveConfigProvenance(result)       // provenance by resolved field
 deriveConfigEnvExample(schema)       // .env.example content from the schema
 deriveConfigExample(schema, format?) // commented example config for TOML / YAML / JSON
@@ -850,7 +851,14 @@ configInit                           // generate example config files
 DefineConfigOptions, TrailsWorkspaceConfig, TrailsWorkspaceAppConfig
 ReadTrailsProjectIdentityOptions, ReadTrailsProjectIdentityResult, ResolvedTrailsWorkspaceApp
 ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
+ConfigSecretAncestor, ConfigSecretField, ConfigSecretFieldDerivation, DeriveConfigSecretFieldsOptions
 ```
+
+Pass only trusted, application-owned Zod schemas and ordinary inputs to `deriveConfigSecretFields`. Nothing in the inspected schema, metadata, or options graph may be a Proxy. The helper is not a sandbox or a Proxy detector, and inputs outside this contract are not guaranteed to return typed incompleteness.
+
+Derivation accepts only checks and ancestor shapes known to preserve explicit branch selectors. Unknown checks, value-changing formats, and container refinements return incomplete without being run. Selecting a branch by its declared literal does not validate config values; a refinement can still reject the selector during parsing.
+
+Secret-field derivation uses explicit non-secret discriminant selections and returns only names, paths, sensitivity, local requiredness, and ancestor wrapper facts. Every present non-undefined object catchall, including strict and loose object policies, returns typed incompleteness at the containing object; plain stripped objects remain supported. Callers own effective profile applicability and must treat incomplete results as blocked derivation. Descriptor-safe object inspection is capability-gated: complete derivation is qualified on Zod 4.6.7; exact 4.3.5 imports and typechecks the API but returns incomplete for object inspection. The existing peer range is unchanged. For inputs within this contract, no defaults, getters, refinements, transforms, or resource factories are evaluated. See the [Config fieldguide](../packages/config/README.md#declared-secret-field-metadata).
 
 ## `@ontrails/permits`
 
