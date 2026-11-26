@@ -661,13 +661,17 @@ const cmdFix = (args: Args): void => {
       console.log(`  ${adr.filename} → ${newFilename}`);
 
       if (apply) {
-        let { body } = adr;
-        body = body.replace(
+        const raw = readFileSync(adr.path, 'utf8');
+        const { body, frontmatter } = parseFrontmatter(raw);
+        const updatedBody = body.replace(
           new RegExp(`^#\\s+ADR-${numStr}:`, 'm'),
           `# ADR-${padded}:`
         );
-        const fm = { ...adr.frontmatter, updated: today() };
-        const content = serializeAdrDocument(adr.raw, fm as Frontmatter, body);
+        const content = serializeAdrDocument(
+          raw,
+          { ...frontmatter, updated: today() },
+          updatedBody
+        );
         gitMove(adr.path, newPath);
         writeFileSync(newPath, content, 'utf8');
         rewriteMovedLinks(adr.path, newPath);

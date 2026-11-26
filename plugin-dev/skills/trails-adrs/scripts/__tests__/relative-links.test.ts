@@ -177,6 +177,32 @@ describe('ADR relative links', () => {
     expect(run(root, 'check').code).toBe(0);
   });
 
+  test('padding multiple decisions preserves links already retargeted in the same batch', () => {
+    const root = fixture('');
+    const adr = join(root, 'docs/adr');
+    rmSync(join(adr, '0001-existing.md'));
+    writeFileSync(
+      join(adr, '1-existing.md'),
+      document(false, '[Second](2-second.md)')
+    );
+    writeFileSync(
+      join(adr, '2-second.md'),
+      document(false, '[First](1-existing.md)')
+        .replace('slug: existing', 'slug: second')
+        .replaceAll('Existing', 'Second')
+        .replace('id: 1', 'id: 2')
+        .replace('ADR-0001', 'ADR-2')
+    );
+    expect(run(root, 'fix', '--yes').code).toBe(0);
+    expect(readFileSync(join(adr, '0001-existing.md'), 'utf8')).toContain(
+      '[Second](0002-second.md)'
+    );
+    expect(readFileSync(join(adr, '0002-second.md'), 'utf8')).toContain(
+      '[First](0001-existing.md)'
+    );
+    expect(run(root, 'check').code).toBe(0);
+  });
+
   test('resolves rendered escapes, entities, and dot paths before moving', () => {
     const root = fixture(String.raw`[Escaped](..\/../tenets.md)
 [Encoded](%2e%2e/../tenets.md)
