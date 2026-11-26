@@ -77,8 +77,8 @@ const preserveSuffix = (path: string, suffix: string, enclosed: boolean) => {
   }
   return (
     path +
-    suffix.replaceAll(/\\?[()<>|]|[\t\r\n \\]/g, (unit) =>
-      encodeCharacter(decodeMarkdownDestination(unit))
+    suffix.replaceAll(/\\[\s\S]|[()<>|]/g, (unit) =>
+      unit.length === 1 ? '\\' + unit : unit
     )
   );
 };

@@ -132,6 +132,26 @@ describe('ADR relative links', () => {
     ).toContain(target);
   });
 
+  test('preserves rendered query and fragment spelling in grammar fallbacks', () => {
+    const root =
+      fixture(String.raw`[Query](../p(/../0001-existing.md\?q=)\#decision)
+[Fragment](../p(/../0001-existing.md\#decision))`);
+    expect(run(root, 'map').code).toBe(0);
+    expect(run(root, 'check').code).toBe(0);
+    expect(run(root, 'promote', 'moving', '--yes').code).toBe(0);
+    const promoted = readFileSync(
+      join(root, 'docs/adr/0002-moving.md'),
+      'utf8'
+    );
+    expect(promoted).toContain(
+      String.raw`[Query](0001-existing.md\?q=\)\#decision)`
+    );
+    expect(promoted).toContain(
+      String.raw`[Fragment](0001-existing.md\#decision\))`
+    );
+    expect(run(root, 'check').code).toBe(0);
+  });
+
   test('padding retargets exact local links but not links to same-suffix historical files', () => {
     const filename = '1-existing.md';
     const root = fixture('');
