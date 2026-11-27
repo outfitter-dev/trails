@@ -6,7 +6,13 @@ export default defineConfig({
   globals: {
     Bun: 'readonly',
   },
-  ignorePatterns: ['node_modules/**', 'dist/**', '**/dist/**', '.turbo/**'],
+  ignorePatterns: [
+    'node_modules/**',
+    'dist/**',
+    '**/dist/**',
+    '.turbo/**',
+    '**/trails-adrs/scripts/lib/markdown-parser.generated.js',
+  ],
   jsPlugins: [
     {
       name: 'trails-local',

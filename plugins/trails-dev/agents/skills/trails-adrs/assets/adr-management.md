@@ -12,20 +12,22 @@ Manual instructions for ADR lifecycle operations when the `../scripts/adr.ts` sc
 ## Promoting a draft
 
 1. Assign the next ADR number (check `docs/adr/README.md` for the current highest, zero-padded to 4 digits)
-2. Rename: `docs/adr/drafts/YYYYMMDD-slug.md` → `docs/adr/NNNN-slug.md` (use `git mv` to preserve history)
+2. Rename: `docs/adr/drafts/YYYYMMDD-slug.md` → `docs/adr/NNNN-slug.md` (use `git mv` to preserve history; stop if the destination exists)
 3. Update frontmatter: set `status` to `proposed` or `accepted`, update `updated` date
 4. Update the title: `# ADR: Title` → `# ADR-NNNN: Title`
-5. Add a row to the index table in `docs/adr/README.md`
-6. Update any other ADRs that reference this one as "(draft)" to use the numbered link
-7. If the script is available, regenerate `docs/adr/decision-map.json`, `docs/adr/drafts/decision-map.json`, and `docs/adr/drafts/README.md`
+5. Rebase the moved document’s own relative links for its new directory (`../NNNN-slug.md` → `NNNN-slug.md`, `../../tenets.md` → `../tenets.md`), including image targets and reference definitions
+6. Add a row to the index table in `docs/adr/README.md`
+7. Update any other ADRs that reference this one as "(draft)" to use the numbered link
+8. If the script is available, regenerate `docs/adr/decision-map.json`, `docs/adr/drafts/decision-map.json`, and `docs/adr/drafts/README.md`
 
 ## Demoting a numbered ADR
 
-1. Rename: `docs/adr/NNNN-slug.md` → `docs/adr/drafts/YYYYMMDD-slug.md` (use `git mv`)
+1. Rename: `docs/adr/NNNN-slug.md` → `docs/adr/drafts/YYYYMMDD-slug.md` (use `git mv`; stop if the destination exists)
 2. Update frontmatter: set `status: draft`, update `updated` date
 3. Update the title: `# ADR-NNNN: Title` → `# ADR: Title`
-4. Remove the row from `docs/adr/README.md`
-5. Update any ADRs that reference the numbered link
+4. Rebase the document’s own relative links for the draft directory (`NNNN-slug.md` → `../NNNN-slug.md`, `../tenets.md` → `../../tenets.md`), including image targets and reference definitions
+5. Remove the row from `docs/adr/README.md`
+6. Update any ADRs that reference the numbered link
 
 ## Superseding an ADR
 
@@ -61,3 +63,5 @@ Rules:
 ## Decision map
 
 `docs/adr/decision-map.json` catalogs accepted ADR metadata, while `docs/adr/drafts/decision-map.json` catalogs draft ADR metadata. The script's `map` command regenerates both maps and the generated draft index.
+
+After a move, validate that local link targets exist. With the script available, `bun scripts/adr.ts check` checks relative file targets in numbered ADRs and drafts. The repository link check also validates heading anchors.

@@ -69,7 +69,7 @@ bun scripts/adr.ts check
 bun scripts/adr.ts map
 ```
 
-The script handles file creation, git moves, title/slug/number updates, index rebuilding, decision map generation for numbered and draft ADRs, and cross-reference updates.
+The script handles file creation, git moves, title/slug/number updates, index rebuilding, decision map generation for numbered and draft ADRs, and cross-reference updates. Promotion and demotion refuse existing destinations and move the original file before rewriting its content, so a failed move preserves the source. They rebase the moved document’s relative Markdown links to preserve their targets, including linked images, escaped delimiters, balanced destination parentheses, and reference definitions. Code samples, external URLs, root-relative links, and same-document anchors stay intact. `check` fails on missing relative file targets in numbered ADRs and drafts; run the repository link check for heading anchors.
 
 For manual ADR management without the script, see [assets/adr-management.md](assets/adr-management.md).
 

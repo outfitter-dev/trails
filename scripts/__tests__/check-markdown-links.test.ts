@@ -19,6 +19,15 @@ describe('discoverMarkdownFiles', () => {
 });
 
 describe('extractMarkdownLinks', () => {
+  test('preserves source order for multiple links on one line', () => {
+    expect(
+      extractMarkdownLinks('[First](first.md) [Second](second.md)')
+    ).toEqual([
+      { line: 1, target: 'first.md', text: 'First' },
+      { line: 1, target: 'second.md', text: 'Second' },
+    ]);
+  });
+
   test('skips fenced code blocks while collecting markdown links', () => {
     const links = extractMarkdownLinks(`See [Guide](guide.md).
 
@@ -75,6 +84,47 @@ describe('collectAnchors', () => {
 });
 
 describe('checkMarkdownDocumentLinks', () => {
+  test('does not reinterpret encoded separators as local path boundaries', () => {
+    const failures = checkMarkdownDocumentLinks(
+      'docs/example.md',
+      '[Encoded](%2Fdocs/index.md) [Backslash](folder%5Cindex.md)',
+      {
+        targetExists: () => true,
+      }
+    );
+    expect(failures.map(({ message }) => message)).toEqual([
+      'target has invalid URL path encoding',
+      'target has invalid URL path encoding',
+    ]);
+  });
+
+  test('decodes Markdown character references in paths and fragments', () => {
+    const documents = new Map([['docs/a&b.md', '# Details\n']]);
+    expect(
+      checkMarkdownDocumentLinks(
+        'docs/example.md',
+        '[Entity](a&amp;b.md&#35;details)',
+        {
+          readAnchors: (path) => collectAnchors(documents.get(path) ?? ''),
+          targetExists: (path) => documents.has(path),
+        }
+      )
+    ).toEqual([]);
+  });
+
+  test('normalizes Markdown escapes before interpreting URL query and fragment separators', () => {
+    const documents = new Map([['docs/index.md', '# New to Trails\n']]);
+    const failures = checkMarkdownDocumentLinks(
+      'docs/example.md',
+      String.raw`[Fragment](index.md\#new-to-trails) [Query](index.md\?view=plain)`,
+      {
+        readAnchors: (path) => collectAnchors(documents.get(path) ?? ''),
+        targetExists: (path) => documents.has(path),
+      }
+    );
+    expect(failures).toEqual([]);
+  });
+
   test('reports missing relative targets with source line detail', () => {
     const failures = checkMarkdownDocumentLinks(
       'docs/example.md',

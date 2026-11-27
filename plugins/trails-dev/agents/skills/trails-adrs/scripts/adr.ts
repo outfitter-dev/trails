@@ -39,14 +39,22 @@ import {
   today,
   todayCompact,
 } from './lib/discovery.ts';
-import { extractTitle, serializeFrontmatter } from './lib/frontmatter.ts';
+import {
+  extractTitle,
+  parseFrontmatter,
+  serializeAdrDocument,
+  serializeFrontmatter,
+} from './lib/frontmatter.ts';
 import type { Frontmatter } from './lib/frontmatter.ts';
 import { gitMove } from './lib/git.ts';
 import { rebuildIndex } from './lib/index.ts';
 import { ADR_DIR, DRAFTS_DIR, INDEX_PATH } from './lib/paths.ts';
 import {
-  fixCrossReferences,
-  rewriteDraftLinks,
+  missingRelativeLinks,
+  rebaseRelativeLinks,
+} from './lib/relative-links.ts';
+import {
+  rewriteMovedLinks,
   rewriteFrontmatterSlugRefs,
 } from './lib/references.ts';
 
@@ -171,15 +179,21 @@ const cmdPromote = (args: Args): void => {
     updated: today(),
   };
 
-  const updatedBody = adr.body.replace(/^#\s+ADR:\s*/m, `# ADR-${padded}: `);
-  const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
-  writeFileSync(adr.path, content, 'utf8');
-
+  const updatedBody = rebaseRelativeLinks(adr.body, adr.path, newPath).replace(
+    /^#\s+ADR:\s*/m,
+    `# ADR-${padded}: `
+  );
+  const content = serializeAdrDocument(
+    adr.raw,
+    updatedFm as Frontmatter,
+    updatedBody
+  );
   gitMove(adr.path, newPath);
+  writeFileSync(newPath, content, 'utf8');
 
   // Rewrite all references from draft filename to new numbered filename
   console.log('Rewriting draft references...');
-  rewriteDraftLinks(adr.filename, newFilename);
+  rewriteMovedLinks(adr.path, newPath);
 
   // Rewrite frontmatter depends_on/superseded_by references in peer drafts
   // from the promoted slug to the new numeric id, so the decision map keeps
@@ -245,11 +259,18 @@ const cmdDemote = (args: Args): void => {
     updated: today(),
   };
 
-  const updatedBody = adr.body.replace(/^#\s+ADR-\d+:\s*/m, '# ADR: ');
-  const content = `${serializeFrontmatter(updatedFm as Frontmatter)}\n${updatedBody}`;
-  writeFileSync(adr.path, content, 'utf8');
-
+  const updatedBody = rebaseRelativeLinks(adr.body, adr.path, newPath).replace(
+    /^#\s+ADR-\d+:\s*/m,
+    '# ADR: '
+  );
+  const content = serializeAdrDocument(
+    adr.raw,
+    updatedFm as Frontmatter,
+    updatedBody
+  );
   gitMove(adr.path, newPath);
+  writeFileSync(newPath, content, 'utf8');
+  rewriteMovedLinks(adr.path, newPath);
 
   rebuildIndex();
   writeDecisionMap();
@@ -282,6 +303,17 @@ const cmdCheck = (args: Args): void => {
     isDraft: boolean
   ) => {
     const fm = adr.frontmatter;
+
+    const { body, bodyLineOffset } = parseFrontmatter(
+      readFileSync(adr.path, 'utf8')
+    );
+    for (const link of missingRelativeLinks(body, adr.path)) {
+      report(
+        'error',
+        adr.filename,
+        `relative link target does not exist at line ${link.line + bodyLineOffset}: ${link.target}`
+      );
+    }
 
     if (!fm.status) {
       report('error', adr.filename, 'missing status in frontmatter');
@@ -429,34 +461,9 @@ const cmdCheck = (args: Args): void => {
     }
   };
 
-  // Sibling ADR references inside docs/adr/*.md must be bare filenames.
-  // A `../NNNN-*.md` link escapes docs/adr/ and then re-enters its parent,
-  // which 404s on the website and is strictly wrong. Draft references
-  // (`drafts/*.md`) and tenets references (`../tenets.md`) stay permitted.
-  const checkAdrSiblingLinks = (adr: { filename: string; body: string }) => {
-    const siblingLink = /\]\(\.\.\/(\d{4}-[a-z0-9-]+\.md(?:#[^)]*)?)\)/g;
-    for (const match of adr.body.matchAll(siblingLink)) {
-      report(
-        'error',
-        adr.filename,
-        `sibling ADR reference must be a bare filename, not "../${match[1]}"`
-      );
-    }
-
-    const tenetsLink = /\]\(\.\.\/\.\.\/tenets\.md((?:#[^)]*)?)\)/g;
-    for (const match of adr.body.matchAll(tenetsLink)) {
-      report(
-        'error',
-        adr.filename,
-        `tenets reference must be "../tenets.md${match[1] ?? ''}", not "../../tenets.md${match[1] ?? ''}"`
-      );
-    }
-  };
-
   console.log('Checking numbered ADRs...');
   for (const adr of listNumberedAdrs()) {
     checkAdr(adr, false);
-    checkAdrSiblingLinks(adr);
   }
 
   console.log('Checking drafts...');
@@ -654,24 +661,26 @@ const cmdFix = (args: Args): void => {
       console.log(`  ${adr.filename} → ${newFilename}`);
 
       if (apply) {
-        let { body } = adr;
-        body = body.replace(
+        const raw = readFileSync(adr.path, 'utf8');
+        const { body, frontmatter } = parseFrontmatter(raw);
+        const updatedBody = body.replace(
           new RegExp(`^#\\s+ADR-${numStr}:`, 'm'),
           `# ADR-${padded}:`
         );
-        const fm = { ...adr.frontmatter, updated: today() };
-        const content = `${serializeFrontmatter(fm as Frontmatter)}\n${body}`;
-        writeFileSync(adr.path, content, 'utf8');
-
+        const content = serializeAdrDocument(
+          raw,
+          { ...frontmatter, updated: today() },
+          updatedBody
+        );
         gitMove(adr.path, newPath);
+        writeFileSync(newPath, content, 'utf8');
+        rewriteMovedLinks(adr.path, newPath);
       }
       fixes++;
     }
   }
 
   if (apply && fixes > 0) {
-    console.log('Updating cross-references...');
-    fixCrossReferences();
     rebuildIndex();
     writeDecisionMap();
   }

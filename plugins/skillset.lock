@@ -130,7 +130,9 @@
         "trails-dev/agents/skills/trails-adrs/LICENSE.txt": "0644",
         "trails-dev/agents/skills/trails-adrs/SKILL.md": "0644",
         "trails-dev/agents/skills/trails-adrs/assets/adr-management.md": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/markdown-links.test.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/relative-links.test.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/adr.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts": "0644",
@@ -138,14 +140,20 @@
         "trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-links.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.generated.js": "0644",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/paths.ts": "0644",
-        "trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts": "0644"
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts": "0644",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/relative-links.ts": "0644"
       },
       "files": [
         "trails-dev/agents/skills/trails-adrs/LICENSE.txt",
         "trails-dev/agents/skills/trails-adrs/SKILL.md",
         "trails-dev/agents/skills/trails-adrs/assets/adr-management.md",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/markdown-links.test.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/adr.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/cli.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/decision-map.ts",
@@ -153,18 +161,22 @@
         "trails-dev/agents/skills/trails-adrs/scripts/lib/frontmatter.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/git.ts",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/index.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-links.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.generated.js",
         "trails-dev/agents/skills/trails-adrs/scripts/lib/paths.ts",
-        "trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts"
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts",
+        "trails-dev/agents/skills/trails-adrs/scripts/lib/relative-links.ts"
       ],
       "kind": "plugin-skill",
       "name": "trails-adrs",
-      "outputHash": "sha256:7d27b3dfaefc63fa261f60235029fa9fcc85886cd3290943439e8e4b7bb79fce",
+      "outputHash": "sha256:6863f616540c281de57b4d2a5e6ee72fe28d5bb19100435483b3460e1355dfd6",
       "outputPath": "trails-dev/agents/skills/trails-adrs/SKILL.md",
       "owner": {
         "standardProfile": "agent-plugins-1.0"
       },
       "plugin": "trails-dev",
-      "sourceHash": "sha256:578b41ec358a45375b49477cf7d1af13780b3159b3e771283c8cc3de659239e9",
+      "sourceHash": "sha256:964efba728552b5e8c3641898813b8f18a99e2173f4e1597d9a9fa6e779cc870",
       "sourcePath": ".skillset/plugins/trails-dev/skills/trails-adrs/SKILL.md",
       "version": "0.1.0"
     },
@@ -565,7 +577,7 @@
     }
   ],
   "outputRoot": "plugins",
-  "provenanceHash": "sha256:b68c7b45be4731883329475c0728778aa5be31d7f1c00cdbf189293be584dc63",
+  "provenanceHash": "sha256:54eaa02a57e53e218cb9e5f75bbe00b0edf39c464417d6d1ff599c5eb56dc531",
   "renderResults": [
     {
       "destination": "plugin-manifest",
@@ -761,7 +773,15 @@
         },
         {
           "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/__tests__/markdown-links.test.ts"
+        },
+        {
+          "kind": "plugin-skill",
           "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/__tests__/relative-links.test.ts"
         },
         {
           "kind": "plugin-skill",
@@ -793,11 +813,27 @@
         },
         {
           "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-links.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.LICENSE.txt"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/markdown-parser.generated.js"
+        },
+        {
+          "kind": "plugin-skill",
           "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/paths.ts"
         },
         {
           "kind": "plugin-skill",
           "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/references.ts"
+        },
+        {
+          "kind": "plugin-skill",
+          "path": "plugins/trails-dev/agents/skills/trails-adrs/scripts/lib/relative-links.ts"
         }
       ],
       "schema": "skillset-render-result@2",

@@ -1,130 +1,56 @@
 /* oxlint-disable max-statements -- cross-reference scanning and rewriting */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { ADR_DIR, ROOT } from './paths.ts';
+import { lstatSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { ROOT } from './paths.ts';
 import { listNumberedAdrs, listDrafts } from './discovery.ts';
-import { serializeFrontmatter } from './frontmatter.ts';
+import { parseFrontmatter, serializeAdrDocument } from './frontmatter.ts';
 import type { Frontmatter } from './frontmatter.ts';
+import { retargetLocalLinks } from './relative-links.ts';
 
-/**
- * Fix cross-references after number padding changes.
- * Scans all ADR and draft files, replacing old short-padded filenames with new ones.
- */
-export const fixCrossReferences = (): void => {
-  const allFiles = [...listNumberedAdrs(), ...listDrafts()];
-  const oldToNew = new Map<string, string>();
-
-  for (const adr of readdirSync(ADR_DIR).filter((f) =>
-    /^\d+-.*\.md$/.test(f)
-  )) {
-    const match = adr.match(/^(\d+)-(.+)$/);
-    if (!match) {
-      continue;
-    }
-    const [, numStr, rest] = match;
-    if (!numStr || !rest) {
-      continue;
-    }
-    const shortNum = String(Number(numStr));
-    if (shortNum !== numStr) {
-      oldToNew.set(`${shortNum}-${rest}`, adr);
-    }
-  }
-
-  // Sort old names by length descending to avoid substring collisions
-  const sortedEntries = [...oldToNew.entries()].toSorted(
-    ([a], [b]) => b.length - a.length
-  );
-
-  for (const file of allFiles) {
-    let content = readFileSync(file.path, 'utf8');
-    let fileChanged = false;
-    for (const [oldName, newName] of sortedEntries) {
-      const pattern = new RegExp(
-        `(?<![\\d])${oldName.replaceAll('.', '\\.')}`,
-        'g'
-      );
-      const before = content;
-      content = content.replaceAll(pattern, newName);
-      if (content !== before) {
-        fileChanged = true;
-        console.log(`  ${file.filename}: ${oldName} → ${newName}`);
+/** Non-ADR documentation that may link to decisions. */
+export const listReferenceDocs = (): { path: string; filename: string }[] => {
+  const files: { path: string; filename: string }[] = [];
+  const docsDir = join(ROOT, 'docs');
+  const adrDir = join(docsDir, 'adr');
+  const visit = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory() && path !== adrDir) {
+        visit(path);
+      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+        files.push({ filename: entry.name, path });
       }
     }
-    if (fileChanged) {
-      writeFileSync(file.path, content, 'utf8');
-    }
-  }
-};
-
-/** All files that might contain ADR cross-references. */
-const allReferencingFiles = (): { path: string; filename: string }[] => {
-  const files: { path: string; filename: string }[] = [];
-
-  // ADR and draft files
-  for (const f of [...listNumberedAdrs(), ...listDrafts()]) {
-    files.push({ filename: f.filename, path: f.path });
-  }
-
-  // Non-ADR docs
-  const docsDir = join(ROOT, 'docs');
-  for (const f of readdirSync(docsDir)) {
-    if (f.endsWith('.md')) {
-      files.push({ filename: f, path: join(docsDir, f) });
-    }
-  }
-
-  // AGENTS.md
+  };
+  visit(docsDir);
   const agentsPath = join(ROOT, 'AGENTS.md');
-  if (existsSync(agentsPath)) {
+  if (lstatSync(agentsPath, { throwIfNoEntry: false })?.isFile()) {
     files.push({ filename: 'AGENTS.md', path: agentsPath });
   }
-
   return files;
 };
 
-/**
- * Rewrite references from a draft filename to a new numbered filename.
- * Called during promote to update all cross-references.
- *
- * Handles both relative references (`drafts/YYYYMMDD-slug.md`) and
- * bare references (`YYYYMMDD-slug.md`).
- */
-export const rewriteDraftLinks = (
-  oldDraftFilename: string,
-  newNumberedFilename: string
-): void => {
-  const draftRef = `drafts/${oldDraftFilename}`;
-
-  for (const file of allReferencingFiles()) {
-    let content = readFileSync(file.path, 'utf8');
-    let changed = false;
-
-    // Replace "drafts/YYYYMMDD-slug.md" with the numbered filename
-    // In ADR files, the relative path from docs/adr/ is just the filename
-    // In docs/ files, the path is "adr/NNNN-slug.md" instead of "adr/drafts/YYYYMMDD-slug.md"
-    if (content.includes(draftRef)) {
-      content = content.replaceAll(draftRef, newNumberedFilename);
-      changed = true;
+/** Retarget Markdown links to the exact moved document. */
+export const rewriteMovedLinks = (from: string, to: string): void => {
+  for (const file of [
+    ...listNumberedAdrs(),
+    ...listDrafts(),
+    ...listReferenceDocs(),
+  ]) {
+    if (!lstatSync(file.path, { throwIfNoEntry: false })?.isFile()) {
+      continue;
     }
-
-    // Replace bare "YYYYMMDD-slug.md" references (not preceded by "drafts/")
-    const barePattern = new RegExp(
-      `(?<!drafts/)${oldDraftFilename.replaceAll('.', '\\.')}`,
-      'g'
-    );
-    const before = content;
-    content = content.replaceAll(barePattern, newNumberedFilename);
-    if (content !== before) {
-      changed = true;
-    }
-
-    if (changed) {
-      writeFileSync(file.path, content, 'utf8');
-      console.log(
-        `  ${file.filename}: ${oldDraftFilename} → ${newNumberedFilename}`
+    const raw = readFileSync(file.path, 'utf8');
+    const { body } = parseFrontmatter(raw);
+    const after = retargetLocalLinks(body, file.path, from, to, ROOT);
+    if (after !== body) {
+      writeFileSync(
+        file.path,
+        raw.slice(0, raw.length - body.length) + after,
+        'utf8'
       );
+      console.log(`  ${file.filename}: ${basename(from)} → ${basename(to)}`);
     }
   }
 };
@@ -189,7 +115,7 @@ export const rewriteFrontmatterSlugRefs = (
     if (!changed) {
       continue;
     }
-    const content = `${serializeFrontmatter(frontmatter)}\n${draft.body}`;
+    const content = serializeAdrDocument(draft.raw, frontmatter, draft.body);
     writeFileSync(draft.path, content, 'utf8');
     console.log(
       `  ${draft.filename}: frontmatter refs ${promotedSlug} → ${promotedNumber}`

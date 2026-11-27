@@ -109,7 +109,7 @@ describe('Skillset ownership contract', () => {
       'bun scripts/sync-skillset-outputs.ts'
     );
     expect(packageJson.scripts?.['skillset:check']).toBe(
-      'bun run warden:skills:check && bun scripts/check-skillset-outputs.ts'
+      'bun run adr:parser:check && bun run warden:skills:check && bun scripts/check-skillset-outputs.ts'
     );
     expect(packageJson.scripts?.['skillset:ownership']).toBe(
       'bun test scripts/__tests__/skillset-ownership-contract.test.ts'
