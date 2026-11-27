@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { INDEX_PATH } from './paths.ts';
+import { requireActivePath } from './active-paths.ts';
 import { listNumberedAdrs, parseAdrNumber, padNumber } from './discovery.ts';
 
 const formatStatus = (status: string, amended: unknown): string => {
@@ -32,6 +33,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 ${rows.join('\n')}
 `;
 
+  requireActivePath(INDEX_PATH);
   writeFileSync(INDEX_PATH, content, 'utf8');
   console.log(`Updated ${INDEX_PATH}`);
 };

@@ -99,7 +99,13 @@ Examples:
 - Index: `docs/adr/README.md`
 - Accepted decision map: `docs/adr/decision-map.json`
 - Draft decision map: `docs/adr/drafts/decision-map.json`
+- Historical numbered snapshots after the canon reset: `docs/adr/historical/X###-slug.md`
+- Historical draft snapshots: `docs/adr/historical/drafts/YYYYMMDD-slug.md`
 - Tenets: `docs/tenets.md` — the governing design principles. ADRs must be consistent with the tenets.
+
+Active operations use only regular files directly under the numbered and draft roots. Historical records are readable development context, not active doctrine: discovery, checks, numbering, indexes, and maps exclude them. Explicit historical/outside paths and symlink aliases cannot be used to mutate an ADR or redirect generated outputs. Preserve historical files through the separately agreed cutover procedure; ordinary lifecycle commands do not archive or rewrite them.
+
+The current numeric canon remains valid before the reset. At the atomic reset, active numbering restarts at `ADR-0001`; historical ordinals never affect it. `create` still authors an unnumbered dated draft, and `promote` assigns the next active number. Do not renumber the current canon merely because the tooling understands history.
 
 ## Statuses
 

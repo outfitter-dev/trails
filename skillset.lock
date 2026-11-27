@@ -299,8 +299,8 @@
           ],
           "pluginVersion": "0.4.0",
           "providerSource": "./plugin",
-          "ref": "devin/1795708271-adr-micromark-local",
-          "sha": "e5d2a6f67636226cb5cd182b4d4ad856c66e829b",
+          "ref": "devin/1795709977-adr-archive-final",
+          "sha": "9e3dacfa25905448b791784c335a083670ec3c2d",
           "sourceKind": "current"
         }
       },
@@ -322,10 +322,12 @@
           "plugin-dev/skills/trails-adrs/LICENSE.txt",
           "plugin-dev/skills/trails-adrs/SKILL.md",
           "plugin-dev/skills/trails-adrs/assets/adr-management.md",
+          "plugin-dev/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/__tests__/markdown-links.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
           "plugin-dev/skills/trails-adrs/scripts/adr.ts",
+          "plugin-dev/skills/trails-adrs/scripts/lib/active-paths.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
           "plugin-dev/skills/trails-adrs/scripts/lib/discovery.ts",
@@ -383,10 +385,12 @@
             "plugin-dev/skills/trails-adrs/LICENSE.txt",
             "plugin-dev/skills/trails-adrs/SKILL.md",
             "plugin-dev/skills/trails-adrs/assets/adr-management.md",
+            "plugin-dev/skills/trails-adrs/scripts/__tests__/archive-aware.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/__tests__/markdown-links.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/__tests__/promote-rewrite.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/__tests__/relative-links.test.ts",
             "plugin-dev/skills/trails-adrs/scripts/adr.ts",
+            "plugin-dev/skills/trails-adrs/scripts/lib/active-paths.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/cli.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/decision-map.ts",
             "plugin-dev/skills/trails-adrs/scripts/lib/discovery.ts",
@@ -423,15 +427,15 @@
           ],
           "pluginVersion": "0.1.0",
           "providerSource": "./plugin-dev",
-          "ref": "devin/1795708271-adr-micromark-local",
-          "sha": "e5d2a6f67636226cb5cd182b4d4ad856c66e829b",
+          "ref": "devin/1795709977-adr-archive-final",
+          "sha": "9e3dacfa25905448b791784c335a083670ec3c2d",
           "sourceKind": "current"
         }
       }
     ]
   },
   "outputRoot": ".",
-  "provenanceHash": "sha256:0a5fce9eb33ca2a4ec4200592d825bb18d19cb5afbf138e0dc93ecf14324c3b5",
+  "provenanceHash": "sha256:f0a60d1c684874a2574022750bb27830a688ff82c240a873e93897e7f374d530",
   "renderResults": [
     {
       "destination": "changelog",

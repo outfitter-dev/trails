@@ -165,7 +165,7 @@
           "fromPath": "docs/adr/0062-documentation-architecture.md"
         },
         {
-          "context": "- docs/adr/0000-core-premise.md",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) -- \"the trail is the product\"; `trails run` makes every trail directly invocable without trailhead ceremony",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -190,12 +190,12 @@
           "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
-          "context": "- docs/adr/0000-core-premise.md",
+          "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to freshness: author the contract, derive the enforcement",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
         },
         {
-          "context": "- docs/adr/0000-core-premise.md",
+          "context": "- [ADR-0000: Core premise](../0000-core-premise.md) — \"author what's new, derive what's known\" applies to documentation: author the source tree, derive the site",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
@@ -205,7 +205,7 @@
           "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },
         {
-          "context": "- docs/adr/0000-core-premise.md",
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md)",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
@@ -309,7 +309,7 @@
           "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
         },
         {
-          "context": "- docs/adr/0001-naming-conventions.md",
+          "context": "- [ADR-0001: Naming conventions](../0001-naming-conventions.md) — naming principles that apply to documentation paths",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
@@ -477,7 +477,7 @@
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
         {
-          "context": "- docs/adr/0003-unified-trail-primitive.md",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -487,7 +487,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- docs/adr/0003-unified-trail-primitive.md",
+          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail definition that packs contain",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
@@ -704,7 +704,7 @@
           "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
         },
         {
-          "context": "- docs/adr/0006-shared-execution-pipeline.md",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -719,7 +719,7 @@
           "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
-          "context": "- docs/adr/0006-shared-execution-pipeline.md",
+          "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md)",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
@@ -892,7 +892,7 @@
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
-          "context": "- docs/adr/0008-deterministic-trailhead-derivation.md",
+          "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md)",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
@@ -991,17 +991,17 @@
           "fromPath": "docs/adr/0060-cli-credentials-and-app-login.md"
         },
         {
-          "context": "- docs/adr/0009-first-class-resources.md",
+          "context": "- [ADR-0009: Resources](../0009-first-class-resources.md) -- the resource primitive that packs scope and compose",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- docs/adr/0009-first-class-resources.md",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) -- the resource pattern for embedding providers",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- docs/adr/0009-first-class-resources.md",
+          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md) — the resource primitive that bundles group and distribute",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
@@ -1070,7 +1070,7 @@
           "fromPath": "docs/adr/0057-auth-adapter-packaging.md"
         },
         {
-          "context": "- docs/adr/0010-native-infrastructure.md",
+          "context": "- [ADR-0010: Trails-Native Infrastructure](../0010-native-infrastructure.md)",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         },
@@ -1242,7 +1242,7 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
-          "context": "- docs/adr/0013-tracing.md",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; current-run trace rendering during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -1262,7 +1262,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- docs/adr/0013-tracing.md",
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) and",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
@@ -1444,12 +1444,12 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
-          "context": "- docs/adr/0016-schema-derived-persistence.md",
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- docs/adr/0016-schema-derived-persistence.md",
+          "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) — the store contract that bundle resources satisfy",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
@@ -1558,7 +1558,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- docs/adr/0017-serialized-topo-graph.md",
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
@@ -1680,7 +1680,7 @@
           "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
         },
         {
-          "context": "- docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md",
+          "context": "- [ADR-0020: Flags for Fields, Structured Input on the CLI](../0020-flags-for-fields-structured-input-on-the-cli.md)",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
@@ -1753,7 +1753,7 @@
           "fromPath": "docs/adr/0040-resource-scoped-store-signal-identity.md"
         },
         {
-          "context": "- docs/adr/0022-drizzle-store-connector.md",
+          "context": "- [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md) — the first connector, now understood as a single-resource bundle",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
@@ -1827,12 +1827,12 @@
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
         {
-          "context": "- docs/adr/0023-simplifying-the-trails-lexicon.md",
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) -- the lexicon renames that apply to pack field names (`events` → `signals`, `services` → `resources`)",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- docs/adr/0023-simplifying-the-trails-lexicon.md",
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md) — the vocabulary→lexicon rename that this structure codifies",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
@@ -1916,7 +1916,7 @@
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
         {
-          "context": "- docs/adr/0024-typed-trail-composition.md",
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md)",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
@@ -2048,7 +2048,7 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- docs/adr/0027-visibility-and-filtering.md",
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -2058,7 +2058,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- docs/adr/0027-visibility-and-filtering.md",
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md)",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
@@ -2068,7 +2068,7 @@
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
-          "context": "- docs/adr/0027-visibility-and-filtering.md",
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) — the visibility levers that keep Wayfinder internal by default and gate MCP exposure behind explicit includes",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         }
@@ -2092,7 +2092,7 @@
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
         {
-          "context": "- docs/adr/0028-concurrent-crossing.md",
+          "context": "- [ADR-0028: Concurrent Trail Crossing](../0028-concurrent-crossing.md) -- `--trace` renders concurrent crossings as parallel branches in the execution tree",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         }
@@ -2166,7 +2166,7 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- docs/adr/0029-connector-extraction-and-the-with-packaging-model.md",
+          "context": "- [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
@@ -2215,12 +2215,12 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- docs/adr/0030-contours-as-first-class-domain-objects.md",
+          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) -- entities provide the domain object schemas that search declarations annotate",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- docs/adr/0030-contours-as-first-class-domain-objects.md",
+          "context": "- [ADR-0030: Contours as First-Class Domain Objects](../0030-contours-as-first-class-domain-objects.md) — entities feed store schemas within bundles",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         }
@@ -2254,12 +2254,12 @@
           "fromPath": "docs/adr/0034-store-accessor-contract-refinement-lessons-from-two-backends.md"
         },
         {
-          "context": "- docs/adr/0031-backend-agnostic-store-schemas.md",
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) -- the store schema abstraction that search declarations extend",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- docs/adr/0031-backend-agnostic-store-schemas.md",
+          "context": "- [ADR-0031: Backend-Agnostic Store Schemas](../0031-backend-agnostic-store-schemas.md) — the store schemas that bundle resources bind to concrete backends",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         }
@@ -2308,12 +2308,12 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- docs/adr/0032-derivetrail-and-trail-factories.md",
+          "context": "When search is declared on a store entity and the developer uses `crud()` (see [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md)), a search trail is automatic",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
         },
         {
-          "context": "- docs/adr/0032-derivetrail-and-trail-factories.md",
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) — trail factories that produce trails carried by pack bundles",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         }
@@ -2444,7 +2444,7 @@
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
         {
-          "context": "- docs/adr/0035-surface-apis-render-the-graph.md",
+          "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) — surfaces render the graph rather than defining their own model, which is what forbids an MCP-only query semantic",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
@@ -2510,11 +2510,6 @@
           "context": "- [ADR-0037: Owner-First Authority](0037-owner-first-authority.md) — keeps",
           "from": "0053",
           "fromPath": "docs/adr/0053-regrade-moves-governed-contract-change.md"
-        },
-        {
-          "context": "- docs/adr/0037-owner-first-authority.md",
-          "from": "20260503",
-          "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
         {
           "context": "- [ADR-0037: Owner-First Authority](../0037-owner-first-authority.md) - Warden",
@@ -2683,12 +2678,12 @@
           "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
         },
         {
-          "context": "- docs/adr/0041-unified-observability.md",
+          "context": "- [ADR-0041: Unified Observability](../0041-unified-observability.md) -- `--trace` flag, `ctx.trace()`, and the trace vocabulary used throughout this draft. The canonical flag name `--trace` matches t",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
         {
-          "context": "- docs/adr/0041-unified-observability.md",
+          "context": "[ADR-0041: Unified Observability](../0041-unified-observability.md) — the",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
@@ -2732,7 +2727,7 @@
           "fromPath": "docs/adr/0054-project-substrate-names-its-truth.md"
         },
         {
-          "context": "- docs/adr/0042-core-topography-boundary-doctrine.md",
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md)",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
@@ -2742,7 +2737,7 @@
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
-          "context": "- docs/adr/0042-core-topography-boundary-doctrine.md",
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) — places the reusable Wayfind catalog in `@ontrails/topography` and keeps CLI and MCP wrappers app-owned",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
@@ -2784,11 +2779,6 @@
           "context": "[adr-0043]: ../0043-layer-evolution.md",
           "from": "20260612",
           "fromPath": "docs/adr/drafts/20260612-library-surface-and-compiler.md"
-        },
-        {
-          "context": "Source code, including TSDoc, inline comments, runtime strings, error messages, and log payloads, should reference accepted ADRs by stable number, such as `docs/adr/0043-layer-evolution.md`. It should",
-          "from": "code-standards",
-          "fromPath": "docs/contributing/code-standards.md"
         },
         {
           "context": "Use layers for authored behavior such as rate limits, tenant guards, telemetry wrappers, or CLI verbosity. Framework-owned behavior such as permit enforcement and tracing stays in the execution pipeli",
@@ -2967,7 +2957,7 @@
           "fromPath": "docs/adr/0055-mcp-stateless-core-on-sdk-v2.md"
         },
         {
-          "context": "- docs/adr/0047-stable-release-line-discipline.md",
+          "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         },
@@ -3033,12 +3023,12 @@
           "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
-          "context": "- docs/adr/0048-trail-versioning-v3.md",
+          "context": "- [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         },
         {
-          "context": "- docs/adr/0048-trail-versioning-v3.md",
+          "context": "- [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
@@ -3126,7 +3116,7 @@
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
         {
-          "context": "- docs/adr/0050-surface-accommodations-preserve-trail-identity.md",
+          "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — the normalize-without-lying test this ADR restates for resource URIs",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
@@ -3234,12 +3224,12 @@
           "fromPath": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md"
         },
         {
-          "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
+          "context": "- [ADR-0052: Overlays Are the Lock's One Extension Mechanism](../0052-overlays-one-extension-mechanism.md)",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         },
         {
-          "context": "- docs/adr/0052-overlays-one-extension-mechanism.md",
+          "context": "- [ADR-0052: Overlays Are the Lock's One Extension Mechanism](../0052-overlays-one-extension-mechanism.md) — the extension mechanism any lockable surface binding must use, which resource URIs must not",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },
@@ -3327,7 +3317,7 @@
           "fromPath": "docs/adr/0062-documentation-architecture.md"
         },
         {
-          "context": "- docs/adr/0054-project-substrate-names-its-truth.md",
+          "context": "- [ADR-0054: Project Substrate Names Its Truth](../0054-project-substrate-names-its-truth.md)",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         },

@@ -42,23 +42,7 @@
     {
       "created": "2026-03-31",
       "depends_on": ["3", "9", "23"],
-      "inbound": [
-        {
-          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
-        },
-        {
-          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
-        },
-        {
-          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
-          "from": "20260331",
-          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
-        }
-      ],
+      "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260331-packs-namespace-boundaries.md",
@@ -136,7 +120,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- docs/adr/drafts/20260406-documentation-structure.md",
+          "context": "- [ADR: Documentation structure](20260406-documentation-structure.md) — the section taxonomy and directory structure that SLA rules reference",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
         }
@@ -200,7 +184,7 @@
       "depends_on": ["17", "27", "37", "42"],
       "inbound": [
         {
-          "context": "- docs/adr/drafts/20260503-wayfinding.md",
+          "context": "- [Wayfinding (draft)](20260503-wayfinding.md) — establishes the resolver/filter/view navigation model, the `--source` axis, the drift envelope, and the resources-versus-tools split this ADR specifies",
           "from": "20260829",
           "fromPath": "docs/adr/drafts/20260829-wayfinder-mcp-graph-as-resources.md"
         },

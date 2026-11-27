@@ -65,3 +65,9 @@ Rules:
 `docs/adr/decision-map.json` catalogs accepted ADR metadata, while `docs/adr/drafts/decision-map.json` catalogs draft ADR metadata. The script's `map` command regenerates both maps and the generated draft index.
 
 After a move, validate that local link targets exist. With the script available, `bun scripts/adr.ts check` checks relative file targets in numbered ADRs and drafts. The repository link check also validates heading anchors.
+
+## Active canon and historical context
+
+Active numbered decisions and drafts remain directly under `docs/adr/` and `docs/adr/drafts/`. Historical snapshots live under `docs/adr/historical/`, with historical drafts in its `drafts/` subdirectory. Historical records preserve development context and do not govern the active canon. They never participate in active numbering, indexes, decision maps, or active metadata checks.
+
+Before the separately agreed atomic reset, retain the current numeric canon. After the reset, active numbering starts at `ADR-0001`; historical `X###-*` identities do not change that allocator. Every cutoff draft receives a historical snapshot independently of whether an active future draft is retained or rewritten. Use the integration-owned cutover plan for archive transformations; ordinary create/promote/demote/update/fix commands accept only regular active files and cannot target history through an explicit path or symlink. Keep new active ADR references on current doctrine, with the reset record allowed to link the archive as a whole.
