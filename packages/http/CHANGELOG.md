@@ -1,5 +1,17 @@
 # @ontrails/http
 
+## 0.4.0
+
+### Minor Changes
+
+- [`67e4003`](https://github.com/outfitter-dev/trails/commit/67e4003f89620e911bce091d909c7f88e44192b1): Add an optional HTTP dispatch-miss callback and Workers host.assets binding configuration. Unmatched HTTP method/path requests can delegate to the native assets binding without resolving trail resources. Matched trail responses, errors and the exact MCP endpoint remain terminal. Apps without assets configuration retain the standard HTTP 404. Saved deploy facts and generated front-router configuration remain separate work.
+
+### Patch Changes
+
+- [`182412e`](https://github.com/outfitter-dev/trails/commit/182412ec7ef0fb23807e1f366856bc1ca9f3e0df): Accept a single GET query value for a declared primitive array field as a
+  one-element array. Repeated keys still supply multiple values in order, and
+  omitted keys still use the trail schema's default or required-field validation.
+
 ## 0.3.0
 
 ### Minor Changes

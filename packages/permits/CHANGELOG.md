@@ -1,5 +1,11 @@
 # @ontrails/permits
 
+## 0.4.0
+
+### Patch Changes
+
+- [`539dbbd`](https://github.com/outfitter-dev/trails/commit/539dbbdda40b081151a553cbc3d345a54a12ed34): Warn when a composing trail omits scopes required by reachable composed trails, including public intermediates and live historical forks. Expose the finding through Warden's existing permit-governance rule without changing runtime enforcement.
+
 ## 0.3.0
 
 ### Minor Changes

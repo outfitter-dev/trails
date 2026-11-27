@@ -1,5 +1,11 @@
 # @ontrails/testing
 
+## 0.4.0
+
+### Patch Changes
+
+- [`cb97364`](https://github.com/outfitter-dev/trails/commit/cb9736417a4008c42c7c0852a053e2282a7e6369): Show the redacted error name and message when a generated example or contract test expects success and receives an error. Failures for missing resources and missing permits no longer look like the same boolean assertion.
+
 ## 0.3.0
 
 ### Minor Changes
