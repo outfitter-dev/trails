@@ -1,5 +1,19 @@
 # trails
 
+## 0.4.0
+
+### Minor Changes
+
+- [`9b11db9`](https://github.com/outfitter-dev/trails/commit/9b11db98e78edc91f370a611f5676090ea5a924f): Add the CLI command `trails add resource <id>` to generate an editable in-memory resource with config-driven creation, lifecycle cleanup, health reporting, and isolated mocks, plus runnable tests. Preserve existing output files and leave topo wiring explicit.
+
+  `trails add trail <id>` also rejects existing scaffold destinations before writing instead of overwriting them.
+- [`3292c14`](https://github.com/outfitter-dev/trails/commit/3292c147315c0417979bbb95cd40106e87b58b5f): Add the CLI command `trails add signal <id>` to generate a typed declaration and payload tests without inventing producer provenance. Share the resource scaffold's private, bounded file-creation helper and keep producer/consumer wiring explicit.
+
+### Patch Changes
+
+- [`832fac0`](https://github.com/outfitter-dev/trails/commit/832fac0d0ceca14b87f014d3efec9e5521e55e20): Include the evaluated app's `executedAppId` in one-app topo-aware Warden results and CLI JSON, including successful runs without diagnostics. Omit this singular field for source-only and workspace-wide observations. Warden's shared command reports the canonical evaluated topo ID separately from diagnostic labels such as a legacy module path.
+- [`6c61905`](https://github.com/outfitter-dev/trails/commit/6c61905be8e1872ef930ac3e4568d7a468579303): Refresh the Trails operator's saved graph to retain authored trail metadata for graph navigation and governance.
+
 ## 0.3.0
 
 ### Minor Changes

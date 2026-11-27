@@ -1,5 +1,13 @@
 # @ontrails/warden
 
+## 0.4.0
+
+### Patch Changes
+
+- [`539dbbd`](https://github.com/outfitter-dev/trails/commit/539dbbdda40b081151a553cbc3d345a54a12ed34): Warn when a composing trail omits scopes required by reachable composed trails, including public intermediates and live historical forks. Expose the finding through Warden's existing permit-governance rule without changing runtime enforcement.
+- [`832fac0`](https://github.com/outfitter-dev/trails/commit/832fac0d0ceca14b87f014d3efec9e5521e55e20): Include the evaluated app's `executedAppId` in one-app topo-aware Warden results and CLI JSON, including successful runs without diagnostics. Omit this singular field for source-only and workspace-wide observations. Warden's shared command reports the canonical evaluated topo ID separately from diagnostic labels such as a legacy module path.
+- [`6c61905`](https://github.com/outfitter-dev/trails/commit/6c61905be8e1872ef930ac3e4568d7a468579303): Explain that duplicate public contract coaching compares authored metadata and show meaningful read versus acknowledgment facts without changing the fingerprint algorithm.
+
 ## 0.3.0
 
 ### Patch Changes

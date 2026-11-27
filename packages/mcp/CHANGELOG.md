@@ -1,5 +1,11 @@
 # @ontrails/mcp
 
+## 0.4.0
+
+### Minor Changes
+
+- [`b767357`](https://github.com/outfitter-dev/trails/commit/b767357eb73fa7cbf8744c23557f57f0e890204d): Preserve raw non-object output values and schemas on modern MCP connections while keeping legacy `{ data: ... }` rendering and the standalone `deriveMcpTools()` API compatible. Select tool and trailhead output schemas after protocol negotiation, and expose matching schemas through the surface-map resource.
+
 ## 0.3.0
 
 ### Minor Changes

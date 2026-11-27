@@ -1,5 +1,13 @@
 # @ontrails/config
 
+## 0.4.0
+
+### Patch Changes
+
+- [`22b7efe`](https://github.com/outfitter-dev/trails/commit/22b7efeba49cb941bae3a39749e9ca406331857b): Add a names-only secret-field metadata derivation for explicitly selected resource config branches. Preserve declared requiredness and ancestor wrapper facts, and report unsupported or unresolved shapes without evaluating defaults or exposing values.
+
+  Object inspection is capability-gated: it is qualified on Zod 4.6.7 and safely reports incomplete metadata on exact 4.3.5. The existing Zod peer range is unchanged.
+
 ## 0.3.0
 
 No changes in this release.

@@ -1,5 +1,17 @@
 # @ontrails/topography
 
+## 0.4.0
+
+### Minor Changes
+
+- [`6c61905`](https://github.com/outfitter-dev/trails/commit/6c61905be8e1872ef930ac3e4568d7a468579303): Preserve authored trail metadata during graph derivation and generated-lock serialization, so duplicate-contract coaching can use those annotations. Report metadata-only changes as informational in graph diffs.
+
+  Upgrade CLI, CI, and library readers together before recompiling. Existing unmarked locks remain readable; older readers cannot open newly generated locks containing authored trail metadata.
+
+### Patch Changes
+
+- [`4d23969`](https://github.com/outfitter-dev/trails/commit/4d239699f8acf90a5350589f3da88746dce19df5): Keep canonical physical-root mappings for Config-owned apps with case-only path differences on case-insensitive filesystems. Preserve authored identity, lock exclusions and collection boundaries without requiring a symlink.
+
 ## 0.3.0
 
 ### Patch Changes
