@@ -1360,3 +1360,32 @@ describe('deriveTopoGraph', () => {
     });
   });
 });
+
+test('projects authored trail meta as canonical durable facts', () => {
+  const authored = {
+    at: new Date('2026-10-28T00:00:00Z'),
+    correspondenceFact: 'ack',
+    z: { earlier: 1, later: 2 },
+  };
+  const record = trail('message.ack', {
+    implementation: () => Result.ok(null),
+    meta: authored,
+  });
+  const graph = deriveTopoGraph(topoFrom({ record }));
+  const entry = getFirstEntry(graph);
+  expect(entry.meta).toEqual({
+    at: '2026-10-28T00:00:00.000Z',
+    correspondenceFact: 'ack',
+    z: { earlier: 1, later: 2 },
+  });
+  expect(Object.keys(entry.meta ?? {})).toEqual([
+    'at',
+    'correspondenceFact',
+    'z',
+  ]);
+  expect(Object.keys(entry.meta?.['z'] as object)).toEqual([
+    'earlier',
+    'later',
+  ]);
+  expect(record.meta).toEqual(authored);
+});

@@ -179,6 +179,7 @@ export const createApp = (
     basePath: options.basePath,
     configValues: options.configValues,
     createContext: options.createContext,
+    credentialPosture: 'network',
     exclude: options.exclude,
     include: options.include,
     intent: options.intent,

@@ -4,7 +4,8 @@ slug: connector-extraction-and-the-with-packaging-model
 title: Adapter Extraction and Composition Around Core Contracts
 status: accepted
 created: 2026-04-09
-updated: 2026-06-09
+updated: 2026-10-28
+amended: 2026-10-28
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [5, 9, 16, 22, 23]
 ---
@@ -62,8 +63,9 @@ This provides:
 
 - **One-way dependency arrows.** Extracted adapters depend on core contracts.
   Core contracts never depend on extracted adapters.
-- **Independent release cadence.** A Hono or Drizzle change does not force a
-  publish of the contract package that it binds to.
+- **Separate dependency and contribution boundaries.** A Hono or Drizzle change
+  belongs to its adapter. Versioning follows the current lockstep policy in
+  [ADR-0047](0047-stable-release-line-discipline.md#the-package-line-stays-lockstep).
 - **Clearer contribution boundaries.** New adapters can land without changing
   the owning contract package's exports or internals.
 
@@ -202,8 +204,9 @@ The return type is identical. The topo registration is identical. The trail's `r
   contract. `@ontrails/http` owns the route projection contract. Extracted
   adapters stop expanding those packages' dependency and release scope.
 - **Built-in backends stay discoverable.** A developer can start with `@ontrails/store/jsonfile` without learning the external adapter catalog first.
-- **Independent release cadence.** Extracted adapters version and publish
-  independently. A Hono or Drizzle update does not block a contract change.
+- **Focused release intent.** Each adapter owns its compatibility and changeset
+  evidence while public `@ontrails/*` packages version together under ADR-0047.
+  Extraction does not grant independent versioning or publication authority.
 - **Runtime adapters can stack.** Packages such as `@ontrails/vite` can compose
   above an extracted surface without inventing a second projection model.
 - **Clear dependency direction.** The one-way arrow from extracted adapters
@@ -243,6 +246,12 @@ The return type is identical. The topo registration is identical. The trail's `r
 
 ### Amendment log
 
+- 2026-10-28: [ADR-0057](0057-auth-adapter-packaging.md#decision) applies the
+  ownership test to provider auth: selected Better Auth and Clerk packages live
+  under `adapters/`, Access remains a Cloudflare collection subpath, and ordinary
+  JWKS presets do not automatically become packages. Auth adapters follow the
+  repository's current lockstep release policy; extraction alone does not grant
+  an independent publication cadence.
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — title updated to drop `with-*` prefix convention, naming rules revised for extracted connectors, migration table and composition layer table aligned with surface API grammar.
 - 2026-05-08: Connector-to-adapter taxonomy cutover — `adapter` becomes the canonical public package category, `integration` is retained only as colloquial prose, and the historical `connectors/` workspace root is superseded by `adapters/`. Later v1 vocabulary work moved grouped surface entries to `trailhead`.
 - 2026-05-16: Web Fetch kernel amendment — runtime materializers with no third-party dependency may stay as subpaths on the owning projection package, covering `@ontrails/http/fetch` and `@ontrails/http/bun` while preserving `@ontrails/hono` as the extracted Hono adapter.

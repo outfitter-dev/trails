@@ -11,6 +11,6 @@ testExamples(fixtureApp, {
         audit: { message: 'default audit', token: 'default token' },
       },
     },
-    permit: { id: 'library-fixture', scopes: ['widget:write'] },
+    permit: { actors: [], id: 'library-fixture', scopes: ['widget:write'] },
   },
 });

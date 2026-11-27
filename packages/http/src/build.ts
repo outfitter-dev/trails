@@ -34,6 +34,7 @@ import {
   withSurfaceLayerNames,
   zodToJsonSchema,
 } from '@ontrails/core';
+import { reconcilePermit } from '@ontrails/permits';
 import type {
   ActivationEntry,
   ActivationProvenance,
@@ -75,7 +76,22 @@ export interface DeriveHttpRoutesOptions extends BaseSurfaceOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveHttpPermit | undefined;
+  /**
+   * Where callers reach these routes from.
+   *
+   * `host` (the default) is the in-process posture used by the test harness
+   * and library callers: a `createContext` permit is the host's own policy.
+   * `network` is what every HTTP entry point sets (the fetch kernel, Bun,
+   * Hono, Workers): identity enters only through `resolvePermit`, a
+   * `createContext` permit is discarded at runtime with a diagnostic, a
+   * presented credential with no resolver is an `AuthError`, and protected
+   * trails without a resolver are refused at build time.
+   */
+  readonly credentialPosture?: HttpCredentialPosture | undefined;
 }
+
+/** See {@link DeriveHttpRoutesOptions.credentialPosture}. */
+export type HttpCredentialPosture = 'host' | 'network';
 
 export type HttpHeaderSource =
   | Headers
@@ -87,6 +103,10 @@ export interface HttpExecutionContext {
 }
 
 export interface ResolveHttpPermitInput {
+  /** Candidate from x-api-key; the configured resolver decides whether to trust it. */
+  readonly apiKey?: string | undefined;
+  /** Candidate from x-auth-token; no verification is implied. */
+  readonly authToken?: string | undefined;
   readonly authorization?: string | undefined;
   readonly bearerToken?: string | undefined;
   readonly headers?: HttpHeaderSource | undefined;
@@ -222,47 +242,124 @@ const parseBearerAuthorization = (
   return Result.ok(token);
 };
 
-const isBearerAuthorization = (authorization: string | undefined): boolean =>
-  authorization !== undefined && /^Bearer(?:\s|$)/i.test(authorization.trim());
+/** Permit resolvers always see `Headers`, whichever header source the route received. */
+const toHeaders = (
+  source: HttpHeaderSource | undefined
+): Headers | undefined => {
+  if (source === undefined || source instanceof Headers) {
+    return source;
+  }
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value === 'string') {
+      headers.set(key, value);
+    } else {
+      for (const item of value) {
+        headers.append(key, item);
+      }
+    }
+  }
+  return headers;
+};
 
-const shouldResolveHttpPermit = (
-  options: DeriveHttpRoutesOptions,
-  authorization: string | undefined,
-  requiresPermit: boolean
-): boolean =>
-  requiresPermit ||
-  (options.resolvePermit !== undefined && isBearerAuthorization(authorization));
+const SEEDED_PERMIT_DIAGNOSTIC =
+  '[ontrails:http] A createContext permit was discarded on a network HTTP surface. Identity enters a network surface only through resolvePermit; move the credential into a verifier (see the @ontrails/http changelog for TRL-1560).';
+
+/** Each surface's `createContext` factory is diagnosed at most once. */
+let diagnosedFactories = new WeakSet<object>();
+
+/** Test seam: forget that the seeded-permit diagnostic was emitted. */
+export const resetSeededPermitDiagnostic = (): void => {
+  diagnosedFactories = new WeakSet();
+};
+
+/**
+ * The context factory the surface hands to the pipeline.
+ *
+ * Mirrors `surfaceContextFactory` in `packages/mcp/src/permit-resolution.ts`
+ * (TRL-1560); the shared reconciliation in `@ontrails/permits` (TRL-1561)
+ * replaces both copies. On the network posture a seeded permit is discarded
+ * at runtime, once with a diagnostic through the seed's own logger, so an
+ * anonymous caller never inherits host identity.
+ */
+const surfaceContextFactory = (
+  options: DeriveHttpRoutesOptions
+): (() => TrailContextInit | Promise<TrailContextInit>) | undefined => {
+  const factory = options.createContext;
+  if (factory === undefined || options.credentialPosture !== 'network') {
+    return factory;
+  }
+  return async () => {
+    const { permit, ...seed } = await factory();
+    if (
+      permit !== undefined &&
+      seed.logger !== undefined &&
+      !diagnosedFactories.has(factory)
+    ) {
+      diagnosedFactories.add(factory);
+      seed.logger.warn(SEEDED_PERMIT_DIAGNOSTIC, {
+        code: 'seeded_permit_discarded',
+        permitId: permit.id,
+      });
+    }
+    return seed;
+  };
+};
+
+/** Correlation id for a resolver when the route received none; never a fire id. */
+const fallbackRequestId = (): string =>
+  `http_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+
+const HTTP_MISSING_VERIFIER_MESSAGE =
+  'A credential was presented but this HTTP surface has no permit resolver; configure resolvePermit with a verifier.';
 
 const resolveHttpPermit = async (
+  graph: Topo,
   options: DeriveHttpRoutesOptions,
   request: HttpExecutionContext | undefined,
   requestId: string | undefined,
   requiresPermit: boolean
 ): Promise<Result<BasePermit | undefined, Error>> => {
   const authorization = readHeader(request?.headers, 'authorization');
-  if (!shouldResolveHttpPermit(options, authorization, requiresPermit)) {
-    return Result.ok();
+  // Keep legacy protected-route header errors when no custom policy exists.
+  if (options.resolvePermit === undefined && requiresPermit) {
+    const parsed = parseBearerAuthorization(authorization);
+    if (parsed.isErr()) {
+      return parsed;
+    }
   }
+  // Bearer parsing derives a credential candidate; it is not an authentication gate.
+  // Preserve raw Authorization so the selected adapter owns its scheme policy.
   const token = parseBearerAuthorization(authorization);
-  if (token.isErr()) {
-    return token;
-  }
-  if (token.value === undefined) {
-    return Result.ok();
-  }
-  if (options.resolvePermit === undefined) {
-    return Result.ok();
-  }
-  const resolved = await options.resolvePermit({
+  const candidate = {
+    apiKey: readHeader(request?.headers, 'x-api-key'),
+    authToken: readHeader(request?.headers, 'x-auth-token'),
     authorization,
-    bearerToken: token.value,
-    headers: request?.headers,
-    requestId,
+    bearerToken: token.isOk() ? token.value : undefined,
+    headers: toHeaders(request?.headers),
+  };
+  const resolve = options.resolvePermit;
+  return await reconcilePermit({
+    candidates: { credential: { ...candidate, label: 'A credential' } },
+    graph,
+    missingVerifierMessage: HTTP_MISSING_VERIFIER_MESSAGE,
+    posture: options.credentialPosture === 'network' ? 'network' : 'in-process',
+    requestId: requestId ?? fallbackRequestId(),
+    surface: 'http',
+    verifierName: 'resolvePermit',
+    verify:
+      resolve === undefined
+        ? undefined
+        : async () => {
+            const resolved = await resolve({ ...candidate, requestId });
+            return resolved.isErr()
+              ? resolved
+              : Result.ok(resolved.value ?? null);
+          },
   });
-  if (resolved.isErr()) {
-    return resolved;
-  }
-  return Result.ok(resolved.value ?? undefined);
 };
 
 const createWebhookActivationFireId = (): string => {
@@ -809,6 +906,7 @@ const createExecute =
       layerRenderings
     );
     const permitResolution = await resolveHttpPermit(
+      graph,
       options,
       request,
       requestId,
@@ -821,7 +919,7 @@ const createExecute =
     return await executeTrail(t, trailInput, {
       abortSignal,
       configValues: options.configValues,
-      createContext: options.createContext,
+      createContext: surfaceContextFactory(options),
       ctx: withHttpSurface(requestId, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
@@ -899,6 +997,7 @@ const createWebhookConsumerExecute =
       layerRenderings
     );
     const permitResolution = await resolveHttpPermit(
+      graph,
       options,
       request,
       requestId,
@@ -911,7 +1010,7 @@ const createWebhookConsumerExecute =
     return await executeTrail(t, trailInput, {
       abortSignal,
       configValues: options.configValues,
-      createContext: options.createContext,
+      createContext: surfaceContextFactory(options),
       ctx: withWebhookActivation(activation, requestId, traceContext, layers),
       ...(Object.keys(layerInputs).length === 0 ? {} : { layerInputs }),
       ...(permit === undefined ? {} : { permit }),
@@ -1151,9 +1250,10 @@ const createWebhookVerifier =
       return await verifyWebhookRequest(source, request);
     }
 
-    const seed = options.createContext
-      ? await options.createContext()
-      : undefined;
+    // The verifier's context goes through the same posture filter as the
+    // consumer's: a seeded permit never reaches `verify` on a network surface.
+    const factory = surfaceContextFactory(options);
+    const seed = factory === undefined ? undefined : await factory();
     const scope = await createResources(
       { resources: declared },
       createTrailContext(seed),
@@ -1506,6 +1606,35 @@ const accumulateRoutes = (
 // Builder
 // ---------------------------------------------------------------------------
 
+const validateNetworkVerifier = (
+  trails: readonly Trail<unknown, unknown, unknown>[],
+  options: DeriveHttpRoutesOptions
+): Result<void, Error> => {
+  if (
+    options.credentialPosture !== 'network' ||
+    options.resolvePermit !== undefined
+  ) {
+    return Result.ok();
+  }
+  const protectedIds = trails
+    .filter((t) => t.permit !== undefined && t.permit !== 'public')
+    .map((t) => t.id);
+  if (protectedIds.length === 0) {
+    return Result.ok();
+  }
+  return Result.err(
+    new ValidationError(
+      `HTTP network surface exposes protected trails without a permit resolver: ${protectedIds.join(', ')}. Configure resolvePermit with a verifier, or exclude those trails from this surface. A createContext permit is not an identity source on a network surface.`,
+      {
+        context: {
+          code: 'network_surface_missing_verifier',
+          trailIds: protectedIds,
+        },
+      }
+    )
+  );
+};
+
 /**
  * Build HTTP route definitions from a topo.
  *
@@ -1538,12 +1667,22 @@ export const deriveHttpRoutes = (
   if (validated.isErr()) {
     return validated;
   }
+  const trails = eligibleTrails(graph, options);
+  // Webhook consumers are activated trails, excluded from `eligibleTrails`,
+  // but their routes still enforce the consumer's permit on every delivery.
+  const verifier = validateNetworkVerifier(
+    [...trails, ...eligibleWebhookTrails(graph, options)],
+    options
+  );
+  if (verifier.isErr()) {
+    return verifier;
+  }
 
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');
   const layers = options.layers ?? [];
   return accumulateRoutes(
     graph,
-    eligibleTrails(graph, options),
+    trails,
     eligibleWebhookTrails(graph, options),
     basePath,
     layers,

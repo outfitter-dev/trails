@@ -102,8 +102,11 @@ describe('Skillset ownership contract', () => {
       await readRepoFile('package.json')
     ) as Record<string, Record<string, string>>;
 
+    expect(packageJson.scripts?.['skillset:generate']).toBe(
+      'skillset build --yes --root . && skillset marketplace update trails --yes --root .'
+    );
     expect(packageJson.scripts?.['skillset:sync']).toBe(
-      'bun run warden:skills:sync && skillset build --yes --root . && skillset marketplace update trails --yes --root .'
+      'bun scripts/sync-skillset-outputs.ts'
     );
     expect(packageJson.scripts?.['skillset:check']).toBe(
       'bun run warden:skills:check && bun scripts/check-skillset-outputs.ts'
@@ -177,23 +180,24 @@ describe('Skillset ownership contract', () => {
     expect(teamSkills).toContain(
       'git ls-files --others --exclude-standard -- .skillset skillset.yaml'
     );
+    const trigger = /^\s+glob: (.+)$/m.exec(teamSkills)?.[1] ?? '';
     for (const scope of [
       '.skillset/**',
       'skillset.yaml',
-      'skillset.lock',
-      '.claude-plugin/marketplace.json',
-      '.claude/agents/**',
-      '.claude/skills/**',
-      '.agents/skills/**',
-      '.codex/agents/**',
-      'packages/warden/**',
+      'packages/warden/src/{index,guide}.ts',
+      'packages/warden/src/rules/**',
       'scripts/sync-skill-warden-guide.ts',
-      '.skillset/plugins/trails/skills/trails/references/warden-guide.md',
-      'plugin/**',
-      'plugin-dev/**',
-      'plugins/**',
     ]) {
-      expect(teamSkills).toContain(scope);
+      expect(trigger).toContain(scope);
+    }
+    for (const output of [
+      'skillset.lock',
+      'package.json',
+      'bun.lock',
+      'packages/warden/**',
+      '.agents/skills/**',
+    ]) {
+      expect(trigger).not.toContain(output);
     }
     expect(teamSkills).not.toContain('scripts/codex/skillset.ts');
     expect(teamSkills).not.toContain('git add --all');

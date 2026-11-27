@@ -258,7 +258,10 @@ describe('probe.prune retention', () => {
       graph,
       'probe.prune',
       { keepPerCheck: 3 },
-      { permit: { id: 'test', scopes: ['lookout:admin'] }, resources }
+      {
+        permit: { actors: [], id: 'test', scopes: ['lookout:admin'] },
+        resources,
+      }
     );
     expect(pruned.isOk()).toBe(true);
 
@@ -288,7 +291,7 @@ describe('probe.prune retention', () => {
       { keepPerCheck: 2 },
       {
         dryRun: true,
-        permit: { id: 'test', scopes: ['lookout:admin'] },
+        permit: { actors: [], id: 'test', scopes: ['lookout:admin'] },
         resources,
       }
     );

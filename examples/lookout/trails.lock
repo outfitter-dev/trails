@@ -4456,6 +4456,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "category": "infrastructure"
+        },
         "output": {
           "properties": {
             "count": {
@@ -4491,6 +4494,48 @@
                   },
                   "parentId": {
                     "type": "string"
+                  },
+                  "permit": {
+                    "properties": {
+                      "actors": {
+                        "items": {
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "issuer": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "verified": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "kind",
+                            "verified"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "type": "object"
                   },
                   "rootId": {
                     "type": "string"
@@ -4578,6 +4623,9 @@
         },
         "intent": "read",
         "kind": "trail",
+        "meta": {
+          "category": "infrastructure"
+        },
         "output": {
           "properties": {
             "active": {
@@ -5998,6 +6046,48 @@
                     "parentId": {
                       "type": "string"
                     },
+                    "permit": {
+                      "properties": {
+                        "actors": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "issuer": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "verified": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "kind",
+                              "verified"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "issuer": {
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ],
+                      "type": "object"
+                    },
                     "rootId": {
                       "type": "string"
                     },
@@ -6165,8 +6255,9 @@
         }
       ]
     },
-    "topoGraphSchemaVersion": 4
+    "topoGraphSchemaVersion": 4,
+    "trailMetadataHashVersion": 1
   },
-  "topoGraphHash": "90fabc77aa868a6fcd5124d6478bf4236503ad535877a227755650add7fd3370",
+  "topoGraphHash": "b2aa77878195534b71d70348260ce1d6309c51adf444b8f4f166b86dfd7a3130",
   "version": 5
 }

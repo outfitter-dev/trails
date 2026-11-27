@@ -41,6 +41,8 @@ Configured workspace lock observation reconciles authored app roots with their c
 
 ## Usage
 
+Force audit retention and graph diffs use complete serialized event facts through `deriveTopoGraphForceIdentity(force)`. Timestamp-only or reason-only changes remain audit warnings. `carryForwardTopoGraphForces(previous, next)` preserves the next graph's event order and appends unseen parent events by `(kind, id)`. Orphan events move unchanged to graph-level history; an identical graph copy takes precedence over an entry copy. A mismatched event container raises `ValidationError` before union. These helpers retain evidence rather than granting authorization or resolving pending obligations. For generated-lock conflicts, use [Trails Lock Recovery](../../docs/contributing/trails-lock-recovery.md).
+
 ```typescript
 import {
   deriveTopoGraph,
@@ -51,6 +53,7 @@ import {
 
 const topoGraph = deriveTopoGraph(graph);
 const hash = deriveTopoGraphHash(topoGraph);
+const artifactOptions = { dir: process.cwd() }; // Run from the owning app root.
 
 await writeTrailsLock({
   scope: { app: 'demo' },
@@ -58,7 +61,7 @@ await writeTrailsLock({
   topoGraph,
   topoGraphHash: hash,
   version: 5,
-});
+}, artifactOptions);
 
 // Later, after changes:
 const nextTopoGraph = deriveTopoGraph(graph);
@@ -94,6 +97,14 @@ for (const unowned of view.evidence.unownedLocks) {
 
 `deriveTopoGraph()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
 
+## Authored trail metadata
+
+Authored `trail(..., { meta: ... })` facts survive normal TopoGraph derivation and lock serialization. Object keys are canonicalized recursively using Topography's existing deterministic fact serializer. Metadata remains authored evidence; Topography does not infer semantic differences from implementation bodies or descriptions.
+
+Apps with existing artifacts should run `trails compile` from the owning app root, then `trails validate` and `trails warden`, to include previously authored trail metadata in their saved graph. Use the normal compile path so existing force-audit history is carried forward; do not patch lock JSON by hand. Newly visible authored facts can refine duplicate-contract coaching without changing runtime trail behavior.
+
+Graphs derived with authored trail metadata include a checksum version that covers every own JSON key in that metadata. Existing unmarked artifacts keep their original checksum rules. Use a Topography version that supports the marker to read newly compiled graphs that contain authored trail metadata.
+
 ## File outputs
 
 The normal exported artifact is:
@@ -105,7 +116,7 @@ The normal exported artifact is:
 
 `trails compile` writes it from the current topo. `trails validate` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
-Compatibility helpers still read the previous `.trails/trails.lock` plus `.trails/topo.lock` artifact family during the migration window. New writes should use `writeTrailsLock()`.
+Compatibility helpers still read the previous `.trails/trails.lock` plus `.trails/topo.lock` artifact family during the migration window. Current writes use `writeTrailsLock(lock, { dir: appRoot })`. All low-level I/O helpers retain `.trails/` when `dir` is omitted; they do not discover a project or select an app. Use the same explicit directory for reads and writes. For configured workspaces, choose the app by ID from Config's static identity and use its `rootDir`, never the workspace root unless it is itself the selected app. See [lock recovery](../../docs/topo-store.md#programmatic-lock-recovery) for an executable recipe.
 
 ## API
 
@@ -116,14 +127,15 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 | `deriveDeclaredTrailActivation(entry)` | Trail-local activation report from a resolved TopoGraph entry |
 | `deriveSignalActivationRelations(topoGraph)` | Signal-local activation relations for source and consumer navigation |
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
+| `deriveTopoGraphEntryHash(entry)` | Stable hash of one complete entry; normalizes object key order and preserves array order |
 | `deriveWorkspaceView(options)` | Config-fed app-partitioned saved graph view with separate observation evidence |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeTrailsLock(lock, options?)` | Write an app-root `trails.lock` envelope |
-| `readTrailsLock(options?)` | Read an app-root `trails.lock` envelope |
-| `readTopoGraph(options?)` | Read a TopoGraph from v4 `trails.lock` or legacy `topo.lock` |
+| `writeTrailsLock(lock, { dir: appRoot })` | Write the selected app's v5 `trails.lock`; omitted options retain `.trails/` |
+| `readTrailsLock({ dir: appRoot })` | Read the same selected app's v5 `trails.lock`; omitted options retain `.trails/` |
+| `readTopoGraph(options?)` | Read a TopoGraph from v5 `trails.lock` or legacy `topo.lock` in the explicit directory |
 | `writeTopoGraph(topoGraph, options?)` | Write legacy `topo.lock` for explicit migration/testing paths |
-| `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v3 manifest |
-| `readLockManifest(options?)` | Read v3 manifests, deriving v4 locks back to v3 for compatibility |
+| `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v4 manifest |
+| `readLockManifest(options?)` | Read v4 manifests, deriving v5 locks back to v4 for compatibility |
 | `createTopoStore(options?)` | Read-only query interface over the persisted topo state in the Trails state-store `trails.db` |
 | `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
 | `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
@@ -212,7 +224,7 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 import { deriveTopoGraph, deriveTopoGraphHash, readTrailsLock } from '@ontrails/topography';
 
 const current = deriveTopoGraphHash(deriveTopoGraph(graph));
-const committed = await readTrailsLock();
+const committed = await readTrailsLock({ dir: process.cwd() }); // Owning app root.
 
 if (committed?.topoGraphHash !== current) {
   // lock file is stale -- topo has changed

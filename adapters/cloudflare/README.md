@@ -8,13 +8,14 @@ The Cloudflare adapter collection for Trails. One package, one subpath per Cloud
 | `@ontrails/cloudflare/kv` | Key-value resource | ✅ |
 | `@ontrails/cloudflare/d1` | D1-backed store resource | ✅ |
 | `@ontrails/cloudflare/queues` | Queue producer resource + consumer materializer | ✅ |
+| `@ontrails/cloudflare/schedules` | Cron Triggers materializer for core `schedule()` sources (UTC only) | ✅ |
 | `@ontrails/cloudflare/r2` | R2 blob/object resource | ✅ |
 
 Adapter composition doctrine applies throughout: subpaths take primitive-authored declarations (a resource definition, a surface config) and never shadow authoring verbs. Bindings arrive ambiently on the Worker `env`, so runtime dependencies are near-zero.
 
 ## `/workers` — the Worker materializer
 
-`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error rendering, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer.
+`createWorkersHandler(graph, options)` produces the Worker export for Cloudflare runtime entrypoints. Its `fetch(request, env, ctx)` member delegates to the shared HTTP fetch kernel from `@ontrails/http` — the same kernel behind the Bun and Hono surfaces, so routes, validation, error rendering, and webhook handling behave identically. Its `queue(batch, env, ctx)` member dispatches first-class core `queue()` activation sources through the `/queues` materializer, and its `scheduled(controller, env, ctx)` member fires core `schedule()` sources whose cron matches the triggering Cron Trigger through the `/schedules` materializer.
 
 ```ts
 // src/worker.ts
@@ -24,13 +25,70 @@ import { graph } from './app.js';
 export default createWorkersHandler(graph, { basePath: '/api' });
 ```
 
-Options mirror the other HTTP surfaces: `basePath`, `createContext`, `layers`, `maxJsonBodyBytes`, `resolvePermit`, plus include/exclude/intent filtering. `resources` accepts either a static override map or a function of the Worker env:
+Options mirror the other HTTP surfaces: `basePath`, `createContext`, `layers`, `maxJsonBodyBytes`, `resolvePermit`, plus include/exclude/intent filtering. The Worker builds on the HTTP `network` credential posture: a `createContext` permit is discarded at runtime, a presented credential with no resolver answers 401, and a topo that exposes protected trails without a resolver fails materialization with a rendered `ValidationError`. `resources` accepts either a static override map or a function of the Worker env:
 
 ```ts
 export default createWorkersHandler(graph, {
   resources: (env) => ({ audit: createAuditClient(env['AUDIT_URL']) }),
 });
 ```
+
+### MCP host slot
+
+Author the endpoint path once in a pure module, without constructing a surface in the topo module:
+
+```ts
+// src/host.ts
+import type { WorkersHostConfig } from '@ontrails/cloudflare/workers';
+
+export const workerHost = {
+  mcp: { path: '/mcp' },
+} satisfies WorkersHostConfig;
+```
+
+The Worker entry supplies that value and a separate structural factory. This example is a host test double, not an MCP protocol implementation:
+
+```ts
+// src/worker.ts
+import { createWorkersHandler } from '@ontrails/cloudflare/workers';
+import { graph } from './app.js';
+import { workerHost } from './host.js';
+
+export default createWorkersHandler(graph, {
+  host: workerHost,
+  mcp: (context) => async (request) => Response.json({
+    path: new URL(request.url).pathname,
+    resourceIds: Object.keys(context.resources),
+  }),
+});
+```
+
+The factory receives the same shared config/context hooks and selection options as the HTTP host, plus a `ResourceOverrideMap` resolved through the existing env bridge. It must honor those selections when building its surface. Explicit resource overrides retain precedence. MCP selects surface trails and their composition closure; webhook-only and queue-only resources are not required. A new env identity creates a fresh MCP materialization; the same identity reuses it. Keep request-specific credentials and permit checks inside the returned handler, not in the cached factory.
+
+`host.mcp.path` and `mcp` must be configured together. The MCP path is absolute and independent of the HTTP `basePath`. The host uses an exact, case-sensitive serialized URL pathname: `/mcp`, `/mcp/`, and `/mcp-other` are different paths, and query strings do not affect matching. The schema rejects relative/noncanonical paths, queries, fragments, backslashes and globs. Every method on that exact path goes to the supplied handler, which owns protocol/method policy. Its responses and errors never fall through to HTTP or assets. A conflicting HTTP route, including a parameterized route or `basePath`, fails explicitly instead of hiding a trail.
+
+`workersHostConfigSchema` is the pure data validator shared with future adapter fact derivation. The config contains no SDK object, runtime function or native env. It is an ordinary importable value, not a new compiler-recognized export name. Existing `trailsOverlays` remains the only overlay registration. [TRL-1452](https://linear.app/outfitter/issue/TRL-1452) owns actual saved MCP-path facts and the namespace migration; [TRL-1469](https://linear.app/outfitter/issue/TRL-1469) owns later config rendering. The current constant `cloudflareOverlay` still records bindings only.
+
+The real SDK-v2 fetch handler, both protocol eras, authentication/challenges and client reachability remain [TRL-1340](https://linear.app/outfitter/issue/TRL-1340). This slot proves host plumbing with a test double; it does not claim that transport is implemented. Apps without MCP configuration keep their existing HTTP/queue behavior.
+
+### Static assets
+
+Configure the assets binding on the same pure host value:
+
+```ts
+export const workerHost = {
+  assets: { binding: 'ASSETS' },
+  mcp: { path: '/mcp' },
+} satisfies WorkersHostConfig;
+```
+
+Pass `host: workerHost` to `createWorkersHandler` and provide the separate `mcp` factory when `host.mcp` is present. Assets alone need no MCP factory. The assets binding name must be nonempty and must match the native binding on env. The host calls `env.ASSETS.fetch(request)` only after HTTP dispatch finds no matching method/path route, including parameterized webhooks. Matched trail responses and errors, including authored 404s, remain terminal. The exact MCP path runs before HTTP and assets. The original request and native binding receiver are preserved; a new env identity uses its own binding. Missing or malformed assets bindings produce an explicit validation response on a dispatch miss. Without `host.assets`, unmatched requests keep the standard HTTP 404.
+
+Requests that reach assets do not need any HTTP trail bindings. Missing trail bindings still fail HTTP route execution and do not redirect matched requests to assets.
+
+Configure the Cloudflare front router to run the Worker first for every path that must reach Trails. Otherwise assets can intercept the request before this dispatcher runs. The local native-binding test uses Miniflare Worker-first routing and includes static files colliding with HTTP and MCP paths. It exercises a structural MCP test double, not a real protocol client.
+
+A separate pinned `cf build` qualification confirmed Build Output placement at `.cloudflare/output/v0/workers/default/worker.config.json`, with `env.ASSETS.type: 'assets'` and camelCase `assets.runWorkerFirst` / `assets.notFoundHandling`. The output directory was `default` even with an authored Worker name. Wrangler configuration uses its own spelling; do not copy `run_worker_first` into Build Output. This runtime option does not yet derive saved assets facts or render that configuration: those gates remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452) and [TRL-1469](https://linear.app/outfitter/issue/TRL-1469). Existing apps opt in explicitly; no lock migration or deployment occurs here.
 
 ### The env bridge
 
@@ -49,6 +107,30 @@ Missing or mistyped bindings fail the request with a redacted 500 and log full d
 - The core execution path is runtime-portable (TRL-1198): `@ontrails/core` loads `bun:sqlite` and `node:` builtins lazily at first use, so a Worker bundle needs no stub plugin and no `nodejs_compat` flag to serve trails. The integration lane (`src/__tests__/miniflare.test.ts`) bundles the demo Worker with no externals and boots workerd without `nodejs_compat` as the structural regression gate.
 - Tooling helpers on the core barrel (the trails-db store, workspace discovery) still require a Bun or Node runtime when actually called; on workerd they throw a clear `InternalError` naming the missing builtin instead of poisoning the module graph.
 - Explicit `resources` overrides win over env-bound resolution, which is how tests substitute fakes.
+
+## Portable role bindings
+
+Declare portable resources with `kv()`, `blob()`, or `queueProducer()` from the corresponding role package, then bind them through the existing `createWorkersHandler(..., { resources: env => ... })` override map:
+
+```ts
+import { createCloudflareKvBinding } from '@ontrails/cloudflare/kv';
+import { createCloudflareBlobBinding } from '@ontrails/cloudflare/r2';
+import { createCloudflareQueueBinding } from '@ontrails/cloudflare/queues';
+import type { WorkersEnv } from '@ontrails/cloudflare/workers';
+import { flags, uploads, jobs } from './app.js';
+
+const resources = (env: WorkersEnv) => ({
+  [flags.id]: createCloudflareKvBinding(env['FLAGS']),
+  [uploads.id]: createCloudflareBlobBinding(env['UPLOADS'], {
+    maxBufferedBytes: 1_048_576,
+  }),
+  [jobs.id]: createCloudflareQueueBinding(env['JOBS']),
+});
+```
+
+The factories return the existing `Kv`, `BlobStorage`, and `QueueProducer` clients. They do not mutate resource definitions or create a global env registry. Classic KV translates TTL and explicit list completion; Blob preserves native bytes/size/MIME and requires an explicit stream buffering cap; Queue validates/snapshots complete JSON submissions before native I/O. Scoped cursors reject another client or prefix. Typed failures retain their identity; unknown native-operation failures use the existing `NetworkError` boundary without adding retries.
+
+See the [Cloudflare deployment fieldguide](../../docs/surfaces/cloudflare.md) for resource migration, call-shape changes, cursor lifetimes, R2 memory-budget limits, native queue limits and consumer semantics. Existing `cloudflareKv`, `cloudflareR2`, and `cloudflareQueue` APIs retain their native behavior. Saved target-locked/deploy facts remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452); local conformance does not establish publication or deployment.
 
 ## `/kv` — the key-value resource
 
@@ -139,7 +221,10 @@ Capability boundaries are explicit:
 
 - `indexed`/`indexes`, `references`, and `search` stay store metadata for this driver; the D1 adapter does not create secondary indexes, foreign keys, or FTS tables yet.
 - `list(filters)` performs simple equality filtering in the adapter after reading table rows, then applies `offset`/`limit`.
-- `connectD1(definition, database, options)` is exported for tests and advanced runtimes that already hold a D1 binding. Schema creation and optional runtime `seed` run lazily before the first accessor call so the Workers env bridge can resolve resources synchronously. Runtime seed rows require explicit stable identities and are insert-only, so rematerializing a Worker cannot overwrite user edits.
+- `connectD1(definition, database, options)` connects synchronously and performs no DDL or automatic seeding by default. Apply reviewed migrations before accessor use. `renderD1SchemaSql(definition, { tablePrefix })` renders deterministic create-only physical SQL; Wrangler owns application/history. Reuse the authored prefix (`options.tablePrefix ?? resource.id` for resources, `store` by default for direct connections).
+- Only explicit `autoCreate: true` enables lazy development/test bootstrap. Runtime `seed` requires that opt-in and stable identities, and remains insert-only. Configured runtime seed without opt-in throws `ValidationError`; table fixtures and `mockSeed` remain unchanged.
+
+See [D1 schema migrations](../../docs/migration/d1-schema.md) for the default/seed compatibility change, initial and later migrations, existing lazy-database adoption, prefix rules and upgrade steps. `IF NOT EXISTS` does not verify an existing schema or migrate JSON entity data.
 
 Every `cloudflareD1` resource carries an in-memory mock factory seeded from table fixtures or `mockSeed`, so `testAll(app)` remains configuration-free. Miniflare can provide a real D1 binding for local integration tests without a Cloudflare account.
 
@@ -254,7 +339,7 @@ Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd
 
 ## Lock facts
 
-`cloudflareOverlay` (root export) is the adapter's lock overlay overlay: an `Overlay` pairing the `cloudflare` namespace with an elevated zod fact schema and a deterministic derive over the app's topo. It records every env-bound resource as `{ binding, resourceId }` so the committed `trails.lock` documents which wrangler bindings the app depends on.
+`cloudflareOverlay` (root export) is the adapter's lock overlay overlay: an `Overlay` pairing the `cloudflare` namespace with an elevated zod fact schema and a deterministic derive over the app's topo. It records every env-bound resource as `{ binding, resourceId }` so the committed `trails.lock` documents which wrangler bindings the app depends on, and every core `schedule()` source as `{ cron, sourceId, trailId, timezone?, realization: 'utc-only' }` so renderers and the provider-aware Warden check can read the Worker's crons and the UTC-only constraint Cron Triggers impose instead of re-deriving them. Crons are normalized (trimmed, single-spaced) and facts are sorted by trail id, source id, then cron.
 
 An app opts in by exporting the overlay list next to its topo, then compiling:
 
@@ -267,3 +352,31 @@ export const trailsOverlays = [cloudflareOverlay];
 ```
 
 `trails compile` validates the derived facts against the schema and embeds them as `overlays.cloudflare`; `trails wayfind --overlay cloudflare` reads them back. Toolchains that predate an overlay's namespace preserve it byte-for-byte — adding a new fact family never edits the lock schema or graph type.
+
+## `/schedules` — Cron Triggers for core `schedule()` sources
+
+`createWorkersHandler` materializes every eligible `schedule()` activation source on the Worker's `scheduled()` entrypoint. Declare the cron in `wrangler.jsonc` (`triggers.crons`) with the same expression the trail declares; the handler normalizes whitespace on both sides before matching, runs every matching trail through the shared pipeline with activation provenance, and resolves env-bound resources through the same bridge the `fetch` and `queue` entrypoints use.
+
+```ts
+import { schedule, trail, topo, Result } from '@ontrails/core';
+import { z } from 'zod';
+
+const heartbeat = schedule('heartbeat', { cron: '*/5 * * * *' });
+
+const recordHeartbeat = trail('heartbeat.record', {
+  implementation: async (_input, ctx) => {
+    await flags.from(ctx).put('heartbeat', new Date().toISOString());
+    return Result.ok({ beat: true });
+  },
+  input: z.object({}),
+  on: [heartbeat],
+  output: z.object({ beat: z.boolean() }),
+  resources: [flags],
+});
+```
+
+Cloudflare realizes crons in UTC only. A `schedule()` that declares any other `timezone` fails at materialization with a `ValidationError` whose context carries `code: 'cloudflare_cron_utc_only'`, the source id, the trail id and the offending timezone; the invocation is logged and rethrown rather than running on the wrong clock. An unmatched cron is a no-op. Trail failures rethrow as one `InternalError` so the invocation reports failure, and `controller.noRetry()` is called when every failure is non-retryable.
+
+Workers schedules must use a plain `*` in the fifth (day-of-week) field. [Cloudflare numbers weekdays](https://developers.cloudflare.com/workers/configuration/cron-triggers/) from 1=Sunday to 7=Saturday; core `schedule()` uses 0/7=Sunday and 1=Monday. Numeric weekdays, lists, ranges, and steps (including `*/2`) are refused at materialization with a `ValidationError` carrying `code: 'cloudflare_cron_weekday_unsupported'`, `cron`, `dayOfWeek`, `sourceId`, and `trailId`. For example, `0 3 * * 1` is rejected rather than firing on Sunday instead of Monday. Core does not accept named weekdays, so `MON` is not a workaround. Other fields retain their supported numeric syntax; `0 3 * * *` runs daily at 03:00 UTC.
+
+`createScheduledHandler(graph, options)` from `@ontrails/cloudflare/schedules` builds the same handler for a hand-assembled Worker export.

@@ -14,9 +14,17 @@
  * (`cloudflareOverlay`).
  */
 
-export { cloudflareOverlay } from './facts.js';
-export type { CloudflareLockFacts } from './facts.js';
+export { CLOUDFLARE_CRON_REALIZATION, cloudflareOverlay } from './facts.js';
+export type { CloudflareLockFacts, CloudflareScheduleFact } from './facts.js';
 export { cloudflareD1, connectD1 } from './d1/index.js';
+/**
+ * Render a deterministic physical D1 baseline for reviewed migrations.
+ * @example
+ * ```ts
+ * const sql = renderD1SchemaSql(definition, { tablePrefix: db.id });
+ * ```
+ */
+export { renderD1SchemaSql } from './d1/schema.js';
 export type {
   CloudflareD1AllResult,
   CloudflareD1Connection,
@@ -87,10 +95,97 @@ export type {
   MemoryCloudflareQueue,
   MemoryQueueMessage,
 } from './queues/index.js';
+/**
+ * Cron Triggers materializer for core schedule() sources.
+ * @example
+ * ```ts
+ * import { createScheduledHandler } from '@ontrails/cloudflare';
+ * export const scheduled = createScheduledHandler(graph);
+ * ```
+ */
+export {
+  CLOUDFLARE_CRON_UTC_ONLY,
+  createScheduledHandler,
+} from './schedules/index.js';
+/**
+ * Scheduled handler shapes.
+ * @example
+ * ```ts
+ * import type { CloudflareScheduledController } from '@ontrails/cloudflare';
+ * const cronOf = (controller: CloudflareScheduledController) => controller.cron;
+ * ```
+ */
+export type {
+  CloudflareScheduledController,
+  CloudflareScheduledHandler,
+  CreateScheduledHandlerOptions,
+} from './schedules/index.js';
+/**
+ * Worker host and pure configuration data, with a structural MCP callback slot.
+ * @example
+ * ```ts
+ * const host = workersHostConfigSchema.parse({ mcp: { path: '/mcp' } });
+ * ```
+ */
 export { createWorkersHandler } from './workers/index.js';
+/**
+ * Pure host data is exported directly from its owning declaration module.
+ * @example
+ * ```ts
+ * const host = workersHostConfigSchema.parse({ mcp: { path: '/mcp' } });
+ * ```
+ */
+export { workersHostConfigSchema } from './workers/host.js';
+/**
+ * Worker materialization, host data and structural MCP factory contracts.
+ * @example
+ * ```ts
+ * const host: WorkersHostConfig = { mcp: { path: '/mcp' } };
+ * ```
+ */
 export type {
   CloudflareWorker,
   CreateWorkersHandlerOptions,
   WorkersExecutionContext,
+  WorkersHostConfig,
+  WorkersMcpContext,
+  WorkersMcpFactory,
+  WorkersMcpHandler,
   WorkersResourceOverrides,
 } from './workers/index.js';
+
+/**
+ * Bind portable KV resources through ordinary Worker resource overrides.
+ * @example
+ * ```ts
+ * const client = createCloudflareKvBinding(env['FLAGS']);
+ * ```
+ */
+export { createCloudflareKvBinding } from './kv/binding.js';
+
+/**
+ * Bind portable JSON producers to native Cloudflare Queues.
+ * @example
+ * ```ts
+ * const client = createCloudflareQueueBinding(env['JOBS']);
+ * await client.send({ id: 'job-1' });
+ * ```
+ */
+export { createCloudflareQueueBinding } from './queues/binding.js';
+
+/**
+ * Bind portable blob storage to native R2 with an explicit stream buffering cap.
+ * @example
+ * ```ts
+ * const client = createCloudflareBlobBinding(env['BUCKET'], { maxBufferedBytes: 1_048_576 });
+ * ```
+ */
+export { createCloudflareBlobBinding } from './r2/binding.js';
+/**
+ * Required stream-write payload budget in bytes.
+ * @example
+ * ```ts
+ * const options: CloudflareBlobBindingOptions = { maxBufferedBytes: 1_048_576 };
+ * ```
+ */
+export type { CloudflareBlobBindingOptions } from './r2/binding.js';

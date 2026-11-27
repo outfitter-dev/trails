@@ -7,13 +7,13 @@ import { resolve } from 'node:path';
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
+import { writeNewProjectFiles } from '../new-project-files.js';
 import {
   trailIdToExportName,
   trailIdToModuleName,
   TRAIL_ID_MESSAGE,
   TRAIL_ID_PATTERN,
   validateTrailId,
-  writeProjectFile,
 } from '../project-writes.js';
 
 // ---------------------------------------------------------------------------
@@ -106,11 +106,9 @@ export const addTrail = trail('add.trail', {
       ],
     ]);
 
-    for (const [relativePath, content] of files) {
-      const written = await writeProjectFile(cwd, relativePath, content);
-      if (written.isErr()) {
-        return written;
-      }
+    const written = writeNewProjectFiles(cwd, files);
+    if (written.isErr()) {
+      return written;
     }
 
     return Result.ok({ created: [...files.keys()] });

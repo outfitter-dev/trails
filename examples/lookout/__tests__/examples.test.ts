@@ -10,5 +10,5 @@ import { graph } from '../src/app.js';
 
 // oxlint-disable-next-line require-hook -- testAll registers tests at module level by design
 testAll(graph, {
-  ctx: { permit: { id: 'test-permit', scopes: ['lookout:admin'] } },
+  ctx: { permit: { actors: [], id: 'test-permit', scopes: ['lookout:admin'] } },
 });

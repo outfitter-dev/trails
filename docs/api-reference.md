@@ -192,7 +192,7 @@ DeriveTrailSpec<TEntity, TOp, TGenerated>
 
 ## `@ontrails/cli`
 
-Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. A WebSocket surface is planned but has no public package or API yet.
+Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. The RPC surface, hosted on WebSocket, is landing as `@ontrails/rpc` with a WebSocket host inside that package as its first host; it is not published yet.
 
 ```typescript
 deriveCliCommands(graph, options?)     // derivation: Result-returning command definitions
@@ -225,15 +225,68 @@ CreateProgramOptions, SurfaceCliResult, ToCommanderOptions
 surface(graph, options?)               // one-liner: create server, connect stdio, return close handle
 createServer(graph, options?)          // create an MCP server without connecting
 deriveMcpTools(graph, options?)        // derivation: Result-returning tool definitions
-connectStdio(server)                   // connect a created server to stdio transport
+connectStdio(factory)                  // serve protocol-aware stdio; returns a close handle
 deriveToolName(appName, trailId)       // tool name derivation
 deriveAnnotations(trail)               // MCP annotations from intent, idempotency, and description
 createMcpProgressCallback(extra)       // progress bridge
 
 CreateServerOptions, DeriveMcpToolsOptions
+AuthorizeMcpResourceRead, AuthorizeMcpResourceReadInput // verified caller + canonical resource policy
+McpResourceDefinition                  // optional real trailId, absent for aggregate resources
 McpToolDefinition,                     // includes trailId: string
 McpToolResult, McpContent, McpExtra, McpAnnotations
 ```
+
+## `@ontrails/mcp/fetch`
+
+```typescript
+createFetchHandler(graph, options?)   // portable { fetch(Request), close() }, modern + legacy stateless
+CreateMcpFetchHandlerOptions          // server options plus exact Host/Origin allowlists
+McpFetchHandler
+```
+
+See [MCP Over HTTP](surfaces/mcp-http.md) for validation and remaining auth and client follow-ups.
+
+## `@ontrails/rpc`
+
+Host-agnostic JSON-RPC 2.0 kernel. Trail ids are method names, `params` is the trail input, and failures carry core's JSON-RPC codes with `data.category`, `data.retryable`, `data.name`. See the [RPC Guide](../packages/rpc/README.md).
+
+```typescript
+deriveRpcMethods(graph, options?)      // derivation: Result-returning method and channel table
+createRpcHandler(graph, options?)      // kernel: createState, admit, run(state, work, host?), handle, recover
+parseJsonRpcFrame(text)                // one frame → validated requests or a single error response
+isReservedRpcMethod(method)            // trails.* and rpc.* are never trail ids
+RPC_SUBPROTOCOL                        // 'trails.v1'
+
+DeriveRpcMethodsOptions, CreateRpcHandlerOptions, RpcMethodTable, RpcTrailMethod
+RpcHandler, RpcRunHost, RpcConnectionState, RpcAdmission, RpcAdmittedWork, RpcStepResult, RpcEffect
+RpcDiscoverResult, RpcHostCapabilities
+JsonRpcRequest, JsonRpcResponse, JsonRpcFrame, JsonRpcId
+```
+
+### `@ontrails/rpc/websocket`
+
+```typescript
+surface(graph, options?)               // Bun.serve with the upgrade on /rpc; returns { url, close }
+createRpcWebSocketHost(graph, options?) // { upgrade, websocket, drain, handler } for an existing server
+RPC_CLOSE_CODES                        // 1000, 1001, 1002, 1008, 1009, 1011, 1013
+
+RpcWebSocketOptions, SurfaceRpcWebSocketOptions, SurfaceRpcWebSocketResult
+RpcWebSocketHost, RpcSocketData, ResolveRpcPermit, ResolveRpcPermitInput, RpcCloseCode
+```
+
+### `@ontrails/rpc/testing`
+
+```typescript
+createRpcConformanceCases()           // cases with name/check; every RPC host runs them
+runRpcConformance(host, cases?)       // registers the cases as a bun:test suite
+createRpcConformanceTopo()            // the topo the cases run against
+
+RpcConformanceHost, RpcConformanceServer, RpcConformanceConnection
+RpcConformanceHostOptions, RpcConformanceConnectInit, RpcConformanceCase
+```
+
+The testing entrypoint uses Bun's test runner.
 
 ## `@ontrails/http`
 
@@ -255,7 +308,7 @@ OpenApiOptions, OpenApiSpec, OpenApiServer
 createRouteHandler(route, options?)    // materialize one Web Fetch Request -> Response handler
 createFetchHandler(graph, options?)    // materialize a full topo Web Fetch dispatcher
 
-CreateRouteHandlerOptions, CreateFetchHandlerOptions
+CreateRouteHandlerOptions, CreateFetchHandlerOptions // onUnmatched? runs only on dispatch misses
 ```
 
 The fetch kernel owns query/body parsing, content-length checks, public HTTP error rendering, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP bindings.
@@ -280,6 +333,52 @@ createApp(graph, options?)             // create a Hono app without serving
 CreateAppOptions, SurfaceHttpResult
 ```
 
+## `@ontrails/cloudflare/workers`
+
+The [Workers guide](../adapters/cloudflare/README.md) covers HTTP/queue/scheduled hosting, the additive structural MCP slot, and assets fallback after unmatched HTTP routes. The package root re-exports this host API alongside its existing Cloudflare resource collection.
+
+```typescript
+createWorkersHandler(graph, options?) // Worker fetch/queue/scheduled export; optional exact MCP host path + factory
+workersHostConfigSchema              // pure strict host data; no runtime handler/native env objects
+buildEnvResourceOverrides(graph, env, options?)
+registerEnvBinding(resource, spec), getEnvBinding(resource)
+
+CloudflareWorker, CreateWorkersHandlerOptions, WorkersExecutionContext
+WorkersResourceOverrides, WorkersEnv, EnvBindingSpec, BuildEnvResourceOverridesOptions
+WorkersHostConfig, WorkersMcpContext, WorkersMcpFactory, WorkersMcpHandler
+```
+
+`host.mcp.path` is the sole MCP path declaration; the separate `mcp` factory receives env-resolved resources, shared config/context hooks and selections. Exact pathname matching reserves the endpoint for every method, rejects HTTP collisions, and never treats MCP errors as route misses. No-MCP apps retain existing behavior. Real MCP transport/client proof follows [TRL-1340](https://linear.app/outfitter/issue/TRL-1340); saved path facts and rendering remain [TRL-1452](https://linear.app/outfitter/issue/TRL-1452)/[TRL-1469](https://linear.app/outfitter/issue/TRL-1469).
+
+## `@ontrails/cloudflare/d1`
+
+The [D1 migration guide](./migration/d1-schema.md) covers schema preparation and the default/seed compatibility change. Runtime connections require pre-applied schema unless `autoCreate: true` is explicitly selected for development/tests.
+
+```typescript
+cloudflareD1(definition, options)        // resource using the native Worker D1 binding
+connectD1(definition, database, options?) // connect to an already-prepared database
+renderD1SchemaSql(definition, options?)  // deterministic create-only physical SQL; no I/O
+
+ConnectD1Options                        // tablePrefix?, autoCreate?, seed?, generateIdentity?
+CloudflareD1Options, CloudflareD1Resource, CloudflareD1Connection
+```
+
+## Cloudflare role bindings
+
+The [deployment fieldguide](./surfaces/cloudflare.md) covers native env wiring, migration from target-locked resources, provider limits and verification boundaries. The package root re-exports these factories.
+
+```typescript
+// @ontrails/cloudflare/kv
+createCloudflareKvBinding(namespace)               // Kv; classic paginated Workers KV
+// @ontrails/cloudflare/r2
+createCloudflareBlobBinding(bucket, options)       // BlobStorage; required maxBufferedBytes
+CloudflareBlobBindingOptions
+// @ontrails/cloudflare/queues
+createCloudflareQueueBinding<Body>(queue)           // QueueProducer<Body>; JSON wire domain
+```
+
+These clients bind the existing portable role contracts through ordinary resource overrides. The native resource factories remain available; this API adds no global env registry or deploy-lock markers.
+
 ## `@ontrails/topography`
 
 These are programmatic Topography APIs for deriving, hashing, diffing, reading, and writing TopoGraph artifacts. App authors usually run the artifact lifecycle through the top-level CLI commands instead: `trails compile`, `trails validate`, and `trails diff`. The package does not expose a separate CLI binary, and retired `trails topo compile` / `trails topo verify` / `trails topo check` forms are not aliases.
@@ -287,11 +386,14 @@ These are programmatic Topography APIs for deriving, hashing, diffing, reading, 
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
+deriveTopoGraphEntryHash(entry) // stable hash of one TopoGraph entry
+deriveTopoGraphForceIdentity(force) // every persisted event fact, including timestamp and optional reason
+carryForwardTopoGraphForces(previous, next) // stable union; orphan history stays at graph level
 deriveWorkspaceView({ identity, selectedAppIds?, currentAppGraphHashes?, lockScope? })
 collectTopoGraphOverlays(topo, registrations) // namespaced overlays (adapter-contributed facts)
 deriveActivationGraph(topoGraph), deriveDeclaredTrailActivation(entry)
 deriveSignalActivationRelations(topoGraph)
-writeTrailsLock(lock, options?), readTrailsLock(options?)
+writeTrailsLock(lock, { dir: appRoot }), readTrailsLock({ dir: appRoot }) // v5 app lock; omitted dir retains legacy .trails/
 readTopoGraph(options?), readWorkspaceTrailIndex(options?)
 writeTopoGraph(topoGraph, options?), writeLockManifest(manifest, options?), readLockManifest(options?) // legacy beta artifact-family helpers
 
@@ -361,6 +463,72 @@ pruneUnpinnedSnapshots(db, options?)
 
 StoredTopoExport
 ```
+
+## `@ontrails/kv`
+
+Provider-neutral string storage through ordinary resource overrides and isolated test mocks. See the [KV Guide](../packages/kv/README.md) for TTL, cursor, and failure semantics.
+
+```typescript
+kv(id, options?)                  // declare a resource with fixed role: 'kv'
+createKvMock(options?)             // isolated memory client; optional millisecond clock
+kvPutOptionsSchema, kvListOptionsSchema, kvListPageSchema
+
+Kv, KvResource, KvResourceOptions, CreateKvMockOptions
+KvPutOptions, KvListOptions, KvListPage
+```
+
+### `@ontrails/kv/testing`
+
+```typescript
+createKvContractCases(options)     // cases with name/check; fixtures own clock and cleanup
+KvContractSubject, KvContractOptions, KvContractCase
+```
+
+The testing entrypoint uses Bun's test runner. A mock passing these cases does not prove a provider binding conforms.
+
+## `@ontrails/blob`
+
+Provider-neutral object storage reuses core `BlobRef` for reads and byte/stream bodies. See the [Blob Guide](../packages/blob/README.md) for actual size, MIME, cursor, and ownership guarantees.
+
+```typescript
+blob(id, options?)                // declare a resource with fixed role: 'blob'
+createBlobMock()                   // isolated memory storage with independent reads
+blobInfoSchema, blobPutOptionsSchema, blobListOptionsSchema, blobListPageSchema
+
+BlobStorage, BlobResource, BlobResourceOptions
+BlobInfo, BlobPutOptions, BlobListOptions, BlobListPage
+```
+
+### `@ontrails/blob/testing`
+
+```typescript
+createBlobContractCases(options)   // cases with name/check; fixtures own binding isolation and cleanup
+BlobContractSubject, BlobContractOptions, BlobContractCase
+```
+
+The testing entrypoint uses Bun's test runner. Shared cases qualify each binding, including prefix/binding cursor rejection; mock success alone is not provider proof.
+
+## `@ontrails/queue`
+
+Provider-neutral producers remain separate from core `queue()` consumer activation. See the [Queue Producer Guide](../packages/queue/README.md) for the JSON wire domain, batch validation, delays, and acceptance limits.
+
+```typescript
+queueProducer<Body>(id, options?)  // declare a resource with fixed role: 'queue'
+createQueueMock<Body>()            // isolated producer recorder, not a broker
+queueBodySchema, queueSendOptionsSchema, queueMessageSchema, queueBatchSchema
+
+QueueProducer, QueueMock, QueueProducerOptions, QueueProducerResource
+QueueBody, QueueSendOptions, QueueMessage
+```
+
+### `@ontrails/queue/testing`
+
+```typescript
+createQueueContractCases(options)  // cases with name/check; fixtures observe acceptance and native attempts
+QueueContractSubject, QueueContractOptions, QueueContractCase
+```
+
+The testing entrypoint uses Bun's test runner. Native provider attempts are counted before calls, including rejections; accepted-message logs do not prove pre-I/O validation or consumer processing on their own. Actual provider conformance and core consumer integration remain separate proofs.
 
 ## `@ontrails/store`
 
@@ -483,6 +651,19 @@ TestAllEstablishedOptions
 // @ontrails/testing/surface-parity
 testSurfaceParity(topo, options?), runSurfaceParityExample(...)
 SurfaceParityOptions, SurfaceParityComparison
+```
+
+### `@ontrails/testing/rpc`
+
+```typescript
+createRpcHarness({ graph, permit?, ctx?, ...kernelOptions })  // in-process harness over the RPC kernel
+rpc.call(method, params?)      // one request; { ok, result?, error?, id, response }
+rpc.notify(method, params?)    // one notification
+rpc.send(frame)                // raw single or batch frame → outbound frames
+rpc.discover()                 // typed trails.discover result
+rpc.pushed, rpc.state, rpc.handler
+
+RpcHarness, RpcHarnessOptions, RpcHarnessResult
 ```
 
 ## `@ontrails/warden`
@@ -656,6 +837,7 @@ clearConfigState()                   // clear global config state (for tests)
 // Derivation helpers
 deriveConfig(options?)               // resolve config values against schema + sources
 deriveConfigFields(schema)           // field descriptions from the schema
+deriveConfigSecretFields(schema, options?) // declared secret-field metadata, or typed incomplete evidence
 deriveConfigProvenance(result)       // provenance by resolved field
 deriveConfigEnvExample(schema)       // .env.example content from the schema
 deriveConfigExample(schema, format?) // commented example config for TOML / YAML / JSON
@@ -669,7 +851,14 @@ configInit                           // generate example config files
 DefineConfigOptions, TrailsWorkspaceConfig, TrailsWorkspaceAppConfig
 ReadTrailsProjectIdentityOptions, ReadTrailsProjectIdentityResult, ResolvedTrailsWorkspaceApp
 ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
+ConfigSecretAncestor, ConfigSecretField, ConfigSecretFieldDerivation, DeriveConfigSecretFieldsOptions
 ```
+
+Pass only trusted, application-owned Zod schemas and ordinary inputs to `deriveConfigSecretFields`. Nothing in the inspected schema, metadata, or options graph may be a Proxy. The helper is not a sandbox or a Proxy detector, and inputs outside this contract are not guaranteed to return typed incompleteness.
+
+Derivation accepts only checks and ancestor shapes known to preserve explicit branch selectors. Unknown checks, value-changing formats, and container refinements return incomplete without being run. Selecting a branch by its declared literal does not validate config values; a refinement can still reject the selector during parsing.
+
+Secret-field derivation uses explicit non-secret discriminant selections and returns only names, paths, sensitivity, local requiredness, and ancestor wrapper facts. Every present non-undefined object catchall, including strict and loose object policies, returns typed incompleteness at the containing object; plain stripped objects remain supported. Callers own effective profile applicability and must treat incomplete results as blocked derivation. Descriptor-safe object inspection is capability-gated: complete derivation is qualified on Zod 4.6.7; exact 4.3.5 imports and typechecks the API but returns incomplete for object inspection. The existing peer range is unchanged. For inputs within this contract, no defaults, getters, refinements, transforms, or resource factories are evaluated. See the [Config fieldguide](../packages/config/README.md#declared-secret-field-metadata).
 
 ## `@ontrails/permits`
 
@@ -680,7 +869,10 @@ authResource                         // resource for auth adapter lifecycle
 
 // Permits
 getPermit(ctx)                       // extract the resolved permit from context
-Permit                               // { id, scopes, roles?, tenantId?, metadata? }
+Permit                               // { actors, id, scopes, issuer?, expiresAt?, roles?, tenantId?, metadata? }
+PermitActor                          // { id, issuer?, kind, verified } (Core-owned)
+permitSchema                         // complete permit validation derived from Core
+derivePermitIdentityKey(permit)      // Result of exact [issuer, id, tenantId ?? null] key; requires issuer
 PermitExtractionInput                // surface-agnostic auth input
 
 // Adapters

@@ -251,7 +251,7 @@ describe('deriveWorkspaceView app-lock evidence', () => {
       expect.objectContaining({
         binding: 'unavailable',
         coaching:
-          'Regenerate apps/empty/trails.lock by compiling configured app empty.',
+          'Recover apps/empty/trails.lock from Git or follow its documented schema migration before compiling configured app empty.',
         detail: expect.stringContaining('Invalid JSON'),
         freshness: 'unavailable',
         id: 'empty',

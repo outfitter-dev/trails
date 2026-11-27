@@ -1,6 +1,6 @@
 {
   "name": "junction",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "bin": {
     "junction": "./bin/junction.ts"
@@ -23,7 +23,7 @@
     "@ontrails/mcp": "workspace:^",
     "@ontrails/permits": "workspace:^",
     "@ontrails/store": "workspace:^",
-    "hono": "^4.13.13",
+    "hono": "^4.13.19",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -9,6 +9,7 @@ import {
   ValidationError,
 } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
+import { isWardenSourceScanTarget } from '@ontrails/warden';
 
 export const PROJECT_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/u;
 export const PROJECT_NAME_MESSAGE =
@@ -58,6 +59,12 @@ export const trailIdToModuleName = (trailId: string): string =>
   trailId.startsWith(DRAFT_ID_PREFIX)
     ? `${DRAFT_ID_PREFIX}${trailId.slice(DRAFT_ID_PREFIX.length).replaceAll('.', '-')}`
     : trailId.replaceAll('.', '-');
+
+export const SCAFFOLD_SOURCE_ID_MESSAGE =
+  'Choose an ID whose generated source is not a declaration or test file.';
+
+export const isScaffoldSourceId = (id: string): boolean =>
+  isWardenSourceScanTarget(`src/${trailIdToModuleName(id)}.ts`);
 
 export const trailIdToExportName = (trailId: string): string =>
   trailId.replaceAll('.', '_');

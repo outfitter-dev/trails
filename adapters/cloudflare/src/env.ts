@@ -21,6 +21,7 @@ import {
   filterSurfaceTrails,
   isLiveTrailVersionEntry,
 } from '@ontrails/core';
+import { normalizeCron } from './cron.js';
 import type {
   AnyResource,
   BaseSurfaceOptions,
@@ -113,9 +114,11 @@ export interface BuildEnvResourceOverridesOptions extends Pick<
   /** Resource IDs already provided explicitly; env resolution skips them. */
   readonly except?: readonly string[] | undefined;
   /** Worker entrypoint whose reachable resources should be materialized. */
-  readonly entrypoint?: 'fetch' | 'queue' | undefined;
+  readonly entrypoint?: 'fetch' | 'mcp' | 'queue' | 'scheduled' | undefined;
   /** Physical queue delivered to the current queue entrypoint. */
   readonly queue?: string | undefined;
+  /** Cron firing on the current scheduled entrypoint; only its trails need bindings. */
+  readonly cron?: string | undefined;
 }
 
 const isInternalTrail = (
@@ -139,6 +142,22 @@ const passesIncludeFilter = (
   include.length === 0 ||
   matchesAnyPattern(trailId, include);
 
+const activationKindFor = (
+  entrypoint: 'fetch' | 'queue' | 'scheduled'
+): 'queue' | 'schedule' | 'webhook' => {
+  switch (entrypoint) {
+    case 'queue': {
+      return 'queue';
+    }
+    case 'scheduled': {
+      return 'schedule';
+    }
+    default: {
+      return 'webhook';
+    }
+  }
+};
+
 /**
  * Mirror of Worker activation eligibility for one entrypoint. Activation
  * consumers are skipped by `filterSurfaceTrails`, so the bridge selects them
@@ -148,15 +167,23 @@ const isEligibleWorkerActivationTrail = (
   graphTrail: Trail<unknown, unknown, unknown>,
   options: BuildEnvResourceOverridesOptions
 ): boolean => {
-  const activationKind =
-    (options.entrypoint ?? 'fetch') === 'queue' ? 'queue' : 'webhook';
+  if (options.entrypoint === 'mcp') {
+    return false;
+  }
+  const activationKind = activationKindFor(options.entrypoint ?? 'fetch');
+  const firingCron =
+    options.cron === undefined ? undefined : normalizeCron(options.cron);
   const hasWorkerActivationSource = graphTrail.activationSources.some(
     (activation) =>
       activation.source.kind === activationKind &&
       (activationKind !== 'queue' ||
         options.queue === undefined ||
         (typeof activation.source.queue === 'string' &&
-          activation.source.queue.trim() === options.queue))
+          activation.source.queue.trim() === options.queue)) &&
+      (activationKind !== 'schedule' ||
+        firingCron === undefined ||
+        (typeof activation.source.cron === 'string' &&
+          normalizeCron(activation.source.cron) === firingCron))
   );
   if (!hasWorkerActivationSource) {
     return false;
@@ -186,7 +213,8 @@ const collectSurfaceEligibleTrails = (
 ): readonly Trail<unknown, unknown, unknown>[] => {
   const trails = graph.list();
   const eligible = new Map<string, Trail<unknown, unknown, unknown>>();
-  if ((options.entrypoint ?? 'fetch') === 'fetch') {
+  const entrypoint = options.entrypoint ?? 'fetch';
+  if (entrypoint === 'fetch' || entrypoint === 'mcp') {
     const filtered = filterSurfaceTrails(trails, {
       exclude: options.exclude,
       include: options.include,

@@ -70,22 +70,40 @@
     },
     {
       "created": "2026-03-31",
-      "depends_on": ["38"],
+      "depends_on": [
+        "0",
+        "5",
+        "6",
+        "12",
+        "26",
+        "35",
+        "38",
+        "39",
+        "48",
+        "50",
+        "52",
+        "59"
+      ],
       "inbound": [
         {
-          "context": "- [ADR: WebSocket Trailhead](drafts/20260331-websocket-trailhead.md) (draft) -",
+          "context": "- [ADR: RPC Is a Surface Hosted on WebSocket](drafts/20260331-rpc-surface-hosted-on-websocket.md) (draft) -",
           "from": "0038",
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
+          "context": "The [RPC surface draft](drafts/20260331-rpc-surface-hosted-on-websocket.md) renders this model through `trails.subscribe`, `trails.event`, `trails.checkpoint`, and `trails.ack`. It preserves client-he",
+          "from": "0059",
+          "fromPath": "docs/adr/0059-durable-subscriptions-over-signals.md"
         }
       ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260331-websocket-trailhead.md",
-      "slug": "websocket-trailhead",
+      "path": "docs/adr/drafts/20260331-rpc-surface-hosted-on-websocket.md",
+      "slug": "rpc-surface-hosted-on-websocket",
       "status": "draft",
       "superseded_by": null,
-      "title": "WebSocket Trailhead",
-      "updated": "2026-04-09"
+      "title": "RPC Is a Surface Hosted on WebSocket",
+      "updated": "2026-11-25"
     },
     {
       "created": "2026-04-01",
@@ -128,7 +146,7 @@
       "path": "docs/adr/drafts/20260406-documentation-structure.md",
       "slug": "documentation-structure",
       "status": "draft",
-      "superseded_by": null,
+      "superseded_by": ["62"],
       "title": "Documentation structure",
       "updated": "2026-04-09"
     },
@@ -336,6 +354,19 @@
       "superseded_by": null,
       "title": "Addressable Facts, Dynamic Queries",
       "updated": "2026-08-29"
+    },
+    {
+      "created": "2026-10-28",
+      "depends_on": ["17", "46", "52", "54"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20261028-merge-friendly-lock-v6.md",
+      "slug": "merge-friendly-lock-v6",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Merge-Friendly Lock v6",
+      "updated": "2026-10-28"
     }
   ],
   "version": 1

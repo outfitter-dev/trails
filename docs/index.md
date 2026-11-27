@@ -24,7 +24,13 @@
 - **[Architecture](./architecture.md)** — Hexagonal model, package layers, how data flows from trail to surface
 - **[API Reference](./api-reference.md)** — Every public export across all packages
 - **[Resources Guide](./resources.md)** — Define resources, declare them on trails, test with mock factories
+- **[Signals Guide](./signals.md)** — Scaffold typed signals and wire producer and consumer relationships
+- **[D1 Schema Migrations](./migration/d1-schema.md)** — Reviewed SQL, explicit bootstrap, and adoption of existing Cloudflare D1 stores
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
+- **[KV Guide](../packages/kv/README.md)** — Provider-neutral key-value resources, isolated memory mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
+- **[Blob Guide](../packages/blob/README.md)** — Provider-neutral blob resources, byte/stream bodies, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
+- **[Queue Producer Guide](../packages/queue/README.md)** — Provider-neutral queue producers, recorder mocks, and binding conformance; runtime and `/testing` contracts in the [API Reference](./api-reference.md)
+- **[Cloudflare Deployment Bindings](./surfaces/cloudflare.md)** — Native role binding, migration, stream budgets and consumer verification
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance
@@ -39,8 +45,9 @@
 - **[Surface Accommodations](./surfaces/surface-accommodations.md)** — How aliases, input mappings, trailheads, and trail forks keep surfaces honest
 - **[Trailheads](./surfaces/surface-trailheads.md)** — MCP shaping for dense topos without adding a new core primitive
 - **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
+- **[Cloudflare Workers Host](../adapters/cloudflare/README.md)** — HTTP/queue hosting, env resources, and the structural MCP factory slot; real MCP transport integration remains a separate gate
 - **[Trailhead Parity](./surfaces/surface-trailhead-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped rendering
-- **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
+- **RPC Surface, hosted on WebSocket** — JSON-RPC 2.0 over `@ontrails/rpc`, landing with its Bun WebSocket host. See [Horizons](./horizons.md) for the direction.
 
 ## Governing your codebase?
 
@@ -91,4 +98,4 @@
 
 ## Where to next?
 
-- **[Horizons](./horizons.md)** — WebSocket, mounts, packs, guide-driven SDKs, and the post-v1 roadmap
+- **[Horizons](./horizons.md)** — the RPC surface, mounts, packs, guide-driven SDKs, and the post-v1 roadmap

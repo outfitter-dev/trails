@@ -2,14 +2,14 @@
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   skillset.schema: "1"
-  trails: 0.2.5
+  trails: 0.3.0
   version: 0.4.0
 name: trails
 ---
 
 # Trails
 
-Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and an implementation that establishes how it runs — then surface it on CLI, MCP, or HTTP today, with WebSocket planned on the same contract-first model.
+Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and an implementation that establishes how it runs — then surface it on CLI, MCP, or HTTP today, with the RPC surface (JSON-RPC 2.0, hosted on WebSocket first) landing on the same contract-first model.
 
 ## Quick Start
 
@@ -193,7 +193,7 @@ import { surface } from '@ontrails/http/bun';
 await surface(graph, { port: 3000 });
 ```
 
-WebSocket is planned, not shipped. See the CLI surface docs, the MCP surface docs, and the HTTP package docs for derivation details.
+The RPC surface is hosted on WebSocket and speaks JSON-RPC 2.0; it is not a "WebSocket surface". See the CLI surface docs, the MCP surface docs, and the HTTP package docs for derivation details.
 
 ## Resources
 

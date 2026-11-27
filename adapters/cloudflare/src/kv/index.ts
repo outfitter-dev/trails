@@ -273,3 +273,13 @@ export const cloudflareKv = (
   });
   return definition;
 };
+
+/**
+ * Adapt a native Workers KV namespace to the provider-neutral role contract.
+ * @example
+ * ```ts
+ * const client = createCloudflareKvBinding(env['FLAGS']);
+ * await client.put('key', 'value');
+ * ```
+ */
+export { createCloudflareKvBinding } from './binding.js';

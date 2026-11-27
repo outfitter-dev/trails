@@ -28,6 +28,7 @@ import {
   writeTopoGraph,
   writeTrailsLock,
 } from '../index.js';
+import { TRAIL_METADATA_HASH_VERSION } from '../types.js';
 import type { LockManifest, TopoGraph, TrailsLock } from '../types.js';
 
 let tempDir: string;
@@ -156,6 +157,88 @@ afterEach(async () => {
 });
 
 describe('loadWayfinderArtifacts', () => {
+  test.each(['inline', 'split'] as const)(
+    'checks %s locks with the checksum rules recorded in the graph',
+    async (form) => {
+      const meta = { detail: { ['__proto__']: 'authored fact' } };
+      const graph = makeTopoGraph({
+        entries: [
+          {
+            exampleCount: 0,
+            id: 'user.show',
+            kind: 'trail',
+            meta,
+            surfaces: [],
+          },
+        ],
+        library: undefined,
+      });
+      const manifest = makeLockManifest(graph);
+      // Recorded using the previous public graph hash function.
+      const oldHash =
+        '127acfd11a4904be5d9c5f99d27393e922fda082f7494064cdaa166b803ebe5f';
+      const write = async (topoGraph: TopoGraph, sha256: string) => {
+        if (form === 'inline') {
+          await writeTrailsLock(
+            {
+              scope: manifest.scope,
+              summary: manifest.summary,
+              topoGraph,
+              topoGraphHash: sha256,
+              version: 5,
+            } as TrailsLock,
+            { dir: tempDir }
+          );
+        } else {
+          await writeTopoGraph(topoGraph, { dir: artifactsDir() });
+          await writeLockManifest(
+            {
+              ...manifest,
+              artifacts: [{ path: 'topo.lock', role: 'topo', sha256 }],
+            },
+            { dir: artifactsDir() }
+          );
+        }
+      };
+      const read = () =>
+        loadWayfinderArtifacts(
+          form === 'inline' ? { rootDir: tempDir } : { dir: artifactsDir() }
+        );
+
+      await write(graph, oldHash);
+      const legacy = await read();
+      expect(legacy.topoGraph?.entries[0]?.meta).toEqual(meta);
+      expect(legacy.artifactStatus).toEqual({
+        artifacts: ['topoStore'],
+        status: 'missing',
+      });
+
+      const marked = {
+        ...graph,
+        trailMetadataHashVersion: TRAIL_METADATA_HASH_VERSION,
+      };
+      const newHash = deriveTopoGraphHash(marked);
+      await write(marked, newHash);
+      const current = await read();
+      expect(current.topoGraph?.trailMetadataHashVersion).toBe(
+        TRAIL_METADATA_HASH_VERSION
+      );
+      expect(current.artifactStatus).toEqual({
+        artifacts: ['topoStore'],
+        status: 'missing',
+      });
+
+      await write(marked, oldHash);
+      const mismatch = await read();
+      expect(mismatch.artifactStatus).toMatchObject({
+        reasons: [
+          expect.objectContaining({ reason: 'lock-manifest-hash-mismatch' }),
+        ],
+        status: 'stale',
+      });
+    }
+  );
+
   test('loads fresh topo graph, lock manifest, and topo-store artifacts', async () => {
     await writeFreshArtifacts();
     const snapshot = seedTopoStore();
@@ -702,7 +785,7 @@ describe('lock integrity precedence', () => {
 
     expect(loaded.artifactStatus).toMatchObject({
       artifact: 'topoGraph',
-      message: expect.stringContaining('regenerate'),
+      message: expect.stringContaining('Restore a verified copy from Git'),
       status: 'schema-version-drift',
     });
   });

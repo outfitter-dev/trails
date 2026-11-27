@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import * as permits from '@ontrails/permits';
-import { authAdapterSchema } from '@ontrails/permits';
+import {
+  authAdapterSchema,
+  createTokenCallbackAdapter,
+  resolvePermitFromInput,
+} from '@ontrails/permits';
 import { createJwtAdapter as createJwtAdapterFromSubpath } from '@ontrails/permits/jwt';
 import type { JwtAdapterOptions } from '@ontrails/permits/jwt';
 import {
@@ -22,6 +26,11 @@ describe('@ontrails/permits public API', () => {
 
   test('does not expose the legacy auth layer wrapper', () => {
     expect('authLayer' in permits).toBe(false);
+  });
+
+  test('exposes the callback adapter and normalized boundary on the existing root', () => {
+    expect(typeof createTokenCallbackAdapter).toBe('function');
+    expect(typeof resolvePermitFromInput).toBe('function');
   });
 
   test('keeps JWT adapter APIs canonical on the jwt subpath with root convenience', () => {

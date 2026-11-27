@@ -19,6 +19,8 @@ import {
   wayfindVersionsTrail,
 } from '@ontrails/topography';
 
+import * as addResource from './trails/add-resource.js';
+import * as addSignal from './trails/add-signal.js';
 import * as addSurface from './trails/add-surface.js';
 import * as addTrail from './trails/add-trail.js';
 import * as addVerify from './trails/add-verify.js';
@@ -41,6 +43,7 @@ import * as guide from './trails/guide.js';
 import * as regrade from './trails/regrade.js';
 import * as releaseCheck from './trails/release-check.js';
 import * as releaseSmoke from './trails/release-smoke.js';
+import * as resolve from './trails/resolve.js';
 import * as revise from './trails/revise.js';
 import * as run from './trails/run.js';
 import * as runExample from './trails/run-example.js';
@@ -64,6 +67,7 @@ export const operatorApp = topo(
   survey,
   topoCommand,
   compile,
+  resolve,
   configExplain,
   topoHistory,
   topoPin,
@@ -87,6 +91,8 @@ export const operatorApp = topo(
   createAdapter,
   createScaffold,
   createVersions,
+  addResource,
+  addSignal,
   addSurface,
   addVerify,
   addTrail,
